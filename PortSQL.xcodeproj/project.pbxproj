@@ -15,7 +15,6 @@
 		0FD3C3B5901BC1DD3F758AFA /* WorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B89D239D48FE17AB83512E6 /* WorkspaceViewModel.swift */; };
 		18903C1364D1714A15A1B6EA /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF537FA01FB9472E0C3A3149 /* RootView.swift */; };
 		22A06DB93DF8644C3D8CCF05 /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */; };
-		2D677371743649C145A60550 /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027F971DCFDFF1B193CA0D81 /* AppConfiguration.swift */; };
 		3F111012F4D1C2CD865BA6E2 /* DatabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4E17BED217B13694466C80 /* DatabaseService.swift */; };
 		44372F37F45906E04BBDAFA5 /* MonetizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A50E32F4584D6D357DA45A /* MonetizationView.swift */; };
 		4974231030C743F5C928FC15 /* WorkspaceLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */; };
@@ -46,7 +45,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		027F971DCFDFF1B193CA0D81 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		0717CE81BCB40CF0EE63576C /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceLibraryStore.swift; sourceTree = "<group>"; };
 		1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLAssistService.swift; sourceTree = "<group>"; };
@@ -155,14 +153,6 @@
 			path = PortSQLTests;
 			sourceTree = "<group>";
 		};
-		AF37206DEDD807F67E30730A /* Configuration */ = {
-			isa = PBXGroup;
-			children = (
-				027F971DCFDFF1B193CA0D81 /* AppConfiguration.swift */,
-			);
-			path = Configuration;
-			sourceTree = "<group>";
-		};
 		D84AC60588F3E6E392CA1EE5 = {
 			isa = PBXGroup;
 			children = (
@@ -180,7 +170,6 @@
 				4A15F76C29C24204DA7CF27F /* AppIcon.icon */,
 				F63EEF824843AF5CD2D74DDA /* PortSQL.entitlements */,
 				AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */,
-				AF37206DEDD807F67E30730A /* Configuration */,
 				E55FB617DBB9AD7C80F32C89 /* Models */,
 				4ADA93F599B58A01E136AD5A /* Preview Content */,
 				5C607F2438AA9FF2F40A1FD8 /* Services */,
@@ -319,7 +308,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2D677371743649C145A60550 /* AppConfiguration.swift in Sources */,
 				FCCD7A2C653B30FFFFE39383 /* Bookmark.swift in Sources */,
 				0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */,
 				22A06DB93DF8644C3D8CCF05 /* BookmarkStore.swift in Sources */,
@@ -361,10 +349,12 @@
 				CODE_SIGN_ENTITLEMENTS = PortSQL/PortSQL.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"PortSQL/Preview Content\"";
 				DEVELOPMENT_TEAM = 9733K94JUG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PortSQL;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -375,6 +365,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_NAME = PortSQL;
 				SDKROOT = iphoneos;
@@ -408,10 +399,12 @@
 				CODE_SIGN_ENTITLEMENTS = PortSQL/PortSQL.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"PortSQL/Preview Content\"";
 				DEVELOPMENT_TEAM = 9733K94JUG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = PortSQL;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -422,6 +415,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_NAME = PortSQL;
 				SDKROOT = iphoneos;

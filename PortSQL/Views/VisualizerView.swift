@@ -85,10 +85,6 @@ struct VisualizerComposerSheet: View {
         VisualizationService.chartPoints(for: previewResult, preset: draft)
     }
 
-    private var canUseUnlimitedRows: Bool {
-        draft.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-    }
-
     private var queryBinding: Binding<String> {
         Binding(
             get: { draft.sourceQuery ?? "" },
@@ -133,6 +129,24 @@ struct VisualizerComposerSheet: View {
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(PortSQLPalette.ink)
                                     Spacer()
+                                    Menu {
+                                        Button("Remove LIMIT / OFFSET") {
+                                            let cleaned = VisualizationService.queryWithoutLimitAndOffset(queryBinding.wrappedValue)
+                                            queryBinding.wrappedValue = cleaned
+                                        }
+                                        .disabled(queryBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                                        Button("Remove trailing ORDER BY") {
+                                            let cleaned = VisualizationService.queryWithoutTrailingOrderBy(queryBinding.wrappedValue)
+                                            queryBinding.wrappedValue = cleaned
+                                        }
+                                        .disabled(queryBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                    } label: {
+                                        Label("Clean Up", systemImage: "line.3.horizontal.decrease.circle")
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(PortSQLPalette.ink)
+                                    }
+
                                     Button {
                                         Task {
                                             await runPreview()
@@ -169,7 +183,7 @@ struct VisualizerComposerSheet: View {
                                 )
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                                        .stroke(PortSQLPalette.stroke, lineWidth: 1)
                                 }
                             }
 
@@ -282,20 +296,6 @@ struct VisualizerComposerSheet: View {
 
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 VisualizationControlMenu(
-                                    title: "Rows",
-                                    value: draft.usesUnlimitedRows ? "All matching rows" : "Current page",
-                                    systemImage: "rectangle.stack.badge.person.crop"
-                                ) {
-                                    Button("Current page") {
-                                        draft.usesUnlimitedRows = false
-                                    }
-                                    Button("All matching rows") {
-                                        draft.usesUnlimitedRows = true
-                                    }
-                                    .disabled(!canUseUnlimitedRows)
-                                }
-
-                                VisualizationControlMenu(
                                     title: "Group",
                                     value: draft.groupField ?? "None",
                                     systemImage: "square.3.layers.3d.top.filled"
@@ -334,10 +334,7 @@ struct VisualizerComposerSheet: View {
                                 title: draft.chartTitle.isEmpty ? "Preview" : draft.chartTitle,
                                 subtitle: previewSubtitle
                             )
-                            if draft.usesUnlimitedRows && isLoadingExpandedPreview {
-                                ProgressView("Loading all matching rows…")
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            } else if let expandedPreviewError {
+                            if let expandedPreviewError {
                                 StatusBanner(
                                     title: "Preview unavailable",
                                     message: expandedPreviewError,
@@ -404,6 +401,7 @@ struct VisualizerComposerSheet: View {
                         stored.yAxisTitle = normalizedYAxisTitle
                         stored.yFields = stored.resolvedYFields
                         stored.yField = stored.resolvedYFields.first ?? ""
+                        stored.usesUnlimitedRows = false
                         stored.connectionName = workspace.selectedBookmark?.name ?? stored.connectionName
                         stored.connectionProfileID = workspace.selectedBookmark?.id ?? stored.connectionProfileID
                         stored.databaseName = workspace.activeDatabaseName
@@ -435,7 +433,6 @@ struct VisualizerComposerSheet: View {
     private var previewSubtitle: String {
         let parts = [
             draft.chartType.title,
-            draft.usesUnlimitedRows ? "All matching rows" : "Current page",
             draft.resolvedYFields.count > 1 ? "\(draft.resolvedYFields.count) metrics" : nil,
             draft.groupField.map { "Group \($0)" },
             draft.labelField.map { "Label \($0)" },
@@ -504,9 +501,8 @@ struct VisualizerComposerSheet: View {
         isLoadingExpandedPreview = true
         expandedPreviewError = nil
         do {
-            let query = draft.usesUnlimitedRows ? VisualizationService.unlimitedQuery(from: sourceQuery) : sourceQuery
             var result = try await DatabaseService.shared.execute(
-                query: query,
+                query: sourceQuery,
                 profile: bookmark,
                 database: draft.databaseName
             )
@@ -603,7 +599,7 @@ private struct VisualizationPresetCard: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(PortSQLPalette.ink)
-                        .background(Color.white.opacity(0.92), in: Circle())
+                        .background(PortSQLPalette.surface, in: Circle())
                     }
                 }
 
@@ -613,9 +609,6 @@ private struct VisualizationPresetCard: View {
                         VisualizerMetaChip(text: "Y \(preset.yFieldsSummary)")
                         if preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
                             VisualizerMetaChip(text: "SQL")
-                        }
-                        if preset.usesUnlimitedRows {
-                            VisualizerMetaChip(text: "All rows")
                         }
                         if preset.resolvedYFields.count > 1 {
                             VisualizerMetaChip(text: "Multi-metric")
@@ -673,9 +666,8 @@ private struct VisualizationPresetCard: View {
         isRunning = true
         runError = nil
         do {
-            let query = preset.usesUnlimitedRows ? VisualizationService.unlimitedQuery(from: sourceQuery) : sourceQuery
             var result = try await DatabaseService.shared.execute(
-                query: query,
+                query: sourceQuery,
                 profile: bookmark,
                 database: preset.databaseName
             )
@@ -1117,7 +1109,7 @@ private struct LabeledVisualizerTextField: View {
                 .textInputAutocapitalization(.words)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
-                .background(Color.white.opacity(0.94), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(PortSQLPalette.stroke, lineWidth: 1)
@@ -1148,7 +1140,7 @@ private struct VisualizationControlMenu<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.94), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .stroke(PortSQLPalette.stroke, lineWidth: 1)
@@ -1167,7 +1159,7 @@ private struct VisualizerMetaChip: View {
             .foregroundStyle(PortSQLPalette.ink)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
-            .background(Color.white.opacity(0.92), in: Capsule())
+            .background(PortSQLPalette.surface, in: Capsule())
             .overlay {
                 Capsule()
                     .stroke(PortSQLPalette.stroke, lineWidth: 1)

@@ -33,8 +33,7 @@ final class WorkspaceViewModel: ObservableObject {
         self.bookmarkStore = bookmarkStore
         self.libraryStore = libraryStore
         if selectedBookmarkID == nil {
-            selectedBookmarkID = bookmarkStore.bookmarks.first(where: { $0.id == ConnectionProfile.developmentBookmarkID })?.id
-                ?? bookmarkStore.bookmarks.first?.id
+            selectedBookmarkID = bookmarkStore.bookmarks.first?.id
         }
         selectedDatabaseName = selectedBookmark?.trimmedDefaultDatabase ?? ""
         refreshAssist()

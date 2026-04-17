@@ -19,7 +19,6 @@ final class BookmarkStore: ObservableObject {
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
         load()
-        installDevelopmentProfileIfAvailable()
         NotificationCenter.default.addObserver(
             forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
             object: keyValueStore,
@@ -88,18 +87,5 @@ final class BookmarkStore: ObservableObject {
             mergedByID[profile.id] = profile
         }
         return mergedByID.values.sorted(by: { $0.createdAt > $1.createdAt })
-    }
-
-    private func installDevelopmentProfileIfAvailable() {
-        guard let profile = ConnectionProfile.developmentProfileFromConfiguration() else { return }
-
-        if let index = bookmarks.firstIndex(where: { $0.id == profile.id }) {
-            guard bookmarks[index] != profile else { return }
-            bookmarks[index] = profile
-        } else {
-            bookmarks.insert(profile, at: 0)
-        }
-
-        persist()
     }
 }

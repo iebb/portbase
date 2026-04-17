@@ -3,11 +3,15 @@ import SwiftUI
 
 enum PortSQLPalette {
     static let accent = Color(red: 0.05, green: 0.42, blue: 0.82)
-    static let accentSoft = Color(red: 0.91, green: 0.96, blue: 1.0)
-    static let ink = Color(red: 0.08, green: 0.11, blue: 0.16)
-    static let panel = Color.white.opacity(0.84)
-    static let stroke = Color.black.opacity(0.08)
-    static let canvasTop = Color(red: 0.96, green: 0.98, blue: 1.0)
+    static let accentSoft = Color(uiColor: .secondarySystemBackground)
+    static let ink = Color(uiColor: .label)
+    static let panel = Color(uiColor: .secondarySystemBackground).opacity(0.92)
+    static let surface = Color(uiColor: .systemBackground).opacity(0.94)
+    static let tertiarySurface = Color(uiColor: .tertiarySystemBackground).opacity(0.96)
+    static let stroke = Color(uiColor: .separator).opacity(0.45)
+    static let canvasTop = Color(uiColor: .systemGroupedBackground)
+    static let canvasAccent = Color(uiColor: .secondarySystemGroupedBackground)
+    static let shadow = Color.black.opacity(0.16)
 }
 
 struct RootView: View {
@@ -309,10 +313,6 @@ private struct QueryEditorCard: View {
                 }
                 actionSection
 
-                if !workspace.suggestions.isEmpty {
-                    suggestionSection
-                }
-
                 feedbackSection
             }
         }
@@ -377,6 +377,19 @@ private struct QueryEditorCard: View {
             .padding(12)
             .accessibilityLabel("Open full screen SQL editor")
         }
+        .overlay(alignment: .topLeading) {
+            if !workspace.suggestions.isEmpty {
+                InlineSuggestionMenu(
+                    suggestions: visibleSuggestions.map { InlineSuggestionItem(title: $0, subtitle: completionSubtitle(for: $0)) },
+                    onSelect: { item in
+                        workspace.applySuggestion(item.title)
+                    }
+                )
+                .padding(.top, 54)
+                .padding(.leading, 12)
+                .padding(.trailing, 52)
+            }
+        }
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .fill(PortSQLPalette.ink)
@@ -385,62 +398,6 @@ private struct QueryEditorCard: View {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
                 .stroke(Color.white.opacity(0.05), lineWidth: 1)
         }
-    }
-
-    private var suggestionSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                Label("Autocomplete", systemImage: "text.cursor")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(PortSQLPalette.ink.opacity(0.7))
-                Spacer()
-                Text("Tap to insert")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-
-            ForEach(Array(visibleSuggestions.enumerated()), id: \.element) { index, suggestion in
-                Button {
-                    workspace.applySuggestion(suggestion)
-                } label: {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(suggestion)
-                                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
-                                .foregroundStyle(PortSQLPalette.ink)
-                                .lineLimit(1)
-                            Text(completionSubtitle(for: suggestion))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-                        Spacer()
-                        Image(systemName: "arrow.turn.down.right")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(PortSQLPalette.accent)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
-                }
-                .buttonStyle(.plain)
-
-                if index < visibleSuggestions.count - 1 {
-                    Divider()
-                        .overlay(PortSQLPalette.stroke)
-                        .padding(.horizontal, 14)
-                }
-            }
-        }
-        .background(Color.white.opacity(0.94), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(PortSQLPalette.stroke, lineWidth: 1)
-        }
-        .shadow(color: Color.black.opacity(0.05), radius: 14, y: 8)
-        .frame(maxWidth: 420, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var visibleSuggestions: [String] {
@@ -1049,7 +1006,7 @@ struct ResultsCard: View {
     }
 
     private var controlBackground: Color {
-        Color.white.opacity(0.85)
+        PortSQLPalette.surface
     }
 }
 
@@ -1313,7 +1270,7 @@ private struct BookmarkIconPicker: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
-                    .background(Color.white.opacity(0.94), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .overlay {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .stroke(PortSQLPalette.stroke, lineWidth: 1)
@@ -1329,7 +1286,7 @@ private struct BookmarkIconPicker: View {
                                         .fill(
                                             iconName == profile.resolvedIconName
                                                 ? AnyShapeStyle(profile.engine.gradient)
-                                                : AnyShapeStyle(Color.white.opacity(0.92))
+                                                : AnyShapeStyle(PortSQLPalette.surface)
                                         )
                                         .frame(height: 68)
                                         .overlay {
@@ -1584,16 +1541,71 @@ struct StatusBanner: View {
     }
 }
 
+struct InlineSuggestionItem: Hashable {
+    let title: String
+    let subtitle: String?
+}
+
+struct InlineSuggestionMenu: View {
+    let suggestions: [InlineSuggestionItem]
+    let onSelect: (InlineSuggestionItem) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(suggestions.enumerated()), id: \.offset) { index, item in
+                Button {
+                    onSelect(item)
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: item.subtitle == nil ? 0 : 3) {
+                            Text(item.title)
+                                .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                                .foregroundStyle(PortSQLPalette.ink)
+                                .lineLimit(1)
+                            if let subtitle = item.subtitle, !subtitle.isEmpty {
+                                Text(subtitle)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        Spacer(minLength: 8)
+                        Image(systemName: "arrow.turn.down.right")
+                            .font(.footnote.weight(.bold))
+                            .foregroundStyle(PortSQLPalette.accent)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+
+                if index < suggestions.count - 1 {
+                    Divider()
+                        .overlay(PortSQLPalette.stroke)
+                        .padding(.horizontal, 14)
+                }
+            }
+        }
+        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(PortSQLPalette.stroke, lineWidth: 1)
+        }
+        .shadow(color: PortSQLPalette.shadow.opacity(0.35), radius: 14, y: 8)
+        .frame(maxWidth: 420, alignment: .leading)
+    }
+}
+
 struct WorkbenchBackground: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                colors: [PortSQLPalette.canvasTop, Color.cyan.opacity(0.06)],
+                colors: [PortSQLPalette.canvasTop, PortSQLPalette.canvasAccent],
                 startPoint: .top,
                 endPoint: .bottom
             )
             Circle()
-                .fill(Color.cyan.opacity(0.13))
+                .fill(PortSQLPalette.accent.opacity(0.10))
                 .frame(width: 240, height: 240)
                 .blur(radius: 30)
                 .offset(x: 120, y: -240)
@@ -1635,7 +1647,11 @@ struct PrimaryCapsuleButtonStyle: ButtonStyle {
             .foregroundStyle(PortSQLPalette.ink)
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
-            .background(Color.white, in: Capsule())
+            .background(PortSQLPalette.surface, in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(PortSQLPalette.stroke, lineWidth: 1)
+            }
             .opacity(configuration.isPressed ? 0.92 : 1)
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
     }
@@ -1668,7 +1684,7 @@ struct TagButtonStyle: ButtonStyle {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 999, style: .continuous)
-                    .fill(isSelected ? PortSQLPalette.accent : Color.white.opacity(0.84))
+                    .fill(isSelected ? PortSQLPalette.accent : PortSQLPalette.surface)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 999, style: .continuous)
@@ -1684,7 +1700,7 @@ struct StudioActionTileButtonStyle: ButtonStyle {
             .foregroundStyle(PortSQLPalette.ink)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.white.opacity(0.9))
+                    .fill(PortSQLPalette.surface)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: 18, style: .continuous)

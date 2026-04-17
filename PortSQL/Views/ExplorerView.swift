@@ -80,7 +80,7 @@ struct ExplorerView: View {
                                         }
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 10)
-                                        .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                         .overlay {
                                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                                 .stroke(PortSQLPalette.stroke, lineWidth: 1)
@@ -118,7 +118,7 @@ struct ExplorerView: View {
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 10)
-                                .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                                         .stroke(PortSQLPalette.stroke, lineWidth: 1)
@@ -194,79 +194,63 @@ struct ExplorerView: View {
         suggestions: [ClauseSuggestion],
         apply: @escaping (ClauseSuggestion) -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 8) {
-                Text(title)
-                    .font(.system(size: 11, weight: .bold, design: .default))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .allowsTightening(true)
-                    .frame(width: 44, alignment: .leading)
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.system(size: 11, weight: .bold, design: .default))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .allowsTightening(true)
+                .frame(width: 44, alignment: .leading)
 
-                ZStack(alignment: .leading) {
-                    HighlightedClauseEditor(text: text) { isFocused in
-                        if isFocused {
-                            focusedClause = field
-                        } else if focusedClause == field {
-                            focusedClause = nil
-                        }
-                    }
-                    .frame(height: 28)
-
-                    if text.wrappedValue.isEmpty {
-                        Text(placeholder)
-                            .font(.system(size: 14, design: .monospaced))
-                            .foregroundStyle(.secondary.opacity(0.55))
-                            .padding(.horizontal, 2)
-                            .allowsHitTesting(false)
+            ZStack(alignment: .leading) {
+                HighlightedClauseEditor(text: text) { isFocused in
+                    if isFocused {
+                        focusedClause = field
+                    } else if focusedClause == field {
+                        focusedClause = nil
                     }
                 }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(focusedClause == field ? PortSQLPalette.accent.opacity(0.45) : PortSQLPalette.stroke, lineWidth: 1)
-            }
+                .frame(height: 28)
 
-            if focusedClause == field && !suggestions.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(suggestions.prefix(6).enumerated()), id: \.element) { index, suggestion in
-                        Button {
-                            apply(suggestion)
-                        } label: {
-                            HStack(spacing: 10) {
-                                Text(suggestion.label)
-                                    .font(.system(size: 14, design: .monospaced))
-                                    .foregroundStyle(PortSQLPalette.ink)
-                                    .lineLimit(1)
-                                Spacer()
-                                Image(systemName: "arrow.turn.down.right")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundStyle(PortSQLPalette.accent)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                        }
-                        .buttonStyle(.plain)
-
-                        if index < min(suggestions.count, 6) - 1 {
-                            Divider()
-                                .overlay(PortSQLPalette.stroke)
-                                .padding(.horizontal, 12)
-                        }
-                    }
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .font(.system(size: 14, design: .monospaced))
+                        .foregroundStyle(.secondary.opacity(0.55))
+                        .padding(.horizontal, 2)
+                        .allowsHitTesting(false)
                 }
-                .background(Color.white.opacity(0.98), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(PortSQLPalette.stroke, lineWidth: 1)
-                }
-                .shadow(color: Color.black.opacity(0.06), radius: 10, y: 6)
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(focusedClause == field ? PortSQLPalette.accent.opacity(0.45) : PortSQLPalette.stroke, lineWidth: 1)
+        }
+        .overlay(alignment: .topLeading) {
+            if focusedClause == field && !suggestions.isEmpty {
+                InlineSuggestionMenu(
+                    suggestions: Array(suggestions.prefix(6)).map {
+                        InlineSuggestionItem(title: $0.label, subtitle: nil)
+                    },
+                    onSelect: { item in
+                        if let match = suggestions.first(where: { $0.label == item.title }) {
+                            apply(match)
+                        }
+                    }
+                )
+                .padding(.leading, 56)
+                .offset(y: -suggestionMenuHeight)
+                .zIndex(5)
+            }
+        }
+        .zIndex(focusedClause == field && !suggestions.isEmpty ? 10 : 0)
+    }
+
+    private var suggestionMenuHeight: CGFloat {
+        12 + (44 * 6)
     }
 
     private var explorerSubtitle: String {
@@ -539,7 +523,7 @@ struct ExplorerView: View {
             .foregroundStyle(PortSQLPalette.ink)
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .background(Color.white.opacity(0.88), in: Capsule())
+            .background(PortSQLPalette.surface, in: Capsule())
             .overlay {
                 Capsule()
                     .stroke(PortSQLPalette.stroke, lineWidth: 1)

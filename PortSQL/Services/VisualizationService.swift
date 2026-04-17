@@ -322,6 +322,32 @@ enum VisualizationService {
         return hadSemicolon ? result + ";" : result
     }
 
+    static func queryWithoutLimitAndOffset(_ sql: String) -> String {
+        unlimitedQuery(from: sql)
+    }
+
+    static func queryWithoutTrailingOrderBy(_ sql: String) -> String {
+        let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return sql }
+
+        var normalized = trimmed
+        var hadSemicolon = false
+        if normalized.hasSuffix(";") {
+            normalized.removeLast()
+            hadSemicolon = true
+        }
+
+        normalized = queryWithoutLimitAndOffset(normalized)
+        normalized = normalized.replacingOccurrences(
+            of: #"(?is)\s+ORDER\s+BY\s+[\s\S]*$"#,
+            with: "",
+            options: [.regularExpression]
+        )
+
+        let result = normalized.trimmingCharacters(in: .whitespacesAndNewlines)
+        return hadSemicolon && !result.isEmpty ? result + ";" : result
+    }
+
     private static func defaultXField(from fields: [VisualizationFieldDescriptor]) -> String {
         if let date = fields.first(where: \.supportsDate) {
             return date.name

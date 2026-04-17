@@ -1,17 +1,17 @@
 {
   "fill" : {
     "linear-gradient" : [
-      "display-p3:0.07000,0.11000,0.18000,1.00000",
-      "display-p3:0.09000,0.42000,0.76000,1.00000"
+      "display-p3:0.92000,0.96500,1.00000,1.00000",
+      "display-p3:0.99000,0.90500,0.96500,1.00000"
     ],
     "orientation" : {
       "start" : {
-        "x" : 0.12,
-        "y" : 0.08
+        "x" : 0.08,
+        "y" : 0.10
       },
       "stop" : {
-        "x" : 0.88,
-        "y" : 0.92
+        "x" : 0.92,
+        "y" : 0.90
       }
     }
   },
@@ -21,7 +21,7 @@
         {
           "blend-mode" : "normal",
           "fill" : "none",
-          "glass" : true,
+          "glass" : false,
           "image-name" : "logo-1024.png",
           "name" : "logo-1024",
           "opacity-specializations" : [
@@ -34,11 +34,11 @@
       ],
       "shadow" : {
         "kind" : "neutral",
-        "opacity" : 0.5
+        "opacity" : 0.08
       },
       "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+        "enabled" : false,
+        "value" : 0
       }
     }
   ],
