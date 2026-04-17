@@ -27,7 +27,7 @@ struct VisualizerView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .padding(.vertical, 18)
         }
         .background(WorkbenchBackground().ignoresSafeArea())
@@ -52,11 +52,13 @@ struct VisualizerView: View {
 
 struct VisualizerComposerSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var libraryStore: WorkspaceLibraryStore
     @EnvironmentObject private var bookmarks: BookmarkStore
 
     @State private var draft: SavedVisualizationPreset
+    @State private var draftQueryCursorOffset = 0
     @State private var expandedPreviewResult: QueryResultTable?
     @State private var isLoadingExpandedPreview = false
     @State private var expandedPreviewError: String?
@@ -165,13 +167,17 @@ struct VisualizerComposerSheet: View {
                                 }
 
                                 ZStack(alignment: .topLeading) {
-                                    HighlightedQueryEditor(text: queryBinding)
+                                    HighlightedQueryEditor(
+                                        text: queryBinding,
+                                        cursorOffset: $draftQueryCursorOffset,
+                                        colorScheme: colorScheme
+                                    )
                                         .frame(minHeight: 150)
 
                                     if queryBinding.wrappedValue.isEmpty {
                                         Text("SELECT delivered_at, package_count, distance_km, delivery_hours, category, region\nFROM chart_doc_shipments\nORDER BY delivered_at;")
                                             .font(.system(.body, design: .monospaced))
-                                            .foregroundStyle(.white.opacity(0.26))
+                                            .foregroundStyle(colorScheme == .dark ? .white.opacity(0.26) : .black.opacity(0.26))
                                             .padding(.horizontal, 16)
                                             .padding(.vertical, 18)
                                             .allowsHitTesting(false)
@@ -179,11 +185,11 @@ struct VisualizerComposerSheet: View {
                                 }
                                 .background(
                                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .fill(PortSQLPalette.ink)
+                                        .fill(colorScheme == .dark ? Color(red: 0.10, green: 0.12, blue: 0.16) : Color(uiColor: .systemBackground))
                                 )
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .stroke(PortSQLPalette.stroke, lineWidth: 1)
+                                        .stroke(colorScheme == .dark ? Color.white.opacity(0.05) : PortSQLPalette.stroke, lineWidth: 1)
                                 }
                             }
 

@@ -194,42 +194,43 @@ struct ExplorerView: View {
         suggestions: [ClauseSuggestion],
         apply: @escaping (ClauseSuggestion) -> Void
     ) -> some View {
-        HStack(spacing: 8) {
-            Text(title)
-                .font(.system(size: 11, weight: .bold, design: .default))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .allowsTightening(true)
-                .frame(width: 44, alignment: .leading)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 11, weight: .bold, design: .default))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .allowsTightening(true)
+                    .frame(width: 44, alignment: .leading)
 
-            ZStack(alignment: .leading) {
-                HighlightedClauseEditor(text: text) { isFocused in
-                    if isFocused {
-                        focusedClause = field
-                    } else if focusedClause == field {
-                        focusedClause = nil
+                ZStack(alignment: .leading) {
+                    HighlightedClauseEditor(text: text) { isFocused in
+                        if isFocused {
+                            focusedClause = field
+                        } else if focusedClause == field {
+                            focusedClause = nil
+                        }
+                    }
+                    .frame(height: 28)
+
+                    if text.wrappedValue.isEmpty {
+                        Text(placeholder)
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundStyle(.secondary.opacity(0.55))
+                            .padding(.horizontal, 2)
+                            .allowsHitTesting(false)
                     }
                 }
-                .frame(height: 28)
-
-                if text.wrappedValue.isEmpty {
-                    Text(placeholder)
-                        .font(.system(size: 14, design: .monospaced))
-                        .foregroundStyle(.secondary.opacity(0.55))
-                        .padding(.horizontal, 2)
-                        .allowsHitTesting(false)
-                }
             }
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(focusedClause == field ? PortSQLPalette.accent.opacity(0.45) : PortSQLPalette.stroke, lineWidth: 1)
-        }
-        .overlay(alignment: .topLeading) {
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(focusedClause == field ? PortSQLPalette.accent.opacity(0.45) : PortSQLPalette.stroke, lineWidth: 1)
+            }
+
             if focusedClause == field && !suggestions.isEmpty {
                 InlineSuggestionMenu(
                     suggestions: Array(suggestions.prefix(6)).map {
@@ -241,16 +242,8 @@ struct ExplorerView: View {
                         }
                     }
                 )
-                .padding(.leading, 56)
-                .offset(y: -suggestionMenuHeight)
-                .zIndex(5)
             }
         }
-        .zIndex(focusedClause == field && !suggestions.isEmpty ? 10 : 0)
-    }
-
-    private var suggestionMenuHeight: CGFloat {
-        12 + (44 * 6)
     }
 
     private var explorerSubtitle: String {

@@ -7,6 +7,7 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var selectedDatabaseName = ""
     @Published private(set) var availableDatabases: [String] = []
     @Published var queryText = ""
+    @Published var queryCursorOffset = 0
     @Published var explorerWhereClause = ""
     @Published var explorerOrderByClause = ""
     @Published private(set) var explorerPageIndex = 0
@@ -153,16 +154,19 @@ final class WorkspaceViewModel: ObservableObject {
                 }
             }
         }
-        suggestions = SQLAssistService.suggestions(for: queryText, schema: schema)
+        suggestions = SQLAssistService.suggestions(
+            for: queryText,
+            catalog: schemaCatalog,
+            activeDatabase: activeDatabaseName,
+            cursorOffset: queryCursorOffset
+        )
         hints = SQLAssistService.hints(for: queryText)
     }
 
     func applySuggestion(_ suggestion: String) {
-        if queryText.hasSuffix(" ") || queryText.isEmpty {
-            queryText += suggestion
-        } else {
-            queryText += " " + suggestion
-        }
+        let applied = SQLAssistService.applySuggestion(suggestion, to: queryText, cursorOffset: queryCursorOffset)
+        queryText = applied.query
+        queryCursorOffset = applied.cursorOffset
         refreshAssist()
     }
 

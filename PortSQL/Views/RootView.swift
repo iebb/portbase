@@ -64,7 +64,6 @@ struct RootView: View {
 private struct WorkbenchView: View {
     @EnvironmentObject private var bookmarks: BookmarkStore
     @EnvironmentObject private var workspace: WorkspaceViewModel
-    @State private var isShowingLibrarySheet = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -76,7 +75,7 @@ private struct WorkbenchView: View {
                     QueryEditorCard()
                     ResultsCard()
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 18)
                 .frame(width: proxy.size.width, alignment: .topLeading)
             }
@@ -89,28 +88,16 @@ private struct WorkbenchView: View {
                 ConnectionSwitcherButton(toolbarMode: true)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 12) {
-                    DatabaseSwitcherButton()
-                    Button {
-                        isShowingLibrarySheet = true
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(PortSQLPalette.ink)
-                    }
-                    .accessibilityLabel("Open studio tools")
-                }
+                DatabaseSwitcherButton()
             }
         }
         .sheet(item: $workspace.selectedProfileForEdit) { profile in
             BookmarkEditorView(profile: profile)
         }
-        .sheet(isPresented: $isShowingLibrarySheet) {
-            LibrarySheetView()
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-        }
         .onChange(of: workspace.queryText) { _, _ in
+            workspace.refreshAssist()
+        }
+        .onChange(of: workspace.queryCursorOffset) { _, _ in
             workspace.refreshAssist()
         }
     }
@@ -297,12 +284,32 @@ struct DatabaseSwitcherButton: View {
 private struct QueryEditorCard: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var bookmarks: BookmarkStore
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isShowingExpandedEditor = false
+    @State private var isShowingLibrarySheet = false
 
     var body: some View {
         PanelCard {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "Query", subtitle: querySubtitle)
+                HStack(alignment: .top, spacing: 12) {
+                    SectionHeader(title: "Query", subtitle: querySubtitle)
+                    Spacer(minLength: 12)
+                    Button {
+                        isShowingLibrarySheet = true
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(PortSQLPalette.ink)
+                            .frame(width: 36, height: 36)
+                            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(PortSQLPalette.stroke, lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Open query library")
+                }
 
                 if bookmarks.bookmarks.isEmpty {
                     connectionSection
@@ -312,12 +319,20 @@ private struct QueryEditorCard: View {
                     runButton
                 }
                 actionSection
+                if !workspace.suggestions.isEmpty {
+                    suggestionSection
+                }
 
                 feedbackSection
             }
         }
         .fullScreenCover(isPresented: $isShowingExpandedEditor) {
             ExpandedQueryEditorSheet()
+        }
+        .sheet(isPresented: $isShowingLibrarySheet) {
+            LibrarySheetView()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -351,13 +366,17 @@ private struct QueryEditorCard: View {
 
     private var editorSection: some View {
         ZStack(alignment: .topLeading) {
-            HighlightedQueryEditor(text: $workspace.queryText)
+            HighlightedQueryEditor(
+                text: $workspace.queryText,
+                cursorOffset: $workspace.queryCursorOffset,
+                colorScheme: colorScheme
+            )
                 .frame(minHeight: 220)
 
             if workspace.queryText.isEmpty {
                 Text("SELECT customerName, country\nFROM customers\nORDER BY customerName\nLIMIT 25;")
                     .font(.system(.body, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.26))
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.26) : .black.opacity(0.26))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 18)
                     .allowsHitTesting(false)
@@ -369,39 +388,44 @@ private struct QueryEditorCard: View {
             } label: {
                 Image(systemName: "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.9))
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.9) : PortSQLPalette.ink)
                     .frame(width: 34, height: 34)
-                    .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background((colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.06)), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .buttonStyle(.plain)
             .padding(12)
             .accessibilityLabel("Open full screen SQL editor")
         }
-        .overlay(alignment: .topLeading) {
-            if !workspace.suggestions.isEmpty {
-                InlineSuggestionMenu(
-                    suggestions: visibleSuggestions.map { InlineSuggestionItem(title: $0, subtitle: completionSubtitle(for: $0)) },
-                    onSelect: { item in
-                        workspace.applySuggestion(item.title)
-                    }
-                )
-                .padding(.top, 54)
-                .padding(.leading, 12)
-                .padding(.trailing, 52)
-            }
-        }
         .background(
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(PortSQLPalette.ink)
+                .fill(editorBackgroundColor)
         )
         .overlay {
             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                .stroke(editorBorderColor, lineWidth: 1)
         }
+    }
+
+    private var suggestionSection: some View {
+        InlineSuggestionMenu(
+            suggestions: visibleSuggestions.map { InlineSuggestionItem(title: $0, subtitle: completionSubtitle(for: $0)) },
+            onSelect: { item in
+                workspace.applySuggestion(item.title)
+            }
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var visibleSuggestions: [String] {
         Array(workspace.suggestions.prefix(6))
+    }
+
+    private var editorBackgroundColor: Color {
+        colorScheme == .dark ? Color(red: 0.10, green: 0.12, blue: 0.16) : Color(uiColor: .systemBackground)
+    }
+
+    private var editorBorderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.05) : PortSQLPalette.stroke
     }
 
     private func completionSubtitle(for suggestion: String) -> String {
@@ -504,6 +528,7 @@ private struct QueryEditorCard: View {
 private struct ExpandedQueryEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
@@ -512,13 +537,17 @@ private struct ExpandedQueryEditorSheet: View {
                     .ignoresSafeArea()
 
                 ZStack(alignment: .topLeading) {
-                    HighlightedQueryEditor(text: $workspace.queryText)
+                    HighlightedQueryEditor(
+                        text: $workspace.queryText,
+                        cursorOffset: $workspace.queryCursorOffset,
+                        colorScheme: colorScheme
+                    )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     if workspace.queryText.isEmpty {
                         Text("SELECT customerName, country\nFROM customers\nORDER BY customerName\nLIMIT 25;")
                             .font(.system(.body, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.26))
+                            .foregroundStyle(colorScheme == .dark ? .white.opacity(0.26) : .black.opacity(0.26))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 18)
                             .allowsHitTesting(false)
@@ -526,11 +555,11 @@ private struct ExpandedQueryEditorSheet: View {
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(PortSQLPalette.ink)
+                        .fill(colorScheme == .dark ? Color(red: 0.10, green: 0.12, blue: 0.16) : Color(uiColor: .systemBackground))
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        .stroke(colorScheme == .dark ? Color.white.opacity(0.05) : PortSQLPalette.stroke, lineWidth: 1)
                 }
                 .padding(16)
             }
@@ -1310,7 +1339,7 @@ private struct BookmarkIconPicker: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 18)
             }
             .background(WorkbenchBackground().ignoresSafeArea())
@@ -1570,12 +1599,12 @@ struct InlineSuggestionMenu: View {
                             }
                         }
                         Spacer(minLength: 8)
-                        Image(systemName: "arrow.turn.down.right")
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(PortSQLPalette.accent)
+                        Image(systemName: "return")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
+                    .padding(.vertical, 10)
                 }
                 .buttonStyle(.plain)
 
@@ -1591,8 +1620,7 @@ struct InlineSuggestionMenu: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(PortSQLPalette.stroke, lineWidth: 1)
         }
-        .shadow(color: PortSQLPalette.shadow.opacity(0.35), radius: 14, y: 8)
-        .frame(maxWidth: 420, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
