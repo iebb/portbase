@@ -1,0 +1,672 @@
+import SwiftUI
+import UIKit
+
+struct ExplorerView: View {
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+    @State private var focusedClause: ClauseField?
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    PanelCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text("Browse")
+                                        .font(.headline.weight(.bold))
+                                    Text(explorerSubtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button {
+                                    focusedClause = nil
+                                    workspace.restartBrowse()
+                                } label: {
+                                    Image(systemName: "play.fill")
+                                        .font(.subheadline.weight(.semibold))
+                                        .frame(width: 38, height: 38)
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.white)
+                                .background(PortSQLPalette.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(PortSQLPalette.accent.opacity(0.2), lineWidth: 1)
+                                }
+                            }
+
+                            if let selectedTable = workspace.selectedExplorerTable {
+                                HStack(alignment: .center, spacing: 10) {
+                                    Menu {
+                                        ForEach(filteredTables) { table in
+                                            Button {
+                                                focusedClause = nil
+                                                workspace.selectExplorerTable(table)
+                                            } label: {
+                                                HStack(alignment: .top, spacing: 10) {
+                                                    Image(systemName: workspace.selectedExplorerTableID == table.id ? "checkmark.circle.fill" : "tablecells")
+                                                        .font(.footnote.weight(.bold))
+                                                        .foregroundStyle(workspace.selectedExplorerTableID == table.id ? PortSQLPalette.accent : .secondary)
+
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        Text(table.name)
+                                                            .font(.subheadline.weight(.semibold))
+                                                        VStack(alignment: .leading, spacing: 1) {
+                                                            Text(tableSummary(table))
+                                                                .font(.caption2)
+                                                                .foregroundStyle(.secondary)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text("Table")
+                                                    .font(.caption2.weight(.semibold))
+                                                    .foregroundStyle(.secondary)
+                                                Text(selectedTable.name)
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundStyle(PortSQLPalette.ink)
+                                                    .lineLimit(1)
+                                            }
+                                            Spacer()
+                                            Image(systemName: "chevron.down")
+                                                .font(.footnote.weight(.bold))
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                        .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(PortSQLPalette.stroke, lineWidth: 1)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                clauseRow(
+                                    field: .whereClause,
+                                    title: "WHERE",
+                                    text: $workspace.explorerWhereClause,
+                                    placeholder: "customerNumber > 5",
+                                    suggestions: whereSuggestions(for: selectedTable),
+                                    apply: applyWhereSuggestion
+                                )
+
+                                clauseRow(
+                                    field: .orderByClause,
+                                    title: "ORDER",
+                                    text: $workspace.explorerOrderByClause,
+                                    placeholder: "customerNumber DESC",
+                                    suggestions: orderBySuggestions(for: selectedTable),
+                                    apply: applyOrderSuggestion
+                                )
+                            } else {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "tablecells")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                    Text("Choose a table to browse and filter rows.")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .stroke(PortSQLPalette.stroke, lineWidth: 1)
+                                }
+                            }
+
+                        }
+                    }
+
+                    if let schemaErrorMessage = workspace.schemaErrorMessage {
+                        PanelCard {
+                            StatusBanner(
+                                title: "Schema unavailable",
+                                message: schemaErrorMessage,
+                                tint: .orange
+                            )
+                        }
+                    } else if filteredTables.isEmpty {
+                        PanelCard {
+                            ContentUnavailableView(
+                                "No schema metadata",
+                                systemImage: "square.stack.3d.up.slash",
+                                description: Text("Connect to a database and refresh the explorer to inspect live tables and columns.")
+                            )
+                        }
+                    } else {
+                        ResultsCard()
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 12)
+                .frame(width: proxy.size.width, alignment: .topLeading)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    dismissClauseFocus()
+                }
+            }
+        }
+        .background(WorkbenchBackground().ignoresSafeArea())
+        .navigationTitle("Explorer")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                ConnectionSwitcherButton(toolbarMode: true)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                DatabaseSwitcherButton()
+            }
+        }
+    }
+
+    private var filteredTables: [SchemaTableDescriptor] {
+        workspace.schemaCatalog
+    }
+
+    private func tableSummary(_ table: SchemaTableDescriptor) -> String {
+        let columnSummary = "\(table.columns.count) columns"
+        let rowSummary = table.rowCountEstimate.map { " ~\($0) rows" } ?? ""
+        return columnSummary + rowSummary
+    }
+
+    private func dismissClauseFocus() {
+        focusedClause = nil
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+
+    @ViewBuilder
+    private func clauseRow(
+        field: ClauseField,
+        title: String,
+        text: Binding<String>,
+        placeholder: String,
+        suggestions: [ClauseSuggestion],
+        apply: @escaping (ClauseSuggestion) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 8) {
+                Text(title)
+                    .font(.system(size: 11, weight: .bold, design: .default))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .allowsTightening(true)
+                    .frame(width: 44, alignment: .leading)
+
+                ZStack(alignment: .leading) {
+                    HighlightedClauseEditor(text: text) { isFocused in
+                        if isFocused {
+                            focusedClause = field
+                        } else if focusedClause == field {
+                            focusedClause = nil
+                        }
+                    }
+                    .frame(height: 28)
+
+                    if text.wrappedValue.isEmpty {
+                        Text(placeholder)
+                            .font(.system(size: 14, design: .monospaced))
+                            .foregroundStyle(.secondary.opacity(0.55))
+                            .padding(.horizontal, 2)
+                            .allowsHitTesting(false)
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(focusedClause == field ? PortSQLPalette.accent.opacity(0.45) : PortSQLPalette.stroke, lineWidth: 1)
+            }
+
+            if focusedClause == field && !suggestions.isEmpty {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(suggestions.prefix(6).enumerated()), id: \.element) { index, suggestion in
+                        Button {
+                            apply(suggestion)
+                        } label: {
+                            HStack(spacing: 10) {
+                                Text(suggestion.label)
+                                    .font(.system(size: 14, design: .monospaced))
+                                    .foregroundStyle(PortSQLPalette.ink)
+                                    .lineLimit(1)
+                                Spacer()
+                                Image(systemName: "arrow.turn.down.right")
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(PortSQLPalette.accent)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+
+                        if index < min(suggestions.count, 6) - 1 {
+                            Divider()
+                                .overlay(PortSQLPalette.stroke)
+                                .padding(.horizontal, 12)
+                        }
+                    }
+                }
+                .background(Color.white.opacity(0.98), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(PortSQLPalette.stroke, lineWidth: 1)
+                }
+                .shadow(color: Color.black.opacity(0.06), radius: 10, y: 6)
+            }
+        }
+    }
+
+    private var explorerSubtitle: String {
+        if let database = workspace.activeDatabaseName {
+            return "Live browsing in \(database)"
+        }
+        return "Choose a table to browse live rows"
+    }
+
+    private func whereSuggestions(for table: SchemaTableDescriptor) -> [ClauseSuggestion] {
+        let context = clauseContext(for: workspace.explorerWhereClause)
+        let columnNames = table.columns.map(\.name)
+        let normalizedColumns = Set(columnNames.map { $0.lowercased() })
+        let previousToken = context.previousToken?.lowercased()
+        let currentToken = context.currentToken.lowercased()
+
+        let columnSuggestions = columnNames.map { ClauseSuggestion(label: $0, insertion: $0) }
+        let logicalSuggestions = [
+            ClauseSuggestion(label: "AND", insertion: "AND "),
+            ClauseSuggestion(label: "OR", insertion: "OR ")
+        ]
+        let operatorSuggestions = [
+            ClauseSuggestion(label: "=", insertion: "= "),
+            ClauseSuggestion(label: "!=", insertion: "!= "),
+            ClauseSuggestion(label: ">", insertion: "> "),
+            ClauseSuggestion(label: ">=", insertion: ">= "),
+            ClauseSuggestion(label: "<", insertion: "< "),
+            ClauseSuggestion(label: "<=", insertion: "<= "),
+            ClauseSuggestion(label: "LIKE", insertion: "LIKE "),
+            ClauseSuggestion(label: "IN", insertion: "IN "),
+            ClauseSuggestion(label: "IS NULL", insertion: "IS NULL"),
+            ClauseSuggestion(label: "IS NOT NULL", insertion: "IS NOT NULL")
+        ]
+        let valueSuggestions = [
+            ClauseSuggestion(label: "NULL", insertion: "NULL"),
+            ClauseSuggestion(label: "0", insertion: "0"),
+            ClauseSuggestion(label: "''", insertion: "''"),
+            ClauseSuggestion(label: "TRUE", insertion: "TRUE"),
+            ClauseSuggestion(label: "FALSE", insertion: "FALSE")
+        ]
+
+        let currentLooksLikeColumn = normalizedColumns.contains(currentToken)
+        let previousIsColumn = previousToken.map(normalizedColumns.contains) ?? false
+
+        if previousToken == "is" {
+            return filteredSuggestions(
+                from: [
+                    ClauseSuggestion(label: "NULL", insertion: "NULL"),
+                    ClauseSuggestion(label: "NOT NULL", insertion: "NOT NULL")
+                ] + logicalSuggestions + columnSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        if ["=", "!=", ">", ">=", "<", "<=", "like", "in"].contains(previousToken ?? "") {
+            return filteredSuggestions(
+                from: valueSuggestions + columnSuggestions + logicalSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        if ["null", "not null", "true", "false"].contains(previousToken ?? "") {
+            return filteredSuggestions(
+                from: logicalSuggestions + columnSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        if previousIsColumn || currentLooksLikeColumn {
+            return filteredSuggestions(
+                from: operatorSuggestions + logicalSuggestions + columnSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        if ["and", "or"].contains(previousToken ?? "") {
+            return filteredSuggestions(
+                from: columnSuggestions + logicalSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        return filteredSuggestions(
+            from: columnSuggestions + logicalSuggestions + operatorSuggestions,
+            matching: context.currentToken
+        )
+    }
+
+    private func orderBySuggestions(for table: SchemaTableDescriptor) -> [ClauseSuggestion] {
+        let context = clauseContext(for: workspace.explorerOrderByClause)
+        let columnNames = table.columns.map(\.name)
+        let normalizedColumns = Set(columnNames.map { $0.lowercased() })
+        let previousToken = context.previousToken?.lowercased()
+        let currentToken = context.currentToken.lowercased()
+        let currentLooksLikeColumn = normalizedColumns.contains(currentToken)
+
+        let columnSuggestions = columnNames.map { ClauseSuggestion(label: $0, insertion: $0) }
+        let sortSuggestions = [
+            ClauseSuggestion(label: "ASC", insertion: "ASC"),
+            ClauseSuggestion(label: "DESC", insertion: "DESC"),
+            ClauseSuggestion(label: ",", insertion: ", ")
+        ]
+
+        if context.lastSignificantCharacter == "," {
+            return filteredSuggestions(
+                from: columnSuggestions + sortSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        if ["asc", "desc"].contains(previousToken ?? "") {
+            return filteredSuggestions(
+                from: [ClauseSuggestion(label: ",", insertion: ", ")] + columnSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        if previousToken.map(normalizedColumns.contains) ?? false || currentLooksLikeColumn {
+            return filteredSuggestions(
+                from: sortSuggestions + columnSuggestions,
+                matching: context.currentToken
+            )
+        }
+
+        return filteredSuggestions(
+            from: columnSuggestions + sortSuggestions,
+            matching: context.currentToken
+        )
+    }
+
+    private func filteredSuggestions(from candidates: [ClauseSuggestion], matching token: String) -> [ClauseSuggestion] {
+        let deduplicated = orderedUnique(candidates)
+        let normalizedToken = token.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalizedToken.isEmpty else {
+            return Array(deduplicated.prefix(8))
+        }
+
+        let ranked = deduplicated.sorted { lhs, rhs in
+            let leftRank = suggestionRank(lhs.label, token: normalizedToken)
+            let rightRank = suggestionRank(rhs.label, token: normalizedToken)
+            if leftRank != rightRank {
+                return leftRank < rightRank
+            }
+            return lhs.label.localizedCaseInsensitiveCompare(rhs.label) == .orderedAscending
+        }
+
+        return Array(ranked.filter { suggestionRank($0.label, token: normalizedToken) < 3 }.prefix(8))
+    }
+
+    private func applyWhereSuggestion(_ suggestion: ClauseSuggestion) {
+        workspace.explorerWhereClause = mergedClause(current: workspace.explorerWhereClause, suggestion: suggestion)
+        focusedClause = .whereClause
+    }
+
+    private func applyOrderSuggestion(_ suggestion: ClauseSuggestion) {
+        workspace.explorerOrderByClause = mergedClause(current: workspace.explorerOrderByClause, suggestion: suggestion)
+        focusedClause = .orderByClause
+    }
+
+    private func mergedClause(current: String, suggestion: ClauseSuggestion) -> String {
+        let fragment = trailingTokenFragment(in: current)
+
+        if !fragment.isEmpty {
+            let dropCount = fragment.count
+            let prefix = String(current.dropLast(dropCount))
+            return normalizedClause(prefix + suggestion.insertion)
+        }
+
+        if current.isEmpty {
+            return normalizedClause(suggestion.insertion)
+        }
+
+        if suggestion.insertion == ", " {
+            return normalizedClause(current + ", ")
+        }
+
+        if let lastCharacter = current.last, lastCharacter.isWhitespace {
+            return normalizedClause(current + suggestion.insertion)
+        }
+
+        return normalizedClause(current + " " + suggestion.insertion)
+    }
+
+    private func clauseContext(for input: String) -> ClauseContext {
+        let tokens = clauseTokens(in: input)
+        let endsWithWhitespace = input.last?.isWhitespace == true
+        let fragment = trailingTokenFragment(in: input)
+        let currentToken = endsWithWhitespace ? "" : fragment
+        let completedTokens = currentToken.isEmpty ? tokens : Array(tokens.dropLast())
+        return ClauseContext(
+            currentToken: currentToken,
+            previousToken: completedTokens.last,
+            lastSignificantCharacter: input.trimmingCharacters(in: .whitespacesAndNewlines).last
+        )
+    }
+
+    private func clauseTokens(in input: String) -> [String] {
+        var tokens: [String] = []
+        let characters = Array(input)
+        var index = 0
+
+        while index < characters.count {
+            let character = characters[index]
+
+            if character.isWhitespace {
+                index += 1
+                continue
+            }
+
+            if character.isLetter || character.isNumber || character == "_" {
+                let start = index
+                index += 1
+                while index < characters.count,
+                      characters[index].isLetter || characters[index].isNumber || characters[index] == "_" {
+                    index += 1
+                }
+                tokens.append(String(characters[start..<index]))
+                continue
+            }
+
+            if index + 1 < characters.count {
+                let pair = String(characters[index...index + 1])
+                if [">=", "<=", "!=", "=="].contains(pair) {
+                    tokens.append(pair)
+                    index += 2
+                    continue
+                }
+            }
+
+            if [">", "<", "=", ",", "(", ")"].contains(character) {
+                tokens.append(String(character))
+            }
+            index += 1
+        }
+
+        return tokens
+    }
+
+    private func trailingTokenFragment(in input: String) -> String {
+        let fragment = input.reversed().prefix { $0.isLetter || $0.isNumber || $0 == "_" }
+        return String(fragment.reversed())
+    }
+
+    private func normalizedClause(_ value: String) -> String {
+        value.replacingOccurrences(of: "  ", with: " ")
+    }
+
+    private func orderedUnique(_ candidates: [ClauseSuggestion]) -> [ClauseSuggestion] {
+        var seen = Set<ClauseSuggestion>()
+        return candidates.filter { seen.insert($0).inserted }
+    }
+
+    private func suggestionRank(_ candidate: String, token: String) -> Int {
+        let normalizedCandidate = candidate.lowercased()
+        if normalizedCandidate == token {
+            return 0
+        }
+        if normalizedCandidate.hasPrefix(token) {
+            return 1
+        }
+        if normalizedCandidate.contains(token) {
+            return 2
+        }
+        return 3
+    }
+
+    private func explorerTag(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(PortSQLPalette.ink)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(Color.white.opacity(0.88), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(PortSQLPalette.stroke, lineWidth: 1)
+            }
+    }
+
+    private enum ClauseField {
+        case whereClause
+        case orderByClause
+    }
+
+    private struct ClauseSuggestion: Hashable {
+        let label: String
+        let insertion: String
+    }
+
+    private struct ClauseContext {
+        let currentToken: String
+        let previousToken: String?
+        let lastSignificantCharacter: Character?
+    }
+}
+
+struct LibrarySheetView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+    @State private var selection: LibrarySection = .history
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Picker("Library", selection: $selection) {
+                        ForEach(LibrarySection.allCases) { section in
+                            Text(section.title).tag(section)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if selection == .history {
+                        if workspace.history.isEmpty {
+                            Text("Run queries to build a local history.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(workspace.history.prefix(12)) { entry in
+                                Button {
+                                    workspace.apply(history: entry)
+                                    dismiss()
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(entry.title)
+                                            .font(.subheadline.weight(.semibold))
+                                        Text(entry.connectionName + " • " + entry.summary)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                        Text(entry.sql)
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(3)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 6)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    } else {
+                        HStack {
+                            Text("Reusable snippets")
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Button("Save Current") {
+                                workspace.saveSnippet()
+                            }
+                            .buttonStyle(SecondaryActionButtonStyle())
+                        }
+
+                        if workspace.snippets.isEmpty {
+                            Text("Save snippets for common admin tasks and diagnostics.")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(workspace.snippets.prefix(12)) { snippet in
+                                Button {
+                                    workspace.apply(snippet: snippet)
+                                    dismiss()
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(snippet.title)
+                                            .font(.subheadline.weight(.semibold))
+                                        Text(snippet.sql)
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(3)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 6)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 18)
+            }
+            .navigationTitle("Library")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private enum LibrarySection: String, CaseIterable, Identifiable {
+    case history
+    case snippets
+
+    var id: String { rawValue }
+
+    var title: String {
+        rawValue.capitalized
+    }
+}

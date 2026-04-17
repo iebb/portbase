@@ -1,0 +1,51 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.07000,0.11000,0.18000,1.00000",
+      "display-p3:0.09000,0.42000,0.76000,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.12,
+        "y" : 0.08
+      },
+      "stop" : {
+        "x" : 0.88,
+        "y" : 0.92
+      }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : "none",
+          "glass" : true,
+          "image-name" : "logo-1024.png",
+          "name" : "logo-1024",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 1
+            }
+          ]
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}

@@ -1,0 +1,48 @@
+name: PortSQL
+options:
+  bundleIdPrefix: ad.neko
+packages:
+  MySQLNIO:
+    path: Packages/mysql-nio
+  PostgresNIO:
+    url: https://github.com/vapor/postgres-nio.git
+    revision: f294b6205defeb23dc04c4e094b04f0de5784d4b
+targets:
+  PortSQL:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: PortSQL
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ad.neko.portsql
+        PRODUCT_NAME: PortSQL
+        SWIFT_VERSION: 6.0
+        DEVELOPMENT_TEAM: 9733K94JUG
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        DEVELOPMENT_ASSET_PATHS: "\"PortSQL/Preview Content\""
+        CODE_SIGN_ENTITLEMENTS: PortSQL/PortSQL.entitlements
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: PortSQL
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+    dependencies:
+      - package: MySQLNIO
+        product: MySQLNIO
+      - package: PostgresNIO
+        product: PostgresNIO
+      - sdk: Charts.framework
+  PortSQLTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: PortSQLTests
+    dependencies:
+      - target: PortSQL

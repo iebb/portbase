@@ -1,0 +1,14 @@
+.DS_Store
+.tmp-portsql-screen.png
+
+.artifacts/
+.deriveddata/
+.deriveddata-*/
+
+xcuserdata/
+*.xcuserstate
+
+PortSQL.xcodeproj/xcuserdata/
+
+*.swp
+*.swo
