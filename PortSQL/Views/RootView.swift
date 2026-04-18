@@ -349,16 +349,16 @@ private struct QueryEditorCard: View {
 
     private var actionSection: some View {
         HStack(spacing: 8) {
-            actionButton("Format", detail: "Shape SQL", systemImage: "text.alignleft", disabled: trimmedQuery.isEmpty) {
+            actionButton("FORMAT", systemImage: "text.alignleft", disabled: trimmedQuery.isEmpty) {
                 workspace.formatQuery()
             }
-            actionButton("Explain", detail: "Plan", systemImage: "waveform.path.ecg", disabled: workspace.selectedBookmark == nil || trimmedQuery.isEmpty) {
+            actionButton("EXPLAIN", systemImage: "waveform.path.ecg", disabled: workspace.selectedBookmark == nil || trimmedQuery.isEmpty) {
                 workspace.runExplain()
             }
-            actionButton("Save", detail: "Snippet", systemImage: "bookmark", disabled: trimmedQuery.isEmpty) {
+            actionButton("SAVE", systemImage: "bookmark", disabled: trimmedQuery.isEmpty) {
                 workspace.saveSnippet()
             }
-            actionButton("Schema", detail: "Reload", systemImage: "arrow.clockwise", disabled: workspace.activeDatabaseName == nil) {
+            actionButton("SCHEMA", systemImage: "arrow.clockwise", disabled: workspace.activeDatabaseName == nil) {
                 workspace.reloadSchema()
             }
         }
@@ -499,25 +499,20 @@ private struct QueryEditorCard: View {
         .disabled(workspace.isRunning || workspace.selectedBookmark == nil || workspace.activeDatabaseName == nil || trimmedQuery.isEmpty)
     }
 
-    private func actionButton(_ title: String, detail: String, systemImage: String, disabled: Bool, action: @escaping () -> Void) -> some View {
+    private func actionButton(_ title: String, systemImage: String, disabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                 Text(title)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Text(detail)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .font(.caption2.weight(.bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity, minHeight: 58)
+            .frame(maxWidth: .infinity, minHeight: 50)
             .padding(.horizontal, 4)
-            .padding(.vertical, 6)
+            .padding(.vertical, 4)
         }
         .buttonStyle(StudioActionTileButtonStyle())
         .disabled(disabled)
@@ -789,9 +784,17 @@ struct ResultsCard: View {
                     )
                 }
             }
+            Button {
+                workspace.setExplorerPageSize(0)
+            } label: {
+                Label(
+                    "No limits",
+                    systemImage: workspace.isExplorerUnlimited ? "checkmark.circle.fill" : "infinity.circle"
+                )
+            }
         } label: {
             VStack(spacing: 1) {
-                Text(workspace.explorerPageLabel)
+                Text(workspace.isExplorerUnlimited ? "All Rows" : workspace.explorerPageLabel)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(PortSQLPalette.ink)
                 Text(workspace.explorerResultRangeLabel)

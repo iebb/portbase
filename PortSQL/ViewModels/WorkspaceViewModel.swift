@@ -29,6 +29,7 @@ final class WorkspaceViewModel: ObservableObject {
 
     private weak var bookmarkStore: BookmarkStore?
     private weak var libraryStore: WorkspaceLibraryStore?
+    private var assistTask: Task<Void, Never>?
 
     func configure(bookmarkStore: BookmarkStore, libraryStore: WorkspaceLibraryStore) {
         self.bookmarkStore = bookmarkStore
@@ -37,6 +38,7 @@ final class WorkspaceViewModel: ObservableObject {
             selectedBookmarkID = bookmarkStore.bookmarks.first?.id
         }
         selectedDatabaseName = selectedBookmark?.trimmedDefaultDatabase ?? ""
+        rebuildSchemaSuggestions()
         refreshAssist()
         reloadSchema()
     }
@@ -109,7 +111,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     var canGoToNextExplorerPage: Bool {
-        isShowingExplorerResult && result.rows.count >= explorerPageSize && !isRunning
+        isShowingExplorerResult && !isExplorerUnlimited && result.rows.count >= explorerPageSize && !isRunning
     }
 
     var explorerPageLabel: String {
@@ -118,9 +120,16 @@ final class WorkspaceViewModel: ObservableObject {
 
     var explorerResultRangeLabel: String {
         guard isShowingExplorerResult, !result.rows.isEmpty else { return "0 rows" }
+        if isExplorerUnlimited {
+            return "All rows"
+        }
         let start = explorerPageIndex * explorerPageSize + 1
         let end = start + result.rows.count - 1
         return "\(start)-\(end)"
+    }
+
+    var isExplorerUnlimited: Bool {
+        explorerPageSize == 0
     }
 
     var explorerSortColumn: String? {
@@ -140,27 +149,31 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func refreshAssist() {
-        if schemaCatalog.isEmpty {
-            schema = []
-        } else {
-            schema = schemaCatalog.flatMap { table in
-                [SchemaSuggestion(kind: "table", value: table.name),
-                 SchemaSuggestion(kind: "table", value: table.displayName)] +
-                table.columns.flatMap { column in
-                    [
-                        SchemaSuggestion(kind: "column", value: column.name),
-                        SchemaSuggestion(kind: "column", value: "\(table.name).\(column.name)")
-                    ]
-                }
+        assistTask?.cancel()
+
+        let query = queryText
+        let catalog = schemaCatalog
+        let activeDatabase = activeDatabaseName
+        let cursorOffset = queryCursorOffset
+
+        assistTask = Task.detached(priority: .userInitiated) {
+            try? await Task.sleep(nanoseconds: 90_000_000)
+            guard !Task.isCancelled else { return }
+
+            let suggestions = SQLAssistService.suggestions(
+                for: query,
+                catalog: catalog,
+                activeDatabase: activeDatabase,
+                cursorOffset: cursorOffset
+            )
+            let hints = SQLAssistService.hints(for: query)
+
+            await MainActor.run {
+                guard self.queryText == query, self.queryCursorOffset == cursorOffset else { return }
+                self.suggestions = suggestions
+                self.hints = hints
             }
         }
-        suggestions = SQLAssistService.suggestions(
-            for: queryText,
-            catalog: schemaCatalog,
-            activeDatabase: activeDatabaseName,
-            cursorOffset: queryCursorOffset
-        )
-        hints = SQLAssistService.hints(for: queryText)
     }
 
     func applySuggestion(_ suggestion: String) {
@@ -191,6 +204,7 @@ final class WorkspaceViewModel: ObservableObject {
             schemaCatalog = []
             selectedExplorerTableID = nil
             schemaErrorMessage = nil
+            rebuildSchemaSuggestions()
             refreshAssist()
             return
         }
@@ -212,6 +226,7 @@ final class WorkspaceViewModel: ObservableObject {
                     self.availableDatabases = databases
                     self.selectedDatabaseName = resolvedDatabase ?? ""
                     self.schemaCatalog = catalog
+                    self.rebuildSchemaSuggestions()
                     let activeExplorerTable: SchemaTableDescriptor?
                     if let selectedExplorerTableID,
                        let existingTable = catalog.first(where: { $0.id == selectedExplorerTableID }) {
@@ -240,6 +255,7 @@ final class WorkspaceViewModel: ObservableObject {
                     self.schemaCatalog = []
                     self.selectedExplorerTableID = nil
                     self.schemaErrorMessage = error.localizedDescription
+                    self.rebuildSchemaSuggestions()
                     self.refreshAssist()
                 }
             }
@@ -309,7 +325,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func setExplorerPageSize(_ size: Int) {
-        guard size > 0, explorerPageSize != size else { return }
+        guard size >= 0, explorerPageSize != size else { return }
         explorerPageSize = size
         explorerPageIndex = 0
         if selectedExplorerTable != nil {
@@ -434,6 +450,24 @@ final class WorkspaceViewModel: ObservableObject {
                     self.result = QueryResultTable.empty
                     self.isRunning = false
                 }
+            }
+        }
+    }
+
+    private func rebuildSchemaSuggestions() {
+        if schemaCatalog.isEmpty {
+            schema = []
+            return
+        }
+
+        schema = schemaCatalog.flatMap { table in
+            [SchemaSuggestion(kind: "table", value: table.name),
+             SchemaSuggestion(kind: "table", value: table.displayName)] +
+            table.columns.flatMap { column in
+                [
+                    SchemaSuggestion(kind: "column", value: column.name),
+                    SchemaSuggestion(kind: "column", value: "\(table.name).\(column.name)")
+                ]
             }
         }
     }
@@ -628,8 +662,12 @@ final class WorkspaceViewModel: ObservableObject {
         if !trimmedOrder.isEmpty {
             lines.append("ORDER BY \(trimmedOrder)")
         }
-        lines.append("LIMIT \(explorerPageSize)")
-        lines.append("OFFSET \(explorerPageIndex * explorerPageSize);")
+        if explorerPageSize > 0 {
+            lines.append("LIMIT \(explorerPageSize)")
+            lines.append("OFFSET \(explorerPageIndex * explorerPageSize);")
+        } else {
+            lines[lines.count - 1] += ";"
+        }
         return lines.joined(separator: "\n")
     }
 

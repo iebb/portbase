@@ -46,6 +46,8 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         @Binding private var cursorOffset: Int
         var colorScheme: ColorScheme
         private var isApplyingHighlight = false
+        private weak var pendingTextView: UITextView?
+        private var pendingHighlightWorkItem: DispatchWorkItem?
 
         init(text: Binding<String>, cursorOffset: Binding<Int>, colorScheme: ColorScheme) {
             self._text = text
@@ -58,8 +60,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             text = textView.text
             let selectedRange = textView.selectedRange
             cursorOffset = selectedRange.location
-            applyHighlight(to: textView, text: textView.text)
-            textView.selectedRange = selectedRange
+            scheduleHighlight(for: textView, preserving: selectedRange)
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
@@ -71,16 +72,35 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             isApplyingHighlight = true
             defer { isApplyingHighlight = false }
 
-            let attributed = NSMutableAttributedString(string: text)
-            let fullRange = NSRange(location: 0, length: attributed.length)
-            attributed.addAttributes(baseAttributes, range: fullRange)
+            let fullRange = NSRange(location: 0, length: textView.textStorage.length)
+            let selectedRange = textView.selectedRange
+            let storage = textView.textStorage
+            storage.beginEditing()
+            storage.replaceCharacters(in: fullRange, with: text)
+            let updatedRange = NSRange(location: 0, length: storage.length)
+            storage.setAttributes(baseAttributes, range: updatedRange)
 
             for token in SQLSyntaxHighlighter.tokens(in: text) {
-                attributed.addAttributes(attributes(for: token.kind), range: token.range)
+                storage.addAttributes(attributes(for: token.kind), range: token.range)
+            }
+            storage.endEditing()
+            textView.typingAttributes = baseAttributes
+            textView.selectedRange = NSRange(location: min(selectedRange.location, storage.length), length: 0)
+        }
+
+        private func scheduleHighlight(for textView: UITextView, preserving selectedRange: NSRange) {
+            pendingHighlightWorkItem?.cancel()
+            pendingTextView = textView
+
+            let currentText = textView.text ?? ""
+            let workItem = DispatchWorkItem { [weak self, weak textView] in
+                guard let self, let textView else { return }
+                self.applyHighlight(to: textView, text: currentText)
+                textView.selectedRange = NSRange(location: min(selectedRange.location, textView.textStorage.length), length: 0)
             }
 
-            textView.attributedText = attributed
-            textView.typingAttributes = baseAttributes
+            pendingHighlightWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.06, execute: workItem)
         }
 
         private static let paragraphStyle: NSParagraphStyle = {
@@ -186,6 +206,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         @Binding private var text: String
         private let onFocusChanged: (Bool) -> Void
         private var isApplyingHighlight = false
+        private var pendingHighlightWorkItem: DispatchWorkItem?
 
         init(text: Binding<String>, onFocusChanged: @escaping (Bool) -> Void) {
             self._text = text
@@ -196,8 +217,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
             guard !isApplyingHighlight else { return }
             text = textView.text
             let selectedRange = textView.selectedRange
-            applyHighlight(to: textView, text: textView.text)
-            textView.selectedRange = selectedRange
+            scheduleHighlight(for: textView, preserving: selectedRange)
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
@@ -212,16 +232,34 @@ struct HighlightedClauseEditor: UIViewRepresentable {
             isApplyingHighlight = true
             defer { isApplyingHighlight = false }
 
-            let attributed = NSMutableAttributedString(string: text)
-            let fullRange = NSRange(location: 0, length: attributed.length)
-            attributed.addAttributes(Self.baseAttributes, range: fullRange)
+            let fullRange = NSRange(location: 0, length: textView.textStorage.length)
+            let selectedRange = textView.selectedRange
+            let storage = textView.textStorage
+            storage.beginEditing()
+            storage.replaceCharacters(in: fullRange, with: text)
+            let updatedRange = NSRange(location: 0, length: storage.length)
+            storage.setAttributes(Self.baseAttributes, range: updatedRange)
 
             for token in SQLSyntaxHighlighter.tokens(in: text) {
-                attributed.addAttributes(Self.attributes(for: token.kind), range: token.range)
+                storage.addAttributes(Self.attributes(for: token.kind), range: token.range)
+            }
+            storage.endEditing()
+            textView.typingAttributes = Self.baseAttributes
+            textView.selectedRange = NSRange(location: min(selectedRange.location, storage.length), length: 0)
+        }
+
+        private func scheduleHighlight(for textView: UITextView, preserving selectedRange: NSRange) {
+            pendingHighlightWorkItem?.cancel()
+
+            let currentText = textView.text ?? ""
+            let workItem = DispatchWorkItem { [weak self, weak textView] in
+                guard let self, let textView else { return }
+                self.applyHighlight(to: textView, text: currentText)
+                textView.selectedRange = NSRange(location: min(selectedRange.location, textView.textStorage.length), length: 0)
             }
 
-            textView.attributedText = attributed
-            textView.typingAttributes = Self.baseAttributes
+            pendingHighlightWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.06, execute: workItem)
         }
 
         private static let paragraphStyle: NSParagraphStyle = {

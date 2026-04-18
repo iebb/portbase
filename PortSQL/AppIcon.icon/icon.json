@@ -7,11 +7,11 @@
     "orientation" : {
       "start" : {
         "x" : 0.08,
-        "y" : 0.10
+        "y" : 0.1
       },
       "stop" : {
         "x" : 0.92,
-        "y" : 0.90
+        "y" : 0.9
       }
     }
   },
@@ -29,7 +29,14 @@
               "appearance" : "dark",
               "value" : 1
             }
-          ]
+          ],
+          "position" : {
+            "scale" : 0.8,
+            "translation-in-points" : [
+              75.53125,
+              0
+            ]
+          }
         }
       ],
       "shadow" : {
