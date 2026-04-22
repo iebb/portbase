@@ -59,7 +59,8 @@ struct PaywallView: View {
                             .font(.system(size: 38))
                             .foregroundStyle(.yellow)
                         Text(feature.title)
-                            .font(.system(size: 30, weight: .bold, design: .rounded))
+                            .font(.title.weight(.bold))
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         Text(feature.subtitle)
                             .foregroundStyle(.secondary)
                     }

@@ -32,8 +32,9 @@ struct HighlightedQueryEditor: UIViewRepresentable {
     func updateUIView(_ uiView: UITextView, context: Context) {
         context.coordinator.colorScheme = colorScheme
         uiView.keyboardAppearance = colorScheme == .dark ? .dark : .light
+        uiView.font = Self.font
         let desiredOffset = min(cursorOffset, uiView.attributedText.length)
-        if uiView.text != text {
+        if uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme {
             context.coordinator.applyHighlight(to: uiView, text: text)
         }
         if uiView.selectedRange.location != desiredOffset || uiView.selectedRange.length != 0 {
@@ -45,6 +46,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         @Binding private var text: String
         @Binding private var cursorOffset: Int
         var colorScheme: ColorScheme
+        var lastAppliedColorScheme: ColorScheme?
         private var isApplyingHighlight = false
         private weak var pendingTextView: UITextView?
         private var pendingHighlightWorkItem: DispatchWorkItem?
@@ -71,6 +73,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         func applyHighlight(to textView: UITextView, text: String) {
             isApplyingHighlight = true
             defer { isApplyingHighlight = false }
+            lastAppliedColorScheme = colorScheme
 
             let fullRange = NSRange(location: 0, length: textView.textStorage.length)
             let selectedRange = textView.selectedRange
@@ -161,15 +164,17 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         }
     }
 
-    private static let font = UIFont.monospacedSystemFont(ofSize: 15, weight: .regular)
+    private static let font = UIFontMetrics(forTextStyle: .body)
+        .scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular))
 }
 
 struct HighlightedClauseEditor: UIViewRepresentable {
     @Binding var text: String
+    var colorScheme: ColorScheme = .light
     var onFocusChanged: (Bool) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, onFocusChanged: onFocusChanged)
+        Coordinator(text: $text, colorScheme: colorScheme, onFocusChanged: onFocusChanged)
     }
 
     func makeUIView(context: Context) -> UITextView {
@@ -191,12 +196,16 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         textView.showsHorizontalScrollIndicator = false
         textView.alwaysBounceVertical = false
         textView.tintColor = UIColor(red: 0.12, green: 0.46, blue: 0.95, alpha: 1.0)
+        textView.keyboardAppearance = colorScheme == .dark ? .dark : .light
         context.coordinator.applyHighlight(to: textView, text: text)
         return textView
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
-        guard uiView.text != text else { return }
+        context.coordinator.colorScheme = colorScheme
+        uiView.keyboardAppearance = colorScheme == .dark ? .dark : .light
+        uiView.font = Self.font
+        guard uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme else { return }
         let selectedRange = uiView.selectedRange
         context.coordinator.applyHighlight(to: uiView, text: text)
         uiView.selectedRange = NSRange(location: min(selectedRange.location, uiView.attributedText.length), length: 0)
@@ -204,12 +213,15 @@ struct HighlightedClauseEditor: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate {
         @Binding private var text: String
+        var colorScheme: ColorScheme
+        var lastAppliedColorScheme: ColorScheme?
         private let onFocusChanged: (Bool) -> Void
         private var isApplyingHighlight = false
         private var pendingHighlightWorkItem: DispatchWorkItem?
 
-        init(text: Binding<String>, onFocusChanged: @escaping (Bool) -> Void) {
+        init(text: Binding<String>, colorScheme: ColorScheme, onFocusChanged: @escaping (Bool) -> Void) {
             self._text = text
+            self.colorScheme = colorScheme
             self.onFocusChanged = onFocusChanged
         }
 
@@ -231,6 +243,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         func applyHighlight(to textView: UITextView, text: String) {
             isApplyingHighlight = true
             defer { isApplyingHighlight = false }
+            lastAppliedColorScheme = colorScheme
 
             let fullRange = NSRange(location: 0, length: textView.textStorage.length)
             let selectedRange = textView.selectedRange
@@ -238,13 +251,13 @@ struct HighlightedClauseEditor: UIViewRepresentable {
             storage.beginEditing()
             storage.replaceCharacters(in: fullRange, with: text)
             let updatedRange = NSRange(location: 0, length: storage.length)
-            storage.setAttributes(Self.baseAttributes, range: updatedRange)
+            storage.setAttributes(baseAttributes, range: updatedRange)
 
             for token in SQLSyntaxHighlighter.tokens(in: text) {
-                storage.addAttributes(Self.attributes(for: token.kind), range: token.range)
+                storage.addAttributes(attributes(for: token.kind), range: token.range)
             }
             storage.endEditing()
-            textView.typingAttributes = Self.baseAttributes
+            textView.typingAttributes = baseAttributes
             textView.selectedRange = NSRange(location: min(selectedRange.location, storage.length), length: 0)
         }
 
@@ -268,36 +281,58 @@ struct HighlightedClauseEditor: UIViewRepresentable {
             return style
         }()
 
-        private static let baseAttributes: [NSAttributedString.Key: Any] = [
-            .font: HighlightedClauseEditor.font,
-            .foregroundColor: UIColor(red: 0.16, green: 0.2, blue: 0.26, alpha: 1.0),
-            .paragraphStyle: paragraphStyle
-        ]
+        private var baseAttributes: [NSAttributedString.Key: Any] {
+            [
+                .font: HighlightedClauseEditor.font,
+                .foregroundColor: colorScheme == .dark
+                    ? UIColor(red: 0.90, green: 0.93, blue: 0.97, alpha: 1.0)
+                    : UIColor(red: 0.16, green: 0.20, blue: 0.26, alpha: 1.0),
+                .paragraphStyle: Self.paragraphStyle
+            ]
+        }
 
-        private static func attributes(for kind: SQLTokenKind) -> [NSAttributedString.Key: Any] {
+        private func attributes(for kind: SQLTokenKind) -> [NSAttributedString.Key: Any] {
             let color: UIColor
-            switch kind {
-            case .keyword:
-                color = UIColor(red: 0.1, green: 0.42, blue: 0.88, alpha: 1.0)
-            case .stringLiteral:
-                color = UIColor(red: 0.72, green: 0.38, blue: 0.08, alpha: 1.0)
-            case .numberLiteral:
-                color = UIColor(red: 0.12, green: 0.58, blue: 0.34, alpha: 1.0)
-            case .comment:
-                color = UIColor(red: 0.48, green: 0.54, blue: 0.62, alpha: 1.0)
-            case .identifier:
-                color = UIColor(red: 0.16, green: 0.2, blue: 0.26, alpha: 1.0)
-            case .symbol:
-                color = UIColor(red: 0.69, green: 0.21, blue: 0.43, alpha: 1.0)
+            if colorScheme == .dark {
+                switch kind {
+                case .keyword:
+                    color = UIColor(red: 0.48, green: 0.83, blue: 1.0, alpha: 1.0)
+                case .stringLiteral:
+                    color = UIColor(red: 0.99, green: 0.78, blue: 0.5, alpha: 1.0)
+                case .numberLiteral:
+                    color = UIColor(red: 0.6, green: 0.97, blue: 0.77, alpha: 1.0)
+                case .comment:
+                    color = UIColor(red: 0.57, green: 0.63, blue: 0.72, alpha: 1.0)
+                case .identifier:
+                    color = UIColor(red: 0.89, green: 0.92, blue: 0.96, alpha: 1.0)
+                case .symbol:
+                    color = UIColor(red: 0.94, green: 0.67, blue: 0.78, alpha: 1.0)
+                }
+            } else {
+                switch kind {
+                case .keyword:
+                    color = UIColor(red: 0.1, green: 0.42, blue: 0.88, alpha: 1.0)
+                case .stringLiteral:
+                    color = UIColor(red: 0.72, green: 0.38, blue: 0.08, alpha: 1.0)
+                case .numberLiteral:
+                    color = UIColor(red: 0.12, green: 0.58, blue: 0.34, alpha: 1.0)
+                case .comment:
+                    color = UIColor(red: 0.48, green: 0.54, blue: 0.62, alpha: 1.0)
+                case .identifier:
+                    color = UIColor(red: 0.16, green: 0.2, blue: 0.26, alpha: 1.0)
+                case .symbol:
+                    color = UIColor(red: 0.69, green: 0.21, blue: 0.43, alpha: 1.0)
+                }
             }
 
             return [
                 .font: HighlightedClauseEditor.font,
                 .foregroundColor: color,
-                .paragraphStyle: paragraphStyle
+                .paragraphStyle: Self.paragraphStyle
             ]
         }
     }
 
-    private static let font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+    private static let font = UIFontMetrics(forTextStyle: .body)
+        .scaledFont(for: .monospacedSystemFont(ofSize: 15, weight: .regular))
 }

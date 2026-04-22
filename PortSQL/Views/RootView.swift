@@ -12,11 +12,24 @@ enum PortSQLPalette {
     static let canvasTop = Color(uiColor: .systemGroupedBackground)
     static let canvasAccent = Color(uiColor: .secondarySystemGroupedBackground)
     static let shadow = Color.black.opacity(0.16)
+
+    static func editorBackground(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? Color(red: 0.10, green: 0.12, blue: 0.16) : Color(uiColor: .systemBackground)
+    }
+
+    static func editorBorder(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : stroke
+    }
+
+    static func editorPlaceholder(for colorScheme: ColorScheme) -> Color {
+        colorScheme == .dark ? Color.white.opacity(0.42) : Color.black.opacity(0.34)
+    }
 }
 
 struct RootView: View {
     @EnvironmentObject private var bookmarks: BookmarkStore
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @State private var selectedTab = RootTab.launchSelection
 
     private var hasConnectionProblem: Bool {
         workspace.selectedBookmark != nil
@@ -24,10 +37,11 @@ struct RootView: View {
     }
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             NavigationStack {
                 ExplorerView()
             }
+            .tag(RootTab.explorer)
             .tabItem {
                 Label("Explorer", systemImage: "square.stack.3d.up.fill")
             }
@@ -35,6 +49,7 @@ struct RootView: View {
             NavigationStack {
                 WorkbenchView()
             }
+            .tag(RootTab.studio)
             .tabItem {
                 Label("Studio", systemImage: "terminal.fill")
             }
@@ -42,6 +57,7 @@ struct RootView: View {
             NavigationStack {
                 VisualizerView()
             }
+            .tag(RootTab.charts)
             .tabItem {
                 Label("Charts", systemImage: "chart.bar.xaxis")
             }
@@ -49,6 +65,7 @@ struct RootView: View {
             NavigationStack {
                 BookmarksView()
             }
+            .tag(RootTab.servers)
             .tabItem {
                 Label("Servers", systemImage: "server.rack")
             }
@@ -57,6 +74,32 @@ struct RootView: View {
         .tint(PortSQLPalette.accent)
         .sheet(item: $workspace.dataEditorDraft) { _ in
             DataEditorSheet()
+        }
+    }
+}
+
+private enum RootTab: Hashable {
+    case explorer
+    case studio
+    case charts
+    case servers
+
+    static var launchSelection: RootTab {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-portsql-tab"),
+              arguments.indices.contains(index + 1) else {
+            return .explorer
+        }
+
+        switch arguments[index + 1].lowercased() {
+        case "studio":
+            return .studio
+        case "charts":
+            return .charts
+        case "servers":
+            return .servers
+        default:
+            return .explorer
         }
     }
 }
@@ -160,7 +203,11 @@ private struct HeroHeader: View {
             RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [PortSQLPalette.ink, PortSQLPalette.accent, Color.cyan.opacity(0.7)],
+                        colors: [
+                            Color(red: 0.06, green: 0.11, blue: 0.22),
+                            PortSQLPalette.accent,
+                            Color(red: 0.16, green: 0.62, blue: 0.78)
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -376,7 +423,7 @@ private struct QueryEditorCard: View {
             if workspace.queryText.isEmpty {
                 Text("SELECT customerName, country\nFROM customers\nORDER BY customerName\nLIMIT 25;")
                     .font(.system(.body, design: .monospaced))
-                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.26) : .black.opacity(0.26))
+                    .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 18)
                     .allowsHitTesting(false)
@@ -421,11 +468,11 @@ private struct QueryEditorCard: View {
     }
 
     private var editorBackgroundColor: Color {
-        colorScheme == .dark ? Color(red: 0.10, green: 0.12, blue: 0.16) : Color(uiColor: .systemBackground)
+        PortSQLPalette.editorBackground(for: colorScheme)
     }
 
     private var editorBorderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.05) : PortSQLPalette.stroke
+        PortSQLPalette.editorBorder(for: colorScheme)
     }
 
     private func completionSubtitle(for suggestion: String) -> String {
@@ -505,7 +552,7 @@ private struct QueryEditorCard: View {
                 Image(systemName: systemImage)
                     .font(.system(size: 14, weight: .semibold))
                 Text(title)
-                    .font(.caption2.weight(.bold))
+                    .font(.caption.weight(.bold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -542,7 +589,7 @@ private struct ExpandedQueryEditorSheet: View {
                     if workspace.queryText.isEmpty {
                         Text("SELECT customerName, country\nFROM customers\nORDER BY customerName\nLIMIT 25;")
                             .font(.system(.body, design: .monospaced))
-                            .foregroundStyle(colorScheme == .dark ? .white.opacity(0.26) : .black.opacity(0.26))
+                            .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
                             .padding(.horizontal, 16)
                             .padding(.vertical, 18)
                             .allowsHitTesting(false)
@@ -550,11 +597,11 @@ private struct ExpandedQueryEditorSheet: View {
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .fill(colorScheme == .dark ? Color(red: 0.10, green: 0.12, blue: 0.16) : Color(uiColor: .systemBackground))
+                        .fill(PortSQLPalette.editorBackground(for: colorScheme))
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .stroke(colorScheme == .dark ? Color.white.opacity(0.05) : PortSQLPalette.stroke, lineWidth: 1)
+                        .stroke(PortSQLPalette.editorBorder(for: colorScheme), lineWidth: 1)
                 }
                 .padding(16)
             }
@@ -729,7 +776,7 @@ struct ResultsCard: View {
                                             )
                                         }
                                     }
-                                    .font(.system(size: 11, weight: .regular, design: .monospaced))
+                                    .font(.system(size: 13, weight: .regular, design: .monospaced))
                                     .padding(.vertical, 6)
                                     .padding(.horizontal, 8)
                                     .background(Color.black.opacity(0.025), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -959,7 +1006,7 @@ struct ResultsCard: View {
             HStack(spacing: 4) {
                 if isPrimaryKeyColumn {
                     Image(systemName: "key.fill")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(PortSQLPalette.accent)
                 }
                 Text(column.name)
@@ -968,10 +1015,10 @@ struct ResultsCard: View {
                     .truncationMode(.tail)
                 if isSorted {
                     Image(systemName: direction == "DESC" ? "arrow.down" : "arrow.up")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.system(size: 10, weight: .bold))
                 }
             }
-            .font(.system(size: 10, weight: .bold, design: .default))
+            .font(.system(size: 12, weight: .bold, design: .default))
             .foregroundStyle(isSorted ? PortSQLPalette.accent : .secondary)
             .frame(maxWidth: .infinity, alignment: columnAlignment(for: column))
             .frame(width: width, alignment: columnAlignment(for: column))
@@ -993,7 +1040,7 @@ struct ResultsCard: View {
     private func columnWidth(for column: QueryColumn, at index: Int) -> CGFloat {
         let headerWidth = measuredWidth(
             for: column.name,
-            font: .systemFont(ofSize: 10, weight: .bold)
+            font: .preferredFont(forTextStyle: .caption1)
         )
         let headerAccessoryWidth: CGFloat = isPrimaryKeyResultColumn(column) ? 14 : 0
         let sampleWidths = workspace.result.rows
@@ -1002,7 +1049,7 @@ struct ResultsCard: View {
                 let value = row.values.indices.contains(index) ? row.values[index] : ""
                 return measuredWidth(
                     for: value.isEmpty ? "NULL" : value,
-                    font: .monospacedSystemFont(ofSize: 11, weight: .regular)
+                    font: UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 13, weight: .regular))
                 )
             }
 
@@ -1629,23 +1676,11 @@ struct InlineSuggestionMenu: View {
 
 struct WorkbenchBackground: View {
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [PortSQLPalette.canvasTop, PortSQLPalette.canvasAccent],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            Circle()
-                .fill(PortSQLPalette.accent.opacity(0.10))
-                .frame(width: 240, height: 240)
-                .blur(radius: 30)
-                .offset(x: 120, y: -240)
-            RoundedRectangle(cornerRadius: 120, style: .continuous)
-                .fill(PortSQLPalette.accent.opacity(0.06))
-                .frame(width: 280, height: 180)
-                .rotationEffect(.degrees(-16))
-                .offset(x: -110, y: 340)
-        }
+        LinearGradient(
+            colors: [PortSQLPalette.canvasTop, PortSQLPalette.canvasAccent],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 

@@ -177,7 +177,7 @@ struct VisualizerComposerSheet: View {
                                     if queryBinding.wrappedValue.isEmpty {
                                         Text("SELECT delivered_at, package_count, distance_km, delivery_hours, category, region\nFROM chart_doc_shipments\nORDER BY delivered_at;")
                                             .font(.system(.body, design: .monospaced))
-                                            .foregroundStyle(colorScheme == .dark ? .white.opacity(0.26) : .black.opacity(0.26))
+                                            .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
                                             .padding(.horizontal, 16)
                                             .padding(.vertical, 18)
                                             .allowsHitTesting(false)
@@ -185,11 +185,11 @@ struct VisualizerComposerSheet: View {
                                 }
                                 .background(
                                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .fill(colorScheme == .dark ? Color(red: 0.10, green: 0.12, blue: 0.16) : Color(uiColor: .systemBackground))
+                                        .fill(PortSQLPalette.editorBackground(for: colorScheme))
                                 )
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                        .stroke(colorScheme == .dark ? Color.white.opacity(0.05) : PortSQLPalette.stroke, lineWidth: 1)
+                                        .stroke(PortSQLPalette.editorBorder(for: colorScheme), lineWidth: 1)
                                 }
                             }
 

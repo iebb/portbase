@@ -3,6 +3,7 @@ import UIKit
 
 struct ExplorerView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @State private var focusedClause: ClauseField?
 
     var body: some View {
@@ -197,7 +198,7 @@ struct ExplorerView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(title)
-                    .font(.system(size: 11, weight: .bold, design: .default))
+                    .font(.system(size: 12, weight: .bold, design: .default))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -205,7 +206,7 @@ struct ExplorerView: View {
                     .frame(width: 44, alignment: .leading)
 
                 ZStack(alignment: .leading) {
-                    HighlightedClauseEditor(text: text) { isFocused in
+                    HighlightedClauseEditor(text: text, colorScheme: colorScheme) { isFocused in
                         if isFocused {
                             focusedClause = field
                         } else if focusedClause == field {
@@ -216,8 +217,8 @@ struct ExplorerView: View {
 
                     if text.wrappedValue.isEmpty {
                         Text(placeholder)
-                            .font(.system(size: 14, design: .monospaced))
-                            .foregroundStyle(.secondary.opacity(0.55))
+                            .font(.system(size: 15, design: .monospaced))
+                            .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
                             .padding(.horizontal, 2)
                             .allowsHitTesting(false)
                     }
