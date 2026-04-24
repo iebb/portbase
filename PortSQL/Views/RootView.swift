@@ -184,7 +184,10 @@ private struct HeroHeader: View {
                 StatusBanner(
                     title: "No active connection",
                     message: "Create or select a bookmark to start a live workspace.",
-                    tint: .white
+                    tint: .white,
+                    titleColor: .white,
+                    messageColor: .white.opacity(0.82),
+                    backgroundColor: Color.white.opacity(0.14)
                 )
             }
 
@@ -1599,6 +1602,9 @@ struct StatusBanner: View {
     let title: String
     let message: String
     let tint: Color
+    var titleColor: Color = PortSQLPalette.ink
+    var messageColor: Color = .secondary
+    var backgroundColor: Color? = nil
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -1609,14 +1615,15 @@ struct StatusBanner: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(titleColor)
                 Text(message)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(messageColor)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background((backgroundColor ?? tint.opacity(0.08)), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
 
