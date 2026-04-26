@@ -37,7 +37,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         if uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme {
             context.coordinator.applyHighlight(to: uiView, text: text)
         }
-        if uiView.selectedRange.location != desiredOffset || uiView.selectedRange.length != 0 {
+        if uiView.selectedRange.length == 0 && uiView.selectedRange.location != desiredOffset {
             uiView.selectedRange = NSRange(location: desiredOffset, length: 0)
         }
     }
@@ -88,7 +88,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             }
             storage.endEditing()
             textView.typingAttributes = baseAttributes
-            textView.selectedRange = NSRange(location: min(selectedRange.location, storage.length), length: 0)
+            textView.selectedRange = Self.clampedRange(selectedRange, length: storage.length)
         }
 
         private func scheduleHighlight(for textView: UITextView, preserving selectedRange: NSRange) {
@@ -99,7 +99,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             let workItem = DispatchWorkItem { [weak self, weak textView] in
                 guard let self, let textView else { return }
                 self.applyHighlight(to: textView, text: currentText)
-                textView.selectedRange = NSRange(location: min(selectedRange.location, textView.textStorage.length), length: 0)
+                textView.selectedRange = Self.clampedRange(selectedRange, length: textView.textStorage.length)
             }
 
             pendingHighlightWorkItem = workItem
@@ -111,6 +111,12 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             style.lineSpacing = 4
             return style
         }()
+
+        private static func clampedRange(_ range: NSRange, length: Int) -> NSRange {
+            let location = min(range.location, length)
+            let availableLength = max(0, length - location)
+            return NSRange(location: location, length: min(range.length, availableLength))
+        }
 
         private var baseAttributes: [NSAttributedString.Key: Any] {
             [
@@ -208,7 +214,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         guard uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme else { return }
         let selectedRange = uiView.selectedRange
         context.coordinator.applyHighlight(to: uiView, text: text)
-        uiView.selectedRange = NSRange(location: min(selectedRange.location, uiView.attributedText.length), length: 0)
+        uiView.selectedRange = context.coordinator.clampedRange(selectedRange, length: uiView.attributedText.length)
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
@@ -258,7 +264,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
             }
             storage.endEditing()
             textView.typingAttributes = baseAttributes
-            textView.selectedRange = NSRange(location: min(selectedRange.location, storage.length), length: 0)
+            textView.selectedRange = clampedRange(selectedRange, length: storage.length)
         }
 
         private func scheduleHighlight(for textView: UITextView, preserving selectedRange: NSRange) {
@@ -268,11 +274,17 @@ struct HighlightedClauseEditor: UIViewRepresentable {
             let workItem = DispatchWorkItem { [weak self, weak textView] in
                 guard let self, let textView else { return }
                 self.applyHighlight(to: textView, text: currentText)
-                textView.selectedRange = NSRange(location: min(selectedRange.location, textView.textStorage.length), length: 0)
+                textView.selectedRange = self.clampedRange(selectedRange, length: textView.textStorage.length)
             }
 
             pendingHighlightWorkItem = workItem
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.06, execute: workItem)
+        }
+
+        func clampedRange(_ range: NSRange, length: Int) -> NSRange {
+            let location = min(range.location, length)
+            let availableLength = max(0, length - location)
+            return NSRange(location: location, length: min(range.length, availableLength))
         }
 
         private static let paragraphStyle: NSParagraphStyle = {
