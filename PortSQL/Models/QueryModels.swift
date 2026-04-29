@@ -81,21 +81,36 @@ struct QueryColumnProfile: Identifiable, Codable, Hashable {
     }
 }
 
-struct SchemaColumnDescriptor: Identifiable, Hashable {
+struct SchemaColumnDescriptor: Identifiable, Codable, Hashable {
     let id = UUID()
     let name: String
     let type: String
     let isNullable: Bool
     let isPrimaryKey: Bool
     let isUnique: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case name
+        case type
+        case isNullable
+        case isPrimaryKey
+        case isUnique
+    }
 }
 
-struct SchemaTableDescriptor: Identifiable, Hashable {
+struct SchemaTableDescriptor: Identifiable, Codable, Hashable {
     let id = UUID()
     let schemaName: String
     let name: String
     let columns: [SchemaColumnDescriptor]
     let rowCountEstimate: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaName
+        case name
+        case columns
+        case rowCountEstimate
+    }
 
     var displayName: String {
         schemaName.isEmpty ? name : "\(schemaName).\(name)"

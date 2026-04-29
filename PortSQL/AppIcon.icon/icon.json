@@ -1,8 +1,8 @@
 {
   "fill" : {
     "linear-gradient" : [
-      "display-p3:0.92000,0.96500,1.00000,1.00000",
-      "display-p3:0.99000,0.90500,0.96500,1.00000"
+      "display-p3:0.93967,1.00000,0.31432,1.00000",
+      "display-p3:0.99000,0.67153,0.18070,1.00000"
     ],
     "orientation" : {
       "start" : {
@@ -19,19 +19,11 @@
     {
       "layers" : [
         {
-          "blend-mode" : "normal",
-          "fill" : "none",
           "glass" : false,
-          "image-name" : "logo-1024.png",
-          "name" : "logo-1024",
-          "opacity-specializations" : [
-            {
-              "appearance" : "dark",
-              "value" : 1
-            }
-          ],
+          "image-name" : "duck 3.png",
+          "name" : "duck 3",
           "position" : {
-            "scale" : 1,
+            "scale" : 0.8,
             "translation-in-points" : [
               0,
               0

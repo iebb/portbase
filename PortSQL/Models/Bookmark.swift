@@ -43,6 +43,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var defaultDatabase: String
     var notes: String = ""
     var usesTLS: Bool = true
+    var schemaCachingEnabled: Bool = true
+    var schemaCacheDurationHours: Int = 24
     var createdAt: Date = .now
 
     var database: String {
@@ -59,6 +61,19 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
 
     var trimmedDefaultDatabase: String {
         defaultDatabase.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var schemaCacheDuration: TimeInterval {
+        TimeInterval(max(1, schemaCacheDurationHours)) * 60 * 60
+    }
+
+    var schemaCacheDurationLabel: String {
+        let hours = max(1, schemaCacheDurationHours)
+        if hours < 24 {
+            return "\(hours)h"
+        }
+        let days = hours / 24
+        return hours.isMultiple(of: 24) ? "\(days)d" : "\(hours)h"
     }
 
     var initials: String {
@@ -96,6 +111,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         case database
         case notes
         case usesTLS
+        case schemaCachingEnabled
+        case schemaCacheDurationHours
         case createdAt
     }
 
@@ -111,6 +128,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         defaultDatabase: String,
         notes: String = "",
         usesTLS: Bool = true,
+        schemaCachingEnabled: Bool = true,
+        schemaCacheDurationHours: Int = 24,
         createdAt: Date = .now
     ) {
         self.id = id
@@ -124,6 +143,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         self.defaultDatabase = defaultDatabase
         self.notes = notes
         self.usesTLS = usesTLS
+        self.schemaCachingEnabled = schemaCachingEnabled
+        self.schemaCacheDurationHours = max(1, schemaCacheDurationHours)
         self.createdAt = createdAt
     }
 
@@ -139,6 +160,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         database: String,
         notes: String = "",
         usesTLS: Bool = true,
+        schemaCachingEnabled: Bool = true,
+        schemaCacheDurationHours: Int = 24,
         createdAt: Date = .now
     ) {
         self.init(
@@ -153,6 +176,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
             defaultDatabase: database,
             notes: notes,
             usesTLS: usesTLS,
+            schemaCachingEnabled: schemaCachingEnabled,
+            schemaCacheDurationHours: schemaCacheDurationHours,
             createdAt: createdAt
         )
     }
@@ -172,6 +197,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
             ?? ""
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
         usesTLS = try container.decodeIfPresent(Bool.self, forKey: .usesTLS) ?? true
+        schemaCachingEnabled = try container.decodeIfPresent(Bool.self, forKey: .schemaCachingEnabled) ?? true
+        schemaCacheDurationHours = max(1, try container.decodeIfPresent(Int.self, forKey: .schemaCacheDurationHours) ?? 24)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
     }
 
@@ -188,6 +215,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         try container.encode(defaultDatabase, forKey: .defaultDatabase)
         try container.encode(notes, forKey: .notes)
         try container.encode(usesTLS, forKey: .usesTLS)
+        try container.encode(schemaCachingEnabled, forKey: .schemaCachingEnabled)
+        try container.encode(max(1, schemaCacheDurationHours), forKey: .schemaCacheDurationHours)
         try container.encode(createdAt, forKey: .createdAt)
     }
 }

@@ -172,7 +172,8 @@ struct ExplorerView: View {
             ToolbarItem(placement: .topBarLeading) {
                 ConnectionSwitcherButton(toolbarMode: true)
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                SchemaRefreshButton()
                 DatabaseSwitcherButton()
             }
         }

@@ -33,6 +33,7 @@ final class WorkspaceViewModel: ObservableObject {
     private var assistTask: Task<Void, Never>?
     private var schemaLoadToken: UUID?
     private var runToken: UUID?
+    private let schemaCacheStore = SchemaCacheStore.shared
 
     func configure(bookmarkStore: BookmarkStore, libraryStore: WorkspaceLibraryStore) {
         self.bookmarkStore = bookmarkStore
@@ -48,6 +49,10 @@ final class WorkspaceViewModel: ObservableObject {
 
     var selectedBookmark: ConnectionProfile? {
         bookmarkStore?.bookmark(with: selectedBookmarkID)
+    }
+
+    var isSchemaCachingEnabled: Bool {
+        selectedBookmark?.schemaCachingEnabled == true
     }
 
     var activeDatabaseName: String? {
@@ -201,7 +206,11 @@ final class WorkspaceViewModel: ObservableObject {
         refreshAssist()
     }
 
-    func reloadSchema() {
+    func refreshSchemaCatalog() {
+        reloadSchema(forceRefresh: true)
+    }
+
+    func reloadSchema(forceRefresh: Bool = false) {
         guard let bookmark = selectedBookmark else {
             availableDatabases = []
             schemaCatalog = []
@@ -215,6 +224,20 @@ final class WorkspaceViewModel: ObservableObject {
         }
 
         let currentSelection = selectedDatabaseName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cacheLookupDatabase = currentSelection.isEmpty ? bookmark.trimmedDefaultDatabase : currentSelection
+        if bookmark.schemaCachingEnabled,
+           !forceRefresh,
+           !cacheLookupDatabase.isEmpty,
+           let cached = schemaCacheStore.cachedCatalog(for: bookmark, requestedDatabase: cacheLookupDatabase),
+           cached.isFresh(duration: bookmark.schemaCacheDuration) {
+            applySchemaCatalog(
+                cached.catalog,
+                databases: cached.databases,
+                selectedDatabase: cached.selectedDatabase
+            )
+            return
+        }
+
         let loadToken = UUID()
         schemaLoadToken = loadToken
         isLoadingSchema = true
@@ -227,38 +250,38 @@ final class WorkspaceViewModel: ObservableObject {
                     bookmark: bookmark,
                     available: databases
                 )
+                if bookmark.schemaCachingEnabled,
+                   !forceRefresh,
+                   let cacheDatabase = resolvedDatabase,
+                   let cached = schemaCacheStore.cachedCatalog(for: bookmark, requestedDatabase: cacheDatabase),
+                   cached.isFresh(duration: bookmark.schemaCacheDuration) {
+                    await MainActor.run {
+                        guard self.schemaLoadToken == loadToken else { return }
+                        self.applySchemaCatalog(
+                            cached.catalog,
+                            databases: cached.databases.isEmpty ? databases : cached.databases,
+                            selectedDatabase: cached.selectedDatabase ?? resolvedDatabase
+                        )
+                    }
+                    return
+                }
+
                 let catalog = try await DatabaseService.shared.loadSchema(
                     profile: bookmark,
                     database: resolvedDatabase
                 )
+                if bookmark.schemaCachingEnabled, let cacheDatabase = resolvedDatabase {
+                    schemaCacheStore.store(
+                        databases: databases,
+                        selectedDatabase: resolvedDatabase,
+                        catalog: catalog,
+                        for: bookmark,
+                        requestedDatabase: cacheDatabase
+                    )
+                }
                 await MainActor.run {
                     guard self.schemaLoadToken == loadToken else { return }
-                    self.availableDatabases = databases
-                    self.selectedDatabaseName = resolvedDatabase ?? ""
-                    self.schemaCatalog = catalog
-                    self.rebuildSchemaSuggestions()
-                    let activeExplorerTable: SchemaTableDescriptor?
-                    if let selectedExplorerTableID,
-                       let existingTable = catalog.first(where: { $0.id == selectedExplorerTableID }) {
-                        self.selectedExplorerTableID = selectedExplorerTableID
-                        activeExplorerTable = existingTable
-                    } else {
-                        let firstTable = catalog.first
-                        self.selectedExplorerTableID = firstTable?.id
-                        activeExplorerTable = firstTable
-                    }
-                    if self.queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                       let activeExplorerTable {
-                        self.queryText = self.defaultQuery(for: activeExplorerTable)
-                    }
-                    self.schemaErrorMessage = nil
-                    self.isLoadingSchema = false
-                    self.refreshAssist()
-                    if self.result.columns.isEmpty,
-                       self.errorMessage == nil,
-                       let activeExplorerTable {
-                        self.browse(table: activeExplorerTable)
-                    }
+                    self.applySchemaCatalog(catalog, databases: databases, selectedDatabase: resolvedDatabase)
                 }
             } catch {
                 await MainActor.run {
@@ -272,6 +295,42 @@ final class WorkspaceViewModel: ObservableObject {
                     self.refreshAssist()
                 }
             }
+        }
+    }
+
+    private func applySchemaCatalog(
+        _ catalog: [SchemaTableDescriptor],
+        databases: [String],
+        selectedDatabase: String?
+    ) {
+        availableDatabases = databases
+        selectedDatabaseName = selectedDatabase ?? ""
+        schemaCatalog = catalog
+        rebuildSchemaSuggestions()
+
+        let activeExplorerTable: SchemaTableDescriptor?
+        if let selectedExplorerTableID,
+           let existingTable = catalog.first(where: { $0.id == selectedExplorerTableID }) {
+            self.selectedExplorerTableID = selectedExplorerTableID
+            activeExplorerTable = existingTable
+        } else {
+            let firstTable = catalog.first
+            selectedExplorerTableID = firstTable?.id
+            activeExplorerTable = firstTable
+        }
+
+        if queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let activeExplorerTable {
+            queryText = defaultQuery(for: activeExplorerTable)
+        }
+        schemaErrorMessage = nil
+        isLoadingSchema = false
+        schemaLoadToken = nil
+        refreshAssist()
+        if result.columns.isEmpty,
+           errorMessage == nil,
+           let activeExplorerTable {
+            browse(table: activeExplorerTable)
         }
     }
 
@@ -398,7 +457,7 @@ final class WorkspaceViewModel: ObservableObject {
             self.queryText = ""
             self.selectedExplorerTableID = normalizedDraft.table.id
             self.errorMessage = nil
-            self.reloadSchema()
+            self.reloadSchema(forceRefresh: true)
         }
     }
 
@@ -419,7 +478,7 @@ final class WorkspaceViewModel: ObservableObject {
             self.queryText = ""
             self.selectedExplorerTableID = table.id
             self.errorMessage = nil
-            self.reloadSchema()
+            self.reloadSchema(forceRefresh: true)
         }
     }
 
@@ -457,7 +516,7 @@ final class WorkspaceViewModel: ObservableObject {
                         summary: table.executionSummary
                     )
                     if self.shouldReloadSchema(after: sql) {
-                        self.reloadSchema()
+                        self.reloadSchema(forceRefresh: true)
                     }
                 }
             } catch {

@@ -22,6 +22,7 @@
 		8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF2634609186A8C0C442FED0 /* VisualizerView.swift */; };
 		8F81BD422E182B429B9E6904 /* PortSQLApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */; };
 		91934FCF440DF634AFC94177 /* DataEditorValidationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */; };
+		9F45A14B6E2C4B5F9E7A1234 /* SchemaCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F45A14A6E2C4B5F9E7A1234 /* SchemaCacheStore.swift */; };
 		A768695EDF8DD4F4A4E1A2BA /* DataEditorValidationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */; };
 		B16857CFB27B6554140750F6 /* Premium.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31A8DEBF023CF8D37401177 /* Premium.swift */; };
 		B4188143545AF24376A1B143 /* QueryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C65E79C336A0F709FD048F /* QueryModels.swift */; };
@@ -63,6 +64,7 @@
 		63C65E79C336A0F709FD048F /* QueryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryModels.swift; sourceTree = "<group>"; };
 		6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkIconCatalog.swift; sourceTree = "<group>"; };
 		96C2582C00122CD6222047E0 /* PortSQL.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PortSQL.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9F45A14A6E2C4B5F9E7A1234 /* SchemaCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaCacheStore.swift; sourceTree = "<group>"; };
 		A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkStore.swift; sourceTree = "<group>"; };
 		AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortSQLApp.swift; sourceTree = "<group>"; };
 		AF537FA01FB9472E0C3A3149 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 				1B4E17BED217B13694466C80 /* DatabaseService.swift */,
 				465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */,
 				2FB8F651BC76B14211348A52 /* PurchaseStore.swift */,
+				9F45A14A6E2C4B5F9E7A1234 /* SchemaCacheStore.swift */,
 				1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */,
 				15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */,
 				48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */,
@@ -321,6 +324,7 @@
 				DC8239D71363C52BD8981DD9 /* PurchaseStore.swift in Sources */,
 				B4188143545AF24376A1B143 /* QueryModels.swift in Sources */,
 				18903C1364D1714A15A1B6EA /* RootView.swift in Sources */,
+				9F45A14B6E2C4B5F9E7A1234 /* SchemaCacheStore.swift in Sources */,
 				F95495472C0CADE6B54EABFE /* SQLAssistService.swift in Sources */,
 				CEAD34F4F0C463B0BA9EC494 /* SQLSyntaxHighlighter.swift in Sources */,
 				B771B5A8BF74390DD3463C36 /* VisualizationModels.swift in Sources */,

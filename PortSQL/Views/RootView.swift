@@ -130,7 +130,8 @@ private struct WorkbenchView: View {
             ToolbarItem(placement: .topBarLeading) {
                 ConnectionSwitcherButton(toolbarMode: true)
             }
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                SchemaRefreshButton()
                 DatabaseSwitcherButton()
             }
         }
@@ -335,6 +336,26 @@ struct DatabaseSwitcherButton: View {
     }
 }
 
+struct SchemaRefreshButton: View {
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+
+    var body: some View {
+        if workspace.isSchemaCachingEnabled {
+            Button {
+                workspace.refreshSchemaCatalog()
+            } label: {
+                Image(systemName: workspace.isLoadingSchema ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
+                    .font(.system(size: 13, weight: .bold))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(workspace.isLoadingSchema ? .secondary : PortSQLPalette.accent)
+            .disabled(workspace.selectedBookmark == nil || workspace.activeDatabaseName == nil || workspace.isLoadingSchema)
+            .accessibilityLabel("Refresh cached table list")
+        }
+    }
+}
+
 private struct QueryEditorCard: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var bookmarks: BookmarkStore
@@ -412,8 +433,10 @@ private struct QueryEditorCard: View {
             actionButton("SAVE", systemImage: "bookmark", disabled: trimmedQuery.isEmpty) {
                 workspace.saveSnippet()
             }
-            actionButton("SCHEMA", systemImage: "arrow.clockwise", disabled: workspace.activeDatabaseName == nil) {
-                workspace.reloadSchema()
+            if workspace.isSchemaCachingEnabled {
+                actionButton("SCHEMA", systemImage: "arrow.clockwise", disabled: workspace.activeDatabaseName == nil || workspace.isLoadingSchema) {
+                    workspace.refreshSchemaCatalog()
+                }
             }
         }
     }
@@ -1225,6 +1248,9 @@ private struct BookmarksView: View {
                                 Text("\(bookmark.engine.rawValue) • \(bookmark.host):\(String(bookmark.port))")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                                Text(bookmark.schemaCachingEnabled ? "Caching table lists for \(bookmark.schemaCacheDurationLabel)" : "Table list caching off")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
                             }
 
                             Spacer()
@@ -1309,6 +1335,27 @@ private struct BookmarkEditorView: View {
                         .keyboardType(.numberPad)
                     TextField("Default Database", text: $profile.defaultDatabase)
                     Toggle("Use TLS", isOn: $profile.usesTLS)
+                }
+
+                Section("Caching") {
+                    Toggle("Cache table lists", isOn: $profile.schemaCachingEnabled)
+
+                    if profile.schemaCachingEnabled {
+                        Stepper(
+                            "Duration: \(profile.schemaCacheDurationLabel)",
+                            value: $profile.schemaCacheDurationHours,
+                            in: 1...168,
+                            step: 1
+                        )
+
+                        Text("Table and column metadata is reused until this duration expires. The refresh button bypasses the cache.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("When caching is off, PortSQL always reloads table lists from the database and hides manual refresh controls.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
 
                 Section("Credentials") {
