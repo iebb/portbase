@@ -31,9 +31,9 @@
             }
           ],
           "position" : {
-            "scale" : 0.8,
+            "scale" : 1,
             "translation-in-points" : [
-              75.53125,
+              0,
               0
             ]
           }

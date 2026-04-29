@@ -26,10 +26,13 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var dataEditorErrorMessage: String?
     @Published var isSavingMutation = false
     @Published var selectedExplorerTableID: UUID?
+    @Published private(set) var isLoadingSchema = false
 
     private weak var bookmarkStore: BookmarkStore?
     private weak var libraryStore: WorkspaceLibraryStore?
     private var assistTask: Task<Void, Never>?
+    private var schemaLoadToken: UUID?
+    private var runToken: UUID?
 
     func configure(bookmarkStore: BookmarkStore, libraryStore: WorkspaceLibraryStore) {
         self.bookmarkStore = bookmarkStore
@@ -203,6 +206,8 @@ final class WorkspaceViewModel: ObservableObject {
             availableDatabases = []
             schemaCatalog = []
             selectedExplorerTableID = nil
+            isLoadingSchema = false
+            schemaLoadToken = nil
             schemaErrorMessage = nil
             rebuildSchemaSuggestions()
             refreshAssist()
@@ -210,6 +215,10 @@ final class WorkspaceViewModel: ObservableObject {
         }
 
         let currentSelection = selectedDatabaseName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let loadToken = UUID()
+        schemaLoadToken = loadToken
+        isLoadingSchema = true
+        schemaErrorMessage = nil
         Task {
             do {
                 let databases = try await DatabaseService.shared.listDatabases(profile: bookmark)
@@ -223,6 +232,7 @@ final class WorkspaceViewModel: ObservableObject {
                     database: resolvedDatabase
                 )
                 await MainActor.run {
+                    guard self.schemaLoadToken == loadToken else { return }
                     self.availableDatabases = databases
                     self.selectedDatabaseName = resolvedDatabase ?? ""
                     self.schemaCatalog = catalog
@@ -242,6 +252,7 @@ final class WorkspaceViewModel: ObservableObject {
                         self.queryText = self.defaultQuery(for: activeExplorerTable)
                     }
                     self.schemaErrorMessage = nil
+                    self.isLoadingSchema = false
                     self.refreshAssist()
                     if self.result.columns.isEmpty,
                        self.errorMessage == nil,
@@ -251,10 +262,12 @@ final class WorkspaceViewModel: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
+                    guard self.schemaLoadToken == loadToken else { return }
                     self.availableDatabases = self.resolveFallbackDatabases(for: bookmark)
                     self.schemaCatalog = []
                     self.selectedExplorerTableID = nil
                     self.schemaErrorMessage = error.localizedDescription
+                    self.isLoadingSchema = false
                     self.rebuildSchemaSuggestions()
                     self.refreshAssist()
                 }
@@ -419,6 +432,8 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     private func run(sql: String, title: String) {
+        let currentRunToken = UUID()
+        runToken = currentRunToken
         isRunning = true
         errorMessage = nil
         Task {
@@ -431,6 +446,7 @@ final class WorkspaceViewModel: ObservableObject {
                 table.sourceTableReference = inferredTableReference(in: sql)
                 table.sourceQuery = sql
                 await MainActor.run {
+                    guard self.runToken == currentRunToken else { return }
                     self.result = table
                     self.isRunning = false
                     self.errorMessage = nil
@@ -446,6 +462,7 @@ final class WorkspaceViewModel: ObservableObject {
                 }
             } catch {
                 await MainActor.run {
+                    guard self.runToken == currentRunToken else { return }
                     self.errorMessage = error.localizedDescription
                     self.result = QueryResultTable.empty
                     self.isRunning = false
@@ -614,6 +631,11 @@ final class WorkspaceViewModel: ObservableObject {
         explorerPageIndex = 0
         explorerPageSize = 25
         result = QueryResultTable.empty
+        runToken = nil
+        isRunning = false
+        schemaCatalog = []
+        selectedExplorerTableID = nil
+        rebuildSchemaSuggestions()
         refreshAssist()
         reloadSchema()
     }
@@ -625,6 +647,11 @@ final class WorkspaceViewModel: ObservableObject {
         explorerPageIndex = 0
         explorerPageSize = 25
         result = QueryResultTable.empty
+        runToken = nil
+        isRunning = false
+        schemaCatalog = []
+        selectedExplorerTableID = nil
+        rebuildSchemaSuggestions()
         reloadSchema()
     }
 

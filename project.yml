@@ -18,7 +18,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ad.neko.portsql
         PRODUCT_NAME: PortSQL
-        MARKETING_VERSION: 1.0.0
+        MARKETING_VERSION: 1.2.0
         CURRENT_PROJECT_VERSION: 1
         SWIFT_VERSION: 6.0
         DEVELOPMENT_TEAM: 9733K94JUG

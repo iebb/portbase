@@ -86,7 +86,8 @@ final class DataEditorValidationServiceTests: XCTestCase {
                 name: name,
                 type: type,
                 isNullable: isNullable,
-                isPrimaryKey: isPrimaryKey
+                isPrimaryKey: isPrimaryKey,
+                isUnique: false
             ),
             value: value,
             originalValue: nil,

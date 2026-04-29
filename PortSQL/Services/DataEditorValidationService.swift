@@ -93,6 +93,26 @@ enum DataEditorValidationService {
         return column.name
     }
 
+    static func isJSONColumn(_ column: SchemaColumnDescriptor) -> Bool {
+        isJSONType(column.type.lowercased())
+    }
+
+    static func formattedJSON(_ value: String, prettyPrinted: Bool = true) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let data = trimmed.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) else {
+            return nil
+        }
+
+        let options: JSONSerialization.WritingOptions = prettyPrinted ? [.prettyPrinted, .sortedKeys] : [.sortedKeys]
+        guard let formattedData = try? JSONSerialization.data(withJSONObject: object, options: options),
+              let formatted = String(data: formattedData, encoding: .utf8) else {
+            return nil
+        }
+        return formatted
+    }
+
     private static func normalizedBooleanLiteral(for value: String, engine: DatabaseEngine) -> String? {
         switch value.lowercased() {
         case "1", "true", "yes":

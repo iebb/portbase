@@ -318,6 +318,10 @@ struct DatabaseSwitcherButton: View {
                 }
             } label: {
                 HStack(spacing: 6) {
+                    if workspace.isLoadingSchema {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
                     Text(workspace.activeDatabaseName ?? "DB")
                         .font(.caption.weight(.semibold))
                         .lineLimit(1)
@@ -326,7 +330,7 @@ struct DatabaseSwitcherButton: View {
                 }
                 .foregroundStyle(PortSQLPalette.ink)
             }
-            .disabled(workspace.availableDatabases.isEmpty)
+            .disabled(workspace.availableDatabases.isEmpty || workspace.isLoadingSchema)
         }
     }
 }
@@ -689,7 +693,7 @@ struct ResultsCard: View {
                     .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
 
-                if workspace.canInsertIntoCurrentTable || workspace.canEditCurrentRows {
+                if !workspace.isRunning && (workspace.canInsertIntoCurrentTable || workspace.canEditCurrentRows) {
                     HStack(spacing: 10) {
                         Text(rowInteractionLabel)
                             .font(.caption.weight(.semibold))
@@ -716,7 +720,7 @@ struct ResultsCard: View {
                     }
                 }
 
-                if workspace.isShowingExplorerResult {
+                if !workspace.isRunning && workspace.isShowingExplorerResult {
                     HStack(spacing: 8) {
                         Button {
                             workspace.goToPreviousExplorerPage()
@@ -750,7 +754,14 @@ struct ResultsCard: View {
                     }
                 }
 
-                if workspace.result.columns.isEmpty {
+                if workspace.isRunning {
+                    LoadingStateView(
+                        title: "Loading results",
+                        message: "Fetching rows for the current request."
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                } else if workspace.result.columns.isEmpty {
                     ContentUnavailableView(
                         "No live rows yet",
                         systemImage: "tablecells",
@@ -1420,6 +1431,7 @@ private struct BookmarkIconPicker: View {
 
 private struct DataEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var workspace: WorkspaceViewModel
 
     var body: some View {
@@ -1457,20 +1469,7 @@ private struct DataEditorSheet: View {
                                             .foregroundStyle(.secondary)
                                     }
 
-                                    if fieldBinding.wrappedValue.isEditable {
-                                        TextField(
-                                            DataEditorValidationService.placeholder(for: fieldBinding.wrappedValue.column),
-                                            text: fieldBinding.value
-                                        )
-                                        .textInputAutocapitalization(.never)
-                                        .autocorrectionDisabled()
-                                        .font(.system(.body, design: .monospaced))
-                                        .keyboardType(DataEditorValidationService.keyboardType(for: fieldBinding.wrappedValue.column))
-                                    } else {
-                                        Text(fieldBinding.wrappedValue.value.isEmpty ? "NULL" : fieldBinding.wrappedValue.value)
-                                            .font(.system(.body, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    fieldValueEditor(fieldBinding)
 
                                     if let validationMessage = workspace.dataEditorValidation[fieldBinding.wrappedValue.id] {
                                         Text(validationMessage)
@@ -1527,6 +1526,31 @@ private struct DataEditorSheet: View {
         }
     }
 
+    @ViewBuilder
+    private func fieldValueEditor(_ fieldBinding: Binding<DataEditorField>) -> some View {
+        if DataEditorValidationService.isJSONColumn(fieldBinding.wrappedValue.column) {
+            JSONFieldEditor(
+                value: fieldBinding.value,
+                isEditable: fieldBinding.wrappedValue.isEditable,
+                placeholder: DataEditorValidationService.placeholder(for: fieldBinding.wrappedValue.column),
+                colorScheme: colorScheme
+            )
+        } else if fieldBinding.wrappedValue.isEditable {
+            TextField(
+                DataEditorValidationService.placeholder(for: fieldBinding.wrappedValue.column),
+                text: fieldBinding.value
+            )
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .font(.system(.body, design: .monospaced))
+            .keyboardType(DataEditorValidationService.keyboardType(for: fieldBinding.wrappedValue.column))
+        } else {
+            Text(fieldBinding.wrappedValue.value.isEmpty ? "NULL" : fieldBinding.wrappedValue.value)
+                .font(.system(.body, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
+    }
+
     private func editorSubtitle(for mode: DataEditorMode) -> String {
         switch mode {
         case .view:
@@ -1536,6 +1560,97 @@ private struct DataEditorSheet: View {
         case .update:
             return "Update the selected row and write the mutation back to the database."
         }
+    }
+}
+
+private struct JSONFieldEditor: View {
+    @Binding var value: String
+    let isEditable: Bool
+    let placeholder: String
+    let colorScheme: ColorScheme
+
+    private var trimmedValue: String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isValidJSON: Bool {
+        trimmedValue.isEmpty || DataEditorValidationService.formattedJSON(trimmedValue) != nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if isEditable {
+                HStack(spacing: 8) {
+                    Label(isValidJSON ? "JSON" : "Invalid JSON", systemImage: isValidJSON ? "curlybraces" : "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(isValidJSON ? Color.secondary : Color.red)
+
+                    Spacer()
+
+                    Button("Format") {
+                        applyJSONFormatting(prettyPrinted: true)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .disabled(!canFormatJSON)
+
+                    Button("Minify") {
+                        applyJSONFormatting(prettyPrinted: false)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .disabled(!canFormatJSON)
+                }
+
+                ZStack(alignment: .topLeading) {
+                    if value.isEmpty {
+                        Text(placeholder)
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 8)
+                            .allowsHitTesting(false)
+                    }
+
+                    TextEditor(text: $value)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 140)
+                        .scrollContentBackground(.hidden)
+                        .padding(4)
+                }
+                .background(PortSQLPalette.editorBackground(for: colorScheme), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(isValidJSON ? PortSQLPalette.editorBorder(for: colorScheme) : Color.red.opacity(0.55), lineWidth: 1)
+                }
+            } else {
+                ScrollView {
+                    Text(value.isEmpty ? "NULL" : value)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                .frame(minHeight: 72, maxHeight: 180)
+                .padding(10)
+                .background(PortSQLPalette.editorBackground(for: colorScheme), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(PortSQLPalette.editorBorder(for: colorScheme), lineWidth: 1)
+                }
+            }
+        }
+    }
+
+    private var canFormatJSON: Bool {
+        DataEditorValidationService.formattedJSON(trimmedValue) != nil
+    }
+
+    private func applyJSONFormatting(prettyPrinted: Bool) {
+        guard let formatted = DataEditorValidationService.formattedJSON(trimmedValue, prettyPrinted: prettyPrinted) else {
+            return
+        }
+        value = formatted
     }
 }
 
@@ -1568,6 +1683,35 @@ struct PanelCard<Content: View>: View {
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(PortSQLPalette.stroke, lineWidth: 1)
+        }
+    }
+}
+
+struct LoadingStateView: View {
+    let title: String
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 14) {
+            ProgressView()
+                .controlSize(.regular)
+                .tint(PortSQLPalette.accent)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(PortSQLPalette.ink)
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(PortSQLPalette.stroke, lineWidth: 1)
         }
     }

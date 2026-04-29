@@ -129,7 +129,14 @@ struct ExplorerView: View {
                         }
                     }
 
-                    if let schemaErrorMessage = workspace.schemaErrorMessage {
+                    if workspace.isLoadingSchema {
+                        PanelCard {
+                            LoadingStateView(
+                                title: "Loading database",
+                                message: loadingDatabaseMessage
+                            )
+                        }
+                    } else if let schemaErrorMessage = workspace.schemaErrorMessage {
                         PanelCard {
                             StatusBanner(
                                 title: "Schema unavailable",
@@ -248,10 +255,20 @@ struct ExplorerView: View {
     }
 
     private var explorerSubtitle: String {
+        if workspace.isLoadingSchema, let database = workspace.activeDatabaseName {
+            return "Loading \(database)"
+        }
         if let database = workspace.activeDatabaseName {
             return "Live browsing in \(database)"
         }
         return "Choose a table to browse live rows"
+    }
+
+    private var loadingDatabaseMessage: String {
+        if let database = workspace.activeDatabaseName {
+            return "Reading tables and columns from \(database)."
+        }
+        return "Reading tables and columns from the selected database."
     }
 
     private func whereSuggestions(for table: SchemaTableDescriptor) -> [ClauseSuggestion] {
