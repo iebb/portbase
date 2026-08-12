@@ -25,6 +25,7 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
         let database: String
         let password: String?
         let tlsConfiguration: TLSConfiguration?
+        let allowPlaintextFallback: Bool
         let serverHostname: String?
         let done: EventLoopPromise<Void>
     }
@@ -134,6 +135,8 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
             }.whenFailure { error in
                 state.done.fail(error)
             }
+        } else if state.tlsConfiguration != nil, !state.allowPlaintextFallback {
+            throw MySQLError.secureConnectionRequired
         } else {
             try self.writeHandshakeResponse(context: context, handshakeRequest: handshakeRequest, state: state, isTLS: false)
         }

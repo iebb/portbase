@@ -4,6 +4,8 @@ import UIKit
 struct ExplorerView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var clauseEditorHeight: CGFloat = 32
     @State private var focusedClause: ClauseField?
 
     var body: some View {
@@ -27,7 +29,7 @@ struct ExplorerView: View {
                                 } label: {
                                     Image(systemName: "play.fill")
                                         .font(.subheadline.weight(.semibold))
-                                        .frame(width: 38, height: 38)
+                                        .frame(width: 44, height: 44)
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(.white)
@@ -36,6 +38,9 @@ struct ExplorerView: View {
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                                         .stroke(PortSQLPalette.accent.opacity(0.2), lineWidth: 1)
                                 }
+                                .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
+                                .accessibilityLabel("Run table browse query")
+                                .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
                             }
 
                             if let selectedTable = workspace.selectedExplorerTable {
@@ -88,6 +93,8 @@ struct ExplorerView: View {
                                         }
                                     }
                                     .buttonStyle(.plain)
+                                    .frame(minHeight: 44)
+                                    .accessibilityLabel(L10n.format("Choose table, currently %@", selectedTable.name))
                                 }
 
                                 clauseRow(
@@ -146,11 +153,37 @@ struct ExplorerView: View {
                         }
                     } else if filteredTables.isEmpty {
                         PanelCard {
-                            ContentUnavailableView(
-                                "No schema metadata",
-                                systemImage: "square.stack.3d.up.slash",
-                                description: Text("Connect to a database and refresh the explorer to inspect live tables and columns.")
-                            )
+                            if workspace.selectedBookmark == nil {
+                                ContentUnavailableView {
+                                    Label("Add a database connection", systemImage: "server.rack")
+                                } description: {
+                                    Text("Connect to MySQL or PostgreSQL to browse tables and live rows.")
+                                } actions: {
+                                    Button {
+                                        workspace.createBookmark()
+                                    } label: {
+                                        Label("Add Connection", systemImage: "plus.circle.fill")
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                    .controlSize(.large)
+                                    .accessibilityHint("Opens the server connection form")
+                                }
+                            } else {
+                                ContentUnavailableView {
+                                    Label("No schema metadata", systemImage: "square.stack.3d.up.slash")
+                                } description: {
+                                    Text("Refresh this database to inspect its live tables and columns.")
+                                } actions: {
+                                    Button {
+                                        workspace.refreshSchemaCatalog()
+                                    } label: {
+                                        Label("Refresh Tables", systemImage: "arrow.clockwise")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.large)
+                                    .disabled(workspace.isLoadingSchema)
+                                }
+                            }
                         }
                     } else {
                         ResultsCard()
@@ -184,9 +217,9 @@ struct ExplorerView: View {
     }
 
     private func tableSummary(_ table: SchemaTableDescriptor) -> String {
-        let columnSummary = "\(table.columns.count) columns"
-        let rowSummary = table.rowCountEstimate.map { " ~\($0) rows" } ?? ""
-        return columnSummary + rowSummary
+        let columnSummary = L10n.plural("column_count", count: table.columns.count)
+        guard let rowCountEstimate = table.rowCountEstimate else { return columnSummary }
+        return L10n.format("%@ • approximately %@", columnSummary, L10n.plural("row_count", count: rowCountEstimate))
     }
 
     private func wherePlaceholder(for table: SchemaTableDescriptor) -> String {
@@ -214,28 +247,36 @@ struct ExplorerView: View {
         apply: @escaping (ClauseSuggestion) -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+            let fieldLayout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                : AnyLayout(HStackLayout(spacing: 8))
+
+            fieldLayout {
                 Text(title)
-                    .font(.system(size: 12, weight: .bold, design: .default))
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .allowsTightening(true)
-                    .frame(width: 44, alignment: .leading)
+                    .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 44, alignment: .leading)
 
                 ZStack(alignment: .leading) {
-                    HighlightedClauseEditor(text: text, colorScheme: colorScheme) { isFocused in
+                    HighlightedClauseEditor(
+                        text: text,
+                        colorScheme: colorScheme,
+                        accessibilityLabel: L10n.format("%@ SQL clause", title)
+                    ) { isFocused in
                         if isFocused {
                             focusedClause = field
                         } else if focusedClause == field {
                             focusedClause = nil
                         }
                     }
-                    .frame(height: 28)
+                    .frame(height: min(max(clauseEditorHeight, 32), 72))
 
                     if text.wrappedValue.isEmpty {
                         Text(placeholder)
-                            .font(.system(size: 15, design: .monospaced))
+                            .font(.system(.body, design: .monospaced))
                             .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
                             .padding(.horizontal, 2)
                             .allowsHitTesting(false)
@@ -267,19 +308,19 @@ struct ExplorerView: View {
 
     private var explorerSubtitle: String {
         if workspace.isLoadingSchema, let database = workspace.activeDatabaseName {
-            return "Loading \(database)"
+            return L10n.format("Loading %@", database)
         }
         if let database = workspace.activeDatabaseName {
-            return "Live browsing in \(database)"
+            return L10n.format("Live browsing in %@", database)
         }
-        return "Choose a table to browse live rows"
+        return L10n.text("Choose a table to browse live rows")
     }
 
     private var loadingDatabaseMessage: String {
         if let database = workspace.activeDatabaseName {
-            return "Reading tables and columns from \(database)."
+            return L10n.format("Reading tables and columns from %@.", database)
         }
-        return "Reading tables and columns from the selected database."
+        return L10n.text("Reading tables and columns from the selected database.")
     }
 
     private func whereSuggestions(for table: SchemaTableDescriptor) -> [ClauseSuggestion] {

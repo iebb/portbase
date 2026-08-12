@@ -13,10 +13,11 @@ extension MySQLDatabase {
     public func query(
         _ sql: String,
         _ binds: [MySQLData] = [],
+        onColumns: @escaping ([MySQLProtocol.ColumnDefinition41]) -> () = { _ in },
         onMetadata: @escaping (MySQLQueryMetadata) throws -> () = { _ in }
     ) -> EventLoopFuture<[MySQLRow]> {
         nonisolated(unsafe) var rows = [MySQLRow]()
-        return self.query(sql, binds, onRow: { row in
+        return self.query(sql, binds, onColumns: onColumns, onRow: { row in
             rows.append(row)
         }, onMetadata: onMetadata).map { rows }
     }
@@ -24,12 +25,14 @@ extension MySQLDatabase {
     public func query(
         _ sql: String,
         _ binds: [MySQLData] = [],
+        onColumns: @escaping ([MySQLProtocol.ColumnDefinition41]) -> () = { _ in },
         onRow: @escaping (MySQLRow) throws -> (),
         onMetadata: @escaping (MySQLQueryMetadata) throws -> () = { _ in }
     ) -> EventLoopFuture<Void> {
         let query = MySQLQueryCommand(
             sql: sql,
             binds: binds,
+            onColumns: onColumns,
             onRow: onRow,
             onMetadata: onMetadata,
             logger: self.logger
@@ -53,6 +56,7 @@ private final class MySQLQueryCommand: MySQLCommand, @unchecked Sendable { // th
 
     var state: State
     let binds: [MySQLData]
+    let onColumns: ([MySQLProtocol.ColumnDefinition41]) -> ()
     let onRow: (MySQLRow) throws -> ()
     let onMetadata: (MySQLQueryMetadata) throws -> ()
     let logger: Logger
@@ -68,6 +72,7 @@ private final class MySQLQueryCommand: MySQLCommand, @unchecked Sendable { // th
     init(
         sql: String,
         binds: [MySQLData],
+        onColumns: @escaping ([MySQLProtocol.ColumnDefinition41]) -> (),
         onRow: @escaping (MySQLRow) throws -> (),
         onMetadata: @escaping (MySQLQueryMetadata) throws -> (),
         logger: Logger
@@ -75,6 +80,7 @@ private final class MySQLQueryCommand: MySQLCommand, @unchecked Sendable { // th
         self.state = .ready
         self.sql = sql
         self.binds = binds
+        self.onColumns = onColumns
         self.prepareColumns = []
         self.executeColumns = []
         self.params = []
@@ -152,6 +158,7 @@ private final class MySQLQueryCommand: MySQLCommand, @unchecked Sendable { // th
             let column = try packet.decode(MySQLProtocol.ColumnDefinition41.self, capabilities: capabilities)
             self.prepareColumns.append(column)
             if self.prepareColumns.count == numericCast(self.ok!.numColumns) {
+                self.onColumns(self.prepareColumns)
                 self.state = .executeColumnCount
             }
             return .noResponse
@@ -170,6 +177,7 @@ private final class MySQLQueryCommand: MySQLCommand, @unchecked Sendable { // th
             remaining -= 1
             switch remaining {
             case 0:
+                self.onColumns(self.executeColumns)
                 self.state = .rows
             default:
                 self.state = .executeColumns(remaining: remaining)

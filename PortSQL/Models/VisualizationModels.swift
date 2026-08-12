@@ -13,13 +13,13 @@ enum VisualizationChartType: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .bar: "Bar"
-        case .line: "Line"
-        case .area: "Area"
-        case .point: "Point"
-        case .rule: "Rule"
-        case .pie: "Pie"
-        case .donut: "Donut"
+        case .bar: L10n.text("Bar")
+        case .line: L10n.text("Line")
+        case .area: L10n.text("Area")
+        case .point: L10n.text("Point")
+        case .rule: L10n.text("Rule")
+        case .pie: L10n.text("Pie")
+        case .donut: L10n.text("Donut")
         }
     }
 
@@ -43,6 +43,10 @@ enum VisualizationChartType: String, CaseIterable, Identifiable, Codable {
             true
         }
     }
+
+    var requiresPro: Bool {
+        self == .line || self == .area
+    }
 }
 
 enum VisualizationFieldMode: String, CaseIterable, Identifiable, Codable {
@@ -55,10 +59,10 @@ enum VisualizationFieldMode: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .automatic: "Auto"
-        case .category: "Category"
-        case .number: "Number"
-        case .date: "Date"
+        case .automatic: L10n.text("Auto")
+        case .category: L10n.text("Category")
+        case .number: L10n.text("Number")
+        case .date: L10n.text("Date")
         }
     }
 }
@@ -110,7 +114,7 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         case 2:
             return metrics.joined(separator: " + ")
         default:
-            return "\(metrics[0]) + \(metrics.count - 1) more"
+            return L10n.format("%@ + %d more", metrics[0], metrics.count - 1)
         }
     }
 

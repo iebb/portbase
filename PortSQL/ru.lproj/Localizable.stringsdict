@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>column_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@columns@</string>
+        <key>columns</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d столбец</string>
+            <key>few</key>
+            <string>%d столбца</string>
+            <key>many</key>
+            <string>%d столбцов</string>
+            <key>other</key>
+            <string>%d столбца</string>
+        </dict>
+    </dict>
+    <key>column_count_short</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@columnsShort@</string>
+        <key>columnsShort</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d стлб.</string>
+            <key>few</key>
+            <string>%d стлб.</string>
+            <key>many</key>
+            <string>%d стлб.</string>
+            <key>other</key>
+            <string>%d стлб.</string>
+        </dict>
+    </dict>
+    <key>row_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@rows@</string>
+        <key>rows</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d строка</string>
+            <key>few</key>
+            <string>%d строки</string>
+            <key>many</key>
+            <string>%d строк</string>
+            <key>other</key>
+            <string>%d строки</string>
+        </dict>
+    </dict>
+    <key>metric_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@metrics@</string>
+        <key>metrics</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d метрика</string>
+            <key>few</key>
+            <string>%d метрики</string>
+            <key>many</key>
+            <string>%d метрик</string>
+            <key>other</key>
+            <string>%d метрики</string>
+        </dict>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>column_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@columns@</string>
+        <key>columns</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d colonne</string>
+            <key>other</key>
+            <string>%d colonnes</string>
+        </dict>
+    </dict>
+    <key>column_count_short</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@columnsShort@</string>
+        <key>columnsShort</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d col.</string>
+            <key>other</key>
+            <string>%d col.</string>
+        </dict>
+    </dict>
+    <key>row_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@rows@</string>
+        <key>rows</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d ligne</string>
+            <key>other</key>
+            <string>%d lignes</string>
+        </dict>
+    </dict>
+    <key>metric_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@metrics@</string>
+        <key>metrics</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d métrique</string>
+            <key>other</key>
+            <string>%d métriques</string>
+        </dict>
+    </dict>
+</dict>
+</plist>

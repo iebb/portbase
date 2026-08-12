@@ -24,7 +24,7 @@ final class PurchaseStore: ObservableObject {
     }
 
     var proStatusText: String {
-        hasPro ? "Pro unlocked" : "Free plan"
+        hasPro ? L10n.text("Pro unlocked") : L10n.text("Free plan")
     }
 
     func configure() async {
@@ -89,7 +89,10 @@ final class PurchaseStore: ObservableObject {
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
-                if PurchaseCatalog.productIDs.contains(transaction.productID) {
+                if PurchaseCatalog.productIDs.contains(transaction.productID),
+                   transaction.revocationDate == nil,
+                   !transaction.isUpgraded,
+                   transaction.expirationDate.map({ $0 > .now }) ?? true {
                     purchased.insert(transaction.productID)
                 }
             } catch {
@@ -105,12 +108,8 @@ final class PurchaseStore: ObservableObject {
                 guard let self else { continue }
                 do {
                     let transaction = try self.checkVerified(result)
-                    await MainActor.run {
-                        if PurchaseCatalog.productIDs.contains(transaction.productID) {
-                            self.purchasedProductIDs.insert(transaction.productID)
-                        }
-                    }
                     await transaction.finish()
+                    await self.refreshEntitlements()
                 } catch {
                     await MainActor.run {
                         self.lastError = error.localizedDescription
@@ -136,7 +135,7 @@ private enum StoreError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .failedVerification:
-            "App Store receipt verification failed."
+            L10n.text("App Store receipt verification failed.")
         }
     }
 }

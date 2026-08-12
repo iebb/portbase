@@ -31,6 +31,18 @@ enum DatabaseEngine: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum TransportSecurityMode: String, Codable, CaseIterable, Identifiable {
+    case systemCA
+    case privateCA
+    case preferTLS
+    case plaintext
+
+    var id: String { rawValue }
+
+    var requiresPrivateCA: Bool { self == .privateCA }
+    var permitsPlaintext: Bool { self == .preferTLS || self == .plaintext }
+}
+
 struct ConnectionProfile: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     var name: String
@@ -42,7 +54,20 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var password: String
     var defaultDatabase: String
     var notes: String = ""
-    var usesTLS: Bool = true
+    var transportSecurityMode: TransportSecurityMode = .systemCA
+    var privateCACertificate: String = ""
+    var usesTLS: Bool {
+        get { transportSecurityMode != .plaintext }
+        set { transportSecurityMode = newValue ? .systemCA : .plaintext }
+    }
+    var isReadOnly: Bool = false
+    var usesSSHTunnel: Bool = false
+    var sshHost: String = ""
+    var sshPort: Int = 22
+    var sshUsername: String = ""
+    var sshPassword: String = ""
+    var sshPrivateKey: String = ""
+    var sshPassphrase: String = ""
     var schemaCachingEnabled: Bool = true
     var schemaCacheDurationHours: Int = 24
     var createdAt: Date = .now
@@ -74,6 +99,14 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         }
         let days = hours / 24
         return hours.isMultiple(of: 24) ? "\(days)d" : "\(hours)h"
+    }
+
+    var sshTunnelSummary: String? {
+        guard usesSSHTunnel else { return nil }
+        let user = sshUsername.trimmingCharacters(in: .whitespacesAndNewlines)
+        let host = sshHost.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !host.isEmpty else { return L10n.text("SSH tunnel enabled") }
+        return user.isEmpty ? "\(host):\(sshPort)" : "\(user)@\(host):\(sshPort)"
     }
 
     var initials: String {
@@ -111,6 +144,16 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         case database
         case notes
         case usesTLS
+        case transportSecurityMode
+        case privateCACertificate
+        case isReadOnly
+        case usesSSHTunnel
+        case sshHost
+        case sshPort
+        case sshUsername
+        case sshPassword
+        case sshPrivateKey
+        case sshPassphrase
         case schemaCachingEnabled
         case schemaCacheDurationHours
         case createdAt
@@ -128,6 +171,16 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         defaultDatabase: String,
         notes: String = "",
         usesTLS: Bool = true,
+        transportSecurityMode: TransportSecurityMode? = nil,
+        privateCACertificate: String = "",
+        isReadOnly: Bool = false,
+        usesSSHTunnel: Bool = false,
+        sshHost: String = "",
+        sshPort: Int = 22,
+        sshUsername: String = "",
+        sshPassword: String = "",
+        sshPrivateKey: String = "",
+        sshPassphrase: String = "",
         schemaCachingEnabled: Bool = true,
         schemaCacheDurationHours: Int = 24,
         createdAt: Date = .now
@@ -142,7 +195,16 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         self.password = password
         self.defaultDatabase = defaultDatabase
         self.notes = notes
-        self.usesTLS = usesTLS
+        self.transportSecurityMode = transportSecurityMode ?? (usesTLS ? .systemCA : .plaintext)
+        self.privateCACertificate = privateCACertificate
+        self.isReadOnly = isReadOnly
+        self.usesSSHTunnel = usesSSHTunnel
+        self.sshHost = sshHost
+        self.sshPort = max(1, sshPort)
+        self.sshUsername = sshUsername
+        self.sshPassword = sshPassword
+        self.sshPrivateKey = sshPrivateKey
+        self.sshPassphrase = sshPassphrase
         self.schemaCachingEnabled = schemaCachingEnabled
         self.schemaCacheDurationHours = max(1, schemaCacheDurationHours)
         self.createdAt = createdAt
@@ -160,6 +222,16 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         database: String,
         notes: String = "",
         usesTLS: Bool = true,
+        transportSecurityMode: TransportSecurityMode? = nil,
+        privateCACertificate: String = "",
+        isReadOnly: Bool = false,
+        usesSSHTunnel: Bool = false,
+        sshHost: String = "",
+        sshPort: Int = 22,
+        sshUsername: String = "",
+        sshPassword: String = "",
+        sshPrivateKey: String = "",
+        sshPassphrase: String = "",
         schemaCachingEnabled: Bool = true,
         schemaCacheDurationHours: Int = 24,
         createdAt: Date = .now
@@ -176,6 +248,16 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
             defaultDatabase: database,
             notes: notes,
             usesTLS: usesTLS,
+            transportSecurityMode: transportSecurityMode,
+            privateCACertificate: privateCACertificate,
+            isReadOnly: isReadOnly,
+            usesSSHTunnel: usesSSHTunnel,
+            sshHost: sshHost,
+            sshPort: sshPort,
+            sshUsername: sshUsername,
+            sshPassword: sshPassword,
+            sshPrivateKey: sshPrivateKey,
+            sshPassphrase: sshPassphrase,
             schemaCachingEnabled: schemaCachingEnabled,
             schemaCacheDurationHours: schemaCacheDurationHours,
             createdAt: createdAt
@@ -196,7 +278,20 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
             ?? container.decodeIfPresent(String.self, forKey: .database)
             ?? ""
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
-        usesTLS = try container.decodeIfPresent(Bool.self, forKey: .usesTLS) ?? true
+        if let explicitMode = try container.decodeIfPresent(TransportSecurityMode.self, forKey: .transportSecurityMode) {
+            transportSecurityMode = explicitMode
+        } else {
+            transportSecurityMode = (try container.decodeIfPresent(Bool.self, forKey: .usesTLS) ?? true) ? .systemCA : .plaintext
+        }
+        privateCACertificate = try container.decodeIfPresent(String.self, forKey: .privateCACertificate) ?? ""
+        isReadOnly = try container.decodeIfPresent(Bool.self, forKey: .isReadOnly) ?? false
+        usesSSHTunnel = try container.decodeIfPresent(Bool.self, forKey: .usesSSHTunnel) ?? false
+        sshHost = try container.decodeIfPresent(String.self, forKey: .sshHost) ?? ""
+        sshPort = max(1, try container.decodeIfPresent(Int.self, forKey: .sshPort) ?? 22)
+        sshUsername = try container.decodeIfPresent(String.self, forKey: .sshUsername) ?? ""
+        sshPassword = try container.decodeIfPresent(String.self, forKey: .sshPassword) ?? ""
+        sshPrivateKey = try container.decodeIfPresent(String.self, forKey: .sshPrivateKey) ?? ""
+        sshPassphrase = try container.decodeIfPresent(String.self, forKey: .sshPassphrase) ?? ""
         schemaCachingEnabled = try container.decodeIfPresent(Bool.self, forKey: .schemaCachingEnabled) ?? true
         schemaCacheDurationHours = max(1, try container.decodeIfPresent(Int.self, forKey: .schemaCacheDurationHours) ?? 24)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
@@ -211,10 +306,20 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         try container.encode(host, forKey: .host)
         try container.encode(port, forKey: .port)
         try container.encode(username, forKey: .username)
-        try container.encode(password, forKey: .password)
+        try container.encode("", forKey: .password)
         try container.encode(defaultDatabase, forKey: .defaultDatabase)
         try container.encode(notes, forKey: .notes)
         try container.encode(usesTLS, forKey: .usesTLS)
+        try container.encode(transportSecurityMode, forKey: .transportSecurityMode)
+        try container.encode(privateCACertificate.isEmpty ? "" : "<keychain>", forKey: .privateCACertificate)
+        try container.encode(isReadOnly, forKey: .isReadOnly)
+        try container.encode(usesSSHTunnel, forKey: .usesSSHTunnel)
+        try container.encode(sshHost, forKey: .sshHost)
+        try container.encode(max(1, sshPort), forKey: .sshPort)
+        try container.encode(sshUsername, forKey: .sshUsername)
+        try container.encode("", forKey: .sshPassword)
+        try container.encode(sshPrivateKey.isEmpty ? "" : "<keychain>", forKey: .sshPrivateKey)
+        try container.encode("", forKey: .sshPassphrase)
         try container.encode(schemaCachingEnabled, forKey: .schemaCachingEnabled)
         try container.encode(max(1, schemaCacheDurationHours), forKey: .schemaCacheDurationHours)
         try container.encode(createdAt, forKey: .createdAt)

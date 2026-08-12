@@ -1,6 +1,22 @@
 import SwiftUI
 import UIKit
 
+enum SQLEditorTypography {
+    static func queryFont(compatibleWith traits: UITraitCollection? = nil) -> UIFont {
+        UIFontMetrics(forTextStyle: .body).scaledFont(
+            for: .monospacedSystemFont(ofSize: 16, weight: .regular),
+            compatibleWith: traits
+        )
+    }
+
+    static func clauseFont(compatibleWith traits: UITraitCollection? = nil) -> UIFont {
+        UIFontMetrics(forTextStyle: .body).scaledFont(
+            for: .monospacedSystemFont(ofSize: 15, weight: .regular),
+            compatibleWith: traits
+        )
+    }
+}
+
 struct HighlightedQueryEditor: UIViewRepresentable {
     @Binding var text: String
     @Binding var cursorOffset: Int
@@ -21,10 +37,13 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         textView.smartInsertDeleteType = .no
         textView.keyboardDismissMode = .interactive
         textView.font = Self.font
+        textView.adjustsFontForContentSizeCategory = true
         textView.textContainerInset = UIEdgeInsets(top: 18, left: 16, bottom: 18, right: 16)
         textView.textContainer.lineFragmentPadding = 0
         textView.tintColor = UIColor(red: 0.38, green: 0.78, blue: 1.0, alpha: 1.0)
         textView.keyboardAppearance = colorScheme == .dark ? .dark : .light
+        textView.accessibilityLabel = "SQL query editor"
+        textView.accessibilityHint = "Enter the SQL statement to run against the selected database"
         context.coordinator.applyHighlight(to: textView, text: text)
         return textView
     }
@@ -170,13 +189,15 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         }
     }
 
-    private static let font = UIFontMetrics(forTextStyle: .body)
-        .scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular))
+    private static var font: UIFont {
+        SQLEditorTypography.queryFont()
+    }
 }
 
 struct HighlightedClauseEditor: UIViewRepresentable {
     @Binding var text: String
     var colorScheme: ColorScheme = .light
+    var accessibilityLabel = "SQL clause editor"
     var onFocusChanged: (Bool) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
@@ -194,6 +215,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         textView.smartInsertDeleteType = .no
         textView.keyboardDismissMode = .interactive
         textView.font = Self.font
+        textView.adjustsFontForContentSizeCategory = true
         textView.textContainerInset = UIEdgeInsets(top: 9, left: 0, bottom: 8, right: 0)
         textView.textContainer.lineFragmentPadding = 0
         textView.textContainer.lineBreakMode = .byClipping
@@ -203,6 +225,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         textView.alwaysBounceVertical = false
         textView.tintColor = UIColor(red: 0.12, green: 0.46, blue: 0.95, alpha: 1.0)
         textView.keyboardAppearance = colorScheme == .dark ? .dark : .light
+        textView.accessibilityLabel = accessibilityLabel
         context.coordinator.applyHighlight(to: textView, text: text)
         return textView
     }
@@ -211,6 +234,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         context.coordinator.colorScheme = colorScheme
         uiView.keyboardAppearance = colorScheme == .dark ? .dark : .light
         uiView.font = Self.font
+        uiView.accessibilityLabel = accessibilityLabel
         guard uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme else { return }
         let selectedRange = uiView.selectedRange
         context.coordinator.applyHighlight(to: uiView, text: text)
@@ -345,6 +369,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         }
     }
 
-    private static let font = UIFontMetrics(forTextStyle: .body)
-        .scaledFont(for: .monospacedSystemFont(ofSize: 15, weight: .regular))
+    private static var font: UIFont {
+        SQLEditorTypography.clauseFont()
+    }
 }

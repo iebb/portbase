@@ -401,6 +401,116 @@ struct MySQLNIOTests {
         }
         try? await serverChannel.close(mode: .all)
     }
+
+    @Test
+    func tlsRequiredRejectsServerWithoutTLSCapability() async throws {
+        let serverChannel = try await makePlaintextOnlyHandshakeServer()
+        let address = try #require(serverChannel.localAddress)
+
+        await #expect(throws: MySQLError.secureConnectionRequired) {
+            _ = try await MySQLConnection.connect(
+                to: address,
+                username: "test",
+                database: "",
+                password: "secret",
+                tlsConfiguration: .makeClientConfiguration(),
+                on: .singletonMultiThreadedEventLoopGroup.any()
+            ).get()
+        }
+        try await serverChannel.close(mode: .all).get()
+    }
+
+    @Test
+    func explicitPlaintextFallbackConnectsWhenServerLacksTLSCapability() async throws {
+        let serverChannel = try await makePlaintextOnlyHandshakeServer()
+        let address = try #require(serverChannel.localAddress)
+
+        let connection = try await MySQLConnection.connect(
+            to: address,
+            username: "test",
+            database: "",
+            password: "secret",
+            tlsConfiguration: .makeClientConfiguration(),
+            allowPlaintextFallback: true,
+            on: .singletonMultiThreadedEventLoopGroup.any()
+        ).get()
+        #expect(connection.channel.isActive)
+        try await connection.close().get()
+        try await serverChannel.close(mode: .all).get()
+    }
+
+    private func makePlaintextOnlyHandshakeServer() async throws -> any Channel {
+        try await ServerBootstrap(group: .singletonMultiThreadedEventLoopGroup)
+            .serverChannelOption(
+                ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SocketOptionName(SO_REUSEADDR)),
+                value: SocketOptionValue(1)
+            )
+            .childChannelOption(
+                ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SocketOptionName(SO_REUSEADDR)),
+                value: SocketOptionValue(1)
+            )
+            .childChannelInitializer { channel in
+                channel.pipeline.addHandler(PlaintextOnlyMySQLHandshakeHandler())
+            }
+            .bind(host: "127.0.0.1", port: 0)
+            .get()
+    }
+}
+
+private final class PlaintextOnlyMySQLHandshakeHandler: ChannelInboundHandler, Sendable {
+    typealias InboundIn = ByteBuffer
+    typealias OutboundOut = ByteBuffer
+
+    func channelActive(context: ChannelHandlerContext) {
+        var payload = ByteBuffer()
+        let capabilities: UInt64 =
+            MySQLProtocol.CapabilityFlags.CLIENT_LONG_PASSWORD.rawValue
+            | MySQLProtocol.CapabilityFlags.CLIENT_PROTOCOL_41.rawValue
+            | MySQLProtocol.CapabilityFlags.CLIENT_SECURE_CONNECTION.rawValue
+            | MySQLProtocol.CapabilityFlags.CLIENT_PLUGIN_AUTH.rawValue
+
+        payload.writeInteger(UInt8(10))
+        payload.writeString("8.0.36")
+        payload.writeInteger(UInt8(0))
+        payload.writeInteger(UInt32(1), endianness: .little)
+        payload.writeBytes(Array(repeating: UInt8(1), count: 8))
+        payload.writeInteger(UInt8(0))
+        payload.writeInteger(UInt16(truncatingIfNeeded: capabilities), endianness: .little)
+        payload.writeInteger(MySQLProtocol.CharacterSet.utf8mb4.rawValue)
+        payload.writeInteger(UInt16(0), endianness: .little)
+        payload.writeInteger(UInt16(truncatingIfNeeded: capabilities >> 16), endianness: .little)
+        payload.writeInteger(UInt8(21))
+        payload.writeBytes(Array(repeating: UInt8(0), count: 10))
+        payload.writeBytes(Array(repeating: UInt8(2), count: 12))
+        payload.writeInteger(UInt8(0))
+        payload.writeString("mysql_native_password")
+        payload.writeInteger(UInt8(0))
+
+        context.writeAndFlush(wrapOutboundOut(Self.frame(payload, sequence: 0)), promise: nil)
+    }
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        _ = unwrapInboundIn(data)
+        var payload = ByteBuffer()
+        payload.writeInteger(UInt8(0))
+        payload.writeInteger(UInt8(0))
+        payload.writeInteger(UInt8(0))
+        payload.writeInteger(UInt16(0), endianness: .little)
+        payload.writeInteger(UInt16(0), endianness: .little)
+        context.writeAndFlush(wrapOutboundOut(Self.frame(payload, sequence: 2)), promise: nil)
+    }
+
+    private static func frame(_ payload: ByteBuffer, sequence: UInt8) -> ByteBuffer {
+        var payload = payload
+        var framed = ByteBuffer()
+        let length = payload.readableBytes
+        framed.writeInteger(UInt8(length & 0xff))
+        framed.writeInteger(UInt8((length >> 8) & 0xff))
+        framed.writeInteger(UInt8((length >> 16) & 0xff))
+        framed.writeInteger(sequence)
+        framed.writeBuffer(&payload)
+        return framed
+    }
 }
 
 final class MySQLNIOXCTests: XCTestCase {
@@ -445,10 +555,10 @@ final class MySQLNIOXCTests: XCTestCase {
         let createResults = try conn.simpleQuery("CREATE TABLE foos (id BIGINT PRIMARY KEY AUTO_INCREMENT, name VARCHAR(64))").wait()
         XCTAssertEqual(createResults.count, 0)
         defer { _ = try! conn.simpleQuery("DROP TABLE IF EXISTS foos").wait() }
-        let insertResults = try conn.query("INSERT INTO foos (name) VALUES (?)", ["test"]) { metadata in
+        let insertResults = try conn.query("INSERT INTO foos (name) VALUES (?)", ["test"], onMetadata: { metadata in
             XCTAssertEqual(metadata.affectedRows, 1)
             XCTAssertEqual(metadata.lastInsertID, 1)
-        }.wait()
+        }).wait()
         XCTAssertEqual(insertResults.count, 0)
     }
     

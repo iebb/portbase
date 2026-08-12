@@ -61,29 +61,29 @@ enum SQLAssistService {
         var hints: [EditorHint] = []
         if normalized.hasPrefix("SELECT *") {
             hints.append(EditorHint(
-                title: "Projection can be narrower",
-                message: "Selecting explicit columns improves readability and reduces bandwidth on mobile networks.",
+                title: L10n.text("Projection can be narrower"),
+                message: L10n.text("Selecting explicit columns improves readability and reduces bandwidth on mobile networks."),
                 severity: .info
             ))
         }
         if normalized.hasPrefix("DELETE") && !normalized.contains("WHERE") {
             hints.append(EditorHint(
-                title: "DELETE without WHERE",
-                message: "This will remove every row in the target table.",
+                title: L10n.text("DELETE without WHERE"),
+                message: L10n.text("This will remove every row in the target table."),
                 severity: .critical
             ))
         }
         if normalized.hasPrefix("UPDATE") && !normalized.contains("WHERE") {
             hints.append(EditorHint(
-                title: "UPDATE without WHERE",
-                message: "All rows will be updated unless you scope the mutation.",
+                title: L10n.text("UPDATE without WHERE"),
+                message: L10n.text("All rows will be updated unless you scope the mutation."),
                 severity: .critical
             ))
         }
         if normalized.hasPrefix("SELECT") && !normalized.contains("LIMIT") {
             hints.append(EditorHint(
-                title: "Consider a LIMIT",
-                message: "Mobile result browsing remains responsive when large table scans are capped.",
+                title: L10n.text("Consider a LIMIT"),
+                message: L10n.text("Mobile result browsing remains responsive when large table scans are capped."),
                 severity: .warning
             ))
         }
@@ -143,30 +143,30 @@ enum SQLAssistService {
                 return context.tableCandidates
             }
             if context.lastToken == "ON" || context.lastToken == "AND" || context.lastToken == "OR" {
-                return context.tableScopedColumnCandidates + context.columnCandidates
+                return context.columnCandidates + context.tableScopedColumnCandidates
             }
             if context.comparisonJustEntered {
-                return valueLiterals + context.tableScopedColumnCandidates + context.columnCandidates
+                return valueLiterals + context.columnCandidates + context.tableScopedColumnCandidates
             }
-            return ["ON"] + context.tableScopedColumnCandidates + context.columnCandidates + logicalOperators + comparisonOperators
+            return ["ON"] + context.columnCandidates + context.tableScopedColumnCandidates + logicalOperators + comparisonOperators
 
         case .whereClause, .having:
             if context.lastToken == "WHERE" || context.lastToken == "HAVING" || context.lastToken == "AND" || context.lastToken == "OR" {
-                return context.tableScopedColumnCandidates + context.columnCandidates + logicalOperators
+                return context.columnCandidates + context.tableScopedColumnCandidates + logicalOperators
             }
             if context.comparisonJustEntered {
-                return valueLiterals + context.tableScopedColumnCandidates + context.columnCandidates
+                return valueLiterals + context.columnCandidates + context.tableScopedColumnCandidates
             }
-            return logicalOperators + comparisonOperators + context.tableScopedColumnCandidates + context.columnCandidates
+            return logicalOperators + comparisonOperators + context.columnCandidates + context.tableScopedColumnCandidates
 
         case .groupBy, .orderBy:
             if context.lastCompoundToken == "ORDER BY" || context.lastCompoundToken == "GROUP BY" || context.lastToken == "," {
-                return context.tableScopedColumnCandidates + context.columnCandidates
+                return context.columnCandidates + context.tableScopedColumnCandidates
             }
             if context.clause == .orderBy {
-                return ["ASC", "DESC", ","] + context.tableScopedColumnCandidates + context.columnCandidates
+                return ["ASC", "DESC", ","] + context.columnCandidates + context.tableScopedColumnCandidates
             }
-            return [",", "HAVING", "ORDER BY"] + context.tableScopedColumnCandidates + context.columnCandidates
+            return [",", "HAVING", "ORDER BY"] + context.columnCandidates + context.tableScopedColumnCandidates
 
         case .insertInto:
             if context.lastCompoundToken == "INSERT INTO" {
@@ -237,23 +237,11 @@ enum SQLAssistService {
 
     private static func canonicalKey(for candidate: String, in context: SQLAutocompleteContext) -> String {
         let normalized = candidate.lowercased()
-        if let table = context.catalog.first(where: { $0.matches(reference: candidate) }) {
-            return "table:\(table.id.uuidString)"
-        }
         return normalized
     }
 
     private static func preferredRepresentation(for candidate: String, in context: SQLAutocompleteContext) -> String {
-        guard let table = context.catalog.first(where: { $0.matches(reference: candidate) }) else {
-            return candidate
-        }
-
-        if let activeDatabase = context.activeDatabase,
-           table.schemaName.lowercased() == activeDatabase {
-            return table.name
-        }
-
-        return table.displayName
+        candidate
     }
 
     private static func shouldPrefer(_ candidate: String, over existing: String, in context: SQLAutocompleteContext) -> Bool {

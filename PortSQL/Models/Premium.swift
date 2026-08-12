@@ -3,29 +3,24 @@ import Foundation
 enum PremiumFeature: String, CaseIterable, Identifiable {
     case unlimitedBookmarks
     case advancedCharts
-    case savedWorkspaces
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .unlimitedBookmarks:
-            "Unlimited bookmarks"
+            L10n.text("Unlimited bookmarks")
         case .advancedCharts:
-            "Advanced chart styles"
-        case .savedWorkspaces:
-            "Saved workspaces"
+            L10n.text("Advanced chart styles")
         }
     }
 
     var subtitle: String {
         switch self {
         case .unlimitedBookmarks:
-            "Keep as many production, staging, and personal database profiles as you need."
+            L10n.text("Keep as many production, staging, and personal database profiles as you need.")
         case .advancedCharts:
-            "Unlock line and area charts for trend analysis beyond the default bar view."
-        case .savedWorkspaces:
-            "Reserved for future query collections, pinned snippets, and dashboard presets."
+            L10n.text("Unlock line and area charts for trend analysis beyond the default bar view.")
         }
     }
 
@@ -35,33 +30,16 @@ enum PremiumFeature: String, CaseIterable, Identifiable {
             "bookmark.circle.fill"
         case .advancedCharts:
             "chart.line.uptrend.xyaxis.circle.fill"
-        case .savedWorkspaces:
-            "square.stack.3d.up.fill"
-        }
-    }
-}
-
-enum PremiumChartStyle: String, CaseIterable, Identifiable {
-    case bar
-    case line
-    case area
-
-    var id: String { rawValue }
-
-    var title: String {
-        rawValue.capitalized
-    }
-
-    var requiresPro: Bool {
-        switch self {
-        case .bar: false
-        case .line, .area: true
         }
     }
 }
 
 enum PremiumPolicy {
     static let freeBookmarkLimit = 3
+
+    static func canCreateBookmark(existingCount: Int, hasPro: Bool) -> Bool {
+        hasPro || existingCount < freeBookmarkLimit
+    }
 }
 
 struct PurchaseCatalog {

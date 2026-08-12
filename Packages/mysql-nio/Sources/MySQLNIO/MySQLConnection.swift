@@ -10,12 +10,14 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
         database: String,
         password: String? = nil,
         tlsConfiguration: TLSConfiguration? = .makeClientConfiguration(),
+        allowPlaintextFallback: Bool = false,
         serverHostname: String? = nil,
         logger: Logger = .init(label: "codes.vapor.mysql"),
         on eventLoop: any EventLoop
     ) -> EventLoopFuture<MySQLConnection> {
         let bootstrap = ClientBootstrap(group: eventLoop)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
+            .channelOption(ChannelOptions.connectTimeout, value: .seconds(10))
         
         logger.debug("Opening new connection to \(socketAddress)")
         
@@ -40,6 +42,7 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
                         database: database,
                         password: password,
                         tlsConfiguration: tlsConfiguration,
+                        allowPlaintextFallback: allowPlaintextFallback,
                         serverHostname: serverHostname,
                         done: done
                     )), sequence: sequence),

@@ -7,6 +7,15 @@ packages:
   PostgresNIO:
     url: https://github.com/vapor/postgres-nio.git
     revision: f294b6205defeb23dc04c4e094b04f0de5784d4b
+  NIOSSH:
+    url: https://github.com/apple/swift-nio-ssh.git
+    from: 0.11.0
+  SwiftNIO:
+    url: https://github.com/apple/swift-nio.git
+    from: 2.98.0
+  SwiftCrypto:
+    url: https://github.com/apple/swift-crypto.git
+    from: 4.4.0
 targets:
   PortSQL:
     type: application
@@ -40,6 +49,10 @@ targets:
         product: MySQLNIO
       - package: PostgresNIO
         product: PostgresNIO
+      - package: NIOSSH
+        product: NIOSSH
+      - package: SwiftCrypto
+        product: Crypto
       - sdk: Charts.framework
   PortSQLTests:
     type: bundle.unit-test
@@ -49,3 +62,11 @@ targets:
       - path: PortSQLTests
     dependencies:
       - target: PortSQL
+      - package: NIOSSH
+        product: NIOSSH
+      - package: SwiftNIO
+        product: NIOCore
+      - package: SwiftNIO
+        product: NIOPosix
+      - package: SwiftCrypto
+        product: Crypto

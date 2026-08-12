@@ -15,48 +15,64 @@ enum DataEditorValidationService {
             let type = field.column.type.lowercased()
             let canOmitOnInsert = mode == .insert && field.column.isPrimaryKey && isIntegerType(type)
 
-            if value.isEmpty {
-                if !field.column.isNullable && !(mode == .insert && canOmitOnInsert) {
-                    errors[field.id] = "Required"
+            if field.isNull {
+                if !field.column.isNullable {
+                    errors[field.id] = L10n.text("Required")
                 }
                 continue
             }
 
-            if isIntegerType(type), Int(value) == nil {
-                errors[field.id] = "Enter an integer"
+            if value.isEmpty {
+                if !(mode == .insert && canOmitOnInsert), isNonTextType(type) {
+                    errors[field.id] = L10n.text("Required")
+                }
+                continue
+            }
+
+            if isIntegerType(type), Int64(value) == nil {
+                errors[field.id] = L10n.text("Enter an integer")
             } else if isDecimalType(type), Decimal(string: value) == nil {
-                errors[field.id] = "Enter a number"
+                errors[field.id] = L10n.text("Enter a number")
             } else if isBooleanType(type), normalizedBooleanLiteral(for: value, engine: engine) == nil {
-                errors[field.id] = "Use true/false or 1/0"
+                errors[field.id] = L10n.text("Use true/false or 1/0")
             } else if isDateType(type), !isValidDate(value) {
-                errors[field.id] = "Use YYYY-MM-DD"
-            } else if isDateTimeType(type), !isValidDateTime(value) {
-                errors[field.id] = "Use YYYY-MM-DD HH:MM:SS"
-            } else if isTimeType(type), !isValidTime(value) {
-                errors[field.id] = "Use HH:MM:SS"
+                errors[field.id] = L10n.text("Use YYYY-MM-DD")
+            } else if isDateTimeType(type), !isValidDateTime(value, allowsTimeZone: hasTimeZone(type)) {
+                errors[field.id] = L10n.text("Use YYYY-MM-DD HH:MM:SS")
+            } else if isTimeType(type), !isValidTime(value, allowsTimeZone: hasTimeZone(type)) {
+                errors[field.id] = L10n.text("Use HH:MM:SS")
             } else if isUUIDType(type), UUID(uuidString: value) == nil {
-                errors[field.id] = "Enter a valid UUID"
+                errors[field.id] = L10n.text("Enter a valid UUID")
             } else if isJSONType(type), !isValidJSON(value) {
-                errors[field.id] = "Enter valid JSON"
+                errors[field.id] = L10n.text("Enter valid JSON")
             }
         }
 
         return errors
     }
 
-    static func sqlLiteral(for field: DataEditorField, engine: DatabaseEngine) -> String? {
-        let value = field.value.trimmingCharacters(in: .whitespacesAndNewlines)
+    static func boundValue(for field: DataEditorField) -> QueryBoundValue? {
+        if field.isNull { return .null }
+        let rawValue = field.value
+        let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let type = field.column.type.lowercased()
         if value.isEmpty {
-            return nil
+            return isNonTextType(type) ? nil : .string(rawValue)
         }
-        if isIntegerType(type) || isDecimalType(type) {
-            return value
+        if isIntegerType(type), let integer = Int64(value) {
+            return .integer(integer)
         }
-        if isBooleanType(type), let boolean = normalizedBooleanLiteral(for: value, engine: engine) {
-            return boolean
+        if isDecimalType(type), Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")) != nil {
+            return .decimal(value)
         }
-        return "'\(value.sqlEscaped)'"
+        if isBooleanType(type) {
+            switch value.lowercased() {
+            case "1", "true", "yes": return .boolean(true)
+            case "0", "false", "no": return .boolean(false)
+            default: return nil
+            }
+        }
+        return .string(rawValue)
     }
 
     static func keyboardType(for column: SchemaColumnDescriptor) -> UIKeyboardType {
@@ -131,18 +147,24 @@ enum DataEditorValidationService {
         return formatter.date(from: value) != nil
     }
 
-    private static func isValidDateTime(_ value: String) -> Bool {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-        return formatter.date(from: value) != nil
+    private static func isNonTextType(_ type: String) -> Bool {
+        isIntegerType(type) || isDecimalType(type) || isBooleanType(type)
+            || isDateType(type) || isDateTimeType(type) || isTimeType(type)
+            || isUUIDType(type) || isJSONType(type)
     }
 
-    private static func isValidTime(_ value: String) -> Bool {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "HH:mm:ss"
-        return formatter.date(from: value) != nil
+    private static func isValidDateTime(_ value: String, allowsTimeZone: Bool) -> Bool {
+        let suffix = allowsTimeZone ? #"(?:Z|[+-]\d{2}(?::?\d{2})?)?"# : ""
+        return matches(value, pattern: #"^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?"# + suffix + "$" )
+    }
+
+    private static func isValidTime(_ value: String, allowsTimeZone: Bool) -> Bool {
+        let suffix = allowsTimeZone ? #"(?:Z|[+-]\d{2}(?::?\d{2})?)?"# : ""
+        return matches(value, pattern: #"^-?\d{2,3}:\d{2}:\d{2}(?:\.\d{1,6})?"# + suffix + "$" )
+    }
+
+    private static func matches(_ value: String, pattern: String) -> Bool {
+        value.range(of: pattern, options: .regularExpression) != nil
     }
 
     private static func isValidJSON(_ value: String) -> Bool {
@@ -151,7 +173,8 @@ enum DataEditorValidationService {
     }
 
     private static func isIntegerType(_ type: String) -> Bool {
-        ["int", "integer", "bigint", "smallint", "mediumint", "tinyint", "serial", "bigserial"].contains { type.contains($0) }
+        let base = canonicalBaseType(type)
+        return ["int", "int2", "int4", "int8", "integer", "bigint", "smallint", "mediumint", "tinyint", "serial", "smallserial", "bigserial"].contains(base)
     }
 
     private static func isDecimalType(_ type: String) -> Bool {
@@ -171,7 +194,19 @@ enum DataEditorValidationService {
     }
 
     private static func isTimeType(_ type: String) -> Bool {
-        type == "time"
+        let base = canonicalBaseType(type)
+        return base == "time" || base == "timetz"
+    }
+
+    private static func hasTimeZone(_ type: String) -> Bool {
+        type.contains("with time zone") || type.contains("timestamptz") || type.contains("timetz")
+    }
+
+    private static func canonicalBaseType(_ type: String) -> String {
+        let lowered = type.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowered.hasPrefix("timestamp") { return lowered }
+        if lowered.hasPrefix("time with") || lowered.hasPrefix("time without") { return "time" }
+        return lowered.split(whereSeparator: { $0 == "(" || $0.isWhitespace }).first.map(String.init) ?? lowered
     }
 
     private static func isUUIDType(_ type: String) -> Bool {
@@ -180,11 +215,5 @@ enum DataEditorValidationService {
 
     private static func isJSONType(_ type: String) -> Bool {
         type.contains("json")
-    }
-}
-
-private extension String {
-    var sqlEscaped: String {
-        replacingOccurrences(of: "'", with: "''")
     }
 }

@@ -10,27 +10,50 @@
 		053D698A8552BAF485C033C1 /* HighlightedQueryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */; };
 		06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */; };
 		075363B746098275FBB5E230 /* MySQLNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4821E2CABB861D5D16C0DF51 /* MySQLNIO */; };
+		082175C2020F84183C6E8713 /* SQLSafetyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50BB47279C113C0DDAD076A2 /* SQLSafetyService.swift */; };
+		0B1083A805746327014A72F0 /* NIOCore in Frameworks */ = {isa = PBXBuildFile; productRef = B74FF8F4AD0760AFD2F64BBF /* NIOCore */; };
 		0CE9DD76E4D1AD77A22C9BE1 /* Charts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E08A80F5F58CE8188BDE55E9 /* Charts.framework */; };
+		0E4CEB096CE0332F952E2B13 /* SSHTunnelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7815F00324F38C695376075 /* SSHTunnelService.swift */; };
 		0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */; };
 		0FD3C3B5901BC1DD3F758AFA /* WorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B89D239D48FE17AB83512E6 /* WorkspaceViewModel.swift */; };
+		103A5DBF510F3B425C54BE30 /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 191E7961BD5B29C00811F0EA /* NIOSSH */; };
 		18903C1364D1714A15A1B6EA /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF537FA01FB9472E0C3A3149 /* RootView.swift */; };
+		1E64BAE770072DE127C77049 /* SQLSafetyServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */; };
 		22A06DB93DF8644C3D8CCF05 /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */; };
+		3B1E6D70358235E6CB447D26 /* Crypto in Frameworks */ = {isa = PBXBuildFile; productRef = A387DEB054010AD35A0F081C /* Crypto */; };
 		3F111012F4D1C2CD865BA6E2 /* DatabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4E17BED217B13694466C80 /* DatabaseService.swift */; };
+		437BA04B864EB17A28149E47 /* QueryParameterAndExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */; };
 		44372F37F45906E04BBDAFA5 /* MonetizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5A50E32F4584D6D357DA45A /* MonetizationView.swift */; };
+		486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23331E5633F855E60F40421E /* VisualizationServiceTests.swift */; };
 		4974231030C743F5C928FC15 /* WorkspaceLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */; };
+		4C438159BEDCBA5C8CEE0B36 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = C177CBD18B2443B5289FD915 /* NIOPosix */; };
+		5044A037FD173BB28F928FF2 /* SchemaCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88816ECE5369279575107C83 /* SchemaCacheStore.swift */; };
+		5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */; };
+		61A3900733ECECC7820CD038 /* ProductUIStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DB7EBAD5423F6AFD0A4984F /* ProductUIStateTests.swift */; };
+		6E0865CB7921E94F885DC695 /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 646D2FB7B63750307A701D54 /* NIOSSH */; };
+		6FCC70B5A9F6BA67BDDDB951 /* ProductUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341A5589EFBFFB8BD4C14B95 /* ProductUIState.swift */; };
+		722651F1E6A919194877EC23 /* Crypto in Frameworks */ = {isa = PBXBuildFile; productRef = D225E87855E6DE9242595733 /* Crypto */; };
+		7889D85E8399B28CC34F0798 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4D175FE93FD2599448CFCC29 /* InfoPlist.strings */; };
+		7CF309494C67F491C97DCEF8 /* LocalizationKeychainAndCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B00FBD279062676E4B5484F /* LocalizationKeychainAndCatalogTests.swift */; };
+		840D1CEF920D56AB08F43F45 /* QueryParameterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C0B78E00C4985082E65410 /* QueryParameterService.swift */; };
 		844E54BB7106AD53815C2890 /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C43FD9CD8FFE98EA50A6AFE /* ExplorerView.swift */; };
+		8A3821456C079FD236135759 /* DatabaseSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */; };
 		8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF2634609186A8C0C442FED0 /* VisualizerView.swift */; };
 		8F81BD422E182B429B9E6904 /* PortSQLApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */; };
 		91934FCF440DF634AFC94177 /* DataEditorValidationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */; };
-		9F45A14B6E2C4B5F9E7A1234 /* SchemaCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F45A14A6E2C4B5F9E7A1234 /* SchemaCacheStore.swift */; };
+		9C6D50C36E191E664544E879 /* SQLAssistServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E39B44C66543C65AE60594D5 /* SQLAssistServiceTests.swift */; };
+		9FE87FB0FC18B06B9AB6B580 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3551CC4B723F6996D66380F9 /* Localizable.strings */; };
 		A768695EDF8DD4F4A4E1A2BA /* DataEditorValidationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */; };
 		B16857CFB27B6554140750F6 /* Premium.swift in Sources */ = {isa = PBXBuildFile; fileRef = B31A8DEBF023CF8D37401177 /* Premium.swift */; };
 		B4188143545AF24376A1B143 /* QueryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C65E79C336A0F709FD048F /* QueryModels.swift */; };
 		B771B5A8BF74390DD3463C36 /* VisualizationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5EF3726F667E1FB0E249A5C /* VisualizationModels.swift */; };
 		CEAD34F4F0C463B0BA9EC494 /* SQLSyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */; };
+		CFE34BF3C6AE4B306665C49C /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F170CA618498638CDD5F7994 /* Localization.swift */; };
 		D7409B5DF615E60D1F390CC3 /* PostgresNIO in Frameworks */ = {isa = PBXBuildFile; productRef = B78B3814380B85F792DC1671 /* PostgresNIO */; };
 		DC8239D71363C52BD8981DD9 /* PurchaseStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FB8F651BC76B14211348A52 /* PurchaseStore.swift */; };
+		E149852F4935AD7D5D8CF004 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = 8157E6741A0563EC852697C9 /* Localizable.stringsdict */; };
 		E181DB43C5082EDF08E82ACA /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4A15F76C29C24204DA7CF27F /* AppIcon.icon */; };
+		F27A1E50F1C6D4C46F810D95 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B76B397227691B0CA018DCD /* KeychainService.swift */; };
 		F95495472C0CADE6B54EABFE /* SQLAssistService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */; };
 		FCCD7A2C653B30FFFFE39383 /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E43B7EE9DE024E2C885B4C /* Bookmark.swift */; };
 /* End PBXBuildFile section */
@@ -46,45 +69,102 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		0717CE81BCB40CF0EE63576C /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
+		0717CE81BCB40CF0EE63576C /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceLibraryStore.swift; sourceTree = "<group>"; };
 		1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLAssistService.swift; sourceTree = "<group>"; };
 		15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLSyntaxHighlighter.swift; sourceTree = "<group>"; };
+		1853061DBC455AAA583C1304 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		19F2CFA2B57AD724B57F2CD9 /* PortSQLTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PortSQLTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B4E17BED217B13694466C80 /* DatabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseService.swift; sourceTree = "<group>"; };
 		1B89D239D48FE17AB83512E6 /* WorkspaceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceViewModel.swift; sourceTree = "<group>"; };
 		1C43FD9CD8FFE98EA50A6AFE /* ExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExplorerView.swift; sourceTree = "<group>"; };
+		1F8B84E63254275CABEA3BE1 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		23331E5633F855E60F40421E /* VisualizationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationServiceTests.swift; sourceTree = "<group>"; };
+		28BA0C08CE22B10DAB99618D /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		2FB8F651BC76B14211348A52 /* PurchaseStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseStore.swift; sourceTree = "<group>"; };
+		341A5589EFBFFB8BD4C14B95 /* ProductUIState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductUIState.swift; sourceTree = "<group>"; };
 		382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataEditorValidationServiceTests.swift; sourceTree = "<group>"; };
+		3B76B397227691B0CA018DCD /* KeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainService.swift; sourceTree = "<group>"; };
+		3BDAA7E2E9E09943D1ADDB07 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		3EDF1388F29A03F73175F5CF /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ja; path = ja.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		4652F0CAD2489F2A36BCE616 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
 		465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataEditorValidationService.swift; sourceTree = "<group>"; };
+		479DF3AB24E4157BDA8C2307 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationService.swift; sourceTree = "<group>"; };
 		49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedQueryEditor.swift; sourceTree = "<group>"; };
 		4A15F76C29C24204DA7CF27F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		5067D006A54ABF72E4234A1E /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = es; path = es.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		50BB47279C113C0DDAD076A2 /* SQLSafetyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLSafetyService.swift; sourceTree = "<group>"; };
 		51E43B7EE9DE024E2C885B4C /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
+		58AA186630912BC4C2DAEF21 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = de; path = de.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		599F11E40142982E8FF89E30 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		5B7D28EEF20C9F34421DD9E6 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		63C65E79C336A0F709FD048F /* QueryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryModels.swift; sourceTree = "<group>"; };
+		69C2A6265712AA4B565B1EE2 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "pt-BR"; path = "pt-BR.lproj/Localizable.stringsdict"; sourceTree = "<group>"; };
+		6B6DDF5B5000E1B223BE00A6 /* PortSQLRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PortSQLRelease.entitlements; sourceTree = "<group>"; };
 		6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkIconCatalog.swift; sourceTree = "<group>"; };
-		8C4C8BA62FB7597D0098ED79 /* PortSQLRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PortSQLRelease.entitlements; sourceTree = "<group>"; };
-		96C2582C00122CD6222047E0 /* PortSQL.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PortSQL.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9F45A14A6E2C4B5F9E7A1234 /* SchemaCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaCacheStore.swift; sourceTree = "<group>"; };
+		7B00FBD279062676E4B5484F /* LocalizationKeychainAndCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationKeychainAndCatalogTests.swift; sourceTree = "<group>"; };
+		83752D4DFB57E52D5894933F /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
+		8406B5134DBA9C067C46E4FF /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		8463A17B78D6D423C713CA8B /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		88816ECE5369279575107C83 /* SchemaCacheStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaCacheStore.swift; sourceTree = "<group>"; };
+		8AD6804F4EAD70CE27052C6C /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		8DB7EBAD5423F6AFD0A4984F /* ProductUIStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductUIStateTests.swift; sourceTree = "<group>"; };
+		930198DEBE97268FDC3EC3AB /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		96C2582C00122CD6222047E0 /* PortSQL.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PortSQL.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A3F1286F50D428475C38033F /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ko; path = ko.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		A8423453C46E11B68DE5A89C /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/Localizable.strings; sourceTree = "<group>"; };
 		A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkStore.swift; sourceTree = "<group>"; };
+		AD240100B738A46C130EA955 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortSQLApp.swift; sourceTree = "<group>"; };
 		AF537FA01FB9472E0C3A3149 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		B31A8DEBF023CF8D37401177 /* Premium.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Premium.swift; sourceTree = "<group>"; };
+		B437AF4FAD02E804BCE4FBCA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.stringsdict"; sourceTree = "<group>"; };
+		BBE607C4F9AF42C55A0045FD /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.stringsdict"; sourceTree = "<group>"; };
+		C068A9A18ACC5469C5441369 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSafetyTests.swift; sourceTree = "<group>"; };
+		C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParameterAndExportServiceTests.swift; sourceTree = "<group>"; };
+		CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHTunnelServiceTests.swift; sourceTree = "<group>"; };
 		CF2634609186A8C0C442FED0 /* VisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizerView.swift; sourceTree = "<group>"; };
 		D35DF15AD3F8A2F2A8DE7306 /* mysql-nio */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "mysql-nio"; path = "Packages/mysql-nio"; sourceTree = SOURCE_ROOT; };
 		D5A50E32F4584D6D357DA45A /* MonetizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonetizationView.swift; sourceTree = "<group>"; };
+		D85CB4CB9C1C326CE1965C54 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		E08A80F5F58CE8188BDE55E9 /* Charts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Charts.framework; path = System/Library/Frameworks/Charts.framework; sourceTree = SDKROOT; };
+		E39B44C66543C65AE60594D5 /* SQLAssistServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLAssistServiceTests.swift; sourceTree = "<group>"; };
 		E5EF3726F667E1FB0E249A5C /* VisualizationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationModels.swift; sourceTree = "<group>"; };
+		E8046BC1D007122EB7F0FA2E /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		E8C0B78E00C4985082E65410 /* QueryParameterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParameterService.swift; sourceTree = "<group>"; };
+		EAA3E89725B11A901D1BDA20 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		ED6A139AF055000FB1377351 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLSafetyServiceTests.swift; sourceTree = "<group>"; };
+		EE7FE26C99C9297990D772A0 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		F0E7AECCB5A7DF438CA79F20 /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = fr; path = fr.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
+		F170CA618498638CDD5F7994 /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		F34081AD7880DD5A25EB7DD5 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		F63EEF824843AF5CD2D74DDA /* PortSQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PortSQL.entitlements; sourceTree = "<group>"; };
+		F7815F00324F38C695376075 /* SSHTunnelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHTunnelService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		1545DFCCD050959DB6FE2A6A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				103A5DBF510F3B425C54BE30 /* NIOSSH in Frameworks */,
+				0B1083A805746327014A72F0 /* NIOCore in Frameworks */,
+				4C438159BEDCBA5C8CEE0B36 /* NIOPosix in Frameworks */,
+				722651F1E6A919194877EC23 /* Crypto in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		8C33DEFBA093EAB8F1A2BC61 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				075363B746098275FBB5E230 /* MySQLNIO in Frameworks */,
 				D7409B5DF615E60D1F390CC3 /* PostgresNIO in Frameworks */,
+				6E0865CB7921E94F885DC695 /* NIOSSH in Frameworks */,
+				3B1E6D70358235E6CB447D26 /* Crypto in Frameworks */,
 				0CE9DD76E4D1AD77A22C9BE1 /* Charts.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -139,10 +219,15 @@
 				A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */,
 				1B4E17BED217B13694466C80 /* DatabaseService.swift */,
 				465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */,
+				3B76B397227691B0CA018DCD /* KeychainService.swift */,
+				F170CA618498638CDD5F7994 /* Localization.swift */,
 				2FB8F651BC76B14211348A52 /* PurchaseStore.swift */,
-				9F45A14A6E2C4B5F9E7A1234 /* SchemaCacheStore.swift */,
+				E8C0B78E00C4985082E65410 /* QueryParameterService.swift */,
+				88816ECE5369279575107C83 /* SchemaCacheStore.swift */,
 				1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */,
+				50BB47279C113C0DDAD076A2 /* SQLSafetyService.swift */,
 				15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */,
+				F7815F00324F38C695376075 /* SSHTunnelService.swift */,
 				48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */,
 				1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */,
 			);
@@ -152,7 +237,15 @@
 		A84D63913109DEB2E04972AF /* PortSQLTests */ = {
 			isa = PBXGroup;
 			children = (
+				C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */,
 				382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */,
+				7B00FBD279062676E4B5484F /* LocalizationKeychainAndCatalogTests.swift */,
+				8DB7EBAD5423F6AFD0A4984F /* ProductUIStateTests.swift */,
+				C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */,
+				E39B44C66543C65AE60594D5 /* SQLAssistServiceTests.swift */,
+				ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */,
+				CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */,
+				23331E5633F855E60F40421E /* VisualizationServiceTests.swift */,
 			);
 			path = PortSQLTests;
 			sourceTree = "<group>";
@@ -171,10 +264,13 @@
 		E3162BCED0FB2F0B9DAC9876 /* PortSQL */ = {
 			isa = PBXGroup;
 			children = (
-				8C4C8BA62FB7597D0098ED79 /* PortSQLRelease.entitlements */,
 				4A15F76C29C24204DA7CF27F /* AppIcon.icon */,
 				F63EEF824843AF5CD2D74DDA /* PortSQL.entitlements */,
 				AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */,
+				6B6DDF5B5000E1B223BE00A6 /* PortSQLRelease.entitlements */,
+				4D175FE93FD2599448CFCC29 /* InfoPlist.strings */,
+				3551CC4B723F6996D66380F9 /* Localizable.strings */,
+				8157E6741A0563EC852697C9 /* Localizable.stringsdict */,
 				E55FB617DBB9AD7C80F32C89 /* Models */,
 				4ADA93F599B58A01E136AD5A /* Preview Content */,
 				5C607F2438AA9FF2F40A1FD8 /* Services */,
@@ -202,6 +298,7 @@
 				51E43B7EE9DE024E2C885B4C /* Bookmark.swift */,
 				6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */,
 				B31A8DEBF023CF8D37401177 /* Premium.swift */,
+				341A5589EFBFFB8BD4C14B95 /* ProductUIState.swift */,
 				63C65E79C336A0F709FD048F /* QueryModels.swift */,
 				E5EF3726F667E1FB0E249A5C /* VisualizationModels.swift */,
 			);
@@ -216,6 +313,7 @@
 			buildConfigurationList = 45624F4CFC29289B693AEF41 /* Build configuration list for PBXNativeTarget "PortSQLTests" */;
 			buildPhases = (
 				3F0BB823E596CC45D62C868B /* Sources */,
+				1545DFCCD050959DB6FE2A6A /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -224,6 +322,10 @@
 			);
 			name = PortSQLTests;
 			packageProductDependencies = (
+				191E7961BD5B29C00811F0EA /* NIOSSH */,
+				B74FF8F4AD0760AFD2F64BBF /* NIOCore */,
+				C177CBD18B2443B5289FD915 /* NIOPosix */,
+				D225E87855E6DE9242595733 /* Crypto */,
 			);
 			productName = PortSQLTests;
 			productReference = 19F2CFA2B57AD724B57F2CD9 /* PortSQLTests.xctest */;
@@ -245,6 +347,8 @@
 			packageProductDependencies = (
 				4821E2CABB861D5D16C0DF51 /* MySQLNIO */,
 				B78B3814380B85F792DC1671 /* PostgresNIO */,
+				646D2FB7B63750307A701D54 /* NIOSSH */,
+				A387DEB054010AD35A0F081C /* Crypto */,
 			);
 			productName = PortSQL;
 			productReference = 96C2582C00122CD6222047E0 /* PortSQL.app */;
@@ -260,6 +364,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					FFCE229CA3659D0B4DCF7410 = {
+						DevelopmentTeam = 7P8CLHDH5G;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -269,12 +374,24 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
+				de,
 				en,
+				es,
+				fr,
+				ja,
+				ko,
+				"pt-BR",
+				ru,
+				"zh-Hans",
+				"zh-Hant",
 			);
 			mainGroup = D84AC60588F3E6E392CA1EE5;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				746DA78CEA8A31ABEC658786 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */,
 				08839C3D28F022DFDAD57CC3 /* XCRemoteSwiftPackageReference "postgres-nio" */,
+				E1F1D70D5C13503F06D34FD7 /* XCRemoteSwiftPackageReference "swift-crypto" */,
+				8C208B6A1BB89B5012A77DE3 /* XCRemoteSwiftPackageReference "swift-nio" */,
 				CCDC4C1B7ADD5D6D9EC07FEF /* XCLocalSwiftPackageReference "Packages/mysql-nio" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -294,6 +411,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				E181DB43C5082EDF08E82ACA /* AppIcon.icon in Resources */,
+				7889D85E8399B28CC34F0798 /* InfoPlist.strings in Resources */,
+				9FE87FB0FC18B06B9AB6B580 /* Localizable.strings in Resources */,
+				E149852F4935AD7D5D8CF004 /* Localizable.stringsdict in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -305,6 +425,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				A768695EDF8DD4F4A4E1A2BA /* DataEditorValidationServiceTests.swift in Sources */,
+				8A3821456C079FD236135759 /* DatabaseSafetyTests.swift in Sources */,
+				7CF309494C67F491C97DCEF8 /* LocalizationKeychainAndCatalogTests.swift in Sources */,
+				61A3900733ECECC7820CD038 /* ProductUIStateTests.swift in Sources */,
+				437BA04B864EB17A28149E47 /* QueryParameterAndExportServiceTests.swift in Sources */,
+				9C6D50C36E191E664544E879 /* SQLAssistServiceTests.swift in Sources */,
+				1E64BAE770072DE127C77049 /* SQLSafetyServiceTests.swift in Sources */,
+				5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */,
+				486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -319,15 +447,21 @@
 				3F111012F4D1C2CD865BA6E2 /* DatabaseService.swift in Sources */,
 				844E54BB7106AD53815C2890 /* ExplorerView.swift in Sources */,
 				053D698A8552BAF485C033C1 /* HighlightedQueryEditor.swift in Sources */,
+				F27A1E50F1C6D4C46F810D95 /* KeychainService.swift in Sources */,
+				CFE34BF3C6AE4B306665C49C /* Localization.swift in Sources */,
 				44372F37F45906E04BBDAFA5 /* MonetizationView.swift in Sources */,
 				8F81BD422E182B429B9E6904 /* PortSQLApp.swift in Sources */,
 				B16857CFB27B6554140750F6 /* Premium.swift in Sources */,
+				6FCC70B5A9F6BA67BDDDB951 /* ProductUIState.swift in Sources */,
 				DC8239D71363C52BD8981DD9 /* PurchaseStore.swift in Sources */,
 				B4188143545AF24376A1B143 /* QueryModels.swift in Sources */,
+				840D1CEF920D56AB08F43F45 /* QueryParameterService.swift in Sources */,
 				18903C1364D1714A15A1B6EA /* RootView.swift in Sources */,
-				9F45A14B6E2C4B5F9E7A1234 /* SchemaCacheStore.swift in Sources */,
 				F95495472C0CADE6B54EABFE /* SQLAssistService.swift in Sources */,
+				082175C2020F84183C6E8713 /* SQLSafetyService.swift in Sources */,
 				CEAD34F4F0C463B0BA9EC494 /* SQLSyntaxHighlighter.swift in Sources */,
+				0E4CEB096CE0332F952E2B13 /* SSHTunnelService.swift in Sources */,
+				5044A037FD173BB28F928FF2 /* SchemaCacheStore.swift in Sources */,
 				B771B5A8BF74390DD3463C36 /* VisualizationModels.swift in Sources */,
 				06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */,
 				8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */,
@@ -345,6 +479,60 @@
 			targetProxy = 2FF95B8753A14169B73333DC /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		3551CC4B723F6996D66380F9 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1F8B84E63254275CABEA3BE1 /* de */,
+				5B7D28EEF20C9F34421DD9E6 /* en */,
+				83752D4DFB57E52D5894933F /* es */,
+				28BA0C08CE22B10DAB99618D /* fr */,
+				ED6A139AF055000FB1377351 /* ja */,
+				4652F0CAD2489F2A36BCE616 /* ko */,
+				8463A17B78D6D423C713CA8B /* pt-BR */,
+				A8423453C46E11B68DE5A89C /* ru */,
+				599F11E40142982E8FF89E30 /* zh-Hans */,
+				479DF3AB24E4157BDA8C2307 /* zh-Hant */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		4D175FE93FD2599448CFCC29 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AD240100B738A46C130EA955 /* de */,
+				8AD6804F4EAD70CE27052C6C /* en */,
+				E8046BC1D007122EB7F0FA2E /* es */,
+				EE7FE26C99C9297990D772A0 /* fr */,
+				C068A9A18ACC5469C5441369 /* ja */,
+				8406B5134DBA9C067C46E4FF /* ko */,
+				F34081AD7880DD5A25EB7DD5 /* pt-BR */,
+				3BDAA7E2E9E09943D1ADDB07 /* ru */,
+				EAA3E89725B11A901D1BDA20 /* zh-Hans */,
+				930198DEBE97268FDC3EC3AB /* zh-Hant */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		8157E6741A0563EC852697C9 /* Localizable.stringsdict */ = {
+			isa = PBXVariantGroup;
+			children = (
+				58AA186630912BC4C2DAEF21 /* de */,
+				1853061DBC455AAA583C1304 /* en */,
+				5067D006A54ABF72E4234A1E /* es */,
+				F0E7AECCB5A7DF438CA79F20 /* fr */,
+				3EDF1388F29A03F73175F5CF /* ja */,
+				A3F1286F50D428475C38033F /* ko */,
+				69C2A6265712AA4B565B1EE2 /* pt-BR */,
+				D85CB4CB9C1C326CE1965C54 /* ru */,
+				B437AF4FAD02E804BCE4FBCA /* zh-Hans */,
+				BBE607C4F9AF42C55A0045FD /* zh-Hant */,
+			);
+			name = Localizable.stringsdict;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		53551872415442FCA7A5F45F /* Debug */ = {
@@ -612,17 +800,71 @@
 				revision = f294b6205defeb23dc04c4e094b04f0de5784d4b;
 			};
 		};
+		746DA78CEA8A31ABEC658786 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio-ssh.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.11.0;
+			};
+		};
+		8C208B6A1BB89B5012A77DE3 /* XCRemoteSwiftPackageReference "swift-nio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-nio.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.98.0;
+			};
+		};
+		E1F1D70D5C13503F06D34FD7 /* XCRemoteSwiftPackageReference "swift-crypto" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-crypto.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.4.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		191E7961BD5B29C00811F0EA /* NIOSSH */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 746DA78CEA8A31ABEC658786 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */;
+			productName = NIOSSH;
+		};
 		4821E2CABB861D5D16C0DF51 /* MySQLNIO */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MySQLNIO;
+		};
+		646D2FB7B63750307A701D54 /* NIOSSH */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 746DA78CEA8A31ABEC658786 /* XCRemoteSwiftPackageReference "swift-nio-ssh" */;
+			productName = NIOSSH;
+		};
+		A387DEB054010AD35A0F081C /* Crypto */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E1F1D70D5C13503F06D34FD7 /* XCRemoteSwiftPackageReference "swift-crypto" */;
+			productName = Crypto;
+		};
+		B74FF8F4AD0760AFD2F64BBF /* NIOCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8C208B6A1BB89B5012A77DE3 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOCore;
 		};
 		B78B3814380B85F792DC1671 /* PostgresNIO */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 08839C3D28F022DFDAD57CC3 /* XCRemoteSwiftPackageReference "postgres-nio" */;
 			productName = PostgresNIO;
+		};
+		C177CBD18B2443B5289FD915 /* NIOPosix */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8C208B6A1BB89B5012A77DE3 /* XCRemoteSwiftPackageReference "swift-nio" */;
+			productName = NIOPosix;
+		};
+		D225E87855E6DE9242595733 /* Crypto */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E1F1D70D5C13503F06D34FD7 /* XCRemoteSwiftPackageReference "swift-crypto" */;
+			productName = Crypto;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

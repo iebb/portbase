@@ -30,6 +30,9 @@ public struct MySQLTime: Equatable, MySQLDataConvertible {
     
     /// The fractional part of the second in microseconds
     public var microsecond: UInt32?
+
+    /// Whether a TIME value is negative. Date and datetime values are never negative.
+    public var isNegative: Bool
     
     /// Creates a new ``MySQLTime``.
     public init(
@@ -39,7 +42,8 @@ public struct MySQLTime: Equatable, MySQLDataConvertible {
         hour: UInt16? = nil,
         minute: UInt16? = nil,
         second: UInt16? = nil,
-        microsecond: UInt32? = nil
+        microsecond: UInt32? = nil,
+        isNegative: Bool = false
     ) {
         self.year = year
         self.month = month
@@ -48,6 +52,7 @@ public struct MySQLTime: Equatable, MySQLDataConvertible {
         self.minute = minute
         self.second = second
         self.microsecond = microsecond
+        self.isNegative = isNegative
     }
     
     /// Creates a new ``MySQLTime`` from a Swift ``Date`` using current calendar and GMT timezone.
@@ -73,6 +78,24 @@ public struct MySQLTime: Equatable, MySQLDataConvertible {
     
     /// Parse a new ``MySQLTime`` from a ``String`` in `"yyyy-MM-dd hh:mm:ss"` format.
     public init?(_ string: String) {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        let negative = trimmed.hasPrefix("-")
+        let timeText = negative ? String(trimmed.dropFirst()) : trimmed
+        let timeParts = timeText.split(separator: ":")
+        if timeParts.count == 3,
+           let hour = UInt16(timeParts[0]),
+           let minute = UInt16(timeParts[1]),
+           let secondValue = Double(timeParts[2]) {
+            let fullSecond = UInt32((secondValue * 1_000_000).rounded())
+            self.init(
+                hour: hour,
+                minute: minute,
+                second: UInt16(fullSecond / 1_000_000),
+                microsecond: fullSecond % 1_000_000,
+                isNegative: negative
+            )
+            return
+        }
         let parts = string.split { c in
             ":- ".contains(c)
         }
@@ -186,8 +209,9 @@ extension ByteBuffer {
         ):
             // time
             type = .time
-            self.writeBytes([0, 0, 0, 0, 0])
-            self.writeInteger(numericCast(hour), endianness: .little, as: UInt8.self)
+            self.writeInteger(time.isNegative ? 1 : 0, as: UInt8.self)
+            self.writeInteger(UInt32(hour / 24), endianness: .little)
+            self.writeInteger(numericCast(hour % 24), endianness: .little, as: UInt8.self)
             self.writeInteger(numericCast(minute), endianness: .little, as: UInt8.self)
             self.writeInteger(numericCast(second), endianness: .little, as: UInt8.self)
         case (
@@ -211,8 +235,9 @@ extension ByteBuffer {
         ):
             // time + fractional seconds
             type = .time
-            self.writeBytes([0, 0, 0, 0, 0])
-            self.writeInteger(numericCast(hour), endianness: .little, as: UInt8.self)
+            self.writeInteger(time.isNegative ? 1 : 0, as: UInt8.self)
+            self.writeInteger(UInt32(hour / 24), endianness: .little)
+            self.writeInteger(numericCast(hour % 24), endianness: .little, as: UInt8.self)
             self.writeInteger(numericCast(minute), endianness: .little, as: UInt8.self)
             self.writeInteger(numericCast(second), endianness: .little, as: UInt8.self)
             self.writeInteger(microsecond, endianness: .little, as: UInt32.self)
@@ -254,14 +279,16 @@ extension ByteBuffer {
             )
         case 8:
             // time
-            self.moveReaderIndex(forwardBy: 5)
+            guard let sign = self.readInteger(as: UInt8.self),
+                  let days = self.readInteger(endianness: .little, as: UInt32.self),
+                  let hour = self.readInteger(endianness: .little, as: UInt8.self) else { return nil }
             time = MySQLTime(
-                hour: self.readInteger(endianness: .little, as: UInt8.self)
-                    .flatMap(numericCast),
+                hour: UInt16(clamping: days * 24 + UInt32(hour)),
                 minute: self.readInteger(endianness: .little, as: UInt8.self)
                     .flatMap(numericCast),
                 second: self.readInteger(endianness: .little, as: UInt8.self)
-                    .flatMap(numericCast)
+                    .flatMap(numericCast),
+                isNegative: sign != 0
             )
         case 11:
             // date + time + fractional seconds
@@ -281,15 +308,17 @@ extension ByteBuffer {
             )
         case 12:
             // time + fractional seconds
-            self.moveReaderIndex(forwardBy: 5)
+            guard let sign = self.readInteger(as: UInt8.self),
+                  let days = self.readInteger(endianness: .little, as: UInt32.self),
+                  let hour = self.readInteger(endianness: .little, as: UInt8.self) else { return nil }
             time = MySQLTime(
-                hour: self.readInteger(endianness: .little, as: UInt8.self)
-                    .flatMap(numericCast),
+                hour: UInt16(clamping: days * 24 + UInt32(hour)),
                 minute: self.readInteger(endianness: .little, as: UInt8.self)
                     .flatMap(numericCast),
                 second: self.readInteger(endianness: .little, as: UInt8.self)
                     .flatMap(numericCast),
-                microsecond: self.readInteger(endianness: .little)
+                microsecond: self.readInteger(endianness: .little),
+                isNegative: sign != 0
             )
         default: return nil
         }

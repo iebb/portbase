@@ -11,12 +11,72 @@ struct QueryColumn: Identifiable, Codable, Hashable {
     }
 }
 
+enum QueryCell: Codable, Hashable, Sendable {
+    case null
+    case text(String)
+    case integer(String)
+    case decimal(String)
+    case boolean(Bool)
+    case dateTime(String)
+    case json(String)
+    case binary(Data)
+
+    var displayValue: String {
+        switch self {
+        case .null:
+            return ""
+        case .text(let value), .integer(let value), .decimal(let value),
+             .dateTime(let value), .json(let value):
+            return value
+        case .boolean(let value):
+            return value ? "true" : "false"
+        case .binary(let value):
+            return "0x" + value.map { String(format: "%02x", $0) }.joined()
+        }
+    }
+
+    var isNull: Bool {
+        if case .null = self { return true }
+        return false
+    }
+
+    var isBinary: Bool {
+        if case .binary = self { return true }
+        return false
+    }
+}
+
 struct QueryRow: Identifiable, Codable, Hashable {
     let id = UUID()
-    var values: [String]
+    var cells: [QueryCell]
+
+    var values: [String] { cells.map(\.displayValue) }
+
+    init(cells: [QueryCell]) {
+        self.cells = cells
+    }
+
+    init(values: [String]) {
+        self.cells = values.map(QueryCell.text)
+    }
 
     private enum CodingKeys: String, CodingKey {
+        case cells
         case values
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let cells = try container.decodeIfPresent([QueryCell].self, forKey: .cells) {
+            self.cells = cells
+        } else {
+            self.cells = try container.decodeIfPresent([String].self, forKey: .values)?.map(QueryCell.text) ?? []
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(cells, forKey: .cells)
     }
 }
 
@@ -28,11 +88,11 @@ enum DataEditorMode: String, Hashable {
     var title: String {
         switch self {
         case .view:
-            "View Row"
+            L10n.text("View Row")
         case .insert:
-            "Insert Row"
+            L10n.text("Insert Row")
         case .update:
-            "Edit Row"
+            L10n.text("Edit Row")
         }
     }
 }
@@ -42,7 +102,25 @@ struct DataEditorField: Identifiable, Hashable {
     let column: SchemaColumnDescriptor
     var value: String
     let originalValue: String?
+    var isNull: Bool
+    let originalIsNull: Bool?
     let isEditable: Bool
+
+    init(
+        column: SchemaColumnDescriptor,
+        value: String,
+        originalValue: String?,
+        isNull: Bool = false,
+        originalIsNull: Bool? = nil,
+        isEditable: Bool
+    ) {
+        self.column = column
+        self.value = value
+        self.originalValue = originalValue
+        self.isNull = isNull
+        self.originalIsNull = originalIsNull
+        self.isEditable = isEditable
+    }
 }
 
 struct DataEditorDraft: Identifiable, Hashable {
@@ -159,18 +237,18 @@ enum SchemaColumnEditorMode: Hashable {
     var title: String {
         switch self {
         case .add:
-            return "Add Column"
+            return L10n.text("Add Column")
         case .edit:
-            return "Edit Column"
+            return L10n.text("Edit Column")
         }
     }
 
     var confirmationTitle: String {
         switch self {
         case .add:
-            return "Add"
+            return L10n.text("Add")
         case .edit:
-            return "Save"
+            return L10n.text("Save")
         }
     }
 }
@@ -242,14 +320,55 @@ struct QueryResultTable: Codable, Hashable {
     var profiles: [QueryColumnProfile]
     var sourceTableReference: String?
     var sourceQuery: String?
+    var affectedRowCount: Int?
+    var isTruncated: Bool?
+    var isExplorerGenerated: Bool?
 
     static let empty = QueryResultTable(
         columns: [],
         rows: [],
-        executionSummary: "Connect to a database and run a query to inspect live rows.",
+        executionSummary: L10n.text("Connect to a database and run a query to inspect live rows."),
         generatedMutation: nil,
         profiles: [],
         sourceTableReference: nil,
-        sourceQuery: nil
+        sourceQuery: nil,
+        affectedRowCount: nil,
+        isTruncated: false,
+        isExplorerGenerated: false
     )
+
+    init(
+        columns: [QueryColumn],
+        rows: [QueryRow],
+        executionSummary: String,
+        generatedMutation: String?,
+        profiles: [QueryColumnProfile],
+        sourceTableReference: String?,
+        sourceQuery: String? = nil,
+        affectedRowCount: Int? = nil,
+        isTruncated: Bool = false,
+        isExplorerGenerated: Bool = false
+    ) {
+        self.columns = columns
+        self.rows = rows
+        self.executionSummary = executionSummary
+        self.generatedMutation = generatedMutation
+        self.profiles = profiles
+        self.sourceTableReference = sourceTableReference
+        self.sourceQuery = sourceQuery
+        self.affectedRowCount = affectedRowCount
+        self.isTruncated = isTruncated
+        self.isExplorerGenerated = isExplorerGenerated
+    }
+}
+
+extension QueryResultTable {
+    static func disambiguatedColumnNames(_ names: [String]) -> [String] {
+        var counts: [String: Int] = [:]
+        return names.map { name in
+            let next = (counts[name] ?? 0) + 1
+            counts[name] = next
+            return next == 1 ? name : "\(name)_\(next)"
+        }
+    }
 }

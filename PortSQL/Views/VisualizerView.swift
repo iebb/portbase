@@ -43,7 +43,7 @@ struct VisualizerView: View {
             preset,
             for: workspace.result,
             connectionProfileID: workspace.selectedBookmark?.id,
-            connectionName: workspace.selectedBookmark?.name ?? "Current Result",
+            connectionName: workspace.selectedBookmark?.name ?? L10n.text("Current Result"),
             databaseName: workspace.activeDatabaseName,
             sourceTableReference: workspace.result.sourceTableReference
         )
@@ -56,12 +56,15 @@ struct VisualizerComposerSheet: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var libraryStore: WorkspaceLibraryStore
     @EnvironmentObject private var bookmarks: BookmarkStore
+    @EnvironmentObject private var purchaseStore: PurchaseStore
 
     @State private var draft: SavedVisualizationPreset
     @State private var draftQueryCursorOffset = 0
     @State private var expandedPreviewResult: QueryResultTable?
     @State private var isLoadingExpandedPreview = false
     @State private var expandedPreviewError: String?
+    @State private var isConfirmingDelete = false
+    @State private var paywallFeature: PremiumFeature?
 
     init(initialPreset: SavedVisualizationPreset) {
         _draft = State(initialValue: initialPreset)
@@ -80,7 +83,7 @@ struct VisualizerComposerSheet: View {
     }
 
     private var selectedYFieldsSummary: String {
-        draft.yFieldsSummary.isEmpty ? "Select" : draft.yFieldsSummary
+        draft.yFieldsSummary.isEmpty ? L10n.text("Select") : draft.yFieldsSummary
     }
 
     private var previewPoints: [VisualizationPlotPoint] {
@@ -201,9 +204,16 @@ struct VisualizerComposerSheet: View {
                                 ) {
                                     ForEach(VisualizationChartType.allCases) { chartType in
                                         Button {
-                                            draft.chartType = chartType
+                                            if chartType.requiresPro && !purchaseStore.hasPro {
+                                                paywallFeature = .advancedCharts
+                                            } else {
+                                                draft.chartType = chartType
+                                            }
                                         } label: {
-                                            Label(chartType.title, systemImage: chartType.symbolName)
+                                            Label(
+                                                chartType.title,
+                                                systemImage: chartType.requiresPro && !purchaseStore.hasPro ? "lock.fill" : chartType.symbolName
+                                            )
                                         }
                                     }
                                 }
@@ -370,8 +380,7 @@ struct VisualizerComposerSheet: View {
                                     .foregroundStyle(PortSQLPalette.ink)
 
                                 Button(role: .destructive) {
-                                    libraryStore.deleteVisualization(draft)
-                                    dismiss()
+                                    isConfirmingDelete = true
                                 } label: {
                                     Label("Delete Chart", systemImage: "trash")
                                         .frame(maxWidth: .infinity)
@@ -386,20 +395,30 @@ struct VisualizerComposerSheet: View {
                 .padding(.vertical, 18)
             }
             .background(WorkbenchBackground().ignoresSafeArea())
-            .task {
-                if expandedPreviewResult == nil,
-                   draft.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
-                    await runPreview()
-                }
-            }
             .navigationTitle("Chart Config")
             .navigationBarTitleDisplayMode(.inline)
+            .alert("Delete Chart", isPresented: $isConfirmingDelete) {
+                Button("Delete", role: .destructive) {
+                    libraryStore.deleteVisualization(draft)
+                    dismiss()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Delete this saved chart? This cannot be undone.")
+            }
+            .sheet(item: $paywallFeature) { feature in
+                PaywallView(feature: feature)
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
+                        guard !draft.chartType.requiresPro || purchaseStore.hasPro else {
+                            paywallFeature = .advancedCharts
+                            return
+                        }
                         var stored = draft
                         stored.title = normalizedPresetTitle
                         stored.chartTitle = normalizedChartTitle
@@ -439,9 +458,9 @@ struct VisualizerComposerSheet: View {
     private var previewSubtitle: String {
         let parts = [
             draft.chartType.title,
-            draft.resolvedYFields.count > 1 ? "\(draft.resolvedYFields.count) metrics" : nil,
-            draft.groupField.map { "Group \($0)" },
-            draft.labelField.map { "Label \($0)" },
+            draft.resolvedYFields.count > 1 ? L10n.plural("metric_count", count: draft.resolvedYFields.count) : nil,
+            draft.groupField.map { L10n.format("Group %@", $0) },
+            draft.labelField.map { L10n.format("Label %@", $0) },
             previewResult.sourceTableReference ?? workspace.result.sourceTableReference
         ]
         return parts.compactMap { $0 }.joined(separator: " • ")
@@ -461,7 +480,7 @@ struct VisualizerComposerSheet: View {
     private var normalizedChartTitle: String {
         let trimmed = draft.chartTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
-        return draft.sourceTableReference ?? workspace.result.sourceTableReference ?? "Saved Visualization"
+        return draft.sourceTableReference ?? workspace.result.sourceTableReference ?? L10n.text("Saved Visualization")
     }
 
     private var normalizedXAxisTitle: String {
@@ -494,13 +513,13 @@ struct VisualizerComposerSheet: View {
         let sourceQuery = queryBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !sourceQuery.isEmpty else {
             expandedPreviewResult = nil
-            expandedPreviewError = "Add a SQL query to run this visualizer."
+            expandedPreviewError = L10n.text("Add a SQL query to run this visualizer.")
             isLoadingExpandedPreview = false
             return
         }
         guard let bookmark = previewBookmark else {
             expandedPreviewResult = nil
-            expandedPreviewError = "Choose or save a bookmark before running this visualizer."
+            expandedPreviewError = L10n.text("Choose or save a bookmark before running this visualizer.")
             isLoadingExpandedPreview = false
             return
         }
@@ -510,7 +529,8 @@ struct VisualizerComposerSheet: View {
             var result = try await DatabaseService.shared.execute(
                 query: sourceQuery,
                 profile: bookmark,
-                database: draft.databaseName
+                database: draft.databaseName,
+                policy: .readOnly
             )
             result.sourceTableReference = draft.sourceTableReference ?? workspace.result.sourceTableReference
             result.sourceQuery = sourceQuery
@@ -543,7 +563,7 @@ private struct VisualizationPresetCard: View {
     @State private var loadedResult: QueryResultTable?
     @State private var runError: String?
     @State private var isRunning = false
-    @State private var hasAttemptedInitialLoad = false
+    @State private var hasResolvedInitialState = false
 
     private var compatible: Bool {
         VisualizationService.isCompatible(preset, with: result)
@@ -559,6 +579,21 @@ private struct VisualizationPresetCard: View {
 
     private var runnableBookmark: ConnectionProfile? {
         bookmarks.bookmark(with: preset.connectionProfileID) ?? workspace.selectedBookmark
+    }
+
+    private var hasSourceQuery: Bool {
+        preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+    }
+
+    private var previewState: SavedChartPreviewState {
+        SavedChartPreviewState.resolve(
+            hasResolvedInitialState: hasResolvedInitialState,
+            isRunning: isRunning,
+            hasPreview: previewResult != nil,
+            error: runError,
+            hasSourceQuery: hasSourceQuery,
+            hasConnection: runnableBookmark != nil
+        )
     }
 
     var body: some View {
@@ -586,26 +621,29 @@ private struct VisualizationPresetCard: View {
                         } label: {
                             if isRunning {
                                 ProgressView()
-                                    .frame(width: 34, height: 34)
+                                    .frame(width: 44, height: 44)
                             } else {
                                 Image(systemName: "play.fill")
                                     .font(.system(size: 13, weight: .semibold))
-                                    .frame(width: 34, height: 34)
+                                    .frame(width: 44, height: 44)
                             }
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(.white)
                         .background(PortSQLPalette.accent, in: Circle())
-                        .disabled(isRunning || preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false || runnableBookmark == nil)
+                        .disabled(isRunning || !hasSourceQuery || runnableBookmark == nil)
+                        .accessibilityLabel(L10n.format("Run %@ chart query", preset.title))
+                        .accessibilityHint("Refreshes this saved chart from its database")
 
                         Button(action: onEdit) {
                             Image(systemName: "slider.horizontal.3")
                                 .font(.system(size: 13, weight: .semibold))
-                                .frame(width: 34, height: 34)
+                                .frame(width: 44, height: 44)
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(PortSQLPalette.ink)
                         .background(PortSQLPalette.surface, in: Circle())
+                        .accessibilityLabel(L10n.format("Edit %@ chart", preset.title))
                     }
                 }
 
@@ -620,28 +658,52 @@ private struct VisualizationPresetCard: View {
                             VisualizerMetaChip(text: "Multi-metric")
                         }
                         if let groupField = preset.groupField {
-                            VisualizerMetaChip(text: "Group \(groupField)")
+                            VisualizerMetaChip(text: L10n.format("Group %@", groupField))
                         }
                         if let labelField = preset.labelField {
-                            VisualizerMetaChip(text: "Label \(labelField)")
+                            VisualizerMetaChip(text: L10n.format("Label %@", labelField))
                         }
                     }
                 }
 
-                if let runError {
+                switch previewState {
+                case .failed(let message):
                     StatusBanner(
                         title: "Execution failed",
-                        message: runError,
+                        message: message,
                         tint: .red
                     )
-                } else if isRunning && previewResult == nil {
+                case .loading:
                     ProgressView("Loading chart preview…")
                         .frame(maxWidth: .infinity, alignment: .leading)
-                } else if let previewResult {
-                    VisualizationChartPreview(preset: preset, result: previewResult, compact: true)
-                } else {
-                    ProgressView("Loading chart preview…")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                case .content:
+                    if let previewResult {
+                        VisualizationChartPreview(preset: preset, result: previewResult, compact: true)
+                    }
+                case .missingQuery:
+                    unavailablePreview(
+                        title: "Chart query missing",
+                        message: "Edit this chart and save a SQL query before running it.",
+                        actionTitle: "Edit Chart",
+                        action: onEdit
+                    )
+                case .missingConnection:
+                    unavailablePreview(
+                        title: "Connection unavailable",
+                        message: "Edit this chart and choose a saved database connection.",
+                        actionTitle: "Edit Chart",
+                        action: onEdit
+                    )
+                case .idle:
+                    unavailablePreview(
+                        title: "Preview not loaded",
+                        message: "Run the saved query when you want to refresh this chart.",
+                        actionTitle: "Run Preview"
+                    ) {
+                        Task {
+                            await runPreset()
+                        }
+                    }
                 }
             }
         }
@@ -650,32 +712,50 @@ private struct VisualizationPresetCard: View {
                let cached = cachedResult {
                 loadedResult = cached
             }
-            guard !hasAttemptedInitialLoad else { return }
-            hasAttemptedInitialLoad = true
-            guard previewResult == nil,
-                  preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
-                  runnableBookmark != nil else { return }
-            await runPreset()
+            hasResolvedInitialState = true
         }
+    }
+
+    private func unavailablePreview(
+        title: String,
+        message: String,
+        actionTitle: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: "chart.bar.xaxis")
+                .font(.subheadline.weight(.semibold))
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Button(actionTitle, action: action)
+                .buttonStyle(.bordered)
+                .frame(minHeight: 44)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private func runPreset() async {
         guard let sourceQuery = preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines),
               !sourceQuery.isEmpty else {
-            runError = "This visualizer does not have a saved SQL query yet."
+            runError = L10n.text("This visualizer does not have a saved SQL query yet.")
             return
         }
         guard let bookmark = runnableBookmark else {
-            runError = "The saved bookmark for this visualizer is unavailable."
+            runError = L10n.text("The saved bookmark for this visualizer is unavailable.")
             return
         }
         isRunning = true
+        hasResolvedInitialState = true
         runError = nil
         do {
             var result = try await DatabaseService.shared.execute(
                 query: sourceQuery,
                 profile: bookmark,
-                database: preset.databaseName
+                database: preset.databaseName,
+                policy: .readOnly
             )
             result.sourceQuery = sourceQuery
             result.sourceTableReference = preset.sourceTableReference

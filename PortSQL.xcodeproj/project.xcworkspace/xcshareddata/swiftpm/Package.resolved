@@ -1,5 +1,5 @@
 {
-  "originHash" : "cf60b159c8b4aa63b3201e31e2bbbb6d30c40d6b469d5289f8c75381ce0d8938",
+  "originHash" : "d71d8b231db6a15cb37b7d6b4e132e51af89d320a9755976fd48882bebec9ccc",
   "pins" : [
     {
       "identity" : "postgres-nio",
@@ -88,6 +88,15 @@
       "state" : {
         "revision" : "cd6710454f25733900e133c6caf5188952763c36",
         "version" : "2.98.0"
+      }
+    },
+    {
+      "identity" : "swift-nio-ssh",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-nio-ssh.git",
+      "state" : {
+        "revision" : "1a915a324afefd4031e396e81a0e210178621be8",
+        "version" : "0.13.0"
       }
     },
     {

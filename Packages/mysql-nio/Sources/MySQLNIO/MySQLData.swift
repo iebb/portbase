@@ -183,7 +183,7 @@ public struct MySQLData: CustomStringConvertible, ExpressibleByStringLiteral, Ex
             switch self.type {
             case .varchar, .varString, .string, .blob, .tinyBlob, .mediumBlob, .longBlob, .null:
                 return buffer.readString(length: buffer.readableBytes)
-            case .longlong, .long, .int24, .short, .tiny, .bit:
+            case .longlong, .long, .int24, .short, .tiny, .bit, .year:
                 return self.int?.description
             default:
                 return nil
@@ -393,7 +393,7 @@ public struct MySQLData: CustomStringConvertible, ExpressibleByStringLiteral, Ex
                     return buffer.readInteger(endianness: .little, as: Int32.self)
                         .flatMap(I.init)
                 }
-            case .short:
+            case .short, .year:
                 if self.isUnsigned {
                     return buffer.readInteger(endianness: .little, as: UInt16.self)
                         .flatMap(I.init)
@@ -432,7 +432,7 @@ public struct MySQLData: CustomStringConvertible, ExpressibleByStringLiteral, Ex
         switch self.format {
         case .binary:
             switch self.type {
-            case .timestamp, .datetime, .date, .time:
+            case .timestamp, .timestamp2, .datetime, .datetime2, .date, .newdate, .time, .time2:
                 return buffer.readMySQLTime()
             default: return nil
             }
