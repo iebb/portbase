@@ -73,6 +73,47 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
+      - name: Install Apple distribution certificate
+        shell: bash
+        env:
+          APPLE_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${APPLE_DISTRIBUTION_CERTIFICATE_BASE64}" || -z "${APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD}" ]]; then
+            echo "::error::Configure APPLE_DISTRIBUTION_CERTIFICATE_BASE64 and APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD as repository Actions secrets."
+            exit 1
+          fi
+
+          certificate_path="${RUNNER_TEMP}/KittaDistribution.p12"
+          keychain_path="${RUNNER_TEMP}/portsql-signing.keychain-db"
+          keychain_password="$(/usr/bin/openssl rand -hex 32)"
+          echo "SIGNING_CERTIFICATE_PATH=${certificate_path}" >> "${GITHUB_ENV}"
+          echo "SIGNING_KEYCHAIN_PATH=${keychain_path}" >> "${GITHUB_ENV}"
+
+          umask 077
+          printf '%s' "${APPLE_DISTRIBUTION_CERTIFICATE_BASE64}" | /usr/bin/base64 -D > "${certificate_path}"
+          /usr/bin/security create-keychain -p "${keychain_password}" "${keychain_path}"
+          /usr/bin/security set-keychain-settings -lut 21600 "${keychain_path}"
+          /usr/bin/security unlock-keychain -p "${keychain_password}" "${keychain_path}"
+          /usr/bin/security import "${certificate_path}" \
+            -P "${APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD}" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "${keychain_path}"
+          /usr/bin/security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -k "${keychain_password}" \
+            "${keychain_path}"
+          /usr/bin/security list-keychains -d user -s "${keychain_path}"
+
+          if ! /usr/bin/security find-identity -v -p codesigning "${keychain_path}" | /usr/bin/grep -q 'Apple Distribution: Kitta Ltd (7P8CLHDH5G)'; then
+            echo "::error::The configured certificate is not the Kitta Ltd distribution identity."
+            exit 1
+          fi
+
       - name: Prepare App Store Connect credentials
         shell: bash
         env:
@@ -154,10 +195,16 @@ jobs:
 
           echo "Submitted commit \`${GITHUB_SHA:0:7}\` to App Store Connect for TestFlight processing." >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Remove App Store Connect private key
+      - name: Remove temporary signing credentials
         if: ${{ always() }}
         shell: bash
         run: |
           if [[ -n "${ASC_AUTH_KEY_PATH:-}" && -f "${ASC_AUTH_KEY_PATH}" ]]; then
             /bin/rm -f "${ASC_AUTH_KEY_PATH}"
+          fi
+          if [[ -n "${SIGNING_KEYCHAIN_PATH:-}" && -f "${SIGNING_KEYCHAIN_PATH}" ]]; then
+            /usr/bin/security delete-keychain "${SIGNING_KEYCHAIN_PATH}"
+          fi
+          if [[ -n "${SIGNING_CERTIFICATE_PATH:-}" && -f "${SIGNING_CERTIFICATE_PATH}" ]]; then
+            /bin/rm -f "${SIGNING_CERTIFICATE_PATH}"
           fi
