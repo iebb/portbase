@@ -173,6 +173,7 @@ jobs:
             -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
             -authenticationKeyID "${ASC_KEY_ID}" \
             -authenticationKeyPath "${ASC_AUTH_KEY_PATH}" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             clean archive
 
       - name: Upload to TestFlight
