@@ -157,6 +157,60 @@ jobs:
           /usr/bin/plutil -insert uploadSymbols -bool true "${export_options}"
           echo "EXPORT_OPTIONS_PATH=${export_options}" >> "${GITHUB_ENV}"
 
+      - name: Choose the nightly marketing version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          project_version="$(
+            /usr/bin/sed -nE \
+              's/^[[:space:]]*MARKETING_VERSION = ([0-9]+\.[0-9]+\.[0-9]+);/\1/p' \
+              PortSQL.xcodeproj/project.pbxproj | /usr/bin/sort -u
+          )"
+          if [[ ! "${project_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Could not resolve one numeric MARKETING_VERSION from PortSQL.xcodeproj."
+            exit 1
+          fi
+
+          store_payload="$(
+            /usr/bin/curl --fail --silent --show-error --retry 3 --get \
+              --data-urlencode 'id=6762447018' \
+              --data-urlencode 'country=us' \
+              https://itunes.apple.com/lookup
+          )"
+          store_version="$(
+            printf '%s' "${store_payload}" | jq -r \
+              '.results[] | select(.bundleId == "ad.neko.portsql") | .version' | /usr/bin/head -1
+          )"
+          if [[ ! "${store_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Could not resolve PortSQL's current numeric App Store version."
+            exit 1
+          fi
+
+          IFS=. read -r store_major store_minor store_patch <<< "${store_version}"
+          next_store_version="${store_major}.${store_minor}.$((10#${store_patch} + 1))"
+
+          version_at_least() {
+            local candidate_major candidate_minor candidate_patch minimum_major minimum_minor minimum_patch
+            IFS=. read -r candidate_major candidate_minor candidate_patch <<< "$1"
+            IFS=. read -r minimum_major minimum_minor minimum_patch <<< "$2"
+            if ((10#${candidate_major} != 10#${minimum_major})); then
+              ((10#${candidate_major} > 10#${minimum_major}))
+            elif ((10#${candidate_minor} != 10#${minimum_minor})); then
+              ((10#${candidate_minor} > 10#${minimum_minor}))
+            else
+              ((10#${candidate_patch} >= 10#${minimum_patch}))
+            fi
+          }
+
+          nightly_version="${next_store_version}"
+          if version_at_least "${project_version}" "${next_store_version}"; then
+            nightly_version="${project_version}"
+          fi
+
+          echo "NIGHTLY_MARKETING_VERSION=${nightly_version}" >> "${GITHUB_ENV}"
+          echo "Nightly marketing version: ${nightly_version} (source ${project_version}, App Store ${store_version})." >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Archive PortSQL
         shell: bash
         env:
@@ -175,6 +229,7 @@ jobs:
             -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
             -authenticationKeyID "${ASC_KEY_ID}" \
             -authenticationKeyPath "${ASC_AUTH_KEY_PATH}" \
+            MARKETING_VERSION="${NIGHTLY_MARKETING_VERSION}" \
             clean archive
 
       - name: Upload to TestFlight
