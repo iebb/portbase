@@ -73,7 +73,7 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
-      - name: Install Apple distribution certificate
+      - name: Install Apple signing certificates
         shell: bash
         env:
           APPLE_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
@@ -82,7 +82,7 @@ jobs:
           set -euo pipefail
 
           if [[ -z "${APPLE_DISTRIBUTION_CERTIFICATE_BASE64}" || -z "${APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD}" ]]; then
-            echo "::error::Configure APPLE_DISTRIBUTION_CERTIFICATE_BASE64 and APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD as repository Actions secrets."
+            echo "::error::Configure the Kitta signing bundle in APPLE_DISTRIBUTION_CERTIFICATE_BASE64 and APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD."
             exit 1
           fi
 
@@ -109,8 +109,10 @@ jobs:
             "${keychain_path}"
           /usr/bin/security list-keychains -d user -s "${keychain_path}"
 
-          if ! /usr/bin/security find-identity -v -p codesigning "${keychain_path}" | /usr/bin/grep -q 'Apple Distribution: Kitta Ltd (7P8CLHDH5G)'; then
-            echo "::error::The configured certificate is not the Kitta Ltd distribution identity."
+          identities="$(/usr/bin/security find-identity -v -p codesigning "${keychain_path}")"
+          if ! printf '%s\n' "${identities}" | /usr/bin/grep -q 'Apple Development: hue ieb (7GGWUUWHQP)' || \
+             ! printf '%s\n' "${identities}" | /usr/bin/grep -q 'Apple Distribution: Kitta Ltd (7P8CLHDH5G)'; then
+            echo "::error::The configured bundle must contain the Kitta development and distribution identities."
             exit 1
           fi
 
@@ -173,7 +175,6 @@ jobs:
             -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
             -authenticationKeyID "${ASC_KEY_ID}" \
             -authenticationKeyPath "${ASC_AUTH_KEY_PATH}" \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
             clean archive
 
       - name: Upload to TestFlight
