@@ -100,21 +100,33 @@ struct HomeView: View {
                 Text("Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    Button { workspace.createBookmark() } label: {
-                        Label("Add Connection", systemImage: "plus").frame(minHeight: 32)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    Button { createsSQLite = true } label: {
-                        Label("New SQLite Database", systemImage: "internaldrive").frame(minHeight: 32)
-                    }
-                    .buttonStyle(.bordered)
+                // Side by side when both titles fit on one line; otherwise stacked at full width.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { onboardingButtons }
+                    VStack(spacing: 10) { onboardingButtons }
                 }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .portbaseCardSurface(radius: 16)
         }
+    }
+
+    @ViewBuilder private var onboardingButtons: some View {
+        Button { workspace.createBookmark() } label: {
+            Label("Add Connection", systemImage: "plus")
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(maxWidth: .infinity, minHeight: 32)
+        }
+        .buttonStyle(.borderedProminent)
+        Button { createsSQLite = true } label: {
+            Label("New SQLite Database", systemImage: "internaldrive")
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(maxWidth: .infinity, minHeight: 32)
+        }
+        .buttonStyle(.bordered)
     }
 
     private var tableCountLabel: String {

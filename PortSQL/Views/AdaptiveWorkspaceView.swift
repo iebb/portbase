@@ -29,7 +29,7 @@ struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
                     leading.frame(maxWidth: .infinity, alignment: .topLeading)
                     trailing.frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                .padding(12)
+                .padding(16)
                 .frame(width: geometry.size.width, alignment: .topLeading)
             }
             .scrollDismissesKeyboard(.interactively)

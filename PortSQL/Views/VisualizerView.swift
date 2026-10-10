@@ -170,7 +170,7 @@ struct VisualizerComposerSheet: View {
                                             Label("Run Preview", systemImage: "play.fill")
                                         }
                                     }
-                                    .buttonStyle(PrimaryActionButtonStyle())
+                                    .buttonStyle(.borderedProminent)
                                     .disabled(queryBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || previewBookmark == nil)
                                 }
 

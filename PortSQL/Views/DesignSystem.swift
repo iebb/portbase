@@ -365,15 +365,16 @@ struct PortbaseEmptyState: View {
             }
             if let actionTitle, let action {
                 Button(action: action) {
-                    Text(actionTitle).frame(minHeight: 20)
+                    Text(actionTitle).lineLimit(1).padding(.horizontal, 8).frame(minHeight: 32)
                 }
-                .buttonStyle(PrimaryActionButtonStyle())
+                .buttonStyle(.borderedProminent)
+                .padding(.top, 4)
             }
             if let secondaryTitle, let secondaryAction {
                 Button(action: secondaryAction) {
-                    Text(secondaryTitle)
+                    Text(secondaryTitle).lineLimit(1).padding(.horizontal, 8).frame(minHeight: 32)
                 }
-                .buttonStyle(SecondaryActionButtonStyle())
+                .buttonStyle(.bordered)
             }
         }
         .frame(maxWidth: 420)

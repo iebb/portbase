@@ -15,141 +15,144 @@ struct ExplorerView: View {
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    PanelCard {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(alignment: .center, spacing: 12) {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("Browse")
-                                        .font(.title3.weight(.bold))
-                                        .accessibilityAddTraits(.isHeader)
-                                    Text(explorerSubtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
+                VStack(alignment: .leading, spacing: 16) {
+                    // Browsing needs a connection; without one, only the empty state below is shown.
+                    if workspace.selectedBookmark != nil {
+                        PanelCard {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(alignment: .center, spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("Browse")
+                                            .font(.title3.weight(.bold))
+                                            .accessibilityAddTraits(.isHeader)
+                                        Text(explorerSubtitle)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    Spacer()
+                                    Button {
+                                        focusedClause = nil
+                                        workspace.restartBrowse()
+                                    } label: {
+                                        Image(systemName: "play.fill")
+                                            .font(.subheadline.weight(.semibold))
+                                            .frame(width: 44, height: 44)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(.white)
+                                    .background(PortSQLPalette.accent, in: Capsule())
+                                    .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
+                                    .accessibilityLabel("Run table browse query")
+                                    .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
                                 }
-                                Spacer()
-                                Button {
-                                    focusedClause = nil
-                                    workspace.restartBrowse()
-                                } label: {
-                                    Image(systemName: "play.fill")
-                                        .font(.subheadline.weight(.semibold))
-                                        .frame(width: 44, height: 44)
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(.white)
-                                .background(PortSQLPalette.accent, in: Capsule())
-                                .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
-                                .accessibilityLabel("Run table browse query")
-                                .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
-                            }
 
-                            if let selectedTable = workspace.selectedExplorerTable {
-                                HStack(alignment: .center, spacing: 10) {
-                                    Menu {
-                                        ForEach(filteredTables) { table in
-                                            Button {
-                                                focusedClause = nil
-                                                workspace.selectExplorerTable(table)
-                                            } label: {
-                                                HStack(alignment: .top, spacing: 10) {
-                                                    Image(systemName: workspace.selectedExplorerTableID == table.id ? "checkmark.circle.fill" : "tablecells")
-                                                        .font(.footnote.weight(.bold))
-                                                        .foregroundStyle(workspace.selectedExplorerTableID == table.id ? PortSQLPalette.accent : .secondary)
+                                if let selectedTable = workspace.selectedExplorerTable {
+                                    HStack(alignment: .center, spacing: 10) {
+                                        Menu {
+                                            ForEach(filteredTables) { table in
+                                                Button {
+                                                    focusedClause = nil
+                                                    workspace.selectExplorerTable(table)
+                                                } label: {
+                                                    HStack(alignment: .top, spacing: 10) {
+                                                        Image(systemName: workspace.selectedExplorerTableID == table.id ? "checkmark.circle.fill" : "tablecells")
+                                                            .font(.footnote.weight(.bold))
+                                                            .foregroundStyle(workspace.selectedExplorerTableID == table.id ? PortSQLPalette.accent : .secondary)
 
-                                                    VStack(alignment: .leading, spacing: 2) {
-                                                        Text(table.name)
-                                                            .font(.subheadline.weight(.semibold))
-                                                        VStack(alignment: .leading, spacing: 1) {
-                                                            Text(tableSummary(table))
-                                                                .font(.caption2)
-                                                                .foregroundStyle(.secondary)
+                                                        VStack(alignment: .leading, spacing: 2) {
+                                                            Text(table.name)
+                                                                .font(.subheadline.weight(.semibold))
+                                                            VStack(alignment: .leading, spacing: 1) {
+                                                                Text(tableSummary(table))
+                                                                    .font(.caption2)
+                                                                    .foregroundStyle(.secondary)
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
-                                        }
-                                    } label: {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text("Table")
-                                                    .font(.caption2.weight(.semibold))
+                                        } label: {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text("Table")
+                                                        .font(.caption2.weight(.semibold))
+                                                        .foregroundStyle(.secondary)
+                                                    Text(selectedTable.name)
+                                                        .font(.subheadline.weight(.semibold))
+                                                        .foregroundStyle(PortSQLPalette.ink)
+                                                        .lineLimit(1)
+                                                }
+                                                Spacer()
+                                                Image(systemName: "chevron.down")
+                                                    .font(.footnote.weight(.bold))
                                                     .foregroundStyle(.secondary)
-                                                Text(selectedTable.name)
-                                                    .font(.subheadline.weight(.semibold))
-                                                    .foregroundStyle(PortSQLPalette.ink)
-                                                    .lineLimit(1)
                                             }
-                                            Spacer()
-                                            Image(systemName: "chevron.down")
-                                                .font(.footnote.weight(.bold))
-                                                .foregroundStyle(.secondary)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 10)
+                                            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                            .overlay {
+                                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                    .stroke(PortSQLPalette.stroke, lineWidth: 1)
+                                            }
                                         }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 10)
-                                        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .stroke(PortSQLPalette.stroke, lineWidth: 1)
+                                        .buttonStyle(.plain)
+                                        .frame(minHeight: 44)
+                                        .accessibilityLabel(L10n.format("Choose table, currently %@", selectedTable.name))
+                                    }
+
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 6) {
+                                            PortbaseChip(title: L10n.plural("column_count_short", count: selectedTable.columns.count), systemImage: "tablecells", tint: .teal)
+                                            if let estimate = selectedTable.rowCountEstimate {
+                                                PortbaseChip(title: L10n.plural("row_count", count: estimate), systemImage: "list.number", tint: PortSQLPalette.accent)
+                                            }
+                                            if !selectedTable.primaryKeyColumns.isEmpty {
+                                                PortbaseChip(title: selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill", tint: .orange)
+                                            }
+                                            if workspace.canInsertIntoCurrentTable && workspace.selectedBookmark?.isReadOnly != true {
+                                                PortbaseChip(title: L10n.text("Editable"), systemImage: "pencil", tint: .green)
+                                            }
                                         }
                                     }
-                                    .buttonStyle(.plain)
-                                    .frame(minHeight: 44)
-                                    .accessibilityLabel(L10n.format("Choose table, currently %@", selectedTable.name))
-                                }
 
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 6) {
-                                        PortbaseChip(title: L10n.plural("column_count_short", count: selectedTable.columns.count), systemImage: "tablecells", tint: .teal)
-                                        if let estimate = selectedTable.rowCountEstimate {
-                                            PortbaseChip(title: L10n.plural("row_count", count: estimate), systemImage: "list.number", tint: PortSQLPalette.accent)
-                                        }
-                                        if !selectedTable.primaryKeyColumns.isEmpty {
-                                            PortbaseChip(title: selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill", tint: .orange)
-                                        }
-                                        if workspace.canInsertIntoCurrentTable && workspace.selectedBookmark?.isReadOnly != true {
-                                            PortbaseChip(title: L10n.text("Editable"), systemImage: "pencil", tint: .green)
-                                        }
+                                    clauseRow(
+                                        field: .whereClause,
+                                        title: "WHERE",
+                                        text: $workspace.explorerWhereClause,
+                                        placeholder: wherePlaceholder(for: selectedTable),
+                                        suggestions: whereSuggestions(for: selectedTable),
+                                        apply: applyWhereSuggestion
+                                    )
+
+                                    clauseRow(
+                                        field: .orderByClause,
+                                        title: "ORDER",
+                                        text: $workspace.explorerOrderByClause,
+                                        placeholder: orderByPlaceholder(for: selectedTable),
+                                        suggestions: orderBySuggestions(for: selectedTable),
+                                        apply: applyOrderSuggestion
+                                    )
+                                } else {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "tablecells")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                        Text("Choose a table to browse and filter rows.")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 10)
+                                    .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .stroke(PortSQLPalette.stroke, lineWidth: 1)
                                     }
                                 }
 
-                                clauseRow(
-                                    field: .whereClause,
-                                    title: "WHERE",
-                                    text: $workspace.explorerWhereClause,
-                                    placeholder: wherePlaceholder(for: selectedTable),
-                                    suggestions: whereSuggestions(for: selectedTable),
-                                    apply: applyWhereSuggestion
-                                )
-
-                                clauseRow(
-                                    field: .orderByClause,
-                                    title: "ORDER",
-                                    text: $workspace.explorerOrderByClause,
-                                    placeholder: orderByPlaceholder(for: selectedTable),
-                                    suggestions: orderBySuggestions(for: selectedTable),
-                                    apply: applyOrderSuggestion
-                                )
-                            } else {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "tablecells")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                    Text("Choose a table to browse and filter rows.")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 10)
-                                .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                        .stroke(PortSQLPalette.stroke, lineWidth: 1)
-                                }
                             }
-
                         }
                     }
 
@@ -163,41 +166,31 @@ struct ExplorerView: View {
                     } else if let schemaErrorMessage = workspace.schemaErrorMessage {
                         ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
                     } else if filteredTables.isEmpty {
-                        PanelCard {
+                        Group {
                             if workspace.selectedBookmark == nil {
-                                ContentUnavailableView {
-                                    Label("Add a database connection", systemImage: "server.rack")
-                                } actions: {
-                                    Button {
-                                        workspace.createBookmark()
-                                    } label: {
-                                        Label("Add Connection", systemImage: "plus.circle.fill")
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                    .controlSize(.large)
-                                    .accessibilityHint("Opens the server connection form")
-                                }
+                                PortbaseEmptyState(
+                                    title: L10n.text("Add a database connection"),
+                                    message: L10n.text("Add a connection to browse tables, run queries, and build charts."),
+                                    systemImage: "server.rack",
+                                    actionTitle: L10n.text("Add Connection"),
+                                    action: { workspace.createBookmark() }
+                                )
                             } else {
-                                ContentUnavailableView {
-                                    Label("No schema metadata", systemImage: "square.stack.3d.up.slash")
-                                } actions: {
-                                    Button {
-                                        workspace.refreshSchemaCatalog()
-                                    } label: {
-                                        Label("Refresh Tables", systemImage: "arrow.clockwise")
-                                    }
-                                    .buttonStyle(.bordered)
-                                    .controlSize(.large)
-                                    .disabled(workspace.isLoadingSchema)
-                                }
+                                PortbaseEmptyState(
+                                    title: L10n.text("No schema metadata"),
+                                    message: L10n.text("Choose a database or refresh the schema."),
+                                    systemImage: "square.stack.3d.up.slash",
+                                    actionTitle: L10n.text("Refresh Tables"),
+                                    action: { workspace.refreshSchemaCatalog() }
+                                )
                             }
                         }
+                        .portbaseCardSurface()
                     } else {
                         ResultsCard()
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
+                .padding(16)
                 .frame(width: proxy.size.width, alignment: .topLeading)
                 .contentShape(Rectangle())
                 .onTapGesture {

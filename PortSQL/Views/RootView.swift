@@ -497,10 +497,10 @@ struct QueryEditorCard: View {
         Button {
             workspace.createBookmark()
         } label: {
-            Label("Add Connection", systemImage: "plus.circle.fill")
-                .frame(maxWidth: .infinity)
+            Label("Add Connection", systemImage: "plus")
+                .frame(maxWidth: .infinity, minHeight: 32)
         }
-        .buttonStyle(PrimaryActionButtonStyle())
+        .buttonStyle(.borderedProminent)
     }
 
     private var actionSection: some View {
@@ -902,9 +902,9 @@ struct ResultsCard: View {
                     Button {
                         workspace.prepareInsert()
                     } label: {
-                        Label("Insert row", systemImage: "plus")
+                        Label("Insert row", systemImage: "plus").frame(minHeight: 32)
                     }
-                    .buttonStyle(SecondaryActionButtonStyle())
+                    .buttonStyle(.bordered)
                     .accessibilityLabel("Insert row")
                 }
 
@@ -2558,91 +2558,6 @@ struct InlineSuggestionMenu: View {
 struct WorkbenchBackground: View {
     var body: some View {
         PortbaseBackdrop()
-    }
-}
-
-struct PrimaryActionButtonStyle: ButtonStyle {
-    @Environment(\.isEnabled) private var isEnabled
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(PortSQLPalette.accent)
-            )
-            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.5)
-    }
-}
-
-struct PrimaryCapsuleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(PortSQLPalette.ink)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .background(PortSQLPalette.surface, in: Capsule())
-            .overlay {
-                Capsule()
-                    .strokeBorder(PortSQLPalette.stroke, lineWidth: 1)
-            }
-            .opacity(configuration.isPressed ? 0.92 : 1)
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
-    }
-}
-
-struct SecondaryActionButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(PortSQLPalette.accent)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .frame(minHeight: PortbaseControlSize.minimumHeight)
-            .background(PortSQLPalette.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .opacity(configuration.isPressed ? 0.8 : 1)
-    }
-}
-
-struct TagButtonStyle: ButtonStyle {
-    var isSelected: Bool = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(isSelected ? .white : PortSQLPalette.ink)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(isSelected ? AnyShapeStyle(PortSQLPalette.accentGradient) : AnyShapeStyle(PortSQLPalette.sunken))
-            )
-            .overlay {
-                Capsule()
-                    .strokeBorder(isSelected ? Color.clear : PortSQLPalette.stroke, lineWidth: 1)
-            }
-            .opacity(configuration.isPressed ? 0.9 : 1)
-    }
-}
-
-struct StudioActionTileButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .foregroundStyle(PortSQLPalette.ink)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(PortSQLPalette.surface)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(PortSQLPalette.stroke, lineWidth: 1)
-            }
-            .opacity(configuration.isPressed ? 0.92 : 1)
-            .scaleEffect(configuration.isPressed ? 0.985 : 1)
     }
 }
 
