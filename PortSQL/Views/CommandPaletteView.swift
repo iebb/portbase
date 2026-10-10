@@ -206,11 +206,9 @@ struct CommandPaletteView: View {
         Button { run(item) } label: {
             HStack(spacing: 12) {
                 Image(systemName: item.systemImage)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(isHighlighted ? .white : PortSQLPalette.accent)
-                    .frame(width: 30, height: 30)
-                    .background(isHighlighted ? AnyShapeStyle(PortSQLPalette.accentGradient) : AnyShapeStyle(PortSQLPalette.accent.opacity(0.12)),
-                                in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .font(.body)
+                    .foregroundStyle(isHighlighted ? PortSQLPalette.accent : .secondary)
+                    .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.title).font(.body.weight(.medium)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                     if let subtitle = item.subtitle, !subtitle.isEmpty {

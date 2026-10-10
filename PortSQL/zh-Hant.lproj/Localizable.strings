@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "強調色";
 "Actions" = "操作";
-"Actions, tables, queries" = "操作、表格、查詢";
 "Active connection" = "目前連線";
 "Activity" = "活動";
 "Add a connection to browse tables, run queries, and build charts." = "加入連線以瀏覽表格、執行查詢並建立圖表。";
@@ -1019,12 +1018,8 @@
 "Format Query" = "格式化查詢";
 "General" = "一般";
 "Go To" = "前往";
-"Good afternoon" = "午安";
-"Good evening" = "晚安";
-"Good morning" = "早安";
 "Graphite" = "石墨灰";
 "Group and count" = "分組並計數";
-"History and saved queries" = "記錄與已儲存的查詢";
 "Home" = "首頁";
 "Indigo" = "靛藍";
 "Insert %@" = "插入 %@";
@@ -1042,7 +1037,6 @@
 "Median" = "中位數";
 "Median time" = "中位耗時";
 "Min" = "最小值";
-"Most active: %@" = "最活躍：%@";
 "Most frequent" = "最常見";
 "Navigate" = "導覽";
 "Needs attention" = "需要注意";
@@ -1056,7 +1050,6 @@
 "On this device" = "在此裝置上";
 "Open" = "打開";
 "Open Console" = "打開主控台";
-"Open a fresh console" = "打開新的主控台";
 "Opens a new console. Hold for more options." = "打開新的主控台。按住可查看更多選項。";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase 支援 MySQL、MariaDB、PostgreSQL、SQLite、ClickHouse、MongoDB、Redis 和 Elasticsearch。";
 "Queries per day" = "每日查詢數";
@@ -1067,7 +1060,6 @@
 "Rose" = "玫瑰粉";
 "Run a query to see column insights." = "執行查詢以檢視欄位洞察。";
 "Run a query to see results here." = "執行查詢以在此檢視結果。";
-"Run a query to see your activity here." = "執行查詢以在此檢視你的活動。";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "執行包含數值欄位的查詢，然後在結果中選擇圖表按鈕來設計並儲存圖表。";
 "Running total" = "累計總和";
 "Save a query from the console to keep it one tap away." = "在主控台中儲存查詢，即可一鍵叫用。";
@@ -1080,7 +1072,6 @@
 "Size" = "大小";
 "Statistics describe loaded rows only. They do not query the database again." = "統計資料只描述已載入的列，不會再次查詢資料庫。";
 "Success rate" = "成功率";
-"Suggestions" = "建議";
 "Summarizing loaded rows." = "正在彙整已載入的列。";
 "Sunset" = "日落橙";
 "Supported Engines" = "支援的引擎";

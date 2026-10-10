@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "강조 색상";
 "Actions" = "동작";
-"Actions, tables, queries" = "동작, 테이블, 쿼리";
 "Active connection" = "활성 연결";
 "Activity" = "활동";
 "Add a connection to browse tables, run queries, and build charts." = "연결을 추가하여 테이블을 탐색하고 쿼리를 실행하며 차트를 만드세요.";
@@ -1019,12 +1018,8 @@
 "Format Query" = "쿼리 서식 지정";
 "General" = "일반";
 "Go To" = "이동";
-"Good afternoon" = "좋은 오후예요";
-"Good evening" = "좋은 저녁이에요";
-"Good morning" = "좋은 아침이에요";
 "Graphite" = "그래파이트";
 "Group and count" = "그룹화 및 개수 세기";
-"History and saved queries" = "기록 및 저장된 쿼리";
 "Home" = "홈";
 "Indigo" = "인디고";
 "Insert %@" = "%@ 삽입";
@@ -1042,7 +1037,6 @@
 "Median" = "중앙값";
 "Median time" = "중앙 소요 시간";
 "Min" = "최소";
-"Most active: %@" = "가장 활발함: %@";
 "Most frequent" = "가장 빈번한 값";
 "Navigate" = "탐색";
 "Needs attention" = "확인 필요";
@@ -1056,7 +1050,6 @@
 "On this device" = "이 기기에";
 "Open" = "열기";
 "Open Console" = "콘솔 열기";
-"Open a fresh console" = "새 콘솔 열기";
 "Opens a new console. Hold for more options." = "새 콘솔을 엽니다. 길게 누르면 더 많은 옵션이 표시됩니다.";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase는 MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis 및 Elasticsearch를 지원합니다.";
 "Queries per day" = "일별 쿼리 수";
@@ -1067,7 +1060,6 @@
 "Rose" = "로즈";
 "Run a query to see column insights." = "쿼리를 실행하면 열 인사이트가 표시됩니다.";
 "Run a query to see results here." = "쿼리를 실행하면 여기에 결과가 표시됩니다.";
-"Run a query to see your activity here." = "쿼리를 실행하면 여기에 활동이 표시됩니다.";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "숫자 열이 있는 쿼리를 실행한 다음 결과에서 차트 버튼을 선택하여 차트를 디자인하고 저장하세요.";
 "Running total" = "누적 합계";
 "Save a query from the console to keep it one tap away." = "콘솔에서 쿼리를 저장하면 한 번의 탭으로 불러올 수 있습니다.";
@@ -1080,7 +1072,6 @@
 "Size" = "크기";
 "Statistics describe loaded rows only. They do not query the database again." = "통계는 불러온 행만 설명하며 데이터베이스를 다시 조회하지 않습니다.";
 "Success rate" = "성공률";
-"Suggestions" = "제안";
 "Summarizing loaded rows." = "불러온 행을 요약하는 중입니다.";
 "Sunset" = "선셋";
 "Supported Engines" = "지원 엔진";

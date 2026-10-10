@@ -1,7 +1,7 @@
 import Charts
 import SwiftUI
 
-/// The launch dashboard: active connection, quick actions, activity, and recent work.
+/// The launch page: the current connection, quick actions, recent work, and activity.
 struct HomeView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var bookmarks: BookmarkStore
@@ -19,154 +19,116 @@ struct HomeView: View {
         GeometryReader { proxy in
             let wide = proxy.size.width >= 760
             ScrollView {
-                // Each section is type-erased so the dashboard's view type stays small to lay out.
-                VStack(alignment: .leading, spacing: 22) {
-                    AnyView(header)
-                    AnyView(activeConnectionCard)
+                // Each section is type-erased so the page's view type stays small to lay out.
+                VStack(alignment: .leading, spacing: 24) {
+                    AnyView(connectionCard)
                     AnyView(quickActions)
-                    let activity = activity
                     if wide {
-                        HStack(alignment: .top, spacing: 18) {
-                            AnyView(activitySection(activity)).frame(maxWidth: .infinity)
-                            AnyView(connectionsSection).frame(maxWidth: .infinity)
-                        }
-                        HStack(alignment: .top, spacing: 18) {
+                        HStack(alignment: .top, spacing: 20) {
                             AnyView(recentSection).frame(maxWidth: .infinity)
+                            AnyView(activitySection(activity)).frame(maxWidth: .infinity)
+                        }
+                        HStack(alignment: .top, spacing: 20) {
+                            AnyView(connectionsSection).frame(maxWidth: .infinity)
                             AnyView(savedSection).frame(maxWidth: .infinity)
                         }
                     } else {
-                        AnyView(activitySection(activity))
                         AnyView(recentSection)
+                        AnyView(activitySection(activity))
                         AnyView(connectionsSection)
                         AnyView(savedSection)
                     }
                 }
                 .padding(.horizontal, wide ? 28 : 16)
-                .padding(.vertical, 20)
-                .frame(maxWidth: 1180)
+                .padding(.vertical, 16)
+                .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
             }
         }
-        .background(PortbaseBackdrop().ignoresSafeArea())
+        .background(PortSQLPalette.canvasTop.ignoresSafeArea())
         .newSQLiteDatabasePrompt(isPresented: $createsSQLite) { onNavigate(.console) }
         .onAppear { now = .now }
     }
 
-    // MARK: Header
+    // MARK: Connection
 
-    private var header: some View {
-        HStack(alignment: .center, spacing: 14) {
-            PortbaseLogoMark(size: 44)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(PortbaseGreeting.text(for: now))
-                    .font(.largeTitle.weight(.bold))
-                    .foregroundStyle(PortSQLPalette.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Text(now, format: .dateTime.weekday(.wide).month(.wide).day())
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    // MARK: Active connection
-
-    @ViewBuilder private var activeConnectionCard: some View {
+    @ViewBuilder private var connectionCard: some View {
         if let profile = workspace.selectedBookmark {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top, spacing: 14) {
-                    BookmarkAvatar(profile: profile, size: 54, cornerRadius: 16)
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            Circle().fill(workspace.errorMessage == nil && workspace.schemaErrorMessage == nil ? Color.green : Color.orange)
-                                .frame(width: 8, height: 8)
-                            Text(workspace.errorMessage == nil && workspace.schemaErrorMessage == nil ? L10n.text("Active connection") : L10n.text("Needs attention"))
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.85))
-                        }
-                        Text(profile.displayTitle)
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        Text(profile.endpointSummary)
-                            .font(.footnote)
-                            .foregroundStyle(.white.opacity(0.8))
-                            .lineLimit(1)
+            let healthy = workspace.errorMessage == nil && workspace.schemaErrorMessage == nil
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    BookmarkAvatar(profile: profile, size: 40, cornerRadius: 10)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(profile.displayTitle).font(.headline).lineLimit(1)
+                        Text(profile.endpointSummary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
-                    Spacer(minLength: 0)
+                    Spacer(minLength: 8)
+                    Circle()
+                        .fill(healthy ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                        .accessibilityLabel(healthy ? L10n.text("Active connection") : L10n.text("Needs attention"))
                 }
 
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     Menu {
                         ForEach(workspace.availableDatabases, id: \.self) { database in
                             Button {
                                 workspace.selectDatabase(database)
                             } label: {
-                                Label(database, systemImage: workspace.activeDatabaseName == database ? "checkmark.circle.fill" : "circle")
+                                if workspace.activeDatabaseName == database { Label(database, systemImage: "checkmark") } else { Text(database) }
                             }
                         }
                     } label: {
                         HStack(spacing: 6) {
-                            if workspace.isLoadingSchema { ProgressView().controlSize(.small).tint(.white) }
-                            else { Image(systemName: "externaldrive.fill") }
+                            if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
+                            else { Image(systemName: "externaldrive") }
                             Text(workspace.activeDatabaseName ?? L10n.text("Database")).lineLimit(1)
-                            Image(systemName: "chevron.down").font(.caption2.weight(.bold))
+                            Image(systemName: "chevron.up.chevron.down").font(.caption2)
                         }
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 12)
+                        .font(.subheadline)
                         .frame(minHeight: PortbaseControlSize.minimumHeight)
-                        .background(.white.opacity(0.18), in: Capsule())
                     }
                     .disabled(workspace.availableDatabases.isEmpty)
                     .accessibilityLabel("Choose database")
-
                     if !workspace.schemaCatalog.isEmpty {
-                        Text(tableCountLabel)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.85))
-                            .lineLimit(1)
+                        Text(tableCountLabel).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer(minLength: 0)
                 }
 
                 HStack(spacing: 10) {
                     Button { onNavigate(.console) } label: {
-                        Label("Open Console", systemImage: "terminal.fill")
-                            .frame(maxWidth: .infinity)
+                        Label("Open Console", systemImage: "terminal").frame(maxWidth: .infinity, minHeight: 32)
                     }
-                    .buttonStyle(HeroButtonStyle(prominent: true))
+                    .buttonStyle(.borderedProminent)
                     Button { onNavigate(.explorer) } label: {
-                        Label("Browse Data", systemImage: "tablecells.fill")
-                            .frame(maxWidth: .infinity)
+                        Label("Browse Data", systemImage: "tablecells").frame(maxWidth: .infinity, minHeight: 32)
                     }
-                    .buttonStyle(HeroButtonStyle(prominent: false))
+                    .buttonStyle(.bordered)
                 }
             }
-            .padding(20)
-            .background {
-                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    .fill(LinearGradient(colors: profile.engine.brandColors, startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .overlay {
-                        RadialGradient(colors: [.white.opacity(0.28), .clear], center: .topTrailing, startRadius: 0, endRadius: 260)
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    .shadow(color: profile.engine.tint.opacity(0.35), radius: 18, x: 0, y: 10)
-            }
+            .padding(16)
+            .portbaseCardSurface(radius: 16)
         } else {
-            PortbaseEmptyState(
-                title: L10n.text("Connect your first database"),
-                message: L10n.text("Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch."),
-                systemImage: "cylinder.split.1x2",
-                actionTitle: L10n.text("Add Connection"),
-                action: { workspace.createBookmark() },
-                secondaryTitle: L10n.text("New SQLite Database"),
-                secondaryAction: { createsSQLite = true }
-            )
-            .portbaseCardSurface(radius: 26)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Connect your first database").font(.headline)
+                Text("Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    Button { workspace.createBookmark() } label: {
+                        Label("Add Connection", systemImage: "plus").frame(minHeight: 32)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Button { createsSQLite = true } label: {
+                        Label("New SQLite Database", systemImage: "internaldrive").frame(minHeight: 32)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .portbaseCardSurface(radius: 16)
         }
     }
 
@@ -180,107 +142,37 @@ struct HomeView: View {
 
     private var quickActions: some View {
         ViewThatFits(in: .horizontal) {
-            quickActionGrid(columns: 4).frame(minWidth: 640)
-            quickActionGrid(columns: 2)
-        }
-    }
-
-    private func quickActionGrid(columns: Int) -> some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: columns), spacing: 12) {
-            QuickActionTile(title: L10n.text("New Query"), subtitle: L10n.text("Open a fresh console"), systemImage: "plus.rectangle.on.rectangle", colors: [Color(hex: 0x6366F1), Color(hex: 0x8B5CF6)]) {
-                consoles.add(); onNavigate(.console)
-            }
-            QuickActionTile(title: L10n.text("Search"), subtitle: L10n.text("Actions, tables, queries"), systemImage: "command", colors: [Color(hex: 0x0EA5E9), Color(hex: 0x2563EB)]) {
-                onSearch()
-            }
-            QuickActionTile(title: L10n.text("Query Library"), subtitle: L10n.text("History and saved queries"), systemImage: "books.vertical.fill", colors: [Color(hex: 0x10B981), Color(hex: 0x0D9488)]) {
-                onNavigate(.library)
-            }
-            QuickActionTile(title: L10n.text("Charts"), subtitle: L10n.format("Saved: %d", library.visualizations.count), systemImage: "chart.bar.xaxis", colors: [Color(hex: 0xF97316), Color(hex: 0xE11D48)]) {
-                onNavigate(.charts)
-            }
-        }
-    }
-
-    // MARK: Activity
-
-    private func activitySection(_ activity: WorkspaceActivity) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            PortbaseSectionHeading(title: L10n.text("Activity"), systemImage: "waveform.path.ecg") {
-                Text("Last 14 days").font(.caption).foregroundStyle(.secondary)
-            }
+            HStack(spacing: 10) { quickActionButtons }
             LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                PortbaseMetricTile(title: L10n.text("Queries run"), value: activity.executionCount.formatted(), systemImage: "bolt.fill", tint: Color(hex: 0x6366F1))
-                PortbaseMetricTile(title: L10n.text("Success rate"), value: activity.successRate.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? "—",
-                                   systemImage: "checkmark.seal.fill", tint: Color(hex: 0x10B981))
-                PortbaseMetricTile(title: L10n.text("Median time"), value: activity.medianDuration.map { WorkspaceActivityService.durationLabel($0) } ?? "—",
-                                   systemImage: "timer", tint: Color(hex: 0x0EA5E9))
-                PortbaseMetricTile(title: L10n.text("Saved Queries"), value: library.snippets.count.formatted(), systemImage: "bookmark.fill", tint: Color(hex: 0xF97316))
+                quickActionButtons
             }
-            VStack(alignment: .leading, spacing: 8) {
-                if activity.hasActivity {
-                    Chart(activity.days) { day in
-                        BarMark(x: .value("Day", day.date, unit: .day), y: .value("Succeeded", day.succeeded))
-                            .foregroundStyle(by: .value("Outcome", L10n.text("Succeeded")))
-                            .cornerRadius(3)
-                        BarMark(x: .value("Day", day.date, unit: .day), y: .value("Failed", day.failed))
-                            .foregroundStyle(by: .value("Outcome", L10n.text("Failed")))
-                            .cornerRadius(3)
-                        BarMark(x: .value("Day", day.date, unit: .day), y: .value("Cancelled", day.cancelled))
-                            .foregroundStyle(by: .value("Outcome", L10n.text("Cancelled")))
-                            .cornerRadius(3)
-                    }
-                    .chartForegroundStyleScale([
-                        L10n.text("Succeeded"): PortSQLPalette.accent,
-                        L10n.text("Failed"): Color.red.opacity(0.8),
-                        L10n.text("Cancelled"): Color.gray.opacity(0.6),
-                    ])
-                    .chartXAxis {
-                        AxisMarks(values: .stride(by: .day, count: 3)) { _ in
-                            AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                        }
-                    }
-                    .chartLegend(position: .bottom, spacing: 8)
-                    .frame(height: 150)
-                    .accessibilityLabel("Queries per day")
-                    if let busiest = activity.busiestConnection {
-                        Label(L10n.format("Most active: %@", busiest), systemImage: "flame.fill")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("Run a query to see your activity here.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 90)
-                }
-            }
-            .padding(14)
-            .portbaseCardSurface(radius: 18)
         }
+    }
+
+    @ViewBuilder private var quickActionButtons: some View {
+        QuickAction(title: L10n.text("New Query"), systemImage: "plus.rectangle.on.rectangle") { consoles.add(); onNavigate(.console) }
+        QuickAction(title: L10n.text("Search"), systemImage: "magnifyingglass") { onSearch() }
+        QuickAction(title: L10n.text("Query Library"), systemImage: "books.vertical") { onNavigate(.library) }
+        QuickAction(title: L10n.text("Charts"), systemImage: "chart.bar.xaxis") { onNavigate(.charts) }
     }
 
     // MARK: Recent queries
 
     private var recentSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PortbaseSectionHeading(title: L10n.text("Recent Queries"), systemImage: "clock.arrow.circlepath") {
+        VStack(alignment: .leading, spacing: 10) {
+            PortbaseSectionHeading(title: L10n.text("Recent Queries")) {
                 if !library.history.isEmpty {
                     Button("Show All") { onNavigate(.library) }
-                        .font(.subheadline.weight(.semibold))
+                        .font(.subheadline)
                         .frame(minHeight: PortbaseControlSize.minimumHeight)
                 }
             }
             VStack(spacing: 0) {
                 if library.history.isEmpty {
-                    Text("Queries you run appear here. Loading one never runs it.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 80)
-                        .padding(.horizontal, 14)
+                    placeholder("Queries you run appear here. Loading one never runs it.")
                 } else {
                     ForEach(Array(library.history.prefix(5).enumerated()), id: \.element.id) { index, entry in
-                        if index > 0 { Divider().padding(.leading, 52) }
+                        if index > 0 { Divider().padding(.leading, 40) }
                         Button {
                             if workspace.apply(history: entry) { onNavigate(.console) }
                         } label: {
@@ -291,101 +183,129 @@ struct HomeView: View {
                     }
                 }
             }
-            .portbaseCardSurface(radius: 18)
+            .portbaseCardSurface(radius: 16)
         }
+    }
+
+    // MARK: Activity
+
+    private func activitySection(_ activity: WorkspaceActivity) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PortbaseSectionHeading(title: L10n.text("Activity")) {
+                Text("Last 14 days").font(.caption).foregroundStyle(.secondary)
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 0) {
+                    stat(L10n.text("Queries run"), activity.executionCount.formatted())
+                    stat(L10n.text("Success rate"), activity.successRate.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? "—")
+                    stat(L10n.text("Median time"), activity.medianDuration.map { WorkspaceActivityService.durationLabel($0) } ?? "—")
+                }
+                if activity.hasActivity {
+                    Chart(activity.days) { day in
+                        BarMark(x: .value("Day", day.date, unit: .day), y: .value("Queries", day.total))
+                            .foregroundStyle(PortSQLPalette.accent.opacity(0.8))
+                            .cornerRadius(2)
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .stride(by: .day, count: 3)) { _ in
+                            AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                        }
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .leading) { _ in
+                            AxisGridLine()
+                            AxisValueLabel()
+                        }
+                    }
+                    .frame(height: 110)
+                    .accessibilityLabel("Queries per day")
+                }
+            }
+            .padding(14)
+            .portbaseCardSurface(radius: 16)
+        }
+    }
+
+    private func stat(_ title: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).font(.title3.weight(.semibold).monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
+            Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Connections
 
     private var connectionsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PortbaseSectionHeading(title: L10n.text("Connections"), systemImage: "server.rack") {
+        VStack(alignment: .leading, spacing: 10) {
+            PortbaseSectionHeading(title: L10n.text("Connections")) {
                 Button { workspace.createBookmark() } label: {
                     Image(systemName: "plus")
-                        .font(.subheadline.weight(.bold))
                         .frame(width: PortbaseControlSize.minimumHeight, height: PortbaseControlSize.minimumHeight)
                 }
                 .accessibilityLabel("Add Connection")
             }
             VStack(spacing: 0) {
                 if bookmarks.bookmarks.isEmpty {
-                    Text("No servers saved")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 80)
+                    placeholder("No servers saved")
                 } else {
                     ForEach(Array(bookmarks.bookmarks.prefix(6).enumerated()), id: \.element.id) { index, profile in
-                        if index > 0 { Divider().padding(.leading, 64) }
+                        if index > 0 { Divider().padding(.leading, 56) }
                         Button {
                             if workspace.selectedBookmarkID != profile.id { workspace.selectBookmark(profile.id) }
                         } label: {
                             HStack(spacing: 12) {
-                                BookmarkAvatar(profile: profile, size: 38, cornerRadius: 11)
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(profile.displayTitle).font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                                BookmarkAvatar(profile: profile, size: 30, cornerRadius: 8)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(profile.displayTitle).font(.subheadline).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                                     Text(profile.endpointSummary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                                 }
                                 Spacer(minLength: 8)
                                 if workspace.selectedBookmarkID == profile.id {
-                                    PortbaseChip(title: L10n.text("Active"), systemImage: "checkmark", tint: .green)
-                                } else {
-                                    Image(systemName: "chevron.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+                                    Image(systemName: "checkmark").font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.accent)
                                 }
                             }
                             .padding(.horizontal, 14)
-                            .frame(minHeight: 60)
+                            .frame(minHeight: 52)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
-                        .accessibilityValue(workspace.selectedBookmarkID == profile.id ? L10n.text("Active") : "")
+                        .accessibilityAddTraits(workspace.selectedBookmarkID == profile.id ? [.isButton, .isSelected] : .isButton)
                     }
                     if bookmarks.bookmarks.count > 6 {
                         Divider()
                         Button("Show All") { onNavigate(.servers) }
-                            .font(.subheadline.weight(.semibold))
+                            .font(.subheadline)
                             .frame(maxWidth: .infinity, minHeight: PortbaseControlSize.minimumHeight)
                     }
                 }
             }
-            .portbaseCardSurface(radius: 18)
+            .portbaseCardSurface(radius: 16)
         }
     }
 
     // MARK: Saved queries
 
-    @ViewBuilder private var savedSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PortbaseSectionHeading(title: L10n.text("Saved Queries"), systemImage: "bookmark.fill")
-            if library.snippets.isEmpty {
-                Text("Save a query from the console to keep it one tap away.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 80)
-                    .portbaseCardSurface(radius: 18)
-            } else {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 10)], spacing: 10) {
-                    ForEach(library.snippets.prefix(4)) { snippet in
+    private var savedSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            PortbaseSectionHeading(title: L10n.text("Saved Queries"))
+            VStack(spacing: 0) {
+                if library.snippets.isEmpty {
+                    placeholder("Save a query from the console to keep it one tap away.")
+                } else {
+                    ForEach(Array(library.snippets.prefix(5).enumerated()), id: \.element.id) { index, snippet in
+                        if index > 0 { Divider().padding(.leading, 14) }
                         Button {
                             if workspace.apply(snippet: snippet) { onNavigate(.console) }
                         } label: {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Image(systemName: "bookmark.fill").foregroundStyle(PortSQLPalette.accent)
-                                    Text(snippet.title).font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
-                                    Spacer(minLength: 0)
-                                }
-                                Text(snippet.sql)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(3)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                if let engine = snippet.engine {
-                                    PortbaseChip(title: [engine.rawValue, snippet.database].compactMap { $0 }.joined(separator: " · "), tint: engine.tint)
-                                }
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(snippet.title).font(.subheadline).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                                Text(snippet.sql.replacingOccurrences(of: "\n", with: " "))
+                                    .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1)
                             }
-                            .padding(14)
-                            .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
-                            .portbaseCardSurface(radius: 16)
+                            .padding(.horizontal, 14)
+                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -393,7 +313,16 @@ struct HomeView: View {
                     }
                 }
             }
+            .portbaseCardSurface(radius: 16)
         }
+    }
+
+    private func placeholder(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 64)
+            .padding(.horizontal, 14)
     }
 }
 
@@ -401,23 +330,19 @@ struct RecentQueryRow: View {
     let entry: QueryHistoryEntry
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 10) {
             Image(systemName: symbol)
-                .font(.system(size: 13, weight: .bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(tint)
-                .frame(width: 28, height: 28)
-                .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            VStack(alignment: .leading, spacing: 4) {
+                .frame(width: 16, height: 18)
+                .accessibilityLabel((entry.outcome ?? .succeeded).title)
+            VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(entry.title).font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                    Text(entry.title).font(.subheadline).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                     Spacer(minLength: 8)
                     Text(entry.executedAt, format: .relative(presentation: .named))
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
-                Text(entry.sql.replacingOccurrences(of: "\n", with: " "))
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
                 HStack(spacing: 6) {
                     Text([entry.connectionName, entry.database].compactMap { $0 }.joined(separator: " · "))
                         .lineLimit(1)
@@ -426,13 +351,13 @@ struct RecentQueryRow: View {
                         Text(WorkspaceActivityService.durationLabel(duration)).monospacedDigit()
                     }
                 }
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .frame(minHeight: 60)
+        .frame(minHeight: 52)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
@@ -454,31 +379,22 @@ struct RecentQueryRow: View {
     }
 }
 
-private struct QuickActionTile: View {
+private struct QuickAction: View {
     let title: String
-    let subtitle: String
     let systemImage: String
-    let colors: [Color]
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(alignment: .leading, spacing: 12) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 38, height: 38)
-                    .background(LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                                in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-                    .shadow(color: colors[1].opacity(0.35), radius: 8, x: 0, y: 4)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
-                    Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
+            HStack(spacing: 8) {
+                Image(systemName: systemImage).foregroundStyle(PortSQLPalette.accent)
+                Text(title).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                Spacer(minLength: 0)
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .portbaseCardSurface(radius: 18)
+            .font(.subheadline)
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: PortbaseControlSize.minimumHeight + 4)
+            .portbaseCardSurface(radius: 12)
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableButtonStyle())
@@ -488,24 +404,6 @@ private struct QuickActionTile: View {
 struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .opacity(configuration.isPressed ? 0.9 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
-private struct HeroButtonStyle: ButtonStyle {
-    let prominent: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(prominent ? Color.black.opacity(0.85) : .white)
-            .padding(.horizontal, 14)
-            .frame(minHeight: PortbaseControlSize.minimumHeight)
-            .background(prominent ? AnyShapeStyle(Color.white) : AnyShapeStyle(Color.white.opacity(0.18)),
-                        in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }

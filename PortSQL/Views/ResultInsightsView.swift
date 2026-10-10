@@ -75,10 +75,9 @@ private struct ColumnInsightCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: symbol)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.subheadline)
                     .foregroundStyle(tint)
-                    .frame(width: 28, height: 28)
-                    .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .frame(width: 20, height: 20)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(column.name).font(.subheadline.weight(.semibold)).lineLimit(1)
                     Text(column.type.isEmpty ? kindTitle : column.type)

@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "Цвет акцента";
 "Actions" = "Действия";
-"Actions, tables, queries" = "Действия, таблицы, запросы";
 "Active connection" = "Активное подключение";
 "Activity" = "Активность";
 "Add a connection to browse tables, run queries, and build charts." = "Добавьте подключение, чтобы просматривать таблицы, выполнять запросы и строить диаграммы.";
@@ -1019,12 +1018,8 @@
 "Format Query" = "Форматировать запрос";
 "General" = "Основные";
 "Go To" = "Перейти";
-"Good afternoon" = "Добрый день";
-"Good evening" = "Добрый вечер";
-"Good morning" = "Доброе утро";
 "Graphite" = "Графит";
 "Group and count" = "Группировка и подсчёт";
-"History and saved queries" = "История и сохранённые запросы";
 "Home" = "Главная";
 "Indigo" = "Индиго";
 "Insert %@" = "Вставить %@";
@@ -1042,7 +1037,6 @@
 "Median" = "Медиана";
 "Median time" = "Медианное время";
 "Min" = "Мин.";
-"Most active: %@" = "Самое активное: %@";
 "Most frequent" = "Самые частые";
 "Navigate" = "Навигация";
 "Needs attention" = "Требует внимания";
@@ -1056,7 +1050,6 @@
 "On this device" = "На этом устройстве";
 "Open" = "Открыть";
 "Open Console" = "Открыть консоль";
-"Open a fresh console" = "Открыть новую консоль";
 "Opens a new console. Hold for more options." = "Открывает новую консоль. Удерживайте для других вариантов.";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase работает с MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis и Elasticsearch.";
 "Queries per day" = "Запросы по дням";
@@ -1067,7 +1060,6 @@
 "Rose" = "Роза";
 "Run a query to see column insights." = "Выполните запрос, чтобы увидеть аналитику по столбцам.";
 "Run a query to see results here." = "Выполните запрос, чтобы увидеть результаты.";
-"Run a query to see your activity here." = "Выполните запрос, чтобы увидеть здесь свою активность.";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "Выполните запрос с числовыми столбцами, затем нажмите кнопку диаграммы в результатах, чтобы создать и сохранить диаграмму.";
 "Running total" = "Нарастающий итог";
 "Save a query from the console to keep it one tap away." = "Сохраните запрос в консоли, чтобы открывать его одним касанием.";
@@ -1080,7 +1072,6 @@
 "Size" = "Размер";
 "Statistics describe loaded rows only. They do not query the database again." = "Статистика описывает только загруженные строки и не обращается к базе данных повторно.";
 "Success rate" = "Доля успешных";
-"Suggestions" = "Подсказки";
 "Summarizing loaded rows." = "Сводка по загруженным строкам.";
 "Sunset" = "Закат";
 "Supported Engines" = "Поддерживаемые движки";

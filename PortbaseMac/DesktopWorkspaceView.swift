@@ -443,10 +443,6 @@ private struct DesktopTableBrowser: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
-                Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc.fill" : "tablecells.fill")
-                    .font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
-                    .frame(width: 22, height: 22)
-                    .background(PortSQLPalette.accentGradient, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 Text(workspace.selectedExplorerTable?.displayName ?? L10n.text("Tables")).font(.system(size: 13, weight: .semibold))
                 if let table = workspace.selectedExplorerTable {
                     PortbaseChip(title: L10n.plural("column_count_short", count: table.columns.count), tint: .secondary)

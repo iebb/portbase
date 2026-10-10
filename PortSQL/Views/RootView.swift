@@ -5,8 +5,9 @@ import UniformTypeIdentifiers
 
 enum PortSQLPalette {
     static var accent: Color { PortbaseAccent.current.color }
+    /// A flat fill for prominent controls; kept as a gradient type so call sites stay uniform.
     static var accentGradient: LinearGradient {
-        LinearGradient(colors: PortbaseAccent.current.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: [accent, accent], startPoint: .top, endPoint: .bottom)
     }
     static let accentSoft = Color.adaptive(light: 0xEEF0FF, dark: 0x1E2133)
 #if canImport(UIKit)
@@ -59,8 +60,7 @@ struct RootView: View {
                 NavigationStack {
                     HomeView(onNavigate: navigate, onSearch: { showsPalette = true })
                         .navigationTitle("Home")
-                        .portbaseTitleDisplayMode(.inline)
-                        .toolbar(removing: .title)
+                        .portbaseTitleDisplayMode(.large)
                         .toolbar {
                             ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
                                 searchButton
@@ -687,9 +687,8 @@ struct QueryEditorCard: View {
             .padding(.horizontal, 16)
             .frame(minHeight: 44)
             .background {
-                Capsule().fill(workspace.isRunning ? AnyShapeStyle(Color.red.gradient) : AnyShapeStyle(PortSQLPalette.accentGradient))
+                Capsule().fill(workspace.isRunning ? Color.red : PortSQLPalette.accent)
             }
-            .shadow(color: (workspace.isRunning ? Color.red : PortSQLPalette.accent).opacity(runDisabled ? 0 : 0.35), radius: 8, x: 0, y: 4)
             .opacity(runDisabled ? 0.45 : 1)
         }
         .buttonStyle(PressableButtonStyle())
@@ -818,12 +817,6 @@ struct ResultsCard: View {
         PanelCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: "tablecells.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .background(PortSQLPalette.accentGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("Results")
                             .font(.title3.weight(.bold))
@@ -1976,7 +1969,6 @@ private struct EngineChooser: View {
                             .frame(width: 40, height: 40)
                             .background(LinearGradient(colors: engine.brandColors, startPoint: .topLeading, endPoint: .bottomTrailing),
                                         in: RoundedRectangle(cornerRadius: 11, style: .continuous))
-                            .shadow(color: selected ? engine.tint.opacity(0.4) : .clear, radius: 6, x: 0, y: 3)
                         Text(engine.rawValue)
                             .font(.caption2.weight(selected ? .bold : .medium))
                             .foregroundStyle(selected ? PortSQLPalette.ink : .secondary)
@@ -2527,9 +2519,6 @@ struct InlineSuggestionMenu: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label("Suggestions", systemImage: "sparkles")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(Array(suggestions.enumerated()), id: \.offset) { _, item in
@@ -2538,7 +2527,7 @@ struct InlineSuggestionMenu: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Text(item.title)
-                                    .font(.system(.subheadline, design: .monospaced).weight(.semibold))
+                                    .font(.system(.footnote, design: .monospaced))
                                     .foregroundStyle(PortSQLPalette.ink)
                                     .lineLimit(1)
                                 if let subtitle = item.subtitle, !subtitle.isEmpty {
@@ -2547,14 +2536,10 @@ struct InlineSuggestionMenu: View {
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 }
-                                Image(systemName: "return")
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(PortSQLPalette.accent)
                             }
                             .padding(.horizontal, 12)
                             .frame(minHeight: PortbaseControlSize.minimumHeight)
-                            .background(PortSQLPalette.accent.opacity(0.10), in: Capsule())
-                            .overlay { Capsule().strokeBorder(PortSQLPalette.accent.opacity(0.25), lineWidth: 1) }
+                            .background(PortSQLPalette.sunken, in: Capsule())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(L10n.format("Insert %@", item.title))
@@ -2582,13 +2567,10 @@ struct PrimaryActionButtonStyle: ButtonStyle {
             .padding(.horizontal, 18)
             .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(PortSQLPalette.accentGradient)
-                    .shadow(color: PortSQLPalette.accent.opacity(isEnabled ? 0.35 : 0), radius: 10, x: 0, y: 5)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(PortSQLPalette.accent)
             )
-            .opacity(isEnabled ? (configuration.isPressed ? 0.9 : 1) : 0.5)
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.5)
     }
 }
 

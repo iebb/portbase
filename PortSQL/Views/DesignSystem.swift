@@ -26,12 +26,12 @@ enum PortbaseAccent: String, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
-        case .indigo: Color.adaptive(light: 0x4F46E5, dark: 0x8B8CFF)
-        case .ocean: Color.adaptive(light: 0x0A6CD6, dark: 0x4DA8FF)
-        case .emerald: Color.adaptive(light: 0x0E8F6A, dark: 0x34D399)
-        case .sunset: Color.adaptive(light: 0xD9480F, dark: 0xFF8A4C)
-        case .rose: Color.adaptive(light: 0xD6336C, dark: 0xFF6B9A)
-        case .graphite: Color.adaptive(light: 0x3F4654, dark: 0xB4BCCB)
+        case .indigo: Color.adaptive(light: 0x4F46E5, dark: 0x6366F1)
+        case .ocean: Color.adaptive(light: 0x0A6CD6, dark: 0x2D7FE0)
+        case .emerald: Color.adaptive(light: 0x0E8F6A, dark: 0x109A70)
+        case .sunset: Color.adaptive(light: 0xD9480F, dark: 0xE2622A)
+        case .rose: Color.adaptive(light: 0xD6336C, dark: 0xE04680)
+        case .graphite: Color.adaptive(light: 0x3F4654, dark: 0x6B7588)
         }
     }
 
@@ -169,7 +169,7 @@ extension DatabaseEngine {
 // MARK: - Layout tokens
 
 enum PortbaseMetrics {
-    static let cardRadius: CGFloat = 20
+    static let cardRadius: CGFloat = 16
     static let controlRadius: CGFloat = 12
     static let chipRadius: CGFloat = 8
 #if os(macOS)
@@ -193,41 +193,26 @@ extension View {
         }
     }
 
-    func portbaseCardSurface(radius: CGFloat = PortbaseMetrics.cardRadius, elevated: Bool = true) -> some View {
-        modifier(PortbaseCardSurface(radius: radius, elevated: elevated))
+    func portbaseCardSurface(radius: CGFloat = PortbaseMetrics.cardRadius) -> some View {
+        modifier(PortbaseCardSurface(radius: radius))
     }
 }
 
 private struct PortbaseCardSurface: ViewModifier {
     let radius: CGFloat
-    let elevated: Bool
-    @Environment(\.colorScheme) private var colorScheme
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
         content
             .background(PortSQLPalette.surface, in: shape)
             .overlay { shape.strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
-            .shadow(color: elevated && colorScheme == .light ? Color.black.opacity(0.06) : .clear, radius: 14, x: 0, y: 6)
     }
 }
 
-/// A soft accent glow behind workspace content.
+/// The workspace canvas behind cards.
 struct PortbaseBackdrop: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        ZStack {
-            PortSQLPalette.canvasTop
-            RadialGradient(
-                colors: [PortSQLPalette.accent.opacity(colorScheme == .dark ? 0.20 : 0.10), .clear],
-                center: .topLeading, startRadius: 20, endRadius: 520
-            )
-            RadialGradient(
-                colors: [PortbaseAccent.current.gradient[1].opacity(colorScheme == .dark ? 0.12 : 0.06), .clear],
-                center: .topTrailing, startRadius: 10, endRadius: 420
-            )
-        }
+        PortSQLPalette.canvasTop
     }
 }
 
@@ -246,8 +231,7 @@ struct ToolIconChrome: ViewModifier {
             .frame(width: PortbaseMetrics.toolSize, height: PortbaseMetrics.toolSize)
             .background {
                 RoundedRectangle(cornerRadius: PortbaseMetrics.controlRadius, style: .continuous)
-                    .fill(isProminent ? AnyShapeStyle(LinearGradient(colors: PortbaseAccent.current.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
-                                      : AnyShapeStyle(PortSQLPalette.sunken))
+                    .fill(isProminent ? AnyShapeStyle(PortSQLPalette.accent) : AnyShapeStyle(PortSQLPalette.sunken))
             }
             .overlay {
                 RoundedRectangle(cornerRadius: PortbaseMetrics.controlRadius, style: .continuous)
@@ -318,18 +302,13 @@ struct PortbaseMetricTile: View {
     var footnote: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: systemImage)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 28, height: 28)
-                    .background(LinearGradient(colors: [tint.opacity(0.85), tint], startPoint: .top, endPoint: .bottom),
-                                in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                Spacer(minLength: 0)
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.subheadline)
+                .foregroundStyle(tint)
+                .accessibilityHidden(true)
             Text(value)
-                .font(.title2.weight(.bold).monospacedDigit())
+                .font(.title3.weight(.semibold).monospacedDigit())
                 .foregroundStyle(PortSQLPalette.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -341,8 +320,8 @@ struct PortbaseMetricTile: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .portbaseCardSurface(radius: 16)
+        .padding(12)
+        .portbaseCardSurface(radius: 12)
         .accessibilityElement(children: .combine)
     }
 }
@@ -353,16 +332,12 @@ struct PortbaseLogoMark: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-            .fill(LinearGradient(colors: PortbaseAccent.current.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
+            .fill(PortSQLPalette.accent)
             .frame(width: size, height: size)
             .overlay {
                 Image(systemName: "cylinder.split.1x2.fill")
                     .font(.system(size: size * 0.48, weight: .bold))
                     .foregroundStyle(.white)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-                    .strokeBorder(.white.opacity(0.25), lineWidth: 1)
             }
             .accessibilityHidden(true)
     }
@@ -380,15 +355,10 @@ struct PortbaseEmptyState: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(PortSQLPalette.accent.opacity(0.12))
-                    .frame(width: 76, height: 76)
-                Image(systemName: systemImage)
-                    .font(.system(size: 30, weight: .semibold))
-                    .foregroundStyle(PortSQLPalette.accent)
-            }
-            .accessibilityHidden(true)
+            Image(systemName: systemImage)
+                .font(.system(size: 32))
+                .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             VStack(spacing: 6) {
                 Text(title).font(.headline).multilineTextAlignment(.center)
                 Text(message).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
@@ -435,10 +405,6 @@ struct BookmarkAvatar: View {
                         .minimumScaleFactor(0.6)
                 }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(LinearGradient(colors: [.white.opacity(0.35), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-            }
             .accessibilityHidden(true)
     }
 }
@@ -479,17 +445,5 @@ extension ConnectionProfile {
         engine.isLocal
             ? "SQLite • " + (sqliteFileName.map { SQLiteFileStore.displayName(fileName: $0).replacingOccurrences(of: "_", with: " ") } ?? L10n.text("File unavailable"))
             : "\(engine.rawValue) • \(host):\(String(port))"
-    }
-}
-
-// MARK: - Greeting
-
-enum PortbaseGreeting {
-    static func text(for date: Date = .now, calendar: Calendar = .current) -> String {
-        switch calendar.component(.hour, from: date) {
-        case 5..<12: L10n.text("Good morning")
-        case 12..<18: L10n.text("Good afternoon")
-        default: L10n.text("Good evening")
-        }
     }
 }

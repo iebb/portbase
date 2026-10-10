@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "Akzentfarbe";
 "Actions" = "Aktionen";
-"Actions, tables, queries" = "Aktionen, Tabellen, Abfragen";
 "Active connection" = "Aktive Verbindung";
 "Activity" = "Aktivität";
 "Add a connection to browse tables, run queries, and build charts." = "Fügen Sie eine Verbindung hinzu, um Tabellen zu durchsuchen, Abfragen auszuführen und Diagramme zu erstellen.";
@@ -1019,12 +1018,8 @@
 "Format Query" = "Abfrage formatieren";
 "General" = "Allgemein";
 "Go To" = "Gehe zu";
-"Good afternoon" = "Guten Tag";
-"Good evening" = "Guten Abend";
-"Good morning" = "Guten Morgen";
 "Graphite" = "Graphit";
 "Group and count" = "Gruppieren und zählen";
-"History and saved queries" = "Verlauf und gespeicherte Abfragen";
 "Home" = "Start";
 "Indigo" = "Indigoblau";
 "Insert %@" = "%@ einfügen";
@@ -1042,7 +1037,6 @@
 "Median" = "Medianwert";
 "Median time" = "Mittlere Dauer";
 "Min" = "Minimum";
-"Most active: %@" = "Am aktivsten: %@";
 "Most frequent" = "Häufigste Werte";
 "Navigate" = "Navigieren";
 "Needs attention" = "Benötigt Aufmerksamkeit";
@@ -1056,7 +1050,6 @@
 "On this device" = "Auf diesem Gerät";
 "Open" = "Öffnen";
 "Open Console" = "Konsole öffnen";
-"Open a fresh console" = "Eine neue Konsole öffnen";
 "Opens a new console. Hold for more options." = "Öffnet eine neue Konsole. Für weitere Optionen gedrückt halten.";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase unterstützt MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis und Elasticsearch.";
 "Queries per day" = "Abfragen pro Tag";
@@ -1067,7 +1060,6 @@
 "Rose" = "Rosa";
 "Run a query to see column insights." = "Führen Sie eine Abfrage aus, um Spalteneinblicke zu sehen.";
 "Run a query to see results here." = "Führen Sie eine Abfrage aus, um hier Ergebnisse zu sehen.";
-"Run a query to see your activity here." = "Führen Sie eine Abfrage aus, um hier Ihre Aktivität zu sehen.";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "Führen Sie eine Abfrage mit numerischen Spalten aus und wählen Sie dann in den Ergebnissen die Diagrammtaste, um ein Diagramm zu gestalten und zu speichern.";
 "Running total" = "Laufende Summe";
 "Save a query from the console to keep it one tap away." = "Speichern Sie eine Abfrage in der Konsole, um sie mit einem Tipp wieder aufzurufen.";
@@ -1080,7 +1072,6 @@
 "Size" = "Größe";
 "Statistics describe loaded rows only. They do not query the database again." = "Die Statistiken beschreiben nur geladene Zeilen. Die Datenbank wird nicht erneut abgefragt.";
 "Success rate" = "Erfolgsquote";
-"Suggestions" = "Vorschläge";
 "Summarizing loaded rows." = "Geladene Zeilen werden zusammengefasst.";
 "Sunset" = "Abendrot";
 "Supported Engines" = "Unterstützte Engines";

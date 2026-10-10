@@ -19,12 +19,6 @@ struct ExplorerView: View {
                     PanelCard {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack(alignment: .center, spacing: 12) {
-                                Image(systemName: "tablecells.fill")
-                                    .font(.system(size: 15, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 36, height: 36)
-                                    .background(PortSQLPalette.accentGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                    .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("Browse")
                                         .font(.title3.weight(.bold))
@@ -45,8 +39,7 @@ struct ExplorerView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(.white)
-                                .background(PortSQLPalette.accentGradient, in: Capsule())
-                                .shadow(color: PortSQLPalette.accent.opacity(0.3), radius: 6, x: 0, y: 3)
+                                .background(PortSQLPalette.accent, in: Capsule())
                                 .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
                                 .accessibilityLabel("Run table browse query")
                                 .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
@@ -758,12 +751,10 @@ struct LibrarySheetView: View {
                                     else { contextError = workspace.errorMessage }
                                 } label: {
                                     HStack(alignment: .top, spacing: 12) {
-                                        Image(systemName: "bookmark.fill")
-                                            .font(.system(size: 13, weight: .bold))
-                                            .foregroundStyle(.white)
-                                            .frame(width: 28, height: 28)
-                                            .background(LinearGradient(colors: (snippet.engine ?? .postgresql).brandColors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                        Image(systemName: "bookmark")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 20, height: 20)
                                         VStack(alignment: .leading, spacing: 5) {
                                             Text(snippet.title).font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                                             if !snippet.note.isEmpty { Text(snippet.note).font(.caption).foregroundStyle(.secondary).lineLimit(2) }

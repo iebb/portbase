@@ -589,13 +589,6 @@ private struct VisualizationPresetCard: View {
         PanelCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: preset.chartType.symbolName)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .background(LinearGradient(colors: (runnableBookmark?.engine ?? .postgresql).brandColors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(preset.title)
                             .font(.headline.weight(.bold))

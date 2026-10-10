@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "Couleur d’accent";
 "Actions" = "Commandes";
-"Actions, tables, queries" = "Commandes, tables, requêtes";
 "Active connection" = "Connexion active";
 "Activity" = "Activité";
 "Add a connection to browse tables, run queries, and build charts." = "Ajoutez une connexion pour parcourir des tables, exécuter des requêtes et créer des graphiques.";
@@ -1019,12 +1018,8 @@
 "Format Query" = "Formater la requête";
 "General" = "Général";
 "Go To" = "Aller à";
-"Good afternoon" = "Bon après-midi";
-"Good evening" = "Bonsoir";
-"Good morning" = "Bonjour";
 "Graphite" = "Gris graphite";
 "Group and count" = "Regrouper et compter";
-"History and saved queries" = "Historique et requêtes enregistrées";
 "Home" = "Accueil";
 "Indigo" = "Bleu indigo";
 "Insert %@" = "Insérer %@";
@@ -1042,7 +1037,6 @@
 "Median" = "Médiane";
 "Median time" = "Durée médiane";
 "Min" = "Minimum";
-"Most active: %@" = "La plus active : %@";
 "Most frequent" = "Les plus fréquentes";
 "Navigate" = "Naviguer";
 "Needs attention" = "Nécessite votre attention";
@@ -1056,7 +1050,6 @@
 "On this device" = "Sur cet appareil";
 "Open" = "Ouvrir";
 "Open Console" = "Ouvrir la console";
-"Open a fresh console" = "Ouvrir une nouvelle console";
 "Opens a new console. Hold for more options." = "Ouvre une nouvelle console. Maintenez le doigt pour plus d’options.";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase prend en charge MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis et Elasticsearch.";
 "Queries per day" = "Requêtes par jour";
@@ -1067,7 +1060,6 @@
 "Rose" = "Rose bonbon";
 "Run a query to see column insights." = "Exécutez une requête pour voir l’analyse des colonnes.";
 "Run a query to see results here." = "Exécutez une requête pour voir les résultats ici.";
-"Run a query to see your activity here." = "Exécutez une requête pour voir votre activité ici.";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "Exécutez une requête avec des colonnes numériques, puis choisissez le bouton de graphique dans Résultats pour concevoir et enregistrer un graphique.";
 "Running total" = "Total cumulé";
 "Save a query from the console to keep it one tap away." = "Enregistrez une requête depuis la console pour la retrouver en un geste.";
@@ -1080,7 +1072,6 @@
 "Size" = "Taille";
 "Statistics describe loaded rows only. They do not query the database again." = "Les statistiques ne décrivent que les lignes chargées. Elles n’interrogent pas à nouveau la base de données.";
 "Success rate" = "Taux de réussite";
-"Suggestions" = "Propositions";
 "Summarizing loaded rows." = "Synthèse des lignes chargées.";
 "Sunset" = "Crépuscule";
 "Supported Engines" = "Moteurs pris en charge";

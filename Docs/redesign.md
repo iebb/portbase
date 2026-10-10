@@ -6,8 +6,8 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 
 `PortSQL/Views/DesignSystem.swift` defines the visual tokens and components used across all platforms:
 
-- **Palette**: adaptive canvas, surface, sunken, and stroke colors, with an accent gradient. `PortSQLPalette` reads these tokens, so existing screens adopt them automatically.
-- **Accent and appearance**: six accents (Indigo, Ocean, Emerald, Sunset, Rose, Graphite) and System/Light/Dark appearance, stored in `UserDefaults` (`Portbase.accent`, `Portbase.appearance`) and applied with `.portbaseTheme()`.
+- **Palette**: adaptive canvas, surface, sunken, and stroke colors with a single flat accent. Cards are flat with a hairline border; there are no decorative glows or shadows. `PortSQLPalette` reads these tokens, so existing screens adopt them automatically.
+- **Accent and appearance**: six accents (Indigo, Ocean, Emerald, Sunset, Rose, Graphite), whose dark variants keep white button labels readable, and System/Light/Dark appearance, stored in `UserDefaults` (`Portbase.accent`, `Portbase.appearance`) and applied with `.portbaseTheme()`.
 - **Components**: `PanelCard`, `PortbaseChip`, `PortbaseMetricTile`, `PortbaseEmptyState`, `PortbaseSectionHeading`, `BookmarkAvatar` (engine gradients), `ConnectionSecurityChips`, and `toolIconChrome()` for 44-point tool buttons. Liquid Glass is used on iOS/macOS 26 and later, with a material fallback.
 - **Editor themes**: `EditorTheme.swift` provides Portbase, Midnight, Paper, Solarized, and Ember syntax palettes (`Portbase.editorTheme`). The UIKit and AppKit editors both use them, including the line-number gutter and caret.
 
@@ -15,7 +15,7 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 
 | Feature | Where | Behavior |
 | --- | --- | --- |
-| Home dashboard | iOS Home tab; Mac Home destination (⌘0) | Greeting, active connection card with database switcher, quick actions, 14-day activity chart, success rate and median time, recent and saved queries, connections. Loading a recent or saved query never runs it. |
+| Home | iOS Home tab; Mac Home destination (⌘0) | Current connection with database switcher, four quick actions, recent queries, 14-day activity (runs, success rate, median time), connections, and saved queries. Loading a recent or saved query never runs it. |
 | Command palette | ⌘K on all platforms; Home search button; Mac toolbar | Fuzzy search across actions, destinations, connections, databases, tables, saved queries, and history. Keyboard navigation with ↑/↓, Return, and Esc. |
 | Result insights | Results → Insights (SQL tables and MongoDB) | Per-column type, NULL ratio, distinct count, empty-text count, min/median/mean/max, histograms, temporal ranges, and most frequent values. Computed off the main thread from loaded rows only; no extra queries. SQL `NULL`, empty text, the literal string `NULL`, and binary bytes stay distinct. |
 | SQL templates | Console tool row; Mac editor toolbar | Select, group-and-count, join, CTE, running total, and (for writable profiles) insert/update/delete/create-index templates. Identifiers are engine-quoted, write templates use named parameters, and inserting a template never executes it. |

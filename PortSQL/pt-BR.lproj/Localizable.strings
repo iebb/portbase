@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "Cor de destaque";
 "Actions" = "Ações";
-"Actions, tables, queries" = "Ações, tabelas, consultas";
 "Active connection" = "Conexão ativa";
 "Activity" = "Atividade";
 "Add a connection to browse tables, run queries, and build charts." = "Adicione uma conexão para navegar por tabelas, executar consultas e criar gráficos.";
@@ -1019,12 +1018,8 @@
 "Format Query" = "Formatar consulta";
 "General" = "Geral";
 "Go To" = "Ir para";
-"Good afternoon" = "Boa tarde";
-"Good evening" = "Boa noite";
-"Good morning" = "Bom dia";
 "Graphite" = "Grafite";
 "Group and count" = "Agrupar e contar";
-"History and saved queries" = "Histórico e consultas salvas";
 "Home" = "Início";
 "Indigo" = "Índigo";
 "Insert %@" = "Inserir %@";
@@ -1042,7 +1037,6 @@
 "Median" = "Mediana";
 "Median time" = "Tempo mediano";
 "Min" = "Mín.";
-"Most active: %@" = "Mais ativa: %@";
 "Most frequent" = "Mais frequentes";
 "Navigate" = "Navegar";
 "Needs attention" = "Requer atenção";
@@ -1056,7 +1050,6 @@
 "On this device" = "Neste dispositivo";
 "Open" = "Abrir";
 "Open Console" = "Abrir console";
-"Open a fresh console" = "Abra um novo console";
 "Opens a new console. Hold for more options." = "Abre um novo console. Mantenha pressionado para mais opções.";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "O Portbase funciona com MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis e Elasticsearch.";
 "Queries per day" = "Consultas por dia";
@@ -1067,7 +1060,6 @@
 "Rose" = "Rosa";
 "Run a query to see column insights." = "Execute uma consulta para ver a análise das colunas.";
 "Run a query to see results here." = "Execute uma consulta para ver os resultados aqui.";
-"Run a query to see your activity here." = "Execute uma consulta para ver sua atividade aqui.";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "Execute uma consulta com colunas numéricas e escolha o botão de gráfico em Resultados para criar e salvar um gráfico.";
 "Running total" = "Total acumulado";
 "Save a query from the console to keep it one tap away." = "Salve uma consulta no console para tê-la a um toque.";
@@ -1080,7 +1072,6 @@
 "Size" = "Tamanho";
 "Statistics describe loaded rows only. They do not query the database again." = "As estatísticas descrevem apenas as linhas carregadas. Elas não consultam o banco de dados novamente.";
 "Success rate" = "Taxa de sucesso";
-"Suggestions" = "Sugestões";
 "Summarizing loaded rows." = "Resumindo as linhas carregadas.";
 "Sunset" = "Pôr do sol";
 "Supported Engines" = "Motores compatíveis";

@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "Accent Color";
 "Actions" = "Actions";
-"Actions, tables, queries" = "Actions, tables, queries";
 "Active connection" = "Active connection";
 "Activity" = "Activity";
 "Add a connection to browse tables, run queries, and build charts." = "Add a connection to browse tables, run queries, and build charts.";
@@ -1019,12 +1018,8 @@
 "Format Query" = "Format Query";
 "General" = "General";
 "Go To" = "Go To";
-"Good afternoon" = "Good afternoon";
-"Good evening" = "Good evening";
-"Good morning" = "Good morning";
 "Graphite" = "Graphite";
 "Group and count" = "Group and count";
-"History and saved queries" = "History and saved queries";
 "Home" = "Home";
 "Indigo" = "Indigo";
 "Insert %@" = "Insert %@";
@@ -1042,7 +1037,6 @@
 "Median" = "Median";
 "Median time" = "Median time";
 "Min" = "Min";
-"Most active: %@" = "Most active: %@";
 "Most frequent" = "Most frequent";
 "Navigate" = "Navigate";
 "Needs attention" = "Needs attention";
@@ -1056,7 +1050,6 @@
 "On this device" = "On this device";
 "Open" = "Open";
 "Open Console" = "Open Console";
-"Open a fresh console" = "Open a fresh console";
 "Opens a new console. Hold for more options." = "Opens a new console. Hold for more options.";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch.";
 "Queries per day" = "Queries per day";
@@ -1067,7 +1060,6 @@
 "Rose" = "Rose";
 "Run a query to see column insights." = "Run a query to see column insights.";
 "Run a query to see results here." = "Run a query to see results here.";
-"Run a query to see your activity here." = "Run a query to see your activity here.";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "Run a query with numeric columns, then choose the chart button in Results to design and save a chart.";
 "Running total" = "Running total";
 "Save a query from the console to keep it one tap away." = "Save a query from the console to keep it one tap away.";
@@ -1080,7 +1072,6 @@
 "Size" = "Size";
 "Statistics describe loaded rows only. They do not query the database again." = "Statistics describe loaded rows only. They do not query the database again.";
 "Success rate" = "Success rate";
-"Suggestions" = "Suggestions";
 "Summarizing loaded rows." = "Summarizing loaded rows.";
 "Sunset" = "Sunset";
 "Supported Engines" = "Supported Engines";

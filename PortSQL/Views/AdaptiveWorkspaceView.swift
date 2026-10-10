@@ -76,11 +76,9 @@ struct ExplorerWorkspaceView: View {
                     } label: {
                         HStack(spacing: 10) {
                             Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc.fill" : (table.objectKind?.symbol ?? "tablecells"))
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(selected ? .white : PortSQLPalette.accent)
-                                .frame(width: 28, height: 28)
-                                .background(selected ? AnyShapeStyle(PortSQLPalette.accentGradient) : AnyShapeStyle(PortSQLPalette.accent.opacity(0.12)),
-                                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .font(.subheadline)
+                                .foregroundStyle(selected ? PortSQLPalette.accent : .secondary)
+                                .frame(width: 22)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(table.name)
                                     .font(.subheadline.weight(selected ? .semibold : .regular))

@@ -976,7 +976,6 @@
 /* Workspace redesign */
 "Accent Color" = "アクセントカラー";
 "Actions" = "アクション";
-"Actions, tables, queries" = "アクション、テーブル、クエリ";
 "Active connection" = "アクティブな接続";
 "Activity" = "アクティビティ";
 "Add a connection to browse tables, run queries, and build charts." = "接続を追加すると、テーブルの閲覧、クエリの実行、グラフの作成ができます。";
@@ -1019,12 +1018,8 @@
 "Format Query" = "クエリを整形";
 "General" = "一般";
 "Go To" = "移動";
-"Good afternoon" = "こんにちは";
-"Good evening" = "こんばんは";
-"Good morning" = "おはようございます";
 "Graphite" = "グラファイト";
 "Group and count" = "グループ化して集計";
-"History and saved queries" = "履歴と保存済みクエリ";
 "Home" = "ホーム";
 "Indigo" = "インディゴ";
 "Insert %@" = "%@を挿入";
@@ -1042,7 +1037,6 @@
 "Median" = "中央値";
 "Median time" = "所要時間の中央値";
 "Min" = "最小";
-"Most active: %@" = "最も活発: %@";
 "Most frequent" = "頻出値";
 "Navigate" = "移動";
 "Needs attention" = "要確認";
@@ -1056,7 +1050,6 @@
 "On this device" = "このデバイス上";
 "Open" = "開く";
 "Open Console" = "コンソールを開く";
-"Open a fresh console" = "新しいコンソールを開く";
 "Opens a new console. Hold for more options." = "新しいコンソールを開きます。長押しでその他のオプション。";
 "Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase は MySQL、MariaDB、PostgreSQL、SQLite、ClickHouse、MongoDB、Redis、Elasticsearch に対応しています。";
 "Queries per day" = "1 日あたりのクエリ数";
@@ -1067,7 +1060,6 @@
 "Rose" = "ローズ";
 "Run a query to see column insights." = "クエリを実行すると列のインサイトが表示されます。";
 "Run a query to see results here." = "クエリを実行するとここに結果が表示されます。";
-"Run a query to see your activity here." = "クエリを実行するとここにアクティビティが表示されます。";
 "Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "数値列を含むクエリを実行し、結果のグラフボタンを選んでグラフを作成・保存します。";
 "Running total" = "累計";
 "Save a query from the console to keep it one tap away." = "コンソールからクエリを保存すると、ワンタップで呼び出せます。";
@@ -1080,7 +1072,6 @@
 "Size" = "サイズ";
 "Statistics describe loaded rows only. They do not query the database again." = "統計は読み込んだ行のみを対象とし、データベースへの再クエリは行いません。";
 "Success rate" = "成功率";
-"Suggestions" = "候補";
 "Summarizing loaded rows." = "読み込んだ行を集計しています。";
 "Sunset" = "サンセット";
 "Supported Engines" = "対応エンジン";
