@@ -2,8 +2,7 @@
 "Studio" = "Студия";
 "Charts" = "Графики";
 "Servers" = "Серверы";
-"PORTSQL" = "PORTSQL";
-"Elegant database control, sized for iPhone." = "Элегантный элемент управления базой данных, рассчитанный на iPhone.";
+"PORTBASE" = "PORTBASE";
 "Live MySQL and PostgreSQL querying, schema browsing, charting, and row editing without placeholder datasets." = "Живые запросы MySQL и PostgreSQL, просмотр схемы, построение диаграмм и редактирование строк без наборов данных-заполнителей.";
 "No active connection" = "Нет активного подключения";
 "Create or select a bookmark to start a live workspace." = "Создайте или выберите закладку для запуска активной рабочей области.";
@@ -48,14 +47,11 @@
 "Connect to a database and refresh the explorer to inspect live tables and columns." = "Подключитесь к базе данных и обновите проводник, чтобы проверить действующие таблицы и столбцы.";
 "Choose a table to inspect its schema." = "Выберите таблицу, чтобы просмотреть ее схему.";
 "Library" = "Библиотека";
-"Run queries to build a local history." = "Запуск запросов для создания локальной истории.";
 "Reusable snippets" = "Многоразовые фрагменты";
 "Save Current" = "Сохранить текущий";
-"Save snippets for common admin tasks and diagnostics." = "Сохраняйте фрагменты для общих задач администрирования и диагностики.";
 "Add to Visualizer" = "Добавить в визуализатор";
 "Add to visualizer" = "Добавить в визуализатор";
 "Add your first visualization when querying." = "Добавьте первую визуализацию после запроса.";
-"Build a saved chart config from the current result set." = "Создайте сохраненную конфигурацию диаграммы из текущего набора результатов.";
 "Preset Name" = "Имя предустановки";
 "Saved chart name" = "Имя сохраненного графика";
 "Chart Title" = "Название диаграммы";
@@ -90,9 +86,7 @@
 "Premium Features" = "Премиум-функции";
 "Upgrade" = "Обновление";
 "Settings" = "Настройки";
-"PortSQL Pro" = "PortSQL Pro";
-"Designed as optional add-ons" = "Разработан как дополнительные дополнения.";
-"Core database access remains usable on the free plan. Pro is for convenience and polish, not basic connectivity." = "Доступ к основной базе данных остается доступным в бесплатном плане. Pro предназначен для удобства и полировки, а не для базовых возможностей подключения.";
+"Portbase Pro" = "Portbase Pro";
 "Restore Purchases" = "Восстановление покупок";
 "Sync" = "Синхронизация";
 "Servers are mirrored through iCloud key-value sync." = "Серверы зеркалируются посредством синхронизации ключей и значений iCloud.";
@@ -116,7 +110,7 @@
 "server, chart, folder" = "сервер, диаграмма, папка";
 "Create your first MySQL or PostgreSQL server to start querying live data." = "Создайте свой первый сервер MySQL или PostgreSQL, чтобы начать запрашивать оперативные данные.";
 "Table and column metadata is reused until this duration expires. The refresh button bypasses the cache." = "Метаданные таблиц и столбцов используются повторно до истечения этого периода. Кнопка обновления обходит кеш.";
-"When caching is off, PortSQL always reloads table lists from the database and hides manual refresh controls." = "Когда кэширование отключено, PortSQL всегда перезагружает списки таблиц из базы данных и скрывает элементы управления обновлением вручную.";
+"When caching is off, Portbase always reloads table lists from the database and hides manual refresh controls." = "Когда кэширование отключено, Portbase всегда перезагружает списки таблиц из базы данных и скрывает элементы управления обновлением вручную.";
 "Columns" = "Столбцы";
 "Column" = "Столбец";
 "Add a new column to the live table schema." = "Добавляет новый столбец в схему живой таблицы.";
@@ -237,10 +231,10 @@
 "Confirm write" = "Подтвердить запись";
 "This statement can change database data. Review it carefully before running it against a live database." = "Эта команда может изменить данные в базе. Внимательно проверьте её перед выполнением в рабочей базе данных.";
 "Add a SQL query to run this visualizer." = "Добавьте SQL-запрос для запуска этой визуализации.";
-"Available with PortSQL Pro" = "Доступно в PortSQL Pro";
+"Available with Portbase Pro" = "Доступно в Portbase Pro";
 "Begins an App Store purchase" = "Начинает покупку в App Store";
 "Check your network connection and try again." = "Проверьте подключение к сети и повторите попытку.";
-"Checks the App Store for previous PortSQL purchases" = "Проверяет в App Store предыдущие покупки PortSQL";
+"Checks the App Store for previous Portbase purchases" = "Проверяет в App Store предыдущие покупки Portbase";
 "Choose or save a bookmark before running this visualizer." = "Выберите или сохраните закладку перед запуском этой визуализации.";
 "Current Result" = "Текущий результат";
 "Insert a new row with schema-aware validation." = "Добавьте новую строку с проверкой по схеме.";
@@ -286,6 +280,833 @@
 "Unencrypted Connection" = "Незашифрованное соединение";
 "Plaintext sends database credentials and data without encryption. Use it only for legacy servers on a trusted network." = "При передаче открытым текстом учётные данные и данные базы не шифруются. Используйте этот режим только для устаревших серверов в доверенной сети.";
 "The selected file does not contain a valid X.509 certificate." = "Выбранный файл не содержит действительного сертификата X.509.";
-"PortSQL could not read this certificate file." = "PortSQL не удалось прочитать этот файл сертификата.";
+"Portbase could not read this certificate file." = "Portbase не удалось прочитать этот файл сертификата.";
 "TLS fallback allowed" = "Разрешён откат без TLS";
 "Unencrypted" = "Без шифрования";
+
+/* Document databases and adaptive workspaces */
+"Collections" = "Коллекции";
+"Collection" = "Коллекция";
+"Tables" = "Таблицы";
+"Search collections" = "Поиск коллекций";
+"Search tables" = "Поиск таблиц";
+"Filter (JSON)" = "Фильтр (JSON)";
+"Sort (JSON)" = "Сортировка (JSON)";
+"Browse documents" = "Просмотр документов";
+"Select a database and refresh its collections." = "Выберите базу данных и обновите её коллекции.";
+"No documents matched the query." = "Нет документов, соответствующих запросу.";
+"Document %d" = "Документ %d";
+"Open full document" = "Открыть документ полностью";
+"Aggregation" = "Агрегация";
+"Indexes" = "Индексы";
+"Insert document" = "Добавить документ";
+"Update documents" = "Обновить документы";
+"Delete documents" = "Удалить документы";
+"Query templates" = "Шаблоны запросов";
+"Open JSON editor" = "Открыть редактор JSON";
+"JSON Editor" = "Редактор JSON";
+"Cancel Query" = "Отменить запрос";
+"Authentication database" = "База аутентификации";
+"Connect to a MongoDB host and port. SRV discovery and automatic replica-set failover are not supported." = "Подключитесь к хосту и порту MongoDB. Обнаружение SRV и автоматическое переключение реплик не поддерживаются.";
+"MongoDB requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "MongoDB требует TLS в режиме предпочтения TLS: протокол не позволяет безопасно согласовать переход к открытому соединению.";
+"Enter one valid MongoDB Extended JSON command (up to 1 MiB)." = "Введите одну корректную команду MongoDB Extended JSON (до 1 МиБ).";
+"This MongoDB command or option is not supported. Server-side JavaScript and unbounded cursors are disabled." = "Эта команда или опция MongoDB не поддерживается. Серверный JavaScript и неограниченные курсоры отключены.";
+"MongoDB rejected the operation (code %@). Check permissions, command syntax, and server logs." = "MongoDB отклонил операцию (код %@). Проверьте права, синтаксис команды и журналы сервера.";
+"Results were truncated at 10,000 documents or 32 MiB. Narrow the filter to retrieve more." = "Результаты ограничены 10 000 документов или 32 МиБ. Уточните фильтр для получения остальных данных.";
+"Enter a MongoDB Extended JSON command" = "Введите команду MongoDB Extended JSON";
+"SQL query editor" = "Редактор SQL-запросов";
+"Enter the SQL statement to run against the selected database" = "Введите SQL-запрос для выбранной базы данных";
+"This operation only accepts read-only queries." = "Эта операция допускает только запросы на чтение.";
+"History is empty." = "История пуста.";
+"No saved snippets." = "Нет сохранённых фрагментов.";
+"Console" = "Консоль";
+
+"Find" = "Поиск";
+"Command" = "Команда";
+"Projection (JSON)" = "Проекция (JSON)";
+"Skip" = "Пропустить";
+"Limit" = "Лимит";
+"Add Stage" = "Добавить этап";
+"Enable stage" = "Включить этап";
+"Move Up" = "Вверх";
+"Move Down" = "Вниз";
+"Stage %d" = "Этап %d";
+"Stage %d: Invalid JSON." = "Этап %d: неверный JSON.";
+"%@: Invalid JSON object." = "%@: неверный объект JSON.";
+"Choose a collection." = "Выберите коллекцию.";
+"Skip must be zero or greater. Limit must be between 1 and 10,000." = "Пропуск должен быть не меньше 0, а лимит — от 1 до 10 000.";
+"Edit command" = "Изменить команду";
+"Document" = "Документ";
+"Documents" = "Документы";
+"Show All Fields" = "Показать все поля";
+"Show More" = "Показать больше";
+"Configure Chart" = "Настроить диаграмму";
+"Run a query with numeric fields to create a chart." = "Выполните запрос с числовыми полями, чтобы создать диаграмму.";
+"Ln %d, Col %d" = "Стр. %d, стлб. %d";
+"Selection" = "Выделение";
+"Run Selection" = "Выполнить выделение";
+"Run All" = "Выполнить всё";
+"Run the complete parameterized query to preserve its bound values." = "Выполните весь параметризованный запрос, чтобы сохранить привязанные значения.";
+"Undo" = "Отменить";
+"Redo" = "Повторить";
+"Indent" = "Увеличить отступ";
+"Outdent" = "Уменьшить отступ";
+"Find and Replace" = "Найти и заменить";
+"Hide Keyboard" = "Скрыть клавиатуру";
+"EXPORT" = "ЭКСПОРТ";
+
+
+/* Database workspace */
+"%@ • %@" = "%@ — %@";
+"%d pt" = "%d пт";
+"Add Field" = "Добавить поле";
+"Add a database connection" = "Добавить подключение к базе данных";
+"Add database connection" = "Создать подключение к базе данных";
+"Additional seed hosts" = "Дополнительные начальные узлы";
+"An import record is too large. Each record must fit within 1 MiB." = "Импортируемая запись слишком велика. Размер каждой записи не должен превышать 1 МиБ.";
+"Apply" = "Применить";
+"Apply URI" = "Применить URI";
+"Array" = "Массив";
+"Auto-commit" = "Автофиксация";
+"Automatic" = "Автоматически";
+"Binary SQL columns are omitted from inserts. Import their values with a database-specific tool." = "Двоичные столбцы SQL исключены из вставки. Импортируйте их значения средствами соответствующей СУБД.";
+"Boolean" = "Логическое значение";
+"CSV" = "Файл CSV";
+"CSV supports up to 4,096 columns in this operation. Export as JSON to preserve additional fields." = "В этой операции CSV поддерживает до 4096 столбцов. Для сохранения остальных полей экспортируйте в JSON.";
+"Cancelled" = "Отменено";
+"Cells: %d" = "Ячеек: %d";
+"Chart Previews" = "Предпросмотр диаграмм";
+"Chart uses the loaded result only. Export all data from the query for the complete result." = "Диаграмма использует только загруженный результат. Для получения полного результата экспортируйте все данные запроса.";
+"Charts are saved on this device. The library exceeds the iCloud sync limit." = "Диаграммы сохранены на этом устройстве. Библиотека превышает лимит синхронизации iCloud.";
+"Choose CSV or JSON" = "Выбрать CSV или JSON";
+"Choose database connection" = "Выбрать подключение к базе данных";
+"Clear Chart Previews" = "Очистить предпросмотр диаграмм";
+"Clear Date Filter" = "Сбросить фильтр дат";
+"Clear Query History" = "Очистить историю запросов";
+"Close Console" = "Закрыть консоль";
+"Close Inspection" = "Закрыть подробности";
+"Column Mapping" = "Сопоставление столбцов";
+"Commit" = "Зафиксировать";
+"Commit or roll back the current transaction first." = "Сначала зафиксируйте или откатите текущую транзакцию.";
+"Configure Column" = "Настроить столбец";
+"Confirm Import" = "Подтвердить импорт";
+"Connection" = "Подключение";
+"Connection URI" = "URI подключения";
+"Console %d" = "Консоль %d";
+"Consoles" = "Консоли";
+"Constraints" = "Ограничения";
+"Copy" = "Копировать";
+"Copy Definition" = "Копировать определение";
+"Copy Selected Cells" = "Копировать выбранные ячейки";
+"Copy with Headers" = "Копировать с заголовками";
+"Data Transfer" = "Передача данных";
+"Database" = "База данных";
+"Database Objects" = "Объекты базы данных";
+"Database error %@: %@" = "Ошибка базы данных %@: %@";
+"Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data." = "Пароли баз данных хранятся в Связке ключей этого устройства и больше не записываются в закладки iCloud.";
+"Date Field" = "Поле даты";
+"Date Range" = "Диапазон дат";
+"Decimal" = "Десятичное число";
+"Decimal128" = "128-битное десятичное число";
+"Definition" = "Определение";
+"Delete Document" = "Удалить документ";
+"Delete Permanently?" = "Удалить навсегда?";
+"Destination" = "Назначение";
+"Destination column" = "Целевой столбец";
+"Destination field" = "Целевое поле";
+"Direct connection" = "Прямое подключение";
+"Document Actions" = "Действия с документом";
+"Document editing requires MongoDB 4.2 or later with a transaction-capable replica set or sharded cluster. Standalone servers remain available for queries and imports." = "Для редактирования документов требуется MongoDB 4.2 или новее с набором реплик или шардированным кластером, поддерживающим транзакции. Автономные серверы по-прежнему доступны для запросов и импорта.";
+"Double" = "Число двойной точности";
+"Duplicate Document" = "Дублировать документ";
+"Edit Document" = "Изменить документ";
+"Editor" = "Редактор";
+"Enter a valid BSON document with unique field names. Documents must fit within 16 MiB." = "Введите корректный документ BSON с уникальными именами полей. Размер документа не должен превышать 16 МиБ.";
+"Enter a valid mongodb:// or mongodb+srv:// connection URI." = "Введите корректный URI подключения mongodb:// или mongodb+srv://.";
+"Every CSV record must have the same number of fields as its header." = "Число полей в каждой записи CSV должно совпадать с числом полей заголовка.";
+"Expected %d affected rows, received %d. The transaction was rolled back." = "Ожидалось %d затронутых строк, получено %d. Транзакция отменена.";
+"Expected %d affected rows; the server did not report a count. The transaction was rolled back." = "Ожидалось %d затронутых строк; сервер не сообщил количество. Транзакция отменена.";
+"Explicit LIMIT and filters are preserved." = "Явные ограничения LIMIT и фильтры сохраняются.";
+"Export All Rows" = "Экспортировать все строки";
+"Export All Rows…" = "Экспортировать все строки…";
+"Export Chart" = "Экспортировать диаграмму";
+"Export Data" = "Экспорт данных";
+"Export PDF" = "Экспортировать в PDF";
+"Export PNG" = "Экспортировать в PNG";
+"Export failed" = "Ошибка экспорта";
+"Export one read-only query at a time." = "Экспортируйте по одному запросу только для чтения.";
+"Exported %@." = "Экспортировано: %@.";
+"Exporting: %@" = "Экспорт: %@";
+"Extend cell selection" = "Расширить выделение ячеек";
+"Extended JSON" = "Расширенный JSON";
+"Field name" = "Имя поля";
+"Fields" = "Поля";
+"File" = "Файл";
+"Finishing…" = "Завершение…";
+"First row contains column names" = "Первая строка содержит имена столбцов";
+"Foreign Keys" = "Внешние ключи";
+"From" = "С";
+"Functions" = "Функции";
+"Go to %@" = "Перейти к %@";
+"Hide Column" = "Скрыть столбец";
+"History" = "История";
+"Import %d records" = "Импортировать записей: %d";
+"Import Data" = "Импорт данных";
+"Import Data…" = "Импорт данных…";
+"Imported %@." = "Импортировано: %@.";
+"Importing: %@" = "Импорт: %@";
+"Insert Document" = "Вставить документ";
+"Insert into %@?" = "Вставить в %@?";
+"Inspect" = "Просмотреть";
+"Inspect Chart" = "Просмотреть диаграмму";
+"Int32" = "32-битное целое число";
+"Int64" = "64-битное целое число";
+"Integer" = "Целое число";
+"Invalid value" = "Недопустимое значение";
+"Invalid value for %@ at record %d." = "Недопустимое значение %@ в записи %d.";
+"Library Storage" = "Хранилище библиотеки";
+"Loaded rows: %d" = "Загружено строк: %d";
+"Loaded rows: %d / %d" = "Загружено строк: %d / %d";
+"Manual Commit" = "Ручная фиксация";
+"Matching Rows" = "Соответствующие строки";
+"Materialized Views" = "Материализованные представления";
+"Missing field %@ at record %d. Map another field or omit this column." = "Поле %@ отсутствует в записи %d. Сопоставьте другое поле или исключите этот столбец.";
+"MongoDB CSV fields use Extended JSON to preserve BSON types." = "Поля CSV MongoDB используют Extended JSON для сохранения типов BSON.";
+"MongoDB Connection" = "Подключение MongoDB";
+"MongoDB DNS discovery failed. Check the SRV hostname and network connection." = "Не удалось обнаружить MongoDB через DNS. Проверьте имя узла SRV и сетевое подключение.";
+"MongoDB DNS records are invalid or point outside the seed domain." = "Записи DNS MongoDB некорректны или указывают за пределы исходного домена.";
+"MongoDB commits each batch. Cancelled or failed imports can leave inserted documents." = "MongoDB фиксирует каждый пакет отдельно. При отмене или сбое импорта уже вставленные документы могут сохраниться.";
+"MongoDB did not confirm the commit. Reload the collection to check the document before trying again." = "MongoDB не подтвердил фиксацию транзакции. Перезагрузите коллекцию и проверьте документ перед повторной попыткой.";
+"MongoDB import stopped after %d confirmed records. The current batch may also contain saved documents. %@" = "Импорт MongoDB остановлен после %d подтверждённых записей. Документы из текущего пакета также могли сохраниться. %@";
+"Move this chart to Recently Deleted?" = "Переместить эту диаграмму в «Недавно удалённые»?";
+"MySQL column editing is disabled because Portbase cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead." = "Редактирование столбцов MySQL отключено: Portbase пока не сохраняет все значения по умолчанию, вычисляемые выражения, комментарии, наборы символов, правила сортировки и атрибуты AUTO_INCREMENT. Добавьте столбец или используйте проверенный SQL.";
+"New Console" = "Новая консоль";
+"New Document" = "Новый документ";
+"Next results page" = "Следующая страница результатов";
+"No plottable rows" = "Нет строк для построения";
+"No writable MongoDB primary is available. Check the replica set and network connection, then retry." = "Нет доступного первичного узла MongoDB с возможностью записи. Проверьте набор реплик и сетевое подключение, затем повторите попытку.";
+"Null" = "Пустое значение";
+"OK" = "Хорошо";
+"ObjectId" = "Идентификатор объекта";
+"Open Row" = "Открыть строку";
+"Open row %d" = "Открыть строку %d";
+"Original Document" = "Исходный документ";
+"Parameters" = "Параметры";
+"Pin Column" = "Закрепить столбец";
+"Pinned" = "Закреплён";
+"Previous results page" = "Предыдущая страница результатов";
+"Primary Key" = "Первичный ключ";
+"Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again." = "Выбран TLS с частным ЦС, но на устройстве нет его сертификата. Импортируйте сертификат повторно.";
+"Private Key" = "Закрытый ключ";
+"Procedures" = "Процедуры";
+"Query Parameters" = "Параметры запроса";
+"Query results table" = "Таблица результатов запроса";
+"Range" = "Диапазон";
+"Reading: %@" = "Чтение: %@";
+"Recently Closed Consoles" = "Недавно закрытые консоли";
+"Refresh" = "Обновить";
+"Refresh Tables" = "Обновить таблицы";
+"Remove Field" = "Удалить поле";
+"Remove additional hosts" = "Удалить дополнительные узлы";
+"Rename" = "Переименовать";
+"Rename Console" = "Переименовать консоль";
+"Reopen Closed Console" = "Открыть закрытую консоль";
+"Replica set" = "Набор реплик";
+"Reset Columns" = "Сбросить столбцы";
+"Restore" = "Восстановить";
+"Result %d" = "Результат %d";
+"Result Set" = "Набор результатов";
+"Review" = "Проверить";
+"Review Changes" = "Проверить изменения";
+"Roll Back and Close Console?" = "Откатить и закрыть консоль?";
+"Rollback" = "Откатить";
+"Rollback and Close" = "Откатить и закрыть";
+"Row %d, %@" = "Строка %d, %@";
+"Run Anyway" = "Всё равно выполнить";
+"Run parameterized statements individually." = "Выполняйте параметризованные операторы по отдельности.";
+"Run table browse query" = "Выполнить запрос таблицы";
+"SQL import requires a transactional table so a failed import can roll back. Select an InnoDB table." = "Для отката при ошибке SQL-импорт требует таблицу с поддержкой транзакций. Выберите таблицу InnoDB.";
+"SQL imports use one transaction. An error before commit rolls back the file." = "SQL-импорт выполняется одной транзакцией. Ошибка до фиксации откатывает импорт всего файла.";
+"SSH Host" = "Хост SSH";
+"SSH Port" = "Порт SSH";
+"SSH Tunnel" = "Туннель SSH";
+"SSH Username" = "Имя пользователя SSH";
+"SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported." = "Данные SSH хранятся в Связке ключей устройства. Portbase создаёт локальное перенаправление и проверяет ключ SSH после первого подтверждения доверия. Поддерживаются пароли и незашифрованные закрытые ключи OpenSSH Ed25519/ECDSA.";
+"Save or Share" = "Сохранить или поделиться";
+"Saved Queries" = "Сохранённые запросы";
+"Saved work could not be loaded. The original files have been preserved." = "Не удалось загрузить сохранённую работу. Исходные файлы сохранены.";
+"Saved work could not be written. Free some device storage and try again." = "Не удалось сохранить работу. Освободите место на устройстве и повторите попытку.";
+"Saving" = "Сохранение";
+"Search database objects" = "Поиск объектов базы данных";
+"Select All" = "Выделить всё";
+"Select a destination and map each included field to a different column." = "Выберите назначение и сопоставьте каждое включённое поле отдельному столбцу.";
+"Select a query or table to export." = "Выберите запрос или таблицу для экспорта.";
+"Select or create a bookmark before running a query." = "Перед выполнением запроса выберите или создайте закладку.";
+"Select table" = "Выбрать таблицу";
+"Server settings sync through iCloud. Passwords stay in this device’s Keychain." = "Настройки сервера синхронизируются через iCloud. Пароли остаются в Связке ключей этого устройства.";
+"Source" = "Источник";
+"Statement" = "Оператор";
+"Storage" = "Хранилище";
+"String" = "Строка";
+"TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel." = "Для TLS через SSH нужен DNS-адрес базы данных, чтобы проверить сертификат. IP-адрес нельзя безопасно проверить через локальный туннель.";
+"Text" = "Текст";
+"The CSV contains an unterminated quote or an invalid field separator." = "CSV содержит незакрытые кавычки или недопустимый разделитель полей.";
+"The MongoDB server belongs to a different replica set." = "Сервер MongoDB принадлежит другому набору реплик.";
+"The _id field cannot be changed when editing an existing document." = "При редактировании существующего документа поле _id изменить нельзя.";
+"The chart could not be rendered. Try exporting again." = "Не удалось отрисовать диаграмму. Повторите экспорт.";
+"The column type contains unsupported or unsafe SQL syntax." = "Тип столбца содержит неподдерживаемый или небезопасный синтаксис SQL.";
+"The connection ended while committing the import. Its outcome is unknown. Check the destination before retrying." = "Соединение прервано при фиксации импорта. Результат неизвестен. Проверьте целевую таблицу перед повторной попыткой.";
+"The database query timed out and its connection was closed." = "Превышено время ожидания запроса; соединение закрыто.";
+"The file contains no records." = "Файл не содержит записей.";
+"The file must use UTF-8 text encoding." = "Файл должен быть в кодировке UTF-8.";
+"The original document is checked again in a transaction. Conflicting changes cancel the save." = "Исходный документ повторно проверяется в транзакции. Конфликтующие изменения отменяют сохранение.";
+"The private CA certificate bundle is too large." = "Пакет сертификатов частного ЦС слишком большой.";
+"The private CA must be a valid PEM certificate bundle and must not contain a private key." = "Частный ЦС должен быть корректным пакетом PEM-сертификатов без закрытого ключа.";
+"The requested database driver is unavailable in this build." = "Запрошенный драйвер базы данных недоступен в этой сборке.";
+"The session closed in the background. Its pending transaction was not committed." = "Сеанс закрыт в фоновом режиме. Ожидающая транзакция не была зафиксирована.";
+"This MySQL statement can commit implicitly. Commit or roll back, then switch to Auto-commit before running it." = "Этот оператор MySQL может вызвать неявную фиксацию. Зафиксируйте или откатите транзакцию, затем включите автофиксацию перед выполнением.";
+"This URI contains an unsupported option. Portbase supports SCRAM authentication, primary reads, TLS, replica sets, and direct connections." = "Этот URI содержит неподдерживаемый параметр. Portbase поддерживает аутентификацию SCRAM, чтение с первичного узла, TLS, наборы реплик и прямые подключения.";
+"This connection is read-only and cannot execute write or schema statements." = "Это соединение доступно только для чтения и не может выполнять запись или изменение схемы.";
+"This console is already executing a command." = "Эта консоль уже выполняет команду.";
+"This document changed or was deleted after it was loaded. No changes were saved. Reload it before editing again." = "Документ был изменён или удалён после загрузки. Изменения не сохранены. Перезагрузите его перед повторным редактированием.";
+"This reference has a NULL or unsupported key value." = "Значение ключа этой ссылки — NULL или неподдерживаемый тип.";
+"This statement requires explicit confirmation before it can run." = "Перед выполнением этого оператора требуется явное подтверждение.";
+"Through" = "По включительно";
+"Timeout: %d s" = "Время ожидания: %d с";
+"Trash" = "Корзина";
+"Truncated query result" = "Усечённый результат запроса";
+"Type" = "Тип";
+"Unpin Column" = "Открепить столбец";
+"Unquoted NULL is null; \\M is a missing field. Quote these values to import their text." = "NULL без кавычек означает null, а \\M — отсутствующее поле. Заключите эти значения в кавычки для импорта как текста.";
+"Use DNS SRV discovery" = "Использовать обнаружение DNS SRV";
+"Use a JSON array of objects or one JSON object per line." = "Используйте JSON-массив объектов или по одному JSON-объекту в строке.";
+"Use the console's transaction controls for Begin, Commit, and Rollback." = "Для начала, фиксации и отката используйте элементы управления транзакциями в консоли.";
+"Value" = "Значение";
+"Value type" = "Тип значения";
+"Verified row edits require an InnoDB table so a failed edit can be rolled back." = "Проверяемое редактирование строк требует таблицу InnoDB для отката неудачных изменений.";
+"View Rows (%d)" = "Просмотреть строки (%d)";
+"Views" = "Представления";
+"Visible" = "Видимый";
+"Width" = "Ширина";
+"Width of %@" = "Ширина %@";
+"Writes are sent once. Check the result before retrying an interrupted write." = "Операции записи отправляются один раз. Проверьте результат перед повторной попыткой прерванной записи.";
+
+"CSV column names must be unique and nonempty." = "Имена столбцов CSV должны быть уникальными и непустыми.";
+
+"Command Editor" = "Редактор команд";
+
+"File unavailable" = "Файл недоступен";
+
+"Choose or create a SQLite database file." = "Выберите или создайте файл базы данных SQLite.";
+
+"This engine requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "Этот движок требует TLS даже в режиме предпочтения TLS, поскольку его протокол не позволяет безопасно согласовать переход на незашифрованное соединение.";
+
+"The SQLite file is unavailable on this device. Import it or choose another local file." = "Файл SQLite недоступен на этом устройстве. Импортируйте его или выберите другой локальный файл.";
+
+"The SQLite file name is invalid." = "Недопустимое имя файла SQLite.";
+
+"Choose an unencrypted SQLite database file." = "Выберите незашифрованный файл базы данных SQLite.";
+
+"This SQLite file is in use. Finish or cancel its queries before deleting it." = "Этот файл SQLite используется. Завершите или отмените его запросы перед удалением.";
+
+"Run SQLite statements individually or use Run All." = "Выполняйте инструкции SQLite по отдельности или используйте «Выполнить всё».";
+
+"The SQLite parameter count or value is invalid." = "Недопустимое количество или значение параметров SQLite.";
+
+"SQLite file attachment, extension loading, and unsafe configuration commands are disabled." = "Подключение файлов SQLite, загрузка расширений и небезопасные команды настройки отключены.";
+
+"SQLite commands commit individually. Manual transaction commands are unavailable." = "Команды SQLite фиксируются по отдельности. Ручные команды управления транзакциями недоступны.";
+
+"SQLite error %d: %@" = "Ошибка SQLite %d: %@";
+
+"Statement executed successfully." = "Инструкция выполнена успешно.";
+
+"Database File" = "Файл базы данных";
+
+"No file selected" = "Файл не выбран";
+
+"Import SQLite File…" = "Импортировать файл SQLite…";
+
+"Create SQLite Database…" = "Создать базу данных SQLite…";
+
+"Manage Local Files…" = "Управление локальными файлами…";
+
+"SQLite Database" = "База данных SQLite";
+
+"Database files stay on this device. Deleting a bookmark keeps its file." = "Файлы баз данных хранятся на этом устройстве. При удалении закладки файл сохраняется.";
+
+"Create SQLite Database" = "Создать базу данных SQLite";
+
+"Database name" = "Имя базы данных";
+
+"Create" = "Создать";
+
+"No local database files" = "Нет локальных файлов баз данных";
+
+"Selected" = "Выбрано";
+
+"Local Database Files" = "Локальные файлы баз данных";
+
+"Delete Database File?" = "Удалить файл базы данных?";
+
+"Delete File" = "Удалить файл";
+
+"This permanently deletes the local database. Bookmarks that use it will need another file." = "Локальная база данных будет удалена безвозвратно. Закладкам, которые её используют, потребуется другой файл.";
+
+"Temporary SQLite objects are unavailable because each command uses a new connection." = "Временные объекты SQLite недоступны, поскольку каждая команда использует новое соединение.";
+
+"%@ ms remaining" = "Осталось %@ мс";
+
+"Add a set member." = "Добавить элемент во множество.";
+
+"All types" = "Все типы";
+
+"Append a list item." = "Добавить элемент в конец списка.";
+
+"Append a stream entry." = "Добавить запись в поток.";
+
+"Base64" = "Кодировка Base64";
+
+"Browse hash fields and values." = "Просмотреть поля и значения хеша.";
+
+"Browse keys with a cursor." = "Просмотреть ключи с помощью курсора.";
+
+"Browse set members." = "Просмотреть элементы множества.";
+
+"Browse sorted-set members and scores." = "Просмотреть элементы и оценки упорядоченного множества.";
+
+"Complete the fields to preview the command." = "Заполните поля для предварительного просмотра команды.";
+
+"Create Key" = "Создать ключ";
+
+"Cursor %@" = "Курсор %@";
+
+"Database number" = "Номер базы данных";
+
+"Delete Key" = "Удалить ключ";
+
+"Delete a key asynchronously." = "Асинхронно удалить ключ.";
+
+"Display" = "Отображение";
+
+"Empty string" = "Пустая строка";
+
+"Encoding" = "Кодировка";
+
+"Enter a Redis database number from 0 to 2147483647." = "Введите номер базы Redis от 0 до 2147483647.";
+
+"Enter one Redis command with valid arguments. Use quotes and \\xNN escapes for binary bytes." = "Введите одну команду Redis с корректными аргументами. Для двоичных байтов используйте кавычки и последовательности \\xNN.";
+
+"Entry ID" = "ID записи";
+
+"Expiration" = "Срок действия";
+
+"Expiration in milliseconds" = "Срок действия в миллисекундах";
+
+"Index" = "Индекс";
+
+"Inspect the key type." = "Проверить тип ключа.";
+
+"Key" = "Ключ";
+
+"Key no longer exists" = "Ключ больше не существует";
+
+"Key pattern" = "Шаблон ключа";
+
+"Key type" = "Тип ключа";
+
+"Keys" = "Ключи";
+
+"Length" = "Длина";
+
+"Load More Keys" = "Загрузить ещё ключи";
+
+"Loaded keys: %d" = "Загружено ключей: %d";
+
+"Member" = "Элемент";
+
+"Next Page" = "Следующая страница";
+
+"No expiration" = "Без срока действия";
+
+"One command per run. Quote empty values and spaces; use \\xNN for binary bytes." = "Одна команда за запуск. Заключайте пустые значения и пробелы в кавычки; для двоичных байтов используйте \\xNN.";
+
+"Pattern" = "Шаблон";
+
+"Read a bounded list range." = "Прочитать ограниченный диапазон списка.";
+
+"Read a bounded stream range." = "Прочитать ограниченный диапазон потока.";
+
+"Read a string value." = "Прочитать строковое значение.";
+
+"Read remaining expiration in milliseconds." = "Прочитать оставшийся срок в миллисекундах.";
+
+"Read-only" = "Только чтение";
+
+"Redis authentication failed. Check the username and password in the connection." = "Ошибка аутентификации Redis. Проверьте имя пользователя и пароль подключения.";
+
+"Redis command" = "Команда Redis";
+
+"Redis command editor" = "Редактор команд Redis";
+
+"Redis command reference" = "Справочник команд Redis";
+
+"Redis keys" = "Ключи Redis";
+
+"Redis rejected the command (%@). Check its arguments and your account permissions." = "Redis отклонил команду (%@). Проверьте аргументы и права учётной записи.";
+
+"Redis returned %d rows." = "Redis вернул строк: %d.";
+
+"Redis returned an invalid or unsupported RESP2 reply." = "Redis вернул некорректный или неподдерживаемый ответ RESP2.";
+
+"Redis value" = "Значение Redis";
+
+"Remove Expiration" = "Убрать срок действия";
+
+"Review Redis Write" = "Проверить запись в Redis";
+
+"Scan complete" = "Сканирование завершено";
+
+"Score" = "Оценка";
+
+"Set Expiration" = "Задать срок действия";
+
+"Set expiration in milliseconds." = "Задать срок действия в миллисекундах.";
+
+"The Redis connection closed before the reply arrived." = "Подключение Redis закрылось до получения ответа.";
+
+"The Redis key changed or expired during inspection. Refresh its value." = "Ключ Redis изменился или истёк во время просмотра. Обновите значение.";
+
+"The Redis reply exceeds the client limit. Use a smaller range or a SCAN cursor." = "Ответ Redis превышает лимит клиента. Уменьшите диапазон или используйте курсор SCAN.";
+
+"The connection ended before Redis confirmed the write. Refresh the key before trying again." = "Соединение завершилось до подтверждения записи Redis. Обновите ключ перед повторной попыткой.";
+
+"The key limit was reached. Narrow the pattern and scan again." = "Достигнут лимит ключей. Уточните шаблон и повторите сканирование.";
+
+"The reply was truncated. Use a smaller range in the command editor." = "Ответ был усечён. Уменьшите диапазон в редакторе команд.";
+
+"This Redis command changes data. Review the exact command before running it." = "Эта команда Redis изменяет данные. Проверьте точную команду перед запуском.";
+
+"This Redis command is unavailable. Use bounded data commands; administration, scripts, subscriptions and blocking operations are disabled." = "Эта команда Redis недоступна. Используйте ограниченные команды данных; администрирование, скрипты, подписки и блокирующие операции отключены.";
+
+"This Redis key type cannot be inspected here." = "Этот тип ключа Redis нельзя просмотреть здесь.";
+
+"This connection does not allow Redis writes." = "Это подключение не разрешает запись в Redis.";
+
+"UTF-8" = "Текст UTF-8";
+
+"Use" = "Выбрать";
+
+"Write" = "Запись";
+
+"Write Value" = "Записать значение";
+
+"Write a hash field." = "Записать поле хеша.";
+
+"Write a sorted-set member and score." = "Записать элемент и оценку в упорядоченное множество.";
+
+"Write a string and keep its expiration." = "Записать строку, сохранив срок действия.";
+
+"Scan" = "Сканировать";
+
+"This Redis Cluster endpoint redirected the command. Connect through a cluster-aware proxy or to the node that owns this key." = "Этот узел Redis Cluster перенаправил команду. Подключитесь через прокси с поддержкой кластера или к узлу, которому принадлежит ключ.";
+
+"Stop" = "Остановить";
+
+"API Key" = "Ключ API";
+
+"Access Token" = "Токен доступа";
+
+"Aggregations" = "Агрегации";
+
+"Authentication" = "Аутентификация";
+
+"Count" = "Количество";
+
+"Elasticsearch returned partial results. A shard failed or the search timed out." = "Elasticsearch вернул неполные результаты. Произошёл сбой шарда или истекло время поиска.";
+
+"HTTP Method" = "Метод HTTP";
+
+"Invalid database HTTP request. Check the method, path and JSON body." = "Некорректный HTTP-запрос к базе данных. Проверьте метод, путь и тело JSON.";
+
+"Mappings" = "Сопоставления";
+
+"Query Templates" = "Шаблоны запросов";
+
+"Request" = "Запрос";
+
+"Request Body" = "Тело запроса";
+
+"Request Path" = "Путь запроса";
+
+"Run one ClickHouse statement without FORMAT, SETTINGS or INTO OUTFILE. Portbase controls the result format and limits." = "Выполните одну инструкцию ClickHouse без FORMAT, SETTINGS и INTO OUTFILE. Portbase управляет форматом и ограничениями результатов.";
+
+"Select an index." = "Выберите индекс.";
+
+"The database redirected the request. Set the final server address in the bookmark." = "База данных перенаправила запрос. Укажите конечный адрес сервера в закладке.";
+
+"The database response exceeds 32 MiB. Reduce the query size or select fewer fields." = "Ответ базы данных превышает 32 МиБ. Уменьшите размер запроса или выберите меньше полей.";
+
+"The database returned HTTP %d. Check the request and server permissions." = "База данных вернула HTTP %d. Проверьте запрос и разрешения сервера.";
+
+"The database returned an incomplete or invalid JSON response." = "База данных вернула неполный или некорректный ответ JSON.";
+
+"The write was not confirmed. Check the server before retrying; it may have completed." = "Запись не подтверждена. Проверьте сервер перед повторной попыткой: запись могла завершиться.";
+
+"This database command is not supported. Use a query or an individual document operation." = "Эта команда базы данных не поддерживается. Используйте запрос или операцию с отдельным документом.";
+
+"This engine does not support bound parameters in Portbase yet." = "Этот движок пока не поддерживает привязанные параметры в Portbase.";
+
+"Username and password" = "Имя пользователя и пароль";
+
+/* Portbase 1.5 workspace tools */
+"%.3f s" = "%.3f с";
+"%@ Copy" = "Копия %@";
+"%@ s" = "%@ с";
+"All Columns" = "Все столбцы";
+"All Engines" = "Все движки";
+"All Statuses" = "Все состояния";
+"Binary" = "Двоичные данные";
+"Cell value" = "Значение ячейки";
+"Choose a UTF-8 text file smaller than 2 MB." = "Выберите текстовый файл UTF-8 размером менее 2 МБ.";
+"Choose a connection with the same database engine before opening this query." = "Перед открытием запроса выберите подключение с тем же движком базы данных.";
+"Clear Filter" = "Сбросить фильтр";
+"Connect through SSH" = "Подключаться через SSH";
+"Contains" = "Содержит";
+"Current connection only" = "Только текущее подключение";
+"Date / Time" = "Дата / Время";
+"Duplicate Connection" = "Дублировать подключение";
+"Edit Saved Query" = "Изменить сохранённый запрос";
+"Edit saved query %@" = "Изменить сохранённый запрос %@";
+"Empty text" = "Пустой текст";
+"Equals" = "Равно";
+"Failed" = "Ошибка";
+"Filter Loaded Rows" = "Фильтр загруженных строк";
+"Filter queries" = "Фильтр запросов";
+"Filter servers" = "Фильтр серверов";
+"Filters apply to loaded rows only." = "Фильтры применяются только к загруженным строкам.";
+"Format JSON" = "Форматировать JSON";
+"Go" = "Перейти";
+"Go to Line" = "Перейти к строке";
+"Hex" = "Шестнадцатеричный";
+"Hidden" = "Скрытый";
+"Index Keys" = "Ключи индекса";
+"Index results were truncated." = "Результаты индексов усечены.";
+"Inspect Cell" = "Просмотреть ячейку";
+"Line 1–%d" = "Строка 1–%d";
+"Line number" = "Номер строки";
+"Match" = "Условие";
+"No" = "Нет";
+"No matching indexes" = "Нет подходящих индексов";
+"No matching queries" = "Нет подходящих запросов";
+"No matching servers" = "Нет подходящих серверов";
+"Open Script" = "Открыть скрипт";
+"Options" = "Параметры";
+"Preview: first 4096 bytes. Share exports the complete value." = "Показаны первые 4096 байт. При отправке экспортируется полное значение.";
+"Query name" = "Название запроса";
+"Query notes" = "Заметки запроса";
+"Read-only connections" = "Подключения только для чтения";
+"Read-only mode" = "Режим только для чтения";
+"Replace Query" = "Заменить запрос";
+"Replace current query?" = "Заменить текущий запрос?";
+"Reset Filters" = "Сбросить фильтры";
+"Row %d" = "Строка %d";
+"Script File" = "Файл скрипта";
+"Script Files" = "Файлы скриптов";
+"Search indexes" = "Поиск индексов";
+"Search queries" = "Поиск запросов";
+"Search servers" = "Поиск серверов";
+"Share Script" = "Отправить скрипт";
+"Share Value" = "Отправить значение";
+"Sparse" = "Разреженный";
+"Status" = "Состояние";
+"Succeeded" = "Успешно";
+"TTL" = "Срок жизни (TTL)";
+"TTL: %@ s" = "TTL: %@ с";
+"The saved connection is unavailable or its database engine changed." = "Сохранённое подключение недоступно или его движок изменился.";
+"Toggle SQL Comment" = "Переключить SQL-комментарий";
+"Unique" = "Уникальный";
+"Use Current Connection" = "Использовать текущее подключение";
+"Yes" = "Да";
+"Editing Tools" = "Инструменты редактирования";
+
+// macOS workspace and iCloud synchronization
+"Connections are saved on this device. The library exceeds the iCloud sync limit." = "Подключения сохранены на этом устройстве. Библиотека превышает лимит синхронизации iCloud.";
+"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "Подключения, сохранённые запросы и настройки диаграмм синхронизируются через iCloud. Пароли, ключи, история запросов, результаты и файлы SQLite остаются на этом устройстве.";
+"Decrease Text Size" = "Уменьшить текст";
+"Delete Connection" = "Удалить подключение";
+"Delete Connection?" = "Удалить подключение?";
+"Edit Connection" = "Изменить подключение";
+"Explain" = "План выполнения";
+"Increase Text Size" = "Увеличить текст";
+"JSON editor" = "Редактор JSON";
+"Open Sample Database" = "Открыть учебную базу данных";
+"Open Script…" = "Открыть скрипт…";
+"Pending transactions on this connection will be rolled back." = "Ожидающие транзакции этого подключения будут отменены.";
+"Pending transactions will be rolled back." = "Ожидающие транзакции будут отменены.";
+"Portbase" = "Portbase";
+"Query Library" = "Библиотека запросов";
+"Refresh Schema" = "Обновить схему";
+"Reset Text Size" = "Сбросить размер текста";
+"Roll Back and Quit" = "Отменить транзакции и выйти";
+"Roll Back and Quit?" = "Отменить транзакции и выйти?";
+"SQL clause editor" = "Редактор выражений SQL";
+"SQL editor" = "Редактор SQL";
+"Sample Database" = "Учебная база данных";
+"Save File" = "Сохранить файл";
+"Save Query" = "Сохранить запрос";
+"Save Script…" = "Сохранить скрипт…";
+"Saved queries are on this device. The library exceeds the iCloud sync limit." = "Сохранённые запросы находятся на этом устройстве. Библиотека превышает лимит синхронизации iCloud.";
+"Sign in to iCloud in System Settings." = "Войдите в iCloud в Системных настройках.";
+"Structure" = "Структура";
+"Sync Now" = "Синхронизировать сейчас";
+"Text Size" = "Размер текста";
+"Workspace" = "Рабочая область";
+"iCloud" = "iCloud";
+"iCloud available" = "iCloud доступен";
+
+/* Desktop workspace */
+"Choose a collection" = "Выберите коллекцию";
+"Connect" = "Подключиться";
+"Filter" = "Фильтр";
+"Sort" = "Сортировка";
+"Stage" = "Этап";
+"Primary key" = "Первичный ключ";
+
+/* Workspace redesign */
+"Accent Color" = "Цвет акцента";
+"Actions" = "Действия";
+"Actions, tables, queries" = "Действия, таблицы, запросы";
+"Active connection" = "Активное подключение";
+"Activity" = "Активность";
+"Add a connection to browse tables, run queries, and build charts." = "Добавьте подключение, чтобы просматривать таблицы, выполнять запросы и строить диаграммы.";
+"Always dark" = "Всегда тёмная";
+"Always light" = "Всегда светлая";
+"Analyzing results" = "Анализ результатов";
+"Appearance" = "Оформление";
+"Browse Data" = "Просмотр данных";
+"Cache %@" = "Кэш %@";
+"Changes" = "Изменения";
+"Choose a database or refresh the schema." = "Выберите базу данных или обновите схему.";
+"Choose database" = "Выбрать базу данных";
+"Clear search" = "Очистить поиск";
+"Close %@" = "Закрыть %@";
+"Collections: %d" = "Коллекции: %d";
+"Common table expression" = "Обобщённое табличное выражение";
+"Completeness" = "Заполненность";
+"Connect your first database" = "Подключите первую базу данных";
+"Connections" = "Подключения";
+"Copy Name" = "Копировать имя";
+"Create index" = "Создать индекс";
+"Current database" = "Текущая база данных";
+"Dark" = "Тёмное";
+"Database passwords, SSH keys, and private CA certificates stay in this device’s Keychain." = "Пароли баз данных, SSH-ключи и сертификаты частного ЦС хранятся в связке ключей этого устройства.";
+"Date and time" = "Дата и время";
+"Delete rows" = "Удалить строки";
+"Distinct" = "Уникальных";
+"Documents: %d" = "Документы: %d";
+"Edit %@" = "Изменить %@";
+"Editable" = "Редактируемо";
+"Editor Theme" = "Тема редактора";
+"Emerald" = "Изумруд";
+"Empty" = "Пустых";
+"Encrypted" = "Зашифрованы";
+"Engines" = "Движки";
+"Filled values" = "Заполненные значения";
+"Filter columns" = "Фильтр столбцов";
+"Find actions, tables, and saved queries" = "Найти действия, таблицы и сохранённые запросы";
+"Follows light and dark mode" = "Следует светлому и тёмному режиму";
+"Format Query" = "Форматировать запрос";
+"General" = "Основные";
+"Go To" = "Перейти";
+"Good afternoon" = "Добрый день";
+"Good evening" = "Добрый вечер";
+"Good morning" = "Доброе утро";
+"Graphite" = "Графит";
+"Group and count" = "Группировка и подсчёт";
+"History and saved queries" = "История и сохранённые запросы";
+"Home" = "Главная";
+"Indigo" = "Индиго";
+"Insert %@" = "Вставить %@";
+"Insert SQL template" = "Вставить шаблон SQL";
+"Insights" = "Аналитика";
+"Join tables" = "Соединить таблицы";
+"Last 14 days" = "Последние 14 дней";
+"Last run: %@" = "Последний запуск: %@";
+"Light" = "Светлое";
+"Loaded rows" = "Загружено строк";
+"Loads this query into the console without running it" = "Загружает запрос в консоль без выполнения";
+"Match System" = "Как в системе";
+"Max" = "Макс.";
+"Mean" = "Среднее";
+"Median" = "Медиана";
+"Median time" = "Медианное время";
+"Min" = "Мин.";
+"Most active: %@" = "Самое активное: %@";
+"Most frequent" = "Самые частые";
+"Navigate" = "Навигация";
+"Needs attention" = "Требует внимания";
+"New Query" = "Новый запрос";
+"No collections" = "Нет коллекций";
+"No matches" = "Нет совпадений";
+"No tables" = "Нет таблиц";
+"Non-NULL cells" = "Ячейки не NULL";
+"Numeric columns" = "Числовые столбцы";
+"Ocean" = "Океан";
+"On this device" = "На этом устройстве";
+"Open" = "Открыть";
+"Open Console" = "Открыть консоль";
+"Open a fresh console" = "Открыть новую консоль";
+"Opens a new console. Hold for more options." = "Открывает новую консоль. Удерживайте для других вариантов.";
+"Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase работает с MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis и Elasticsearch.";
+"Queries per day" = "Запросы по дням";
+"Queries run" = "Выполнено запросов";
+"Queries you run appear here. Loading one never runs it." = "Здесь появятся выполненные запросы. Загрузка запроса не запускает его.";
+"Recent Queries" = "Недавние запросы";
+"Result truncated" = "Результат усечён";
+"Rose" = "Роза";
+"Run a query to see column insights." = "Выполните запрос, чтобы увидеть аналитику по столбцам.";
+"Run a query to see results here." = "Выполните запрос, чтобы увидеть результаты.";
+"Run a query to see your activity here." = "Выполните запрос, чтобы увидеть здесь свою активность.";
+"Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "Выполните запрос с числовыми столбцами, затем нажмите кнопку диаграммы в результатах, чтобы создать и сохранить диаграмму.";
+"Running total" = "Нарастающий итог";
+"Save a query from the console to keep it one tap away." = "Сохраните запрос в консоли, чтобы открывать его одним касанием.";
+"Saved Charts" = "Сохранённые диаграммы";
+"Saved: %d" = "Сохранено: %d";
+"Search actions, tables, and queries" = "Поиск действий, таблиц и запросов";
+"Search…" = "Поиск…";
+"Select rows" = "Выбрать строки";
+"Show All" = "Показать все";
+"Size" = "Размер";
+"Statistics describe loaded rows only. They do not query the database again." = "Статистика описывает только загруженные строки и не обращается к базе данных повторно.";
+"Success rate" = "Доля успешных";
+"Suggestions" = "Подсказки";
+"Summarizing loaded rows." = "Сводка по загруженным строкам.";
+"Sunset" = "Закат";
+"Supported Engines" = "Поддерживаемые движки";
+"Table list caching off" = "Кэш списка таблиц выключен";
+"Tables: %d" = "Таблицы: %d";
+"Templates" = "Шаблоны";
+"Templates for %@" = "Шаблоны для %@";
+"Transaction open" = "Транзакция открыта";
+"Try a table name, a saved query, or an action such as Format." = "Попробуйте имя таблицы, сохранённый запрос или действие, например «Форматировать».";
+"Unavailable" = "Недоступно";
+"Update rows" = "Обновить строки";
+"Value distribution" = "Распределение значений";
+"Version %@ (%@)" = "Версия %@ (%@)";
+"Best Matches" = "Лучшие совпадения";
+"New SQLite Database" = "Новая база данных SQLite";
+"Queries: %d" = "Запросы: %d";
+"No live rows yet" = "Строк пока нет";
+"No servers saved" = "Нет сохранённых серверов";
+"No saved charts yet" = "Сохранённых диаграмм пока нет";
+"No table selected" = "Таблица не выбрана";
+"Chart query missing" = "Нет запроса для диаграммы";
+"Export" = "Экспорт";
+"SSH Password" = "Пароль SSH";
+"Applies the current WHERE and ORDER BY clauses" = "Применяет текущие условия WHERE и ORDER BY";
+"Loads the following page of rows" = "Загружает следующую страницу строк";
+"Loads the preceding page of rows" = "Загружает предыдущую страницу строк";
+"Opens chart configuration for these results" = "Открывает настройку диаграммы для этих результатов";
+"Opens the server connection form" = "Открывает форму подключения к серверу";
+"Refreshes this saved chart from its database" = "Обновляет сохранённую диаграмму из базы данных";

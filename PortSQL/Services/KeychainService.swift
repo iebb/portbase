@@ -83,11 +83,15 @@ enum KeychainService {
     }
 
     private static func baseQuery(account: String) -> [String: Any] {
-        [
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account
         ]
+#if os(macOS)
+        query[kSecUseDataProtectionKeychain as String] = true
+#endif
+        return query
     }
 
     private static func account(_ profileID: UUID, kind: SecretKind) -> String {

@@ -23,24 +23,43 @@ enum SQLAssistService {
         for query: String,
         catalog: [SchemaTableDescriptor],
         activeDatabase: String?,
-        cursorOffset: Int
+        cursorOffset: Int,
+        engine: DatabaseEngine = .postgresql
     ) -> [String] {
+        let offset = max(0, min(cursorOffset, query.utf16.count))
+        let caret = String.Index(utf16Offset: offset, in: query)
+        let identifierQuote = SQLEditingService.protectedRanges(in: query, engine: engine).contains {
+            $0.contains(caret) && (query[$0.lowerBound] == "`" || (!engine.isMySQLFamily && query[$0.lowerBound] == "\"") || (engine == .sqlite && query[$0.lowerBound] == "["))
+        }
+        guard identifierQuote || !SQLEditingService.isProtected(query, offset: cursorOffset, engine: engine) else { return [] }
         let context = SQLAutocompleteContext(
             query: query,
             catalog: catalog,
             activeDatabase: activeDatabase,
-            cursorOffset: cursorOffset
+            cursorOffset: SQLEditingService.characterOffset(in: query, utf16Offset: cursorOffset)
         )
         let candidates = deduplicatedCandidates(candidates(for: context), in: context)
-        let ranked = rank(candidates: candidates, fragment: context.activeFragment)
-        return Array(ranked.prefix(8))
+        let extra = SQLSymbolCompletion.suggestions(query: query, cursor: cursorOffset, catalog: catalog, engine: engine)
+        if identifierQuote || context.activeFragment.contains(".") { return Array(extra.prefix(12)) }
+        let ranked = rank(candidates: candidates + extra, fragment: context.activeFragment)
+        var seen = Set<String>()
+        return Array(ranked.filter { seen.insert($0).inserted }.prefix(12))
     }
 
     static func applySuggestion(_ suggestion: String, to query: String, cursorOffset: Int) -> (query: String, cursorOffset: Int) {
         let trimmedSuggestion = suggestion.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedSuggestion.isEmpty else { return (query, cursorOffset) }
 
-        let fragmentRange = activeFragmentRange(in: query, cursorOffset: cursorOffset)
+        var fragmentRange = activeFragmentRange(in: query, cursorOffset: cursorOffset)
+        let caret = fragmentRange.upperBound
+        let quotedFragment = SQLSymbolCompletion.fragment(in: query, at: caret)
+        if quotedFragment.contains("\"") || quotedFragment.contains("`") || quotedFragment.contains("[") {
+            fragmentRange = query.index(caret, offsetBy: -quotedFragment.count)..<caret
+            if caret < query.endIndex,
+               (["\"", "`"].contains(query[caret]) && trimmedSuggestion.last == query[caret]) || (quotedFragment.contains("[") && query[caret] == "]") {
+                fragmentRange = fragmentRange.lowerBound..<query.index(after: caret)
+            }
+        }
         let needsLeadingSpace = fragmentRange.lowerBound > query.startIndex
             && !query[query.index(before: fragmentRange.lowerBound)].isWhitespace
             && query[query.index(before: fragmentRange.lowerBound)] != "."
@@ -48,10 +67,8 @@ enum SQLAssistService {
 
         let replacement = needsLeadingSpace ? " " + normalizedInsertion(trimmedSuggestion) : normalizedInsertion(trimmedSuggestion)
         let updated = query.replacingCharacters(in: fragmentRange, with: replacement)
-        let normalized = normalizedSpacing(in: updated)
-        let prefixLength = query.distance(from: query.startIndex, to: fragmentRange.lowerBound) + replacement.count
-        let clampedOffset = min(prefixLength, normalized.count)
-        return (normalized, clampedOffset)
+        let prefixLength = query[..<fragmentRange.lowerBound].utf16.count + replacement.utf16.count
+        return (updated, prefixLength)
     }
 
     static func hints(for query: String) -> [EditorHint] {
@@ -90,30 +107,8 @@ enum SQLAssistService {
         return hints
     }
 
-    static func format(_ query: String) -> String {
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return query }
-
-        var formatted = query.replacingOccurrences(of: "\t", with: " ")
-        let allKeywords = (statementKeywords + clauseKeywords + logicalOperators).sorted { $0.count > $1.count }
-        for keyword in allKeywords {
-            formatted = formatted.replacingOccurrences(of: keyword, with: keyword, options: .caseInsensitive)
-        }
-
-        let clauses = [" FROM ", " WHERE ", " GROUP BY ", " ORDER BY ", " HAVING ", " LIMIT ", " VALUES ", " SET ", " ON "]
-        for clause in clauses {
-            formatted = formatted.replacingOccurrences(
-                of: clause,
-                with: "\n" + clause.trimmingCharacters(in: .whitespaces) + " ",
-                options: .caseInsensitive
-            )
-        }
-
-        let lines = formatted
-            .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-
-        return lines.joined(separator: "\n")
+    static func format(_ query: String, engine: DatabaseEngine = .postgresql) -> String {
+        SQLEditingService.format(query, engine: engine)
     }
 
     private static func candidates(for context: SQLAutocompleteContext) -> [String] {
@@ -306,11 +301,8 @@ enum SQLAssistService {
     private static func activeFragmentRange(in query: String, cursorOffset: Int) -> Range<String.Index> {
         guard !query.isEmpty else { return query.startIndex..<query.startIndex }
 
-        let clampedOffset = max(0, min(cursorOffset, query.count))
-        var end = query.index(query.startIndex, offsetBy: clampedOffset)
-        while end > query.startIndex, query[query.index(before: end)].isWhitespace {
-            end = query.index(before: end)
-        }
+        let clampedOffset = max(0, min(cursorOffset, query.utf16.count))
+        let end = String.Index(utf16Offset: clampedOffset, in: query)
 
         var start = end
         while start > query.startIndex {
@@ -345,9 +337,6 @@ enum SQLAssistService {
         return suggestion
     }
 
-    private static func normalizedSpacing(in query: String) -> String {
-        query.replacingOccurrences(of: "  ", with: " ")
-    }
 }
 
 private struct SQLAutocompleteContext {

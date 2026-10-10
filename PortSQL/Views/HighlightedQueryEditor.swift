@@ -1,5 +1,185 @@
+#if canImport(UIKit)
 import SwiftUI
 import UIKit
+
+private final class QueryTextView: UITextView {
+    var allowsSQLComments = true
+    var showsLineNumbers = true
+    var palette: EditorPalette? {
+        didSet { if palette != oldValue { gutter.backgroundColor = palette?.gutterColor ?? .secondarySystemBackground; gutter.setNeedsDisplay() } }
+    }
+    private lazy var gutter = QueryLineNumberGutter(textView: self)
+    private(set) var lineStarts = [0]
+    private var numberedText = ""
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if gutter.superview == nil { addSubview(gutter) }
+        gutter.isHidden = !showsLineNumbers
+        gutter.frame = CGRect(x: contentOffset.x, y: contentOffset.y, width: 44, height: bounds.height)
+        refreshLineNumbers()
+        bringSubviewToFront(gutter)
+    }
+
+    func refreshLineNumbers() {
+        if numberedText != text {
+            numberedText = text ?? ""
+            lineStarts = SQLEditingService.lineStarts(in: numberedText)
+        }
+        gutter.setNeedsDisplay()
+    }
+
+    func installEditingToolbar() {
+        let toolbar = UIToolbar()
+        toolbar.frame.size.height = 44
+        func item(_ title: String, _ symbol: String, _ action: Selector) -> UIBarButtonItem {
+            let item = UIBarButtonItem(image: UIImage(systemName: symbol), style: .plain, target: self, action: action)
+            item.accessibilityLabel = L10n.text(title)
+            item.width = 44
+            return item
+        }
+        var actions = [
+            UIAction(title: L10n.text("Indent"), image: UIImage(systemName: "increase.indent")) { [weak self] _ in self?.indent() },
+            UIAction(title: L10n.text("Outdent"), image: UIImage(systemName: "decrease.indent")) { [weak self] _ in self?.outdent() }
+        ]
+        if allowsSQLComments {
+            actions.append(UIAction(title: L10n.text("Toggle SQL Comment"), image: UIImage(systemName: "text.bubble")) { [weak self] _ in self?.toggleComment() })
+        }
+        let editingTools = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: UIMenu(children: actions))
+        editingTools.accessibilityLabel = L10n.text("Editing Tools")
+        editingTools.width = 44
+        toolbar.items = [
+            item("Undo", "arrow.uturn.backward", #selector(undoEdit)),
+            item("Redo", "arrow.uturn.forward", #selector(redoEdit)),
+            item("Find and Replace", "magnifyingglass", #selector(findText)),
+            item("Go to Line", "list.number", #selector(goToLine)),
+            editingTools,
+            UIBarButtonItem(systemItem: .flexibleSpace),
+            item("Hide Keyboard", "keyboard.chevron.compact.down", #selector(hideKeyboard))
+        ]
+        inputAccessoryView = toolbar
+    }
+
+    override func insertText(_ text: String) {
+        guard markedTextRange == nil else { super.insertText(text); return }
+        if text == "\t" { super.insertText("  "); return }
+        if text == "\n" {
+            let source = (self.text ?? "") as NSString
+            let range = source.lineRange(for: NSRange(location: selectedRange.location, length: 0))
+            let prefix = source.substring(with: NSRange(location: range.location, length: selectedRange.location - range.location))
+            super.insertText("\n" + prefix.prefix(while: { $0 == " " || $0 == "\t" }))
+        } else { super.insertText(text) }
+    }
+
+    override var keyCommands: [UIKeyCommand]? {
+        (super.keyCommands ?? []) + [
+            UIKeyCommand(title: L10n.text("Indent"), action: #selector(indent), input: "]", modifierFlags: .command),
+            UIKeyCommand(title: L10n.text("Outdent"), action: #selector(outdent), input: "[", modifierFlags: .command),
+            UIKeyCommand(title: L10n.text("Go to Line"), action: #selector(goToLine), input: "l", modifierFlags: .command)
+        ] + (allowsSQLComments ? [UIKeyCommand(title: L10n.text("Toggle SQL Comment"), action: #selector(toggleComment), input: "/", modifierFlags: .command)] : [])
+    }
+
+    @objc private func undoEdit() { undoManager?.undo() }
+    @objc private func redoEdit() { undoManager?.redo() }
+    @objc private func findText() { findInteraction?.presentFindNavigator(showingReplace: true) }
+    @objc private func hideKeyboard() { resignFirstResponder() }
+    @objc private func indent() { changeIndent(removing: false) }
+    @objc private func outdent() { changeIndent(removing: true) }
+    @objc private func toggleComment() {
+        guard allowsSQLComments, markedTextRange == nil,
+              let edit = SQLEditingService.toggleLineComments(text ?? "", selection: selectedRange),
+              let range = textRange(from: beginningOfDocument, to: endOfDocument) else { return }
+        replace(range, withText: edit.text)
+        selectedRange = edit.selection
+    }
+
+    @objc private func goToLine() {
+        guard markedTextRange == nil else { return }
+        var responder: UIResponder? = self
+        while responder != nil && !(responder is UIViewController) { responder = responder?.next }
+        guard let controller = responder as? UIViewController else { return }
+        refreshLineNumbers()
+        let alert = UIAlertController(title: L10n.text("Go to Line"), message: L10n.format("Line 1–%d", lineStarts.count), preferredStyle: .alert)
+        alert.addTextField { field in field.keyboardType = .numberPad; field.placeholder = L10n.text("Line number") }
+        alert.addAction(UIAlertAction(title: L10n.text("Cancel"), style: .cancel))
+        let go = UIAlertAction(title: L10n.text("Go"), style: .default) { [weak self, weak alert] _ in
+            guard let self, let value = alert?.textFields?.first?.text, let line = Int(value),
+                  self.lineStarts.indices.contains(line - 1) else { return }
+            self.becomeFirstResponder()
+            self.selectedRange = NSRange(location: self.lineStarts[line - 1], length: 0)
+            self.scrollRangeToVisible(self.selectedRange)
+            self.delegate?.textViewDidChangeSelection?(self)
+        }
+        alert.addAction(go)
+        go.isEnabled = false
+        alert.textFields?.first?.addAction(UIAction { [weak go, weak alert, weak self] _ in
+            guard let line = Int(alert?.textFields?.first?.text ?? ""), let self else { go?.isEnabled = false; return }
+            go?.isEnabled = self.lineStarts.indices.contains(line - 1)
+        }, for: .editingChanged)
+        controller.present(alert, animated: true)
+    }
+
+    private func changeIndent(removing: Bool) {
+        guard markedTextRange == nil else { return }
+        if selectedRange.length == 0 && !removing { insertText("  "); return }
+        let source = (text ?? "") as NSString
+        var selection = selectedRange
+        // A selection ending at the next line's start does not include that line.
+        if selection.length > 0, source.substring(with: NSRange(location: NSMaxRange(selection) - 1, length: 1)) == "\n" {
+            selection.length -= 1
+        }
+        let range = source.lineRange(for: selection)
+        let original = source.substring(with: range)
+        var lines = original.components(separatedBy: "\n")
+        for index in lines.indices where index != lines.count - 1 || !lines[index].isEmpty {
+            if removing {
+                if lines[index].hasPrefix("\t") { lines[index].removeFirst() }
+                else { lines[index].removeFirst(lines[index].prefix(2).prefix(while: { $0 == " " }).count) }
+            } else { lines[index] = "  " + lines[index] }
+        }
+        let replacement = lines.joined(separator: "\n")
+        guard let start = position(from: beginningOfDocument, offset: range.location),
+              let end = position(from: start, offset: range.length),
+              let textRange = textRange(from: start, to: end) else { return }
+        replace(textRange, withText: replacement)
+        selectedRange = NSRange(location: range.location, length: replacement.utf16.count)
+    }
+}
+
+private final class QueryLineNumberGutter: UIView {
+    private weak var textView: QueryTextView?
+    init(textView: QueryTextView) {
+        self.textView = textView
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        backgroundColor = .secondarySystemBackground
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func draw(_ rect: CGRect) {
+        guard let textView else { return }
+        let font = UIFont.monospacedDigitSystemFont(ofSize: textView.font?.pointSize ?? 16, weight: .regular)
+        let manager = textView.layoutManager
+        let container = textView.textContainer
+        let visible = CGRect(x: 0, y: textView.contentOffset.y - textView.textContainerInset.top, width: textView.bounds.width, height: textView.bounds.height)
+        let glyphs = manager.glyphRange(forBoundingRect: visible, in: container)
+        let characters = manager.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        for (index, offset) in textView.lineStarts.enumerated() where offset >= characters.location && offset <= NSMaxRange(characters) {
+            let y: CGFloat
+            if offset == textView.textStorage.length {
+                y = manager.extraLineFragmentRect.minY
+            } else {
+                let glyph = manager.glyphIndexForCharacter(at: offset)
+                y = manager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil).minY
+            }
+            let value = String(index + 1) as NSString
+            let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: textView.palette?.gutterTextColor ?? UIColor.secondaryLabel]
+            let width = value.size(withAttributes: attributes).width
+            value.draw(at: CGPoint(x: max(2, bounds.width - width - 8), y: y + textView.textContainerInset.top - textView.contentOffset.y), withAttributes: attributes)
+        }
+    }
+}
 
 enum SQLEditorTypography {
     static func queryFont(compatibleWith traits: UITraitCollection? = nil) -> UIFont {
@@ -20,14 +200,26 @@ enum SQLEditorTypography {
 struct HighlightedQueryEditor: UIViewRepresentable {
     @Binding var text: String
     @Binding var cursorOffset: Int
+    @Binding var selectionLength: Int
     var colorScheme: ColorScheme = .light
+    var isJSON = false
+    var allowsSQLComments = true
+    var fitsContent = false
+    var errorRange: NSRange?
+    @AppStorage(EditorTheme.storageKey) private var themeName = EditorTheme.portbase.rawValue
+
+    private var palette: EditorPalette { (EditorTheme(rawValue: themeName) ?? .portbase).palette(for: colorScheme) }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text, cursorOffset: $cursorOffset, colorScheme: colorScheme)
+        Coordinator(text: $text, cursorOffset: $cursorOffset, selectionLength: $selectionLength, colorScheme: colorScheme, isJSON: isJSON)
     }
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
+        let textView = QueryTextView()
+        textView.allowsSQLComments = allowsSQLComments && !isJSON
+        textView.showsLineNumbers = !fitsContent
+        textView.isFindInteractionEnabled = true
+        textView.installEditingToolbar()
         textView.delegate = context.coordinator
         textView.backgroundColor = .clear
         textView.autocorrectionType = .no
@@ -38,42 +230,88 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         textView.keyboardDismissMode = .interactive
         textView.font = Self.font
         textView.adjustsFontForContentSizeCategory = true
-        textView.textContainerInset = UIEdgeInsets(top: 18, left: 16, bottom: 18, right: 16)
+        textView.textContainerInset = UIEdgeInsets(top: 18, left: fitsContent ? 16 : 52, bottom: 18, right: 16)
         textView.textContainer.lineFragmentPadding = 0
-        textView.tintColor = UIColor(red: 0.38, green: 0.78, blue: 1.0, alpha: 1.0)
-        textView.keyboardAppearance = colorScheme == .dark ? .dark : .light
-        textView.accessibilityLabel = "SQL query editor"
-        textView.accessibilityHint = "Enter the SQL statement to run against the selected database"
+        context.coordinator.palette = palette
+        textView.palette = palette
+        textView.tintColor = palette.caretColor
+        textView.keyboardAppearance = palette.isDark ? .dark : .light
+        textView.accessibilityLabel = L10n.text(isJSON ? "JSON Editor" : "SQL query editor")
+        textView.accessibilityHint = isJSON ? L10n.text("Enter a MongoDB Extended JSON command") : L10n.text("Enter the SQL statement to run against the selected database")
         context.coordinator.applyHighlight(to: textView, text: text)
         return textView
     }
 
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        guard fitsContent, let width = proposal.width, width > 0 else { return nil }
+        let height = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude)).height
+        return CGSize(width: width, height: min(220, max(64, height)))
+    }
+
     func updateUIView(_ uiView: UITextView, context: Context) {
+        context.coordinator.updateBindings(text: $text, cursorOffset: $cursorOffset, selectionLength: $selectionLength)
         context.coordinator.colorScheme = colorScheme
-        uiView.keyboardAppearance = colorScheme == .dark ? .dark : .light
-        uiView.font = Self.font
-        let desiredOffset = min(cursorOffset, uiView.attributedText.length)
-        if uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme {
+        context.coordinator.palette = palette
+        context.coordinator.isJSON = isJSON
+        uiView.tintColor = palette.caretColor
+        let diagnosticChanged = context.coordinator.errorRange != errorRange
+        context.coordinator.errorRange = errorRange
+        uiView.accessibilityLabel = L10n.text(isJSON ? "JSON Editor" : "SQL query editor")
+        uiView.accessibilityHint = isJSON ? L10n.text("Enter a MongoDB Extended JSON command") : L10n.text("Enter the SQL statement to run against the selected database")
+        uiView.keyboardAppearance = palette.isDark ? .dark : .light
+        if let queryView = uiView as? QueryTextView {
+            queryView.palette = palette
+            let allowsComments = allowsSQLComments && !isJSON
+            if queryView.allowsSQLComments != allowsComments {
+                queryView.allowsSQLComments = allowsComments
+                queryView.installEditingToolbar()
+            }
+            queryView.refreshLineNumbers()
+        }
+        guard uiView.markedTextRange == nil else { return }
+        context.coordinator.font = SQLEditorTypography.queryFont(compatibleWith: uiView.traitCollection)
+        if diagnosticChanged || uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme
+            || context.coordinator.lastAppliedPalette != palette
+            || context.coordinator.lastAppliedJSON != isJSON
+            || context.coordinator.lastAppliedFontSize != context.coordinator.font.pointSize {
             context.coordinator.applyHighlight(to: uiView, text: text)
         }
-        if uiView.selectedRange.length == 0 && uiView.selectedRange.location != desiredOffset {
-            uiView.selectedRange = NSRange(location: desiredOffset, length: 0)
+        let offset = max(0, min(cursorOffset, uiView.textStorage.length))
+        let range = NSRange(location: offset, length: max(0, min(selectionLength, uiView.textStorage.length - offset)))
+        if uiView.selectedRange != range {
+            context.coordinator.setSelection(range, in: uiView)
         }
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
         @Binding private var text: String
         @Binding private var cursorOffset: Int
+        @Binding private var selectionLength: Int
         var colorScheme: ColorScheme
+        var isJSON: Bool
+        var palette = EditorTheme.current.palette(for: .light)
         var lastAppliedColorScheme: ColorScheme?
+        var lastAppliedPalette: EditorPalette?
+        var lastAppliedJSON: Bool?
+        var errorRange: NSRange?
+        var font = SQLEditorTypography.queryFont()
+        var lastAppliedFontSize: CGFloat?
         private var isApplyingHighlight = false
-        private weak var pendingTextView: UITextView?
         private var pendingHighlightWorkItem: DispatchWorkItem?
 
-        init(text: Binding<String>, cursorOffset: Binding<Int>, colorScheme: ColorScheme) {
+        init(text: Binding<String>, cursorOffset: Binding<Int>, selectionLength: Binding<Int>, colorScheme: ColorScheme, isJSON: Bool) {
             self._text = text
             self._cursorOffset = cursorOffset
+            self._selectionLength = selectionLength
             self.colorScheme = colorScheme
+            self.isJSON = isJSON
+        }
+
+        func updateBindings(text: Binding<String>, cursorOffset: Binding<Int>, selectionLength: Binding<Int>) {
+            // Reordering aggregation stages keeps the view's identity but changes its collection binding.
+            self._text = text
+            self._cursorOffset = cursorOffset
+            self._selectionLength = selectionLength
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -81,29 +319,47 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             text = textView.text
             let selectedRange = textView.selectedRange
             cursorOffset = selectedRange.location
+            selectionLength = selectedRange.length
             scheduleHighlight(for: textView, preserving: selectedRange)
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
             guard !isApplyingHighlight else { return }
-            cursorOffset = min(textView.selectedRange.location, textView.text.count)
+            cursorOffset = min(textView.selectedRange.location, textView.textStorage.length)
+            selectionLength = textView.selectedRange.length
+        }
+
+        func setSelection(_ range: NSRange, in textView: UITextView) {
+            isApplyingHighlight = true
+            textView.selectedRange = range
+            isApplyingHighlight = false
         }
 
         func applyHighlight(to textView: UITextView, text: String) {
+            guard textView.markedTextRange == nil else { return }
+            pendingHighlightWorkItem?.cancel()
             isApplyingHighlight = true
             defer { isApplyingHighlight = false }
             lastAppliedColorScheme = colorScheme
+            lastAppliedPalette = palette
+            lastAppliedJSON = isJSON
+            lastAppliedFontSize = font.pointSize
 
             let fullRange = NSRange(location: 0, length: textView.textStorage.length)
             let selectedRange = textView.selectedRange
             let storage = textView.textStorage
             storage.beginEditing()
-            storage.replaceCharacters(in: fullRange, with: text)
+            if storage.string != text { storage.replaceCharacters(in: fullRange, with: text) }
             let updatedRange = NSRange(location: 0, length: storage.length)
             storage.setAttributes(baseAttributes, range: updatedRange)
 
-            for token in SQLSyntaxHighlighter.tokens(in: text) {
+            for token in isJSON ? JSONSyntaxHighlighter.tokens(in: text) : SQLSyntaxHighlighter.tokens(in: text) {
                 storage.addAttributes(attributes(for: token.kind), range: token.range)
+            }
+            if let errorRange, errorRange.location <= storage.length, NSMaxRange(errorRange) <= storage.length {
+                storage.addAttributes([.backgroundColor: UIColor.systemRed.withAlphaComponent(0.18),
+                                       .underlineStyle: NSUnderlineStyle.single.rawValue,
+                                       .underlineColor: UIColor.systemRed], range: errorRange)
             }
             storage.endEditing()
             textView.typingAttributes = baseAttributes
@@ -112,13 +368,11 @@ struct HighlightedQueryEditor: UIViewRepresentable {
 
         private func scheduleHighlight(for textView: UITextView, preserving selectedRange: NSRange) {
             pendingHighlightWorkItem?.cancel()
-            pendingTextView = textView
 
             let currentText = textView.text ?? ""
             let workItem = DispatchWorkItem { [weak self, weak textView] in
-                guard let self, let textView else { return }
+                guard let self, let textView, textView.text == currentText, textView.markedTextRange == nil else { return }
                 self.applyHighlight(to: textView, text: currentText)
-                textView.selectedRange = Self.clampedRange(selectedRange, length: textView.textStorage.length)
             }
 
             pendingHighlightWorkItem = workItem
@@ -139,51 +393,16 @@ struct HighlightedQueryEditor: UIViewRepresentable {
 
         private var baseAttributes: [NSAttributedString.Key: Any] {
             [
-                .font: HighlightedQueryEditor.font,
-                .foregroundColor: colorScheme == .dark
-                    ? UIColor(red: 0.84, green: 0.95, blue: 0.9, alpha: 1.0)
-                    : UIColor(red: 0.12, green: 0.16, blue: 0.22, alpha: 1.0),
+                .font: font,
+                .foregroundColor: palette.plainColor,
                 .paragraphStyle: Self.paragraphStyle
             ]
         }
 
         private func attributes(for kind: SQLTokenKind) -> [NSAttributedString.Key: Any] {
-            let color: UIColor
-            if colorScheme == .dark {
-                switch kind {
-                case .keyword:
-                    color = UIColor(red: 0.48, green: 0.83, blue: 1.0, alpha: 1.0)
-                case .stringLiteral:
-                    color = UIColor(red: 0.99, green: 0.78, blue: 0.5, alpha: 1.0)
-                case .numberLiteral:
-                    color = UIColor(red: 0.6, green: 0.97, blue: 0.77, alpha: 1.0)
-                case .comment:
-                    color = UIColor(red: 0.57, green: 0.63, blue: 0.72, alpha: 1.0)
-                case .identifier:
-                    color = UIColor(red: 0.89, green: 0.92, blue: 0.96, alpha: 1.0)
-                case .symbol:
-                    color = UIColor(red: 0.94, green: 0.67, blue: 0.78, alpha: 1.0)
-                }
-            } else {
-                switch kind {
-                case .keyword:
-                    color = UIColor(red: 0.10, green: 0.43, blue: 0.90, alpha: 1.0)
-                case .stringLiteral:
-                    color = UIColor(red: 0.73, green: 0.39, blue: 0.09, alpha: 1.0)
-                case .numberLiteral:
-                    color = UIColor(red: 0.13, green: 0.57, blue: 0.35, alpha: 1.0)
-                case .comment:
-                    color = UIColor(red: 0.47, green: 0.53, blue: 0.61, alpha: 1.0)
-                case .identifier:
-                    color = UIColor(red: 0.16, green: 0.20, blue: 0.26, alpha: 1.0)
-                case .symbol:
-                    color = UIColor(red: 0.69, green: 0.21, blue: 0.43, alpha: 1.0)
-                }
-            }
-
-            return [
-                .font: HighlightedQueryEditor.font,
-                .foregroundColor: color,
+            [
+                .font: font,
+                .foregroundColor: palette.color(for: kind),
                 .paragraphStyle: Self.paragraphStyle
             ]
         }
@@ -235,6 +454,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         uiView.keyboardAppearance = colorScheme == .dark ? .dark : .light
         uiView.font = Self.font
         uiView.accessibilityLabel = accessibilityLabel
+        guard uiView.markedTextRange == nil else { return }
         guard uiView.text != text || context.coordinator.lastAppliedColorScheme != colorScheme else { return }
         let selectedRange = uiView.selectedRange
         context.coordinator.applyHighlight(to: uiView, text: text)
@@ -271,6 +491,8 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         }
 
         func applyHighlight(to textView: UITextView, text: String) {
+            guard textView.markedTextRange == nil else { return }
+            pendingHighlightWorkItem?.cancel()
             isApplyingHighlight = true
             defer { isApplyingHighlight = false }
             lastAppliedColorScheme = colorScheme
@@ -279,7 +501,7 @@ struct HighlightedClauseEditor: UIViewRepresentable {
             let selectedRange = textView.selectedRange
             let storage = textView.textStorage
             storage.beginEditing()
-            storage.replaceCharacters(in: fullRange, with: text)
+            if storage.string != text { storage.replaceCharacters(in: fullRange, with: text) }
             let updatedRange = NSRange(location: 0, length: storage.length)
             storage.setAttributes(baseAttributes, range: updatedRange)
 
@@ -296,9 +518,8 @@ struct HighlightedClauseEditor: UIViewRepresentable {
 
             let currentText = textView.text ?? ""
             let workItem = DispatchWorkItem { [weak self, weak textView] in
-                guard let self, let textView else { return }
+                guard let self, let textView, textView.text == currentText, textView.markedTextRange == nil else { return }
                 self.applyHighlight(to: textView, text: currentText)
-                textView.selectedRange = self.clampedRange(selectedRange, length: textView.textStorage.length)
             }
 
             pendingHighlightWorkItem = workItem
@@ -373,3 +594,5 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         SQLEditorTypography.clauseFont()
     }
 }
+
+#endif

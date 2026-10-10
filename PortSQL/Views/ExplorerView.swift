@@ -1,5 +1,9 @@
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 struct ExplorerView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
@@ -14,13 +18,21 @@ struct ExplorerView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     PanelCard {
                         VStack(alignment: .leading, spacing: 12) {
-                            HStack(alignment: .top, spacing: 12) {
+                            HStack(alignment: .center, spacing: 12) {
+                                Image(systemName: "tablecells.fill")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 36, height: 36)
+                                    .background(PortSQLPalette.accentGradient, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("Browse")
-                                        .font(.headline.weight(.bold))
+                                        .font(.title3.weight(.bold))
+                                        .accessibilityAddTraits(.isHeader)
                                     Text(explorerSubtitle)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                        .lineLimit(1)
                                 }
                                 Spacer()
                                 Button {
@@ -33,11 +45,8 @@ struct ExplorerView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(.white)
-                                .background(PortSQLPalette.accent, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(PortSQLPalette.accent.opacity(0.2), lineWidth: 1)
-                                }
+                                .background(PortSQLPalette.accentGradient, in: Capsule())
+                                .shadow(color: PortSQLPalette.accent.opacity(0.3), radius: 6, x: 0, y: 3)
                                 .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
                                 .accessibilityLabel("Run table browse query")
                                 .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
@@ -95,6 +104,21 @@ struct ExplorerView: View {
                                     .buttonStyle(.plain)
                                     .frame(minHeight: 44)
                                     .accessibilityLabel(L10n.format("Choose table, currently %@", selectedTable.name))
+                                }
+
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        PortbaseChip(title: L10n.plural("column_count_short", count: selectedTable.columns.count), systemImage: "tablecells", tint: .teal)
+                                        if let estimate = selectedTable.rowCountEstimate {
+                                            PortbaseChip(title: L10n.plural("row_count", count: estimate), systemImage: "list.number", tint: PortSQLPalette.accent)
+                                        }
+                                        if !selectedTable.primaryKeyColumns.isEmpty {
+                                            PortbaseChip(title: selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill", tint: .orange)
+                                        }
+                                        if workspace.canInsertIntoCurrentTable && workspace.selectedBookmark?.isReadOnly != true {
+                                            PortbaseChip(title: L10n.text("Editable"), systemImage: "pencil", tint: .green)
+                                        }
+                                    }
                                 }
 
                                 clauseRow(
@@ -156,8 +180,6 @@ struct ExplorerView: View {
                             if workspace.selectedBookmark == nil {
                                 ContentUnavailableView {
                                     Label("Add a database connection", systemImage: "server.rack")
-                                } description: {
-                                    Text("Connect to MySQL or PostgreSQL to browse tables and live rows.")
                                 } actions: {
                                     Button {
                                         workspace.createBookmark()
@@ -171,8 +193,6 @@ struct ExplorerView: View {
                             } else {
                                 ContentUnavailableView {
                                     Label("No schema metadata", systemImage: "square.stack.3d.up.slash")
-                                } description: {
-                                    Text("Refresh this database to inspect its live tables and columns.")
                                 } actions: {
                                     Button {
                                         workspace.refreshSchemaCatalog()
@@ -200,12 +220,12 @@ struct ExplorerView: View {
         }
         .background(WorkbenchBackground().ignoresSafeArea())
         .navigationTitle("Explorer")
-        .navigationBarTitleDisplayMode(.inline)
+        .portbaseTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: PortbaseToolbar.leading) {
                 ConnectionSwitcherButton(toolbarMode: true)
             }
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
                 SchemaRefreshButton()
                 DatabaseSwitcherButton()
             }
@@ -234,7 +254,11 @@ struct ExplorerView: View {
 
     private func dismissClauseFocus() {
         focusedClause = nil
+        #if canImport(UIKit)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+#else
+        NSApp.keyWindow?.makeFirstResponder(nil)
+#endif
     }
 
     @ViewBuilder
@@ -613,94 +637,219 @@ struct ExplorerView: View {
 struct LibrarySheetView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @EnvironmentObject private var library: WorkspaceLibraryStore
     @State private var selection: LibrarySection = .history
+    @State private var search = ""
+    @State private var outcome: QueryHistoryOutcome?
+    @State private var currentConnectionOnly = false
+    @State private var editing: SavedQuerySnippet?
+    @State private var contextError: String?
+
+    private var history: [QueryHistoryEntry] {
+        library.history.filter { entry in
+            (!currentConnectionOnly || entry.bookmarkID == workspace.selectedBookmark?.id)
+                && (outcome == nil || (entry.outcome ?? .succeeded) == outcome)
+                && matches([entry.title, entry.sql, entry.connectionName, entry.database ?? "", entry.summary])
+        }
+    }
+    private var snippets: [SavedQuerySnippet] {
+        library.snippets.filter { snippet in
+            (!currentConnectionOnly || snippet.bookmarkID == workspace.selectedBookmark?.id)
+                && matches([snippet.title, snippet.sql, snippet.note, snippet.database ?? ""])
+        }
+    }
+    private func matches(_ fields: [String]) -> Bool {
+        search.isEmpty || fields.contains { $0.localizedCaseInsensitiveContains(search) }
+    }
+
+    private func outcomeFilter(_ value: QueryHistoryOutcome?, title: String, symbol: String) -> some View {
+        let selected = outcome == value
+        return Button { withAnimation(.easeOut(duration: 0.15)) { outcome = value } } label: {
+            Label(title, systemImage: symbol)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(selected ? .white : PortSQLPalette.ink)
+                .padding(.horizontal, 12)
+                .frame(minHeight: PortbaseControlSize.minimumHeight)
+                .background(selected ? AnyShapeStyle(PortSQLPalette.accentGradient) : AnyShapeStyle(PortSQLPalette.surface), in: Capsule())
+                .overlay { Capsule().strokeBorder(selected ? Color.clear : PortSQLPalette.stroke, lineWidth: 1) }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private var emptyRow: some View {
+        PortbaseEmptyState(
+            title: L10n.text("No matching queries"),
+            message: selection == .history ? L10n.text("Queries you run appear here. Loading one never runs it.")
+                                           : L10n.text("Save a query from the console to keep it one tap away."),
+            systemImage: selection == .history ? "clock.arrow.circlepath" : "bookmark"
+        )
+        .listRowBackground(Color.clear)
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+            List {
+                Section {
                     Picker("Library", selection: $selection) {
-                        ForEach(LibrarySection.allCases) { section in
-                            Text(section.title).tag(section)
-                        }
+                        ForEach(LibrarySection.allCases) { section in Text(section.title).tag(section) }
                     }
                     .pickerStyle(.segmented)
-
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                     if selection == .history {
-                        if workspace.history.isEmpty {
-                            Text("Run queries to build a local history.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(workspace.history.prefix(12)) { entry in
-                                Button {
-                                    workspace.apply(history: entry)
-                                    dismiss()
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(entry.title)
-                                            .font(.subheadline.weight(.semibold))
-                                        Text(entry.connectionName + " • " + entry.summary)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                        Text(entry.sql)
-                                            .font(.system(.caption, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(3)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 6)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                outcomeFilter(nil, title: L10n.text("All Statuses"), symbol: "line.3.horizontal.decrease")
+                                ForEach(QueryHistoryOutcome.allCases, id: \.self) { value in
+                                    outcomeFilter(value, title: value.title, symbol: value.symbolName)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
-                    } else {
-                        HStack {
-                            Text("Reusable snippets")
-                                .font(.subheadline.weight(.semibold))
-                            Spacer()
-                            Button("Save Current") {
-                                workspace.saveSnippet()
-                            }
-                            .buttonStyle(SecondaryActionButtonStyle())
-                        }
-
-                        if workspace.snippets.isEmpty {
-                            Text("Save snippets for common admin tasks and diagnostics.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ForEach(workspace.snippets.prefix(12)) { snippet in
-                                Button {
-                                    workspace.apply(snippet: snippet)
-                                    dismiss()
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(snippet.title)
-                                            .font(.subheadline.weight(.semibold))
-                                        Text(snippet.sql)
-                                            .font(.system(.caption, design: .monospaced))
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(3)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(.vertical, 6)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 4, trailing: 0))
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
-            }
-            .navigationTitle("Library")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+                if let contextError {
+                    Section { StatusBanner(title: L10n.text("Execution failed"), message: contextError, tint: .red) }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                }
+                if selection == .history {
+                    Section {
+                        ForEach(history) { entry in
+                            Button {
+                                if workspace.apply(history: entry) { dismiss() }
+                                else { contextError = workspace.errorMessage }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    RecentQueryRow(entry: entry)
+                                    if entry.outcome == .failed || entry.outcome == .cancelled {
+                                        Text(entry.summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                            .padding(.leading, 54).padding(.trailing, 14).padding(.bottom, 6)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .listRowInsets(EdgeInsets())
+                            .accessibilityHint("Loads this query into the console without running it")
+                            .swipeActions {
+                                Button("Delete", role: .destructive) {
+                                    if let index = library.history.firstIndex(where: { $0.id == entry.id }) { library.deleteHistory(at: IndexSet(integer: index)) }
+                                }
+                            }
+                        }
+                        if history.isEmpty { emptyRow }
+                    } header: {
+                        Text(L10n.format("Queries: %d", history.count))
                     }
+                } else {
+                    Section {
+                        Button {
+                            workspace.saveSnippet()
+                        } label: {
+                            Label("Save Current", systemImage: "bookmark.fill")
+                        }
+                        .disabled(workspace.queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        ForEach(snippets) { snippet in
+                            HStack(alignment: .top, spacing: 12) {
+                                Button {
+                                    if workspace.apply(snippet: snippet) { dismiss() }
+                                    else { contextError = workspace.errorMessage }
+                                } label: {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Image(systemName: "bookmark.fill")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundStyle(.white)
+                                            .frame(width: 28, height: 28)
+                                            .background(LinearGradient(colors: (snippet.engine ?? .postgresql).brandColors, startPoint: .topLeading, endPoint: .bottomTrailing),
+                                                        in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                        VStack(alignment: .leading, spacing: 5) {
+                                            Text(snippet.title).font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                                            if !snippet.note.isEmpty { Text(snippet.note).font(.caption).foregroundStyle(.secondary).lineLimit(2) }
+                                            Text(snippet.sql).font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(3)
+                                            if let engine = snippet.engine {
+                                                PortbaseChip(title: [engine.rawValue, snippet.database].compactMap { $0 }.joined(separator: " · "), tint: engine.tint)
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityHint("Loads this query into the console without running it")
+                                Button { editing = snippet } label: { Image(systemName: "pencil").toolIconChrome() }
+                                    .buttonStyle(.plain).accessibilityLabel(L10n.format("Edit saved query %@", snippet.title))
+                            }
+                            .padding(.vertical, 4)
+                            .swipeActions {
+                                Button("Delete", role: .destructive) {
+                                    if let index = library.snippets.firstIndex(where: { $0.id == snippet.id }) { library.deleteSnippets(at: IndexSet(integer: index)) }
+                                }
+                            }
+                        }
+                        if snippets.isEmpty { emptyRow }
+                    }
+                }
+            }
+            .listStyle(.portbaseGrouped)
+            .scrollContentBackground(.hidden)
+            .background(PortbaseBackdrop().ignoresSafeArea())
+            .searchable(text: $search, prompt: L10n.text("Search queries"))
+            .navigationTitle("Library")
+            .portbaseTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: PortbaseToolbar.leading) { NavigationLink("Trash") { LibraryStorageView() } }
+                ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
+                    Menu {
+                        Toggle("Current connection only", isOn: $currentConnectionOnly)
+                            .disabled(workspace.selectedBookmark == nil)
+                        if selection == .history {
+                            Picker("Status", selection: $outcome) {
+                                Text("All Statuses").tag(Optional<QueryHistoryOutcome>.none)
+                                ForEach(QueryHistoryOutcome.allCases, id: \.self) { value in Text(value.title).tag(Optional(value)) }
+                            }
+                        }
+                        Button("Reset Filters") { outcome = nil; currentConnectionOnly = false; search = "" }
+                    } label: { Image(systemName: "line.3.horizontal.decrease.circle").frame(width: 44, height: 44) }
+                    .accessibilityLabel("Filter queries")
+                    Button("Done") { dismiss() }
+                }
+            }
+            .sheet(item: $editing) { snippet in SavedQueryDetailsSheet(snippet: snippet) }
+        }
+    }
+}
+
+private struct SavedQueryDetailsSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+    @EnvironmentObject private var library: WorkspaceLibraryStore
+    @State var snippet: SavedQuerySnippet
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField("Query name", text: $snippet.title)
+                Section("Notes") { TextEditor(text: $snippet.note).frame(minHeight: 100).accessibilityLabel("Query notes") }
+                Section("Connection") {
+                    Text([snippet.engine?.rawValue, snippet.database].compactMap { $0 }.joined(separator: " · "))
+                    Button("Use Current Connection") {
+                        snippet.bookmarkID = workspace.selectedBookmark?.id
+                        snippet.engine = workspace.selectedBookmark?.engine
+                        snippet.database = workspace.activeDatabaseName
+                    }
+                    .disabled(workspace.selectedBookmark == nil)
+                }
+                Section("Query") { Text(snippet.sql).font(.callout.monospaced()).textSelection(.enabled) }
+            }
+            .navigationTitle("Edit Saved Query")
+            .portbaseTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { snippet.title = snippet.title.trimmingCharacters(in: .whitespacesAndNewlines); library.updateSnippet(snippet); dismiss() }
+                        .disabled(snippet.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -714,6 +863,16 @@ private enum LibrarySection: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 
     var title: String {
-        rawValue.capitalized
+        switch self { case .history: L10n.text("History"); case .snippets: L10n.text("Saved Queries") }
+    }
+}
+
+private extension QueryHistoryOutcome {
+    var symbolName: String {
+        switch self {
+        case .succeeded: "checkmark.circle.fill"
+        case .failed: "xmark.octagon.fill"
+        case .cancelled: "stop.circle.fill"
+        }
     }
 }

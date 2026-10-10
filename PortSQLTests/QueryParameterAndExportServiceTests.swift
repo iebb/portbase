@@ -61,7 +61,7 @@ final class QueryParameterAndExportServiceTests: XCTestCase {
         XCTAssertEqual(QueryParameterService.parameters(in: sql, engine: .postgresql), ["actual"])
         XCTAssertEqual(
             try QueryParameterService.boundQuery(sql: sql, values: ["actual": "00123"], engine: .postgresql),
-            BoundQuery(sql: "SELECT payload #>> '{path}', $$:not_a_parameter$$, $1", values: [.string("00123")])
+            BoundQuery(sql: "SELECT payload #>> '{path}', $$:not_a_parameter$$, $1", values: [.string("00123")], sourceSQL: sql)
         )
     }
 
@@ -80,11 +80,11 @@ final class QueryParameterAndExportServiceTests: XCTestCase {
 
         XCTAssertEqual(
             try QueryParameterService.boundQuery(sql: postgres, values: ["name": "Tokyo"], engine: .postgresql),
-            BoundQuery(sql: "SELECT '$1', $$ $2 $$, $1 -- $3\n/* $4 */", values: [.string("Tokyo")])
+            BoundQuery(sql: "SELECT '$1', $$ $2 $$, $1 -- $3\n/* $4 */", values: [.string("Tokyo")], sourceSQL: postgres)
         )
         XCTAssertEqual(
             try QueryParameterService.boundQuery(sql: mysql, values: ["name": "Tokyo"], engine: .mysql),
-            BoundQuery(sql: "SELECT '?', ? # ?\n/* ? */", values: [.string("Tokyo")])
+            BoundQuery(sql: "SELECT '?', ? # ?\n/* ? */", values: [.string("Tokyo")], sourceSQL: mysql)
         )
     }
 

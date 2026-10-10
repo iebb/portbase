@@ -2,8 +2,7 @@
 "Studio" = "スタジオ";
 "Charts" = "グラフ";
 "Servers" = "サーバー";
-"PORTSQL" = "PORTSQL";
-"Elegant database control, sized for iPhone." = "iPhoneに最適化された、洗練されたデータベース操作。";
+"PORTBASE" = "PORTBASE";
 "Live MySQL and PostgreSQL querying, schema browsing, charting, and row editing without placeholder datasets." = "プレースホルダー データセットを使用しない、ライブ MySQL および PostgreSQL のクエリ、スキーマの参照、グラフ作成、および行の編集。";
 "No active connection" = "有効な接続がありません";
 "Create or select a bookmark to start a live workspace." = "ブックマークを作成または選択して、ライブ ワークスペースを開始します。";
@@ -48,14 +47,11 @@
 "Connect to a database and refresh the explorer to inspect live tables and columns." = "データベースに接続し、エクスプローラーを更新して、ライブ テーブルと列を検査します。";
 "Choose a table to inspect its schema." = "スキーマを確認するテーブルを選択します。";
 "Library" = "ライブラリ";
-"Run queries to build a local history." = "クエリを実行してローカル履歴を構築します。";
 "Reusable snippets" = "再利用可能なスニペット";
 "Save Current" = "現在を保存";
-"Save snippets for common admin tasks and diagnostics." = "一般的な管理タスクと診断のスニペットを保存します。";
 "Add to Visualizer" = "ビジュアライザーに追加";
 "Add to visualizer" = "ビジュアライザーに追加";
 "Add your first visualization when querying." = "クエリ後に最初の可視化を追加します。";
-"Build a saved chart config from the current result set." = "現在の結果セットから保存されたチャート構成を構築します。";
 "Preset Name" = "プリセット名";
 "Saved chart name" = "保存されたチャート名";
 "Chart Title" = "チャートのタイトル";
@@ -90,9 +86,7 @@
 "Premium Features" = "プレミアム機能";
 "Upgrade" = "アップグレード";
 "Settings" = "設定";
-"PortSQL Pro" = "PortSQL Pro";
-"Designed as optional add-ons" = "オプションのアドオンとして設計されています";
-"Core database access remains usable on the free plan. Pro is for convenience and polish, not basic connectivity." = "コア データベース アクセスは、無料プランでも引き続き使用できます。 Pro は利便性と洗練を目的としたものであり、基本的な接続性を目的としたものではありません。";
+"Portbase Pro" = "Portbase Pro";
 "Restore Purchases" = "購入を復元する";
 "Sync" = "同期";
 "Servers are mirrored through iCloud key-value sync." = "サーバーは、iCloud キーと値の同期を通じてミラーリングされます。";
@@ -116,7 +110,7 @@
 "server, chart, folder" = "サーバー、チャート、フォルダー";
 "Create your first MySQL or PostgreSQL server to start querying live data." = "最初の MySQL サーバーまたは PostgreSQL サーバーを作成して、ライブ データのクエリを開始します。";
 "Table and column metadata is reused until this duration expires. The refresh button bypasses the cache." = "テーブルと列のメタデータは、この期間が終了するまで再利用されます。更新ボタンはキャッシュをバイパスします。";
-"When caching is off, PortSQL always reloads table lists from the database and hides manual refresh controls." = "キャッシュがオフの場合、PortSQL は常にデータベースからテーブル リストを再ロードし、手動リフレッシュ制御を非表示にします。";
+"When caching is off, Portbase always reloads table lists from the database and hides manual refresh controls." = "キャッシュがオフの場合、Portbase は常にデータベースからテーブル リストを再ロードし、手動リフレッシュ制御を非表示にします。";
 "Columns" = "列";
 "Column" = "列";
 "Add a new column to the live table schema." = "ライブテーブルのスキーマに新しい列を追加します。";
@@ -237,10 +231,10 @@
 "Confirm write" = "書き込みを確認";
 "This statement can change database data. Review it carefully before running it against a live database." = "このステートメントはデータベースのデータを変更する可能性があります。稼働中のデータベースで実行する前に、十分に確認してください。";
 "Add a SQL query to run this visualizer." = "このビジュアライザーを実行するSQLクエリを追加してください。";
-"Available with PortSQL Pro" = "PortSQL Proで利用可能";
+"Available with Portbase Pro" = "Portbase Proで利用可能";
 "Begins an App Store purchase" = "App Storeでの購入を開始します";
 "Check your network connection and try again." = "ネットワーク接続を確認して、もう一度お試しください。";
-"Checks the App Store for previous PortSQL purchases" = "App Storeで以前のPortSQL購入を確認します";
+"Checks the App Store for previous Portbase purchases" = "App Storeで以前のPortbase購入を確認します";
 "Choose or save a bookmark before running this visualizer." = "このビジュアライザーを実行する前に、ブックマークを選択または保存してください。";
 "Current Result" = "現在の結果";
 "Insert a new row with schema-aware validation." = "スキーマに基づく検証付きで新しい行を挿入します。";
@@ -286,6 +280,833 @@
 "Unencrypted Connection" = "暗号化されていない接続";
 "Plaintext sends database credentials and data without encryption. Use it only for legacy servers on a trusted network." = "平文接続では、データベースの認証情報とデータが暗号化されずに送信されます。信頼できるネットワーク上の旧式サーバーにのみ使用してください。";
 "The selected file does not contain a valid X.509 certificate." = "選択したファイルに有効な X.509 証明書が含まれていません。";
-"PortSQL could not read this certificate file." = "PortSQL はこの証明書ファイルを読み込めませんでした。";
+"Portbase could not read this certificate file." = "Portbase はこの証明書ファイルを読み込めませんでした。";
 "TLS fallback allowed" = "TLS フォールバック許可";
 "Unencrypted" = "暗号化なし";
+
+/* Document databases and adaptive workspaces */
+"Collections" = "コレクション";
+"Collection" = "コレクション";
+"Tables" = "テーブル";
+"Search collections" = "コレクションを検索";
+"Search tables" = "テーブルを検索";
+"Filter (JSON)" = "フィルター（JSON）";
+"Sort (JSON)" = "並べ替え（JSON）";
+"Browse documents" = "ドキュメントを表示";
+"Select a database and refresh its collections." = "データベースを選択してコレクションを更新してください。";
+"No documents matched the query." = "クエリに一致するドキュメントはありません。";
+"Document %d" = "ドキュメント %d";
+"Open full document" = "ドキュメント全体を開く";
+"Aggregation" = "集計";
+"Indexes" = "インデックス";
+"Insert document" = "ドキュメントを挿入";
+"Update documents" = "ドキュメントを更新";
+"Delete documents" = "ドキュメントを削除";
+"Query templates" = "クエリテンプレート";
+"Open JSON editor" = "JSONエディタを開く";
+"JSON Editor" = "JSONエディタ";
+"Cancel Query" = "クエリをキャンセル";
+"Authentication database" = "認証データベース";
+"Connect to a MongoDB host and port. SRV discovery and automatic replica-set failover are not supported." = "MongoDBのホストとポートに接続します。SRV検出とレプリカセットの自動フェイルオーバーには対応していません。";
+"MongoDB requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "MongoDBではプロトコル上、安全な平文への切り替えができないため、TLS優先モードでもTLSが必須です。";
+"Enter one valid MongoDB Extended JSON command (up to 1 MiB)." = "有効なMongoDB Extended JSONコマンドを1つ入力してください（最大1 MiB）。";
+"This MongoDB command or option is not supported. Server-side JavaScript and unbounded cursors are disabled." = "このMongoDBコマンドまたはオプションは未対応です。サーバー側JavaScriptと無制限カーソルは無効です。";
+"MongoDB rejected the operation (code %@). Check permissions, command syntax, and server logs." = "MongoDBが操作を拒否しました（コード %@）。権限、コマンド構文、サーバーログを確認してください。";
+"Results were truncated at 10,000 documents or 32 MiB. Narrow the filter to retrieve more." = "結果は10,000件または32 MiBで切り詰められました。フィルターを絞り込んでください。";
+"Enter a MongoDB Extended JSON command" = "MongoDB Extended JSONコマンドを入力";
+"SQL query editor" = "SQLクエリエディタ";
+"Enter the SQL statement to run against the selected database" = "選択したデータベースで実行するSQL文を入力";
+"This operation only accepts read-only queries." = "この操作は読み取り専用クエリのみ受け付けます。";
+"History is empty." = "履歴はありません。";
+"No saved snippets." = "保存済みスニペットはありません。";
+"Console" = "コンソール";
+
+"Find" = "検索";
+"Command" = "コマンド";
+"Projection (JSON)" = "射影 (JSON)";
+"Skip" = "スキップ";
+"Limit" = "上限";
+"Add Stage" = "ステージを追加";
+"Enable stage" = "ステージを有効化";
+"Move Up" = "上へ移動";
+"Move Down" = "下へ移動";
+"Stage %d" = "ステージ %d";
+"Stage %d: Invalid JSON." = "ステージ %d: 無効な JSON です。";
+"%@: Invalid JSON object." = "%@: 無効な JSON オブジェクトです。";
+"Choose a collection." = "コレクションを選択してください。";
+"Skip must be zero or greater. Limit must be between 1 and 10,000." = "スキップは 0 以上、上限は 1〜10,000 にしてください。";
+"Edit command" = "コマンドを編集";
+"Document" = "ドキュメント";
+"Documents" = "ドキュメント";
+"Show All Fields" = "すべてのフィールドを表示";
+"Show More" = "さらに表示";
+"Configure Chart" = "チャートを設定";
+"Run a query with numeric fields to create a chart." = "数値フィールドを含むクエリを実行してチャートを作成してください。";
+"Ln %d, Col %d" = "%d 行、%d 列";
+"Selection" = "選択範囲";
+"Run Selection" = "選択範囲を実行";
+"Run All" = "すべて実行";
+"Run the complete parameterized query to preserve its bound values." = "バインド値を保持するには、パラメータ化されたクエリ全体を実行してください。";
+"Undo" = "取り消す";
+"Redo" = "やり直す";
+"Indent" = "インデント";
+"Outdent" = "インデントを減らす";
+"Find and Replace" = "検索と置換";
+"Hide Keyboard" = "キーボードを閉じる";
+"EXPORT" = "書き出し";
+
+
+/* Database workspace */
+"%@ • %@" = "%@・%@";
+"%d pt" = "%d ポイント";
+"Add Field" = "フィールドを追加";
+"Add a database connection" = "データベース接続を追加";
+"Add database connection" = "データベース接続を作成";
+"Additional seed hosts" = "追加のシードホスト";
+"An import record is too large. Each record must fit within 1 MiB." = "インポートするレコードが大きすぎます。各レコードは 1 MiB 以内にしてください。";
+"Apply" = "適用";
+"Apply URI" = "URIを適用";
+"Array" = "配列";
+"Auto-commit" = "自動コミット";
+"Automatic" = "自動";
+"Binary SQL columns are omitted from inserts. Import their values with a database-specific tool." = "バイナリ型の SQL 列は挿入から除外されます。値のインポートにはデータベース専用のツールを使用してください。";
+"Boolean" = "真偽値";
+"CSV" = "CSVファイル";
+"CSV supports up to 4,096 columns in this operation. Export as JSON to preserve additional fields." = "この CSV 操作は最大 4,096 列に対応しています。それ以上のフィールドを保持するには JSON でエクスポートしてください。";
+"Cancelled" = "キャンセル済み";
+"Cells: %d" = "セル数: %d";
+"Chart Previews" = "チャートのプレビュー";
+"Chart uses the loaded result only. Export all data from the query for the complete result." = "グラフには読み込み済みの結果のみを使用します。完全な結果を取得するには、クエリの全データをエクスポートしてください。";
+"Charts are saved on this device. The library exceeds the iCloud sync limit." = "チャートはこのデバイスに保存されています。ライブラリがiCloud同期の上限を超えています。";
+"Choose CSV or JSON" = "CSV または JSON を選択";
+"Choose database connection" = "データベース接続を選択";
+"Clear Chart Previews" = "チャートのプレビューを消去";
+"Clear Date Filter" = "日付フィルターを解除";
+"Clear Query History" = "クエリ履歴を消去";
+"Close Console" = "コンソールを閉じる";
+"Close Inspection" = "詳細を閉じる";
+"Column Mapping" = "列の対応付け";
+"Commit" = "コミット";
+"Commit or roll back the current transaction first." = "先に現在のトランザクションをコミットまたはロールバックしてください。";
+"Configure Column" = "列を設定";
+"Confirm Import" = "インポートを確認";
+"Connection" = "接続";
+"Connection URI" = "接続URI";
+"Console %d" = "コンソール %d";
+"Consoles" = "コンソール";
+"Constraints" = "制約";
+"Copy" = "コピー";
+"Copy Definition" = "定義をコピー";
+"Copy Selected Cells" = "選択したセルをコピー";
+"Copy with Headers" = "列名を含めてコピー";
+"Data Transfer" = "データ転送";
+"Database" = "データベース";
+"Database Objects" = "データベースオブジェクト";
+"Database error %@: %@" = "データベースエラー %@：%@";
+"Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data." = "データベースのパスワードはこのデバイスのキーチェーンに保存され、iCloudのブックマークには書き込まれません。";
+"Date Field" = "日付フィールド";
+"Date Range" = "日付範囲";
+"Decimal" = "小数";
+"Decimal128" = "128ビット十進数";
+"Definition" = "定義";
+"Delete Document" = "ドキュメントを削除";
+"Delete Permanently?" = "完全に削除しますか？";
+"Destination" = "転送先";
+"Destination column" = "転送先の列";
+"Destination field" = "転送先のフィールド";
+"Direct connection" = "直接接続";
+"Document Actions" = "ドキュメントの操作";
+"Document editing requires MongoDB 4.2 or later with a transaction-capable replica set or sharded cluster. Standalone servers remain available for queries and imports." = "ドキュメントの編集には、MongoDB 4.2以降と、トランザクションに対応したレプリカセットまたはシャードクラスターが必要です。スタンドアロンサーバーでもクエリとインポートを利用できます。";
+"Double" = "倍精度浮動小数点数";
+"Duplicate Document" = "ドキュメントを複製";
+"Edit Document" = "ドキュメントを編集";
+"Editor" = "エディター";
+"Enter a valid BSON document with unique field names. Documents must fit within 16 MiB." = "フィールド名が重複しない有効なBSONドキュメントを入力してください。ドキュメントのサイズは16 MiB以内にしてください。";
+"Enter a valid mongodb:// or mongodb+srv:// connection URI." = "有効なmongodb://またはmongodb+srv://の接続URIを入力してください。";
+"Every CSV record must have the same number of fields as its header." = "各 CSV レコードのフィールド数はヘッダーと一致する必要があります。";
+"Expected %d affected rows, received %d. The transaction was rolled back." = "影響を受ける行数は%d行のはずですが、%d行でした。トランザクションはロールバックされました。";
+"Expected %d affected rows; the server did not report a count. The transaction was rolled back." = "影響を受ける行数は%d行のはずですが、サーバーから行数が返されませんでした。トランザクションはロールバックされました。";
+"Explicit LIMIT and filters are preserved." = "明示的な LIMIT とフィルターは保持されます。";
+"Export All Rows" = "すべての行をエクスポート";
+"Export All Rows…" = "すべての行をエクスポート…";
+"Export Chart" = "グラフをエクスポート";
+"Export Data" = "データをエクスポート";
+"Export PDF" = "PDFでエクスポート";
+"Export PNG" = "PNGでエクスポート";
+"Export failed" = "エクスポートに失敗しました";
+"Export one read-only query at a time." = "読み取り専用クエリを 1 つずつエクスポートしてください。";
+"Exported %@." = "%@ をエクスポートしました。";
+"Exporting: %@" = "エクスポート中: %@";
+"Extend cell selection" = "セルの選択範囲を拡張";
+"Extended JSON" = "拡張JSON";
+"Field name" = "フィールド名";
+"Fields" = "フィールド";
+"File" = "ファイル";
+"Finishing…" = "完了処理中…";
+"First row contains column names" = "最初の行を列名として使用";
+"Foreign Keys" = "外部キー";
+"From" = "開始日";
+"Functions" = "関数";
+"Go to %@" = "%@に移動";
+"Hide Column" = "列を非表示";
+"History" = "履歴";
+"Import %d records" = "%d 件のレコードをインポート";
+"Import Data" = "データをインポート";
+"Import Data…" = "データをインポート…";
+"Imported %@." = "%@ をインポートしました。";
+"Importing: %@" = "インポート中: %@";
+"Insert Document" = "ドキュメントを挿入";
+"Insert into %@?" = "%@ に挿入しますか？";
+"Inspect" = "詳細";
+"Inspect Chart" = "グラフの詳細";
+"Int32" = "32ビット整数";
+"Int64" = "64ビット整数";
+"Integer" = "整数";
+"Invalid value" = "無効な値";
+"Invalid value for %@ at record %d." = "%@ の値が無効です（レコード %d）。";
+"Library Storage" = "ライブラリのストレージ";
+"Loaded rows: %d" = "読み込み済み行数: %d";
+"Loaded rows: %d / %d" = "読み込み済み行数: %d / %d";
+"Manual Commit" = "手動コミット";
+"Matching Rows" = "一致する行";
+"Materialized Views" = "マテリアライズドビュー";
+"Missing field %@ at record %d. Map another field or omit this column." = "フィールド %@ がレコード %d にありません。別のフィールドを割り当てるか、この列を除外してください。";
+"MongoDB CSV fields use Extended JSON to preserve BSON types." = "MongoDB の CSV フィールドは BSON 型を保持するために Extended JSON を使用します。";
+"MongoDB Connection" = "MongoDB接続";
+"MongoDB DNS discovery failed. Check the SRV hostname and network connection." = "MongoDBのDNS検出に失敗しました。SRVホスト名とネットワーク接続を確認してください。";
+"MongoDB DNS records are invalid or point outside the seed domain." = "MongoDBのDNSレコードが無効か、シードドメインの外部を指しています。";
+"MongoDB commits each batch. Cancelled or failed imports can leave inserted documents." = "MongoDB はバッチごとにコミットします。インポートをキャンセルした場合や失敗した場合も、挿入済みのドキュメントが残ることがあります。";
+"MongoDB did not confirm the commit. Reload the collection to check the document before trying again." = "MongoDBからコミットの確認を受信できませんでした。再試行する前にコレクションを再読み込みし、ドキュメントを確認してください。";
+"MongoDB import stopped after %d confirmed records. The current batch may also contain saved documents. %@" = "MongoDB のインポートは %d 件のレコードを確認した後に停止しました。現在のバッチにも保存済みのドキュメントが含まれる可能性があります。%@";
+"Move this chart to Recently Deleted?" = "このグラフを「最近削除した項目」に移動しますか？";
+"MySQL column editing is disabled because Portbase cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead." = "Portbaseでは既存のデフォルト値、生成式、コメント、文字セット、照合順序、AUTO_INCREMENT属性をすべて保持できないため、MySQLの列編集は無効です。新しい列を追加するか、確認済みのSQLを使用してください。";
+"New Console" = "新規コンソール";
+"New Document" = "新しいドキュメント";
+"Next results page" = "結果の次のページ";
+"No plottable rows" = "グラフに表示できる行がありません";
+"No writable MongoDB primary is available. Check the replica set and network connection, then retry." = "書き込み可能なMongoDBプライマリが見つかりません。レプリカセットとネットワーク接続を確認して再試行してください。";
+"Null" = "ヌル値";
+"OK" = "確認";
+"ObjectId" = "オブジェクトID";
+"Open Row" = "行を開く";
+"Open row %d" = "行%dを開く";
+"Original Document" = "元のドキュメント";
+"Parameters" = "パラメータ";
+"Pin Column" = "列を固定";
+"Pinned" = "固定";
+"Previous results page" = "結果の前のページ";
+"Primary Key" = "主キー";
+"Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again." = "プライベートCAのTLSが選択されていますが、このデバイスにCA証明書がありません。再度インポートしてください。";
+"Private Key" = "秘密鍵";
+"Procedures" = "プロシージャ";
+"Query Parameters" = "クエリパラメータ";
+"Query results table" = "クエリ結果テーブル";
+"Range" = "範囲";
+"Reading: %@" = "読み取り中: %@";
+"Recently Closed Consoles" = "最近閉じたコンソール";
+"Refresh" = "更新";
+"Refresh Tables" = "テーブルを更新";
+"Remove Field" = "フィールドを削除";
+"Remove additional hosts" = "追加のホストを削除";
+"Rename" = "名前を変更";
+"Rename Console" = "コンソール名を変更";
+"Reopen Closed Console" = "閉じたコンソールを再度開く";
+"Replica set" = "レプリカセット";
+"Reset Columns" = "列をリセット";
+"Restore" = "復元";
+"Result %d" = "結果 %d";
+"Result Set" = "結果セット";
+"Review" = "確認";
+"Review Changes" = "変更内容を確認";
+"Roll Back and Close Console?" = "ロールバックしてコンソールを閉じますか？";
+"Rollback" = "ロールバック";
+"Rollback and Close" = "ロールバックして閉じる";
+"Row %d, %@" = "行%d、%@";
+"Run Anyway" = "実行する";
+"Run parameterized statements individually." = "パラメータ付きの文は個別に実行してください。";
+"Run table browse query" = "テーブル参照クエリを実行";
+"SQL import requires a transactional table so a failed import can roll back. Select an InnoDB table." = "SQL インポートには、失敗時にロールバックできるトランザクション対応のテーブルが必要です。InnoDB テーブルを選択してください。";
+"SQL imports use one transaction. An error before commit rolls back the file." = "SQL インポートは単一のトランザクションを使用します。コミット前にエラーが発生すると、ファイル全体がロールバックされます。";
+"SSH Host" = "SSHホスト";
+"SSH Port" = "SSHポート";
+"SSH Tunnel" = "SSHトンネル";
+"SSH Username" = "SSHユーザー名";
+"SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported." = "SSH認証情報はこのデバイスのキーチェーンに保存されます。Portbaseはローカルのループバック転送を開き、初回の信頼確認後にSSHホスト鍵を検証します。パスワード認証と暗号化されていないOpenSSH Ed25519/ECDSA秘密鍵に対応しています。";
+"Save or Share" = "保存または共有";
+"Saved Queries" = "保存済みクエリ";
+"Saved work could not be loaded. The original files have been preserved." = "保存した作業を読み込めませんでした。元のファイルは保持されています。";
+"Saved work could not be written. Free some device storage and try again." = "作業を保存できませんでした。デバイスの空き容量を増やして再試行してください。";
+"Saving" = "保存中";
+"Search database objects" = "データベースオブジェクトを検索";
+"Select All" = "すべて選択";
+"Select a destination and map each included field to a different column." = "転送先を選択し、含める各フィールドを別々の列に割り当ててください。";
+"Select a query or table to export." = "エクスポートするクエリまたはテーブルを選択してください。";
+"Select or create a bookmark before running a query." = "クエリの実行前にブックマークを選択または作成してください。";
+"Select table" = "テーブルを選択";
+"Server settings sync through iCloud. Passwords stay in this device’s Keychain." = "サーバー設定はiCloudで同期されます。パスワードはこのデバイスのキーチェーンに保持されます。";
+"Source" = "転送元";
+"Statement" = "ステートメント";
+"Storage" = "ストレージ";
+"String" = "文字列";
+"TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel." = "SSHトンネル経由のTLSには、証明書の識別情報を検証するためDNSホスト名が必要です。ループバックトンネル経由ではIPアドレスを安全に検証できません。";
+"Text" = "テキスト";
+"The CSV contains an unterminated quote or an invalid field separator." = "CSV に閉じられていない引用符、または無効なフィールド区切りがあります。";
+"The MongoDB server belongs to a different replica set." = "MongoDBサーバーは別のレプリカセットに属しています。";
+"The _id field cannot be changed when editing an existing document." = "既存のドキュメントを編集する際に_idフィールドは変更できません。";
+"The chart could not be rendered. Try exporting again." = "グラフを描画できませんでした。もう一度エクスポートしてください。";
+"The column type contains unsupported or unsafe SQL syntax." = "列の型に未対応または安全でないSQL構文が含まれています。";
+"The connection ended while committing the import. Its outcome is unknown. Check the destination before retrying." = "インポートのコミット中に接続が終了しました。結果は不明です。再試行する前に転送先を確認してください。";
+"The database query timed out and its connection was closed." = "データベースクエリがタイムアウトし、接続が閉じられました。";
+"The file contains no records." = "ファイルにレコードがありません。";
+"The file must use UTF-8 text encoding." = "ファイルは UTF-8 テキストエンコーディングを使用する必要があります。";
+"The original document is checked again in a transaction. Conflicting changes cancel the save." = "トランザクション内で元のドキュメントを再確認します。変更が競合した場合は保存を中止します。";
+"The private CA certificate bundle is too large." = "プライベートCA証明書バンドルが大きすぎます。";
+"The private CA must be a valid PEM certificate bundle and must not contain a private key." = "プライベートCAは有効なPEM証明書バンドルである必要があり、秘密鍵を含めることはできません。";
+"The requested database driver is unavailable in this build." = "このビルドでは、要求されたデータベースドライバーを利用できません。";
+"The session closed in the background. Its pending transaction was not committed." = "バックグラウンドでセッションを終了しました。保留中のトランザクションはコミットされていません。";
+"This MySQL statement can commit implicitly. Commit or roll back, then switch to Auto-commit before running it." = "このMySQL文は暗黙的にコミットする可能性があります。コミットまたはロールバック後、自動コミットに切り替えて実行してください。";
+"This URI contains an unsupported option. Portbase supports SCRAM authentication, primary reads, TLS, replica sets, and direct connections." = "このURIには未対応のオプションが含まれています。PortbaseはSCRAM認証、プライマリからの読み取り、TLS、レプリカセット、直接接続に対応しています。";
+"This connection is read-only and cannot execute write or schema statements." = "この接続は読み取り専用のため、書き込みやスキーマ変更の文を実行できません。";
+"This console is already executing a command." = "このコンソールではすでにコマンドを実行中です。";
+"This document changed or was deleted after it was loaded. No changes were saved. Reload it before editing again." = "読み込み後にこのドキュメントが変更または削除されました。変更は保存されていません。再編集する前に読み込み直してください。";
+"This reference has a NULL or unsupported key value." = "参照キーの値がNULLまたは未対応の型です。";
+"This statement requires explicit confirmation before it can run." = "この文を実行するには明示的な確認が必要です。";
+"Through" = "終了日（当日を含む）";
+"Timeout: %d s" = "タイムアウト: %d 秒";
+"Trash" = "ゴミ箱";
+"Truncated query result" = "クエリ結果は一部のみです";
+"Type" = "型";
+"Unpin Column" = "列の固定を解除";
+"Unquoted NULL is null; \\M is a missing field. Quote these values to import their text." = "引用符なしの NULL は null、\\M は欠落フィールドを表します。文字列としてインポートするには引用符で囲んでください。";
+"Use DNS SRV discovery" = "DNS SRV検出を使用";
+"Use a JSON array of objects or one JSON object per line." = "JSON オブジェクトの配列、または 1 行につき 1 つの JSON オブジェクトを使用してください。";
+"Use the console's transaction controls for Begin, Commit, and Rollback." = "開始、コミット、ロールバックにはコンソールのトランザクション操作を使用してください。";
+"Value" = "値";
+"Value type" = "値の型";
+"Verified row edits require an InnoDB table so a failed edit can be rolled back." = "失敗した変更をロールバックできるよう、行の検証付き編集にはInnoDBテーブルが必要です。";
+"View Rows (%d)" = "行を表示（%d）";
+"Views" = "ビュー";
+"Visible" = "表示";
+"Width" = "幅";
+"Width of %@" = "%@の幅";
+"Writes are sent once. Check the result before retrying an interrupted write." = "書き込みは1回だけ送信されます。中断された書き込みを再試行する前に結果を確認してください。";
+
+"CSV column names must be unique and nonempty." = "CSV の列名は空にせず、一意にしてください。";
+
+"Command Editor" = "コマンドエディタ";
+
+"File unavailable" = "ファイルを利用できません";
+
+"Choose or create a SQLite database file." = "SQLite データベースファイルを選択または作成してください。";
+
+"This engine requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "このエンジンは平文接続への安全な切り替えをネゴシエートできないため、「TLS を優先」モードでも TLS が必要です。";
+
+"The SQLite file is unavailable on this device. Import it or choose another local file." = "このデバイスにSQLiteファイルがありません。インポートするか、別のローカルファイルを選択してください。";
+
+"The SQLite file name is invalid." = "SQLiteのファイル名が無効です。";
+
+"Choose an unencrypted SQLite database file." = "暗号化されていないSQLiteデータベースファイルを選択してください。";
+
+"This SQLite file is in use. Finish or cancel its queries before deleting it." = "このSQLiteファイルは使用中です。削除する前にクエリを完了するかキャンセルしてください。";
+
+"Run SQLite statements individually or use Run All." = "SQLite文は個別に実行するか、「すべて実行」を使用してください。";
+
+"The SQLite parameter count or value is invalid." = "SQLiteパラメータの数または値が無効です。";
+
+"SQLite file attachment, extension loading, and unsafe configuration commands are disabled." = "SQLiteファイルの接続、拡張機能の読み込み、安全でない設定コマンドは無効です。";
+
+"SQLite commands commit individually. Manual transaction commands are unavailable." = "SQLiteコマンドは個別にコミットされます。手動のトランザクションコマンドは使用できません。";
+
+"SQLite error %d: %@" = "SQLiteエラー %d: %@";
+
+"Statement executed successfully." = "文を実行しました。";
+
+"Database File" = "データベースファイル";
+
+"No file selected" = "ファイル未選択";
+
+"Import SQLite File…" = "SQLiteファイルをインポート…";
+
+"Create SQLite Database…" = "SQLiteデータベースを作成…";
+
+"Manage Local Files…" = "ローカルファイルを管理…";
+
+"SQLite Database" = "SQLiteデータベース";
+
+"Database files stay on this device. Deleting a bookmark keeps its file." = "データベースファイルはこのデバイスに保存されます。ブックマークを削除してもファイルは残ります。";
+
+"Create SQLite Database" = "SQLiteデータベースを作成";
+
+"Database name" = "データベース名";
+
+"Create" = "作成";
+
+"No local database files" = "ローカルデータベースファイルなし";
+
+"Selected" = "選択済み";
+
+"Local Database Files" = "ローカルデータベースファイル";
+
+"Delete Database File?" = "データベースファイルを削除しますか？";
+
+"Delete File" = "ファイルを削除";
+
+"This permanently deletes the local database. Bookmarks that use it will need another file." = "ローカルデータベースが完全に削除されます。このファイルを使用するブックマークには別のファイルが必要です。";
+
+"Temporary SQLite objects are unavailable because each command uses a new connection." = "各コマンドが新しい接続を使用するため、SQLiteの一時オブジェクトは使用できません。";
+
+"%@ ms remaining" = "残り %@ ミリ秒";
+
+"Add a set member." = "セットにメンバーを追加します。";
+
+"All types" = "すべての型";
+
+"Append a list item." = "リストの末尾に項目を追加します。";
+
+"Append a stream entry." = "ストリームにエントリーを追加します。";
+
+"Base64" = "Base64 エンコード";
+
+"Browse hash fields and values." = "ハッシュのフィールドと値を参照します。";
+
+"Browse keys with a cursor." = "カーソルでキーを参照します。";
+
+"Browse set members." = "セットのメンバーを参照します。";
+
+"Browse sorted-set members and scores." = "ソート済みセットのメンバーとスコアを参照します。";
+
+"Complete the fields to preview the command." = "フィールドを入力するとコマンドが表示されます。";
+
+"Create Key" = "キーを作成";
+
+"Cursor %@" = "カーソル %@";
+
+"Database number" = "データベース番号";
+
+"Delete Key" = "キーを削除";
+
+"Delete a key asynchronously." = "キーを非同期で削除します。";
+
+"Display" = "表示";
+
+"Empty string" = "空の文字列";
+
+"Encoding" = "エンコード";
+
+"Enter a Redis database number from 0 to 2147483647." = "0〜2147483647 の Redis データベース番号を入力してください。";
+
+"Enter one Redis command with valid arguments. Use quotes and \\xNN escapes for binary bytes." = "有効な引数を持つ Redis コマンドを 1 つ入力してください。バイナリバイトには引用符と \\xNN エスケープを使います。";
+
+"Entry ID" = "エントリー ID";
+
+"Expiration" = "有効期限";
+
+"Expiration in milliseconds" = "有効期限（ミリ秒）";
+
+"Index" = "インデックス";
+
+"Inspect the key type." = "キーの型を確認します。";
+
+"Key" = "キー";
+
+"Key no longer exists" = "キーは存在しません";
+
+"Key pattern" = "キーのパターン";
+
+"Key type" = "キーの型";
+
+"Keys" = "キー";
+
+"Length" = "長さ";
+
+"Load More Keys" = "さらにキーを読み込む";
+
+"Loaded keys: %d" = "読み込み済みのキー: %d";
+
+"Member" = "メンバー";
+
+"Next Page" = "次のページ";
+
+"No expiration" = "有効期限なし";
+
+"One command per run. Quote empty values and spaces; use \\xNN for binary bytes." = "1 回につき 1 コマンドを実行します。空の値や空白は引用符で囲み、バイナリバイトには \\xNN を使います。";
+
+"Pattern" = "パターン";
+
+"Read a bounded list range." = "範囲を指定してリストを読み取ります。";
+
+"Read a bounded stream range." = "範囲を指定してストリームを読み取ります。";
+
+"Read a string value." = "文字列の値を読み取ります。";
+
+"Read remaining expiration in milliseconds." = "有効期限までの残り時間をミリ秒で読み取ります。";
+
+"Read-only" = "読み取り専用";
+
+"Redis authentication failed. Check the username and password in the connection." = "Redis 認証に失敗しました。接続のユーザー名とパスワードを確認してください。";
+
+"Redis command" = "Redis コマンド";
+
+"Redis command editor" = "Redis コマンドエディター";
+
+"Redis command reference" = "Redis コマンドリファレンス";
+
+"Redis keys" = "Redis キー";
+
+"Redis rejected the command (%@). Check its arguments and your account permissions." = "Redis がコマンドを拒否しました（%@）。引数とアカウント権限を確認してください。";
+
+"Redis returned %d rows." = "Redis が %d 行を返しました。";
+
+"Redis returned an invalid or unsupported RESP2 reply." = "Redis が無効または未対応の RESP2 応答を返しました。";
+
+"Redis value" = "Redis の値";
+
+"Remove Expiration" = "有効期限を削除";
+
+"Review Redis Write" = "Redis 書き込みを確認";
+
+"Scan complete" = "スキャン完了";
+
+"Score" = "スコア";
+
+"Set Expiration" = "有効期限を設定";
+
+"Set expiration in milliseconds." = "有効期限をミリ秒で設定します。";
+
+"The Redis connection closed before the reply arrived." = "応答が届く前に Redis 接続が切断されました。";
+
+"The Redis key changed or expired during inspection. Refresh its value." = "確認中に Redis キーが変更または期限切れになりました。値を更新してください。";
+
+"The Redis reply exceeds the client limit. Use a smaller range or a SCAN cursor." = "Redis の応答がクライアントの上限を超えています。範囲を小さくするか SCAN カーソルを使ってください。";
+
+"The connection ended before Redis confirmed the write. Refresh the key before trying again." = "Redis が書き込みを確認する前に接続が切断されました。再試行する前にキーを更新してください。";
+
+"The key limit was reached. Narrow the pattern and scan again." = "キー数の上限に達しました。パターンを絞って再スキャンしてください。";
+
+"The reply was truncated. Use a smaller range in the command editor." = "応答が切り詰められました。コマンドエディターで範囲を小さくしてください。";
+
+"This Redis command changes data. Review the exact command before running it." = "この Redis コマンドはデータを変更します。実行前にコマンド全体を確認してください。";
+
+"This Redis command is unavailable. Use bounded data commands; administration, scripts, subscriptions and blocking operations are disabled." = "この Redis コマンドは利用できません。範囲を限定したデータコマンドを使ってください。管理、スクリプト、購読、ブロッキング操作は無効です。";
+
+"This Redis key type cannot be inspected here." = "この Redis キーの型はここでは確認できません。";
+
+"This connection does not allow Redis writes." = "この接続では Redis への書き込みは許可されていません。";
+
+"UTF-8" = "UTF-8 テキスト";
+
+"Use" = "使用";
+
+"Write" = "書き込み";
+
+"Write Value" = "値を書き込む";
+
+"Write a hash field." = "ハッシュのフィールドを書き込みます。";
+
+"Write a sorted-set member and score." = "ソート済みセットのメンバーとスコアを書き込みます。";
+
+"Write a string and keep its expiration." = "有効期限を保持して文字列を書き込みます。";
+
+"Scan" = "スキャン";
+
+"This Redis Cluster endpoint redirected the command. Connect through a cluster-aware proxy or to the node that owns this key." = "この Redis Cluster エンドポイントはコマンドをリダイレクトしました。クラスター対応プロキシまたはこのキーを所有するノードに接続してください。";
+
+"Stop" = "停止";
+
+"API Key" = "API キー";
+
+"Access Token" = "アクセストークン";
+
+"Aggregations" = "集計";
+
+"Authentication" = "認証";
+
+"Count" = "件数";
+
+"Elasticsearch returned partial results. A shard failed or the search timed out." = "Elasticsearch が部分的な結果を返しました。シャードでエラーが発生したか、検索がタイムアウトしました。";
+
+"HTTP Method" = "HTTP メソッド";
+
+"Invalid database HTTP request. Check the method, path and JSON body." = "データベースへの HTTP リクエストが無効です。メソッド、パス、JSON 本文を確認してください。";
+
+"Mappings" = "マッピング";
+
+"Query Templates" = "クエリテンプレート";
+
+"Request" = "リクエスト";
+
+"Request Body" = "リクエスト本文";
+
+"Request Path" = "リクエストパス";
+
+"Run one ClickHouse statement without FORMAT, SETTINGS or INTO OUTFILE. Portbase controls the result format and limits." = "FORMAT、SETTINGS、INTO OUTFILE を含まない単一の ClickHouse 文を実行してください。結果の形式と上限は Portbase が管理します。";
+
+"Select an index." = "インデックスを選択してください。";
+
+"The database redirected the request. Set the final server address in the bookmark." = "データベースがリクエストをリダイレクトしました。ブックマークに最終的なサーバーアドレスを設定してください。";
+
+"The database response exceeds 32 MiB. Reduce the query size or select fewer fields." = "データベースの応答が 32 MiB を超えています。クエリのサイズを減らすか、選択するフィールドを減らしてください。";
+
+"The database returned HTTP %d. Check the request and server permissions." = "データベースが HTTP %d を返しました。リクエストとサーバーの権限を確認してください。";
+
+"The database returned an incomplete or invalid JSON response." = "データベースが不完全または無効な JSON 応答を返しました。";
+
+"The write was not confirmed. Check the server before retrying; it may have completed." = "書き込みを確認できませんでした。完了している可能性があるため、再試行する前にサーバーを確認してください。";
+
+"This database command is not supported. Use a query or an individual document operation." = "このデータベースコマンドはサポートされていません。クエリまたは個別のドキュメント操作を使用してください。";
+
+"This engine does not support bound parameters in Portbase yet." = "このエンジンでは、Portbase のバインドパラメータはまだサポートされていません。";
+
+"Username and password" = "ユーザー名とパスワード";
+
+/* Portbase 1.5 workspace tools */
+"%.3f s" = "%.3f 秒";
+"%@ Copy" = "%@ のコピー";
+"%@ s" = "%@ 秒";
+"All Columns" = "すべての列";
+"All Engines" = "すべてのエンジン";
+"All Statuses" = "すべての状態";
+"Binary" = "バイナリ";
+"Cell value" = "セルの値";
+"Choose a UTF-8 text file smaller than 2 MB." = "2 MB 未満の UTF-8 テキストファイルを選択してください。";
+"Choose a connection with the same database engine before opening this query." = "このクエリを開く前に、同じデータベースエンジンの接続を選択してください。";
+"Clear Filter" = "フィルタを解除";
+"Connect through SSH" = "SSH 経由で接続";
+"Contains" = "含む";
+"Current connection only" = "現在の接続のみ";
+"Date / Time" = "日付 / 時刻";
+"Duplicate Connection" = "接続を複製";
+"Edit Saved Query" = "保存済みクエリを編集";
+"Edit saved query %@" = "保存済みクエリ %@ を編集";
+"Empty text" = "空のテキスト";
+"Equals" = "等しい";
+"Failed" = "失敗";
+"Filter Loaded Rows" = "読み込んだ行をフィルタ";
+"Filter queries" = "クエリをフィルタ";
+"Filter servers" = "サーバをフィルタ";
+"Filters apply to loaded rows only." = "フィルタは読み込んだ行にのみ適用されます。";
+"Format JSON" = "JSON を整形";
+"Go" = "移動";
+"Go to Line" = "行へ移動";
+"Hex" = "16 進数";
+"Hidden" = "非表示";
+"Index Keys" = "インデックスキー";
+"Index results were truncated." = "インデックスの結果が切り詰められました。";
+"Inspect Cell" = "セルを確認";
+"Line 1–%d" = "1–%d 行";
+"Line number" = "行番号";
+"Match" = "一致条件";
+"No" = "いいえ";
+"No matching indexes" = "一致するインデックスがありません";
+"No matching queries" = "一致するクエリがありません";
+"No matching servers" = "一致するサーバがありません";
+"Open Script" = "スクリプトを開く";
+"Options" = "オプション";
+"Preview: first 4096 bytes. Share exports the complete value." = "最初の 4096 バイトを表示しています。共有すると値全体が書き出されます。";
+"Query name" = "クエリ名";
+"Query notes" = "クエリのメモ";
+"Read-only connections" = "読み取り専用の接続";
+"Read-only mode" = "読み取り専用モード";
+"Replace Query" = "クエリを置換";
+"Replace current query?" = "現在のクエリを置換しますか？";
+"Reset Filters" = "フィルタをリセット";
+"Row %d" = "行 %d";
+"Script File" = "スクリプトファイル";
+"Script Files" = "スクリプトファイル";
+"Search indexes" = "インデックスを検索";
+"Search queries" = "クエリを検索";
+"Search servers" = "サーバを検索";
+"Share Script" = "スクリプトを共有";
+"Share Value" = "値を共有";
+"Sparse" = "疎インデックス";
+"Status" = "状態";
+"Succeeded" = "成功";
+"TTL" = "有効期間 (TTL)";
+"TTL: %@ s" = "TTL: %@ 秒";
+"The saved connection is unavailable or its database engine changed." = "保存された接続が利用できないか、データベースエンジンが変更されました。";
+"Toggle SQL Comment" = "SQL コメントを切り替え";
+"Unique" = "一意";
+"Use Current Connection" = "現在の接続を使用";
+"Yes" = "はい";
+"Editing Tools" = "編集ツール";
+
+// macOS workspace and iCloud synchronization
+"Connections are saved on this device. The library exceeds the iCloud sync limit." = "接続はこのデバイスに保存されています。ライブラリがiCloudの同期上限を超えています。";
+"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "接続、保存したクエリ、グラフ設定はiCloudで同期されます。パスワード、鍵、クエリ履歴、結果、SQLiteファイルはこのデバイスに保存されます。";
+"Decrease Text Size" = "文字を小さくする";
+"Delete Connection" = "接続を削除";
+"Delete Connection?" = "接続を削除しますか？";
+"Edit Connection" = "接続を編集";
+"Explain" = "実行計画";
+"Increase Text Size" = "文字を大きくする";
+"JSON editor" = "JSONエディタ";
+"Open Sample Database" = "サンプルデータベースを開く";
+"Open Script…" = "スクリプトを開く…";
+"Pending transactions on this connection will be rolled back." = "この接続の未確定トランザクションはロールバックされます。";
+"Pending transactions will be rolled back." = "未確定トランザクションはロールバックされます。";
+"Portbase" = "Portbase";
+"Query Library" = "クエリライブラリ";
+"Refresh Schema" = "スキーマを更新";
+"Reset Text Size" = "文字サイズをリセット";
+"Roll Back and Quit" = "ロールバックして終了";
+"Roll Back and Quit?" = "ロールバックして終了しますか？";
+"SQL clause editor" = "SQL句エディタ";
+"SQL editor" = "SQLエディタ";
+"Sample Database" = "サンプルデータベース";
+"Save File" = "ファイルを保存";
+"Save Query" = "クエリを保存";
+"Save Script…" = "スクリプトを保存…";
+"Saved queries are on this device. The library exceeds the iCloud sync limit." = "保存したクエリはこのデバイスにあります。ライブラリがiCloudの同期上限を超えています。";
+"Sign in to iCloud in System Settings." = "システム設定でiCloudにサインインしてください。";
+"Structure" = "構造";
+"Sync Now" = "今すぐ同期";
+"Text Size" = "文字サイズ";
+"Workspace" = "ワークスペース";
+"iCloud" = "iCloud";
+"iCloud available" = "iCloudを利用可能";
+
+/* Desktop workspace */
+"Choose a collection" = "コレクションを選択";
+"Connect" = "接続";
+"Filter" = "フィルター";
+"Sort" = "並べ替え";
+"Stage" = "ステージ";
+"Primary key" = "主キー";
+
+/* Workspace redesign */
+"Accent Color" = "アクセントカラー";
+"Actions" = "アクション";
+"Actions, tables, queries" = "アクション、テーブル、クエリ";
+"Active connection" = "アクティブな接続";
+"Activity" = "アクティビティ";
+"Add a connection to browse tables, run queries, and build charts." = "接続を追加すると、テーブルの閲覧、クエリの実行、グラフの作成ができます。";
+"Always dark" = "常にダーク";
+"Always light" = "常にライト";
+"Analyzing results" = "結果を分析中";
+"Appearance" = "外観";
+"Browse Data" = "データを閲覧";
+"Cache %@" = "キャッシュ %@";
+"Changes" = "変更";
+"Choose a database or refresh the schema." = "データベースを選択するか、スキーマを更新してください。";
+"Choose database" = "データベースを選択";
+"Clear search" = "検索を消去";
+"Close %@" = "%@を閉じる";
+"Collections: %d" = "コレクション: %d";
+"Common table expression" = "共通テーブル式";
+"Completeness" = "充足率";
+"Connect your first database" = "最初のデータベースに接続";
+"Connections" = "接続";
+"Copy Name" = "名前をコピー";
+"Create index" = "インデックスを作成";
+"Current database" = "現在のデータベース";
+"Dark" = "ダーク";
+"Database passwords, SSH keys, and private CA certificates stay in this device’s Keychain." = "データベースのパスワード、SSH 鍵、プライベート CA 証明書はこのデバイスのキーチェーンに保存されます。";
+"Date and time" = "日時";
+"Delete rows" = "行を削除";
+"Distinct" = "固有値";
+"Documents: %d" = "ドキュメント: %d";
+"Edit %@" = "%@を編集";
+"Editable" = "編集可能";
+"Editor Theme" = "エディタのテーマ";
+"Emerald" = "エメラルド";
+"Empty" = "空";
+"Encrypted" = "暗号化";
+"Engines" = "エンジン";
+"Filled values" = "値あり";
+"Filter columns" = "列を絞り込む";
+"Find actions, tables, and saved queries" = "アクション、テーブル、保存済みクエリを検索";
+"Follows light and dark mode" = "ライト／ダークモードに追従";
+"Format Query" = "クエリを整形";
+"General" = "一般";
+"Go To" = "移動";
+"Good afternoon" = "こんにちは";
+"Good evening" = "こんばんは";
+"Good morning" = "おはようございます";
+"Graphite" = "グラファイト";
+"Group and count" = "グループ化して集計";
+"History and saved queries" = "履歴と保存済みクエリ";
+"Home" = "ホーム";
+"Indigo" = "インディゴ";
+"Insert %@" = "%@を挿入";
+"Insert SQL template" = "SQL テンプレートを挿入";
+"Insights" = "インサイト";
+"Join tables" = "テーブルを結合";
+"Last 14 days" = "過去 14 日間";
+"Last run: %@" = "前回の実行: %@";
+"Light" = "ライト";
+"Loaded rows" = "読み込んだ行";
+"Loads this query into the console without running it" = "このクエリを実行せずにコンソールに読み込みます";
+"Match System" = "システムに合わせる";
+"Max" = "最大";
+"Mean" = "平均";
+"Median" = "中央値";
+"Median time" = "所要時間の中央値";
+"Min" = "最小";
+"Most active: %@" = "最も活発: %@";
+"Most frequent" = "頻出値";
+"Navigate" = "移動";
+"Needs attention" = "要確認";
+"New Query" = "新規クエリ";
+"No collections" = "コレクションがありません";
+"No matches" = "一致する項目がありません";
+"No tables" = "テーブルがありません";
+"Non-NULL cells" = "NULL 以外のセル";
+"Numeric columns" = "数値列";
+"Ocean" = "オーシャン";
+"On this device" = "このデバイス上";
+"Open" = "開く";
+"Open Console" = "コンソールを開く";
+"Open a fresh console" = "新しいコンソールを開く";
+"Opens a new console. Hold for more options." = "新しいコンソールを開きます。長押しでその他のオプション。";
+"Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase は MySQL、MariaDB、PostgreSQL、SQLite、ClickHouse、MongoDB、Redis、Elasticsearch に対応しています。";
+"Queries per day" = "1 日あたりのクエリ数";
+"Queries run" = "実行したクエリ";
+"Queries you run appear here. Loading one never runs it." = "実行したクエリがここに表示されます。読み込んでも実行されることはありません。";
+"Recent Queries" = "最近のクエリ";
+"Result truncated" = "結果は切り詰められました";
+"Rose" = "ローズ";
+"Run a query to see column insights." = "クエリを実行すると列のインサイトが表示されます。";
+"Run a query to see results here." = "クエリを実行するとここに結果が表示されます。";
+"Run a query to see your activity here." = "クエリを実行するとここにアクティビティが表示されます。";
+"Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "数値列を含むクエリを実行し、結果のグラフボタンを選んでグラフを作成・保存します。";
+"Running total" = "累計";
+"Save a query from the console to keep it one tap away." = "コンソールからクエリを保存すると、ワンタップで呼び出せます。";
+"Saved Charts" = "保存済みグラフ";
+"Saved: %d" = "保存済み: %d";
+"Search actions, tables, and queries" = "アクション、テーブル、クエリを検索";
+"Search…" = "検索…";
+"Select rows" = "行を選択";
+"Show All" = "すべて表示";
+"Size" = "サイズ";
+"Statistics describe loaded rows only. They do not query the database again." = "統計は読み込んだ行のみを対象とし、データベースへの再クエリは行いません。";
+"Success rate" = "成功率";
+"Suggestions" = "候補";
+"Summarizing loaded rows." = "読み込んだ行を集計しています。";
+"Sunset" = "サンセット";
+"Supported Engines" = "対応エンジン";
+"Table list caching off" = "テーブル一覧のキャッシュはオフ";
+"Tables: %d" = "テーブル: %d";
+"Templates" = "テンプレート";
+"Templates for %@" = "%@ のテンプレート";
+"Transaction open" = "トランザクション実行中";
+"Try a table name, a saved query, or an action such as Format." = "テーブル名、保存済みクエリ、または「整形」などのアクションを入力してください。";
+"Unavailable" = "利用不可";
+"Update rows" = "行を更新";
+"Value distribution" = "値の分布";
+"Version %@ (%@)" = "バージョン %@ (%@)";
+"Best Matches" = "最も一致";
+"New SQLite Database" = "新しい SQLite データベース";
+"Queries: %d" = "クエリ: %d";
+"No live rows yet" = "まだ行がありません";
+"No servers saved" = "保存されたサーバーはありません";
+"No saved charts yet" = "保存済みのグラフはまだありません";
+"No table selected" = "テーブルが選択されていません";
+"Chart query missing" = "グラフのクエリがありません";
+"Export" = "書き出す";
+"SSH Password" = "SSH パスワード";
+"Applies the current WHERE and ORDER BY clauses" = "現在の WHERE 句と ORDER BY 句を適用します";
+"Loads the following page of rows" = "次のページの行を読み込みます";
+"Loads the preceding page of rows" = "前のページの行を読み込みます";
+"Opens chart configuration for these results" = "これらの結果のグラフ設定を開きます";
+"Opens the server connection form" = "サーバー接続フォームを開きます";
+"Refreshes this saved chart from its database" = "保存済みのグラフをデータベースから更新します";

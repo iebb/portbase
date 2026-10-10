@@ -3,30 +3,69 @@ import SwiftUI
 
 enum DatabaseEngine: String, Codable, CaseIterable, Identifiable {
     case mysql = "MySQL"
+    case mariadb = "MariaDB"
     case postgresql = "PostgreSQL"
+    case sqlite = "SQLite"
+    case clickhouse = "ClickHouse"
+    case mongodb = "MongoDB"
+    case redis = "Redis"
+    case elasticsearch = "Elasticsearch"
 
     var id: String { rawValue }
-
+    var isMySQLFamily: Bool { self == .mysql || self == .mariadb }
+    var isSQL: Bool { isMySQLFamily || self == .postgresql || self == .sqlite || self == .clickhouse }
+    var isRelational: Bool { isSQL }
+    var isLocal: Bool { self == .sqlite }
+    var usesJSONEditor: Bool { self == .mongodb || self == .elasticsearch }
+    var supportsConsoleTransactions: Bool { isMySQLFamily || self == .postgresql }
+    var supportsRowEditing: Bool { isMySQLFamily || self == .postgresql || self == .sqlite }
+    var supportsSchemaEditing: Bool { isMySQLFamily || self == .postgresql }
+    var supportsSchemaObjects: Bool { supportsRowEditing }
+    var supportsDataImport: Bool { supportsRowEditing || self == .mongodb }
+    var supportsFullExport: Bool { supportsDataImport }
+    var supportsNativeParameters: Bool { supportsRowEditing }
+    var canNegotiateTLS: Bool { isMySQLFamily || self == .postgresql }
+    var queryLanguage: String { usesJSONEditor ? "JSON" : isSQL ? "SQL" : "Redis" }
+    var queryPlaceholder: String {
+        switch self {
+        case .mongodb: "{\"find\": \"collection\", \"filter\": {}, \"limit\": 25}"
+        case .redis: "GET key"
+        case .elasticsearch: "{\"method\": \"POST\", \"path\": \"/index/_search\", \"body\": {\"query\": {\"match_all\": {}}}}"
+        default: "SELECT …"
+        }
+    }
     var defaultPort: Int {
         switch self {
-        case .mysql: 3306
+        case .mysql, .mariadb: 3306
         case .postgresql: 5432
+        case .sqlite: 0
+        case .clickhouse: 8443
+        case .mongodb: 27017
+        case .redis: 6379
+        case .elasticsearch: 9200
         }
     }
-
     var gradient: LinearGradient {
-        switch self {
-        case .mysql:
-            LinearGradient(colors: [.teal, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing)
-        case .postgresql:
-            LinearGradient(colors: [.indigo, .blue], startPoint: .topLeading, endPoint: .bottomTrailing)
+        let colors: [Color] = switch self {
+        case .mysql, .mariadb: [.teal, .cyan]
+        case .postgresql: [.indigo, .blue]
+        case .sqlite: [.blue, .cyan]
+        case .clickhouse: [.orange, .yellow]
+        case .mongodb: [.green, .teal]
+        case .redis: [.red, .orange]
+        case .elasticsearch: [.teal, .indigo]
         }
+        return LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
-
     var symbolName: String {
         switch self {
-        case .mysql: "cylinder.split.1x2.fill"
+        case .mysql, .mariadb: "cylinder.split.1x2.fill"
         case .postgresql: "shippingbox.circle.fill"
+        case .sqlite: "internaldrive.fill"
+        case .clickhouse: "chart.bar.fill"
+        case .mongodb: "leaf.fill"
+        case .redis: "bolt.fill"
+        case .elasticsearch: "magnifyingglass"
         }
     }
 }
@@ -52,7 +91,12 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var port: Int
     var username: String
     var password: String
+    var passwordWasExplicitlySet = false
     var defaultDatabase: String
+    var authenticationDatabase: String = "admin"
+    var mongoConnection: MongoConnectionOptions = .init()
+    var sqliteFileName: String? = nil
+    var httpAuthentication: HTTPDatabaseAuthentication = .basic
     var notes: String = ""
     var transportSecurityMode: TransportSecurityMode = .systemCA
     var privateCACertificate: String = ""
@@ -71,6 +115,15 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var schemaCachingEnabled: Bool = true
     var schemaCacheDurationHours: Int = 24
     var createdAt: Date = .now
+
+    func duplicate() -> ConnectionProfile {
+        var copy = self
+        copy.id = UUID()
+        copy.createdAt = .now
+        copy.name = L10n.format("%@ Copy", name.isEmpty ? (engine.isLocal ? engine.rawValue : host) : name)
+        // The in-memory profile is hydrated from Keychain. Its Codable representation remains redacted.
+        return copy
+    }
 
     var database: String {
         get { defaultDatabase }
@@ -141,6 +194,10 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         case username
         case password
         case defaultDatabase
+        case authenticationDatabase
+        case mongoConnection
+        case sqliteFileName
+        case httpAuthentication
         case database
         case notes
         case usesTLS
@@ -277,6 +334,10 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         defaultDatabase = try container.decodeIfPresent(String.self, forKey: .defaultDatabase)
             ?? container.decodeIfPresent(String.self, forKey: .database)
             ?? ""
+        authenticationDatabase = try container.decodeIfPresent(String.self, forKey: .authenticationDatabase) ?? "admin"
+        mongoConnection = try container.decodeIfPresent(MongoConnectionOptions.self, forKey: .mongoConnection) ?? .init()
+        sqliteFileName = try container.decodeIfPresent(String.self, forKey: .sqliteFileName)
+        httpAuthentication = try container.decodeIfPresent(HTTPDatabaseAuthentication.self, forKey: .httpAuthentication) ?? .basic
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
         if let explicitMode = try container.decodeIfPresent(TransportSecurityMode.self, forKey: .transportSecurityMode) {
             transportSecurityMode = explicitMode
@@ -298,6 +359,10 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     }
 
     func encode(to encoder: Encoder) throws {
+        guard !host.contains("://"), !host.contains("@") else {
+            throw EncodingError.invalidValue("<redacted host>", .init(codingPath: encoder.codingPath,
+                                                        debugDescription: "Import connection URIs before saving a bookmark."))
+        }
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(name, forKey: .name)
@@ -308,6 +373,10 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         try container.encode(username, forKey: .username)
         try container.encode("", forKey: .password)
         try container.encode(defaultDatabase, forKey: .defaultDatabase)
+        try container.encode(authenticationDatabase, forKey: .authenticationDatabase)
+        try container.encode(mongoConnection, forKey: .mongoConnection)
+        try container.encodeIfPresent(sqliteFileName, forKey: .sqliteFileName)
+        try container.encode(httpAuthentication, forKey: .httpAuthentication)
         try container.encode(notes, forKey: .notes)
         try container.encode(usesTLS, forKey: .usesTLS)
         try container.encode(transportSecurityMode, forKey: .transportSecurityMode)

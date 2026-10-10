@@ -3,18 +3,23 @@ import Foundation
 enum VisualizationService {
     static func fieldDescriptors(for result: QueryResultTable) -> [VisualizationFieldDescriptor] {
         result.columns.enumerated().map { index, column in
-            let values = result.rows.map { $0.values[safe: index] ?? "" }
+            let values = result.rows.map { row -> String in
+                guard let cell = row.cells[safe: index], cell != .null else { return "" }
+                if result.documents != nil, cell == .json("{\"$missing\":true}") { return "" }
+                return cell.displayValue
+            }
             let nonEmptyValues = values
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
             let sample = nonEmptyValues.first ?? ""
             let distinctCount = Set(nonEmptyValues).count
-            let numericHits = nonEmptyValues.filter { parsedNumber(from: $0) != nil }.count
-            let dateHits = nonEmptyValues.filter { parsedDate(from: $0, sourceType: column.type) != nil }.count
+            let sampleValues = Array(nonEmptyValues.prefix(200))
+            let numericHits = sampleValues.filter { parsedNumber(from: $0) != nil }.count
+            let dateHits = sampleValues.filter { parsedDate(from: $0, sourceType: column.type) != nil }.count
             let numericByType = isNumericSourceType(column.type)
             let dateByType = isDateSourceType(column.type)
-            let supportsNumeric = numericByType || confidence(hitCount: numericHits, total: nonEmptyValues.count) >= 0.75
-            let supportsDate = dateByType || confidence(hitCount: dateHits, total: nonEmptyValues.count) >= 0.75
+            let supportsNumeric = numericByType || confidence(hitCount: numericHits, total: sampleValues.count) >= 0.75
+            let supportsDate = dateByType || confidence(hitCount: dateHits, total: sampleValues.count) >= 0.75
 
             return VisualizationFieldDescriptor(
                 name: column.name,
@@ -37,7 +42,16 @@ enum VisualizationService {
         sourceTableReference: String?
     ) -> SavedVisualizationPreset {
         let descriptors = fieldDescriptors(for: result)
-        let xField = defaultXField(from: descriptors)
+        let scalarFields = result.documents == nil ? descriptors : descriptors.enumerated().compactMap { index, field in
+            result.rows.contains { row in
+                guard let cell = row.cells[safe: index] else { return false }
+                switch cell {
+                case .null, .json, .binary: return false
+                default: return true
+                }
+            } ? field : nil
+        }
+        let xField = defaultXField(from: scalarFields.isEmpty ? descriptors : scalarFields)
         let yField = defaultYField(from: descriptors, excluding: xField)
         let yFields = yField.isEmpty ? [] : [yField]
         let xDescriptor = descriptors.first(where: { $0.name == xField })
@@ -149,8 +163,8 @@ enum VisualizationService {
         }
     }
 
-    static func chartPoints(for result: QueryResultTable, preset: SavedVisualizationPreset) -> [VisualizationPlotPoint] {
-        let fields = fieldDescriptors(for: result)
+    static func chartPoints(for result: QueryResultTable, preset: SavedVisualizationPreset, fields suppliedFields: [VisualizationFieldDescriptor]? = nil) -> [VisualizationPlotPoint] {
+        let fields = suppliedFields ?? fieldDescriptors(for: result)
         let yFields = preset.resolvedYFields
         guard let xIndex = result.columns.firstIndex(where: { $0.name == preset.xField }),
               !yFields.isEmpty else {
@@ -169,15 +183,17 @@ enum VisualizationService {
             result.columns.firstIndex(where: { $0.name == fieldName })
         }
 
+        let chartDateFormatter = makeChartDateFormatter()
         var buckets: [String: VisualizationPlotPoint] = [:]
         for row in result.rows {
-            let rawX = row.values[safe: xIndex]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let xCell = row.cells[safe: xIndex] ?? .null
+            let rawX = xCell.displayValue
             let xText: String
             let xNumber: Double?
             let xDate: Date?
             switch xMode {
             case .category:
-                xText = rawX.isEmpty ? "—" : rawX
+                xText = xCell.isNull ? L10n.text("NULL") : (rawX.isEmpty ? L10n.text("empty string") : rawX)
                 xNumber = nil
                 xDate = nil
             case .number:
@@ -187,7 +203,7 @@ enum VisualizationService {
                 xDate = nil
             case .date:
                 guard let date = parsedDate(from: rawX, sourceType: xSourceType) else { continue }
-                xText = makeChartDateFormatter().string(from: date)
+                xText = chartDateFormatter.string(from: date)
                 xNumber = nil
                 xDate = date
             case .automatic:
@@ -208,28 +224,22 @@ enum VisualizationService {
                 guard let yValue = parsedNumber(from: rawY) else { continue }
 
                 let seriesGroup = stackedSeriesName(metric: metricName, group: group, preset: preset)
+                let categoryIdentity = xMode == .category
+                    ? (try? JSONEncoder().encode(xCell))?.base64EncodedString() ?? rawX : xText
                 let identifierComponents: [String] = [
                     xMode.rawValue,
-                    xText,
+                    categoryIdentity,
                     xNumber.map { String($0) } ?? "",
                     xDate.map { String($0.timeIntervalSince1970) } ?? "",
                     seriesGroup ?? "",
                     metricName
                 ]
-                let identifier = identifierComponents.joined(separator: "|")
+                let identifier = identifierComponents.map { "\($0.utf8.count):\($0)" }.joined()
 
-                if var existing = buckets[identifier] {
-                    existing = VisualizationPlotPoint(
-                        id: existing.id,
-                        xText: existing.xText,
-                        xNumber: existing.xNumber,
-                        xDate: existing.xDate,
-                        yValue: existing.yValue + yValue,
-                        group: existing.group,
-                        label: existing.label ?? label,
-                        metric: existing.metric
-                    )
-                    buckets[identifier] = existing
+                if buckets[identifier] != nil {
+                    buckets[identifier]!.yValue += yValue
+                    buckets[identifier]!.sourceRowIDs.append(row.id)
+                    if buckets[identifier]!.label == nil { buckets[identifier]!.label = label }
                 } else {
                     buckets[identifier] = VisualizationPlotPoint(
                         id: identifier,
@@ -239,13 +249,14 @@ enum VisualizationService {
                         yValue: yValue,
                         group: seriesGroup,
                         label: label,
-                        metric: metricName
+                        metric: metricName,
+                        sourceRowIDs: [row.id]
                     )
                 }
             }
         }
 
-        return buckets.values.sorted { lhs, rhs in
+        return buckets.values.filter { $0.yValue.isFinite }.sorted { lhs, rhs in
             switch xMode {
             case .date:
                 return (lhs.xDate ?? .distantPast) < (rhs.xDate ?? .distantPast)
@@ -258,6 +269,46 @@ enum VisualizationService {
                 return (lhs.group ?? "").localizedCaseInsensitiveCompare(rhs.group ?? "") == .orderedAscending
             }
         }
+    }
+
+    static func dateBounds(for result: QueryResultTable, field: String) -> ClosedRange<Date>? {
+        guard let index = result.columns.firstIndex(where: { $0.name == field }) else { return nil }
+        let dates = result.rows.compactMap { row in
+            row.cells[safe: index].flatMap { $0.isNull ? nil : parsedDate(from: $0.displayValue, sourceType: result.columns[index].type) }
+        }
+        guard let first = dates.min(), let last = dates.max() else { return nil }
+        return first...last
+    }
+
+    static func filteredResult(_ result: QueryResultTable, dateFilter: VisualizationDateFilter?) -> QueryResultTable {
+        guard let dateFilter else { return result }
+        guard let index = result.columns.firstIndex(where: { $0.name == dateFilter.field }) else { return subset(result, rowIDs: []) }
+        let rowIDs = result.rows.compactMap { row -> UUID? in
+            guard let cell = row.cells[safe: index], !cell.isNull,
+                  let date = parsedDate(from: cell.displayValue, sourceType: result.columns[index].type),
+                  date >= dateFilter.start && date < dateFilter.end else { return nil }
+            return row.id
+        }
+        return subset(result, rowIDs: Set(rowIDs))
+    }
+
+    static func matchingResult(_ result: QueryResultTable, point: VisualizationPlotPoint) -> QueryResultTable {
+        subset(result, rowIDs: Set(point.sourceRowIDs))
+    }
+
+    private static func subset(_ result: QueryResultTable, rowIDs: Set<UUID>) -> QueryResultTable {
+        let offsets = result.rows.indices.filter { rowIDs.contains(result.rows[$0].id) }
+        var subset = result
+        subset.rows = offsets.map { result.rows[$0] }
+        subset.profiles = []
+        subset.isExplorerGenerated = false
+        subset.generatedMutation = nil
+        subset.affectedRowCount = nil
+        if let documents = result.documents {
+            subset.documents = offsets.compactMap { documents.indices.contains($0) ? documents[$0] : nil }
+        }
+        subset.executionSummary = L10n.format("Loaded rows: %d / %d", subset.rows.count, result.rows.count)
+        return subset
     }
 
     static func isCompatible(_ preset: SavedVisualizationPreset, with result: QueryResultTable) -> Bool {
@@ -359,7 +410,12 @@ enum VisualizationService {
     }
 
     private static func defaultYField(from fields: [VisualizationFieldDescriptor], excluding xField: String) -> String {
-        if let metric = fields.first(where: { $0.supportsNumeric && $0.name != xField }) {
+        let candidates = fields.filter { $0.supportsNumeric && $0.name != xField }
+        let measures = candidates.filter {
+            let name = $0.name.split(separator: ".").last?.lowercased() ?? ""
+            return name != "id" && name != "_id" && name != "uuid" && !name.hasSuffix("_id")
+        }
+        if let metric = measures.first(where: { isNumericSourceType($0.sourceType) }) ?? measures.first ?? candidates.first {
             return metric.name
         }
         return fields.first(where: \.supportsNumeric)?.name ?? fields.first?.name ?? ""
@@ -414,28 +470,20 @@ enum VisualizationService {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         if let direct = Double(trimmed) {
-            return direct
+            return direct.isFinite ? direct : nil
         }
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.numberStyle = .decimal
-        return formatter.number(from: trimmed)?.doubleValue
+        guard let value = formatter.number(from: trimmed)?.doubleValue, value.isFinite else { return nil }
+        return value
     }
 
     static func parsedDate(from raw: String, sourceType: String) -> Date? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
-        for formatter in makeTextDateFormatters() {
-            if let date = formatter.date(from: trimmed) {
-                return date
-            }
-        }
-        let fractionalFormatter = makeISO8601Formatter(fractional: true)
-        let basicFormatter = makeISO8601Formatter(fractional: false)
-        if let date = fractionalFormatter.date(from: trimmed) ?? basicFormatter.date(from: trimmed) {
-            return date
-        }
+        if let date = dateParser.parse(trimmed) { return date }
         if isDateSourceType(sourceType), let number = parsedNumber(from: trimmed) {
             return parsedTimestamp(number)
         }
@@ -458,10 +506,10 @@ enum VisualizationService {
     }
 
     private static func format(number: Double) -> String {
-        if number.rounded() == number {
-            return String(Int(number))
+        if let integer = Int(exactly: number) {
+            return String(integer)
         }
-        return String(format: "%.2f", number)
+        return String(number)
     }
 
     private static func makeISO8601Formatter(fractional: Bool) -> ISO8601DateFormatter {
@@ -496,6 +544,26 @@ enum VisualizationService {
             formatter.timeZone = TimeZone(secondsFromGMT: 0)
             formatter.dateFormat = format
             return formatter
+        }
+    }
+
+    private static let dateParser = DateParser()
+
+    private final class DateParser: @unchecked Sendable {
+        private let lock = NSLock()
+        private let textFormatters = VisualizationService.makeTextDateFormatters()
+        private let fractional = VisualizationService.makeISO8601Formatter(fractional: true)
+        private let basic = VisualizationService.makeISO8601Formatter(fractional: false)
+
+        func parse(_ text: String) -> Date? {
+            lock.lock()
+            defer { lock.unlock() }
+            // ISO parsing comes first so an offset or fractional second is never discarded.
+            if let date = fractional.date(from: text) ?? basic.date(from: text) { return date }
+            for formatter in textFormatters {
+                if let date = formatter.date(from: text) { return date }
+            }
+            return nil
         }
     }
 }

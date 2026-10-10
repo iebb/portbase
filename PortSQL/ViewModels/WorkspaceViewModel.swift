@@ -6,8 +6,16 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var selectedBookmarkID: UUID?
     @Published var selectedDatabaseName = ""
     @Published private(set) var availableDatabases: [String] = []
-    @Published var queryText = ""
+    @Published var queryText = "" {
+        didSet { querySelectionLength = 0; queryErrorRange = nil }
+    }
+    @Published var queryErrorRange: NSRange?
+    @Published var manualCommit = false
+    @Published private(set) var hasOpenTransaction = false
+    private(set) var consoleSessionID = UUID()
     @Published var queryCursorOffset = 0
+    @Published var querySelectionLength = 0
+    @Published var mongoDraft = MongoQueryDraft()
     @Published var explorerWhereClause = ""
     @Published var explorerOrderByClause = ""
     @Published private(set) var explorerPageIndex = 0
@@ -16,7 +24,11 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var hints: [EditorHint] = []
     @Published var schema: [SchemaSuggestion] = []
     @Published var schemaCatalog: [SchemaTableDescriptor] = []
+    @Published private(set) var foreignKeys: [SchemaForeignKey] = []
+    private var relationshipTask: Task<Void, Never>?
     @Published var result = QueryResultTable.empty
+    @Published private(set) var resultSets: [QueryResultTable] = []
+    @Published private(set) var selectedResultIndex = 0
     @Published var selectedProfileForEdit: ConnectionProfile?
     @Published var isRunning = false
     @Published var errorMessage: String?
@@ -30,31 +42,34 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var parameterDraft: QueryParameterDraft?
     @Published var parameterErrorMessage: String?
     @Published private(set) var isLoadingSchema = false
+    /// The most recent console execution, used for run status displays.
+    @Published private(set) var lastExecution: QueryHistoryEntry?
 
     private weak var bookmarkStore: BookmarkStore?
     private weak var libraryStore: WorkspaceLibraryStore?
-    private weak var purchaseStore: PurchaseStore?
     private var assistTask: Task<Void, Never>?
     private var schemaLoadToken: UUID?
     private var runToken: UUID?
     private var queryTask: Task<Void, Never>?
+    private var cancellationWriteWarning: String?
+    private var executionHistory: (token: UUID, entry: QueryHistoryEntry, started: TimeInterval)?
     private var mutationTask: Task<Void, Never>?
     private var mutationToken: UUID?
-    private var activeBoundQuery: BoundQuery?
+    var activeBoundQuery: BoundQuery?
+    private var engineDrafts: [DatabaseEngine: (query: String, filter: String, sort: String)] = [:]
     private let schemaCacheStore = SchemaCacheStore.shared
 
     func configure(
         bookmarkStore: BookmarkStore,
-        libraryStore: WorkspaceLibraryStore,
-        purchaseStore: PurchaseStore
+        libraryStore: WorkspaceLibraryStore
     ) {
+        guard self.bookmarkStore == nil else { return }
         self.bookmarkStore = bookmarkStore
         self.libraryStore = libraryStore
-        self.purchaseStore = purchaseStore
         if selectedBookmarkID == nil {
             selectedBookmarkID = bookmarkStore.bookmarks.first?.id
         }
-        selectedDatabaseName = selectedBookmark?.trimmedDefaultDatabase ?? ""
+        if selectedDatabaseName.isEmpty { selectedDatabaseName = selectedBookmark?.trimmedDefaultDatabase ?? "" }
         rebuildSchemaSuggestions()
         refreshAssist()
         reloadSchema()
@@ -63,6 +78,11 @@ final class WorkspaceViewModel: ObservableObject {
     var selectedBookmark: ConnectionProfile? {
         bookmarkStore?.bookmark(with: selectedBookmarkID)
     }
+
+    var isDocumentDatabase: Bool { selectedBookmark?.engine == .mongodb }
+    var isSQLDatabase: Bool { selectedBookmark?.engine.isSQL ?? true }
+    var usesJSONEditor: Bool { selectedBookmark?.engine.usesJSONEditor == true }
+    var editorPlaceholder: String { selectedBookmark?.engine.queryPlaceholder ?? "SELECT …" }
 
     var isSchemaCachingEnabled: Bool {
         selectedBookmark?.schemaCachingEnabled == true
@@ -102,9 +122,9 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     var currentEditableTable: SchemaTableDescriptor? {
-        guard result.isExplorerGenerated == true,
+        guard selectedBookmark?.engine.supportsRowEditing == true, result.isExplorerGenerated == true,
               let reference = result.sourceTableReference else { return nil }
-        return schemaCatalog.first(where: { $0.matches(reference: reference) })
+        return schemaCatalog.first(where: { $0.matches(reference: reference) && ($0.objectKind == nil || $0.objectKind == .table) })
     }
 
     var canInsertIntoCurrentTable: Bool {
@@ -153,6 +173,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     var explorerSortColumn: String? {
+        if isDocumentDatabase { return (try? MongoQueryService.jsonObject(explorerOrderByClause))?.keys.first }
         let trimmed = normalizedOrderByClause(explorerOrderByClause)
         guard !trimmed.isEmpty else { return nil }
         let parts = trimmed.split(whereSeparator: \.isWhitespace)
@@ -160,6 +181,10 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     var explorerSortDirection: String? {
+        if isDocumentDatabase {
+            guard let sort = try? MongoQueryService.jsonObject(explorerOrderByClause), let key = sort.keys.first else { return nil }
+            return sort[key]?.toInt() == -1 ? "DESC" : "ASC"
+        }
         let trimmed = normalizedOrderByClause(explorerOrderByClause)
         guard !trimmed.isEmpty else { return nil }
         let parts = trimmed.split(whereSeparator: \.isWhitespace)
@@ -170,11 +195,17 @@ final class WorkspaceViewModel: ObservableObject {
 
     func refreshAssist() {
         assistTask?.cancel()
+        if !isSQLDatabase {
+            suggestions = []
+            hints = []
+            return
+        }
 
         let query = queryText
         let catalog = schemaCatalog
         let activeDatabase = activeDatabaseName
         let cursorOffset = queryCursorOffset
+        let engine = selectedBookmark?.engine ?? .postgresql
 
         assistTask = Task.detached(priority: .userInitiated) {
             try? await Task.sleep(nanoseconds: 90_000_000)
@@ -184,7 +215,8 @@ final class WorkspaceViewModel: ObservableObject {
                 for: query,
                 catalog: catalog,
                 activeDatabase: activeDatabase,
-                cursorOffset: cursorOffset
+                cursorOffset: cursorOffset,
+                engine: engine
             )
             let hints = SQLAssistService.hints(for: query)
 
@@ -203,26 +235,107 @@ final class WorkspaceViewModel: ObservableObject {
         refreshAssist()
     }
 
-    func runQuery() {
-        let boundValues = activeBoundQuery?.sql == queryText ? activeBoundQuery?.values ?? [] : []
-        runChecked(sql: queryText, title: inferredTitle(for: queryText), values: boundValues)
+    var hasQuerySelection: Bool {
+        isSQLDatabase && SQLEditingService.selection(in: queryText, offset: queryCursorOffset, length: querySelectionLength) != nil
+    }
+
+    var editorPositionLabel: String {
+        let offset = SQLEditingService.characterOffset(in: queryText, utf16Offset: queryCursorOffset)
+        let lines = queryText.prefix(offset).split(separator: "\n", omittingEmptySubsequences: false)
+        return L10n.format("Ln %d, Col %d", lines.count, (lines.last?.count ?? 0) + 1)
+    }
+
+    private var selectedQuery: String {
+        guard isSQLDatabase,
+              let range = SQLEditingService.selection(in: queryText, offset: queryCursorOffset, length: querySelectionLength) else {
+            guard isSQLDatabase, let range = SQLEditingService.statement(in: queryText, atUTF16: queryCursorOffset, engine: selectedBookmark?.engine ?? .postgresql) else { return queryText }
+            return String(queryText[range])
+        }
+        return String(queryText[range])
+    }
+
+    func runQuery(entireBuffer: Bool = false) {
+        guard !isRunning else { return }
+        let sql = entireBuffer ? queryText : selectedQuery
+        if activeBoundQuery?.sql != queryText {
+            let names = QueryParameterService.parameters(in: sql, engine: selectedBookmark?.engine ?? .postgresql)
+            if !names.isEmpty {
+                parameterDraft = QueryParameterDraft(sourceSQL: sql, values: Dictionary(uniqueKeysWithValues: names.map { ($0, "") }))
+                return
+            }
+        }
+        guard let values = boundValues(for: sql) else { return }
+        runChecked(sql: sql, title: inferredTitle(for: sql), values: values)
+    }
+
+    private func boundValues(for sql: String) -> [QueryBoundValue]? {
+        guard let bound = activeBoundQuery, bound.sql == queryText, !bound.values.isEmpty else { return [] }
+        guard sql == queryText else {
+            errorMessage = L10n.text("Run the complete parameterized query to preserve its bound values.")
+            return nil
+        }
+        return bound.values
     }
 
     func runExplain() {
+        let sql = selectedQuery
+        guard let values = boundValues(for: sql) else { return }
         guard let explainSQL = SQLSafetyService.explainQuery(
-            for: queryText,
-            engine: selectedBookmark?.engine ?? .postgresql
+            for: sql, engine: selectedBookmark?.engine ?? .postgresql
         ) else {
             errorMessage = L10n.text("Explain is available only for read-only queries.")
             return
         }
-        let values = activeBoundQuery?.sql == queryText ? activeBoundQuery?.values ?? [] : []
         run(sql: explainSQL, title: L10n.text("Explain plan"), values: values, policy: .readOnly)
     }
 
     func formatQuery() {
-        queryText = SQLAssistService.format(queryText)
+        let original = queryText
+        if isDocumentDatabase {
+            do { queryText = MongoQueryService.pretty(try MongoQueryService.parse(queryText).command) }
+            catch { errorMessage = error.localizedDescription }
+            return
+        }
+        if selectedBookmark?.engine == .elasticsearch {
+            do { queryText = try ElasticsearchQueryService.parse(queryText).preview }
+            catch { errorMessage = error.localizedDescription }
+            return
+        }
+        guard isSQLDatabase else { return }
+        let range = SQLEditingService.selection(in: queryText, offset: queryCursorOffset, length: querySelectionLength)
+        let formatted = SQLAssistService.format(range.map { String(queryText[$0]) } ?? queryText, engine: selectedBookmark?.engine ?? .postgresql)
+        if let range {
+            let offset = queryText[..<range.lowerBound].utf16.count
+            queryText.replaceSubrange(range, with: formatted)
+            queryCursorOffset = offset
+            querySelectionLength = formatted.utf16.count
+        } else { queryText = formatted }
+        if let bound = activeBoundQuery, bound.sql == original {
+            activeBoundQuery = BoundQuery(sql: queryText, values: bound.values, sourceSQL: bound.sourceSQL)
+        }
         refreshAssist()
+    }
+
+    func runMongoBuilder(explain: Bool = false) throws {
+        let command = try mongoDraft.command(fallbackCollection: selectedExplorerTable?.name)
+        activeBoundQuery = nil
+        queryText = command
+        if explain {
+            guard let explained = MongoQueryService.explain(command) else { throw DatabaseServiceError.readOnlyQueryRequired }
+            run(sql: explained, title: L10n.text("Explain plan"), policy: .readOnly)
+        } else {
+            let parsed = try MongoQueryService.parse(command)
+            let findName = parsed.command["find"]?.stringValue
+            let projection = try MongoQueryService.jsonObject(mongoDraft.projection)
+            let table = projection.isEmpty && selectedExplorerTable?.name == findName ? selectedExplorerTable : nil
+            run(sql: command, title: inferredTitle(for: command), policy: .readOnly, explorerTable: table)
+        }
+    }
+
+    func editMongoCommand(_ command: String) {
+        activeBoundQuery = nil
+        queryText = command
+        mongoDraft.mode = .command
     }
 
     func refreshSchemaCatalog() {
@@ -324,13 +437,13 @@ final class WorkspaceViewModel: ObservableObject {
     ) {
         availableDatabases = databases
         selectedDatabaseName = selectedDatabase ?? ""
+        let previousTableName = selectedExplorerTable?.displayName
         schemaCatalog = catalog
         rebuildSchemaSuggestions()
 
         let activeExplorerTable: SchemaTableDescriptor?
-        if let selectedExplorerTableID,
-           let existingTable = catalog.first(where: { $0.id == selectedExplorerTableID }) {
-            self.selectedExplorerTableID = selectedExplorerTableID
+        if let existingTable = catalog.first(where: { $0.displayName == previousTableName }) {
+            self.selectedExplorerTableID = existingTable.id
             activeExplorerTable = existingTable
         } else {
             let firstTable = catalog.first
@@ -338,15 +451,15 @@ final class WorkspaceViewModel: ObservableObject {
             activeExplorerTable = firstTable
         }
 
-        if queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           let activeExplorerTable {
+        let hadQuery = !queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if !hadQuery, let activeExplorerTable {
             queryText = defaultQuery(for: activeExplorerTable)
         }
         schemaErrorMessage = nil
         isLoadingSchema = false
         schemaLoadToken = nil
         refreshAssist()
-        if result.columns.isEmpty,
+        if !hadQuery, result.columns.isEmpty,
            errorMessage == nil,
            let activeExplorerTable {
             browse(table: activeExplorerTable)
@@ -354,18 +467,28 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func saveSnippet() {
-        let trimmed = queryText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = activeBoundQuery?.sql == queryText ? (activeBoundQuery?.sourceSQL ?? queryText) : queryText
+        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        libraryStore?.saveSnippet(title: inferredTitle(for: trimmed), sql: trimmed)
+        libraryStore?.saveSnippet(title: inferredTitle(for: trimmed), sql: trimmed,
+                                  bookmarkID: selectedBookmark?.id, database: activeDatabaseName, engine: selectedBookmark?.engine)
     }
 
-    func apply(history entry: QueryHistoryEntry) {
+    @discardableResult
+    func apply(history entry: QueryHistoryEntry) -> Bool {
+        guard restoreQueryContext(bookmarkID: entry.bookmarkID, database: entry.database, engine: entry.engine) else { return false }
         activeBoundQuery = nil
         queryText = entry.sql
+        queryCursorOffset = 0
+        if usesJSONEditor { mongoDraft.mode = .command }
         refreshAssist()
+        return true
     }
 
-    func apply(snippet: SavedQuerySnippet) {
+    @discardableResult
+    func apply(snippet: SavedQuerySnippet) -> Bool {
+        guard restoreQueryContext(bookmarkID: snippet.bookmarkID, database: snippet.database, engine: snippet.engine) else { return false }
+        if usesJSONEditor { mongoDraft.mode = .command }
         let parameters = QueryParameterService.parameters(
             in: snippet.sql,
             engine: selectedBookmark?.engine ?? .postgresql
@@ -373,14 +496,39 @@ final class WorkspaceViewModel: ObservableObject {
         guard !parameters.isEmpty else {
             activeBoundQuery = nil
             queryText = snippet.sql
+            queryCursorOffset = 0
             refreshAssist()
-            return
+            return true
         }
         parameterDraft = QueryParameterDraft(
             sourceSQL: snippet.sql,
             values: Dictionary(uniqueKeysWithValues: parameters.map { ($0, "") })
         )
         parameterErrorMessage = nil
+        return true
+    }
+
+    private func restoreQueryContext(bookmarkID: UUID?, database: String?, engine: DatabaseEngine?) -> Bool {
+        guard !isRunning else { return false }
+        if let bookmarkID {
+            guard let profile = bookmarkStore?.bookmarks.first(where: { $0.id == bookmarkID }),
+                  engine == nil || profile.engine == engine else {
+                errorMessage = L10n.text("The saved connection is unavailable or its database engine changed.")
+                return false
+            }
+            let changesContext = profile.id != selectedBookmark?.id || (database != nil && database != activeDatabaseName)
+            guard !changesContext || !hasOpenTransaction else {
+                errorMessage = ConsoleSessionError.pendingTransaction.localizedDescription
+                return false
+            }
+            if profile.id != selectedBookmark?.id { selectBookmark(profile.id) }
+            if let database, !database.isEmpty, database != activeDatabaseName { selectDatabase(database) }
+        } else if let engine, engine != selectedBookmark?.engine {
+            errorMessage = L10n.text("Choose a connection with the same database engine before opening this query.")
+            return false
+        }
+        errorMessage = nil
+        return true
     }
 
     func applyParameters(_ draft: QueryParameterDraft) -> Bool {
@@ -421,6 +569,15 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func selectExplorerTable(_ table: SchemaTableDescriptor) {
+        if isDocumentDatabase {
+            mongoDraft.collection = table.name
+            mongoDraft.mode = .find
+            mongoDraft.filter = explorerWhereClause.isEmpty ? "{}" : explorerWhereClause
+            mongoDraft.projection = "{}"
+            mongoDraft.sort = explorerOrderByClause.isEmpty ? #"{"_id": 1}"# : explorerOrderByClause
+            mongoDraft.skip = "0"
+            mongoDraft.limit = String(explorerPageSize)
+        }
         selectedExplorerTableID = table.id
         explorerPageIndex = 0
         browse(table: table)
@@ -432,7 +589,14 @@ final class WorkspaceViewModel: ObservableObject {
             return
         }
         selectedExplorerTableID = targetTable.id
-        let sql = browseQuery(for: targetTable)
+        let sql: String
+        do {
+            sql = isDocumentDatabase ? try MongoQueryService.browse(collection: targetTable.name, filter: explorerWhereClause,
+                sort: explorerOrderByClause, limit: explorerPageSize, skip: explorerPageIndex * explorerPageSize) : browseQuery(for: targetTable)
+        } catch {
+            errorMessage = error.localizedDescription
+            return
+        }
         activeBoundQuery = nil
         queryText = sql
         refreshAssist()
@@ -472,6 +636,13 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func sortExplorer(by columnName: String) {
+        if isDocumentDatabase {
+            let descending = explorerSortColumn == columnName && explorerSortDirection != "DESC"
+            explorerOrderByClause = MongoQueryService.pretty([columnName: descending ? -1 : 1])
+            explorerPageIndex = 0
+            browse()
+            return
+        }
         let normalizedTarget = normalizedIdentifier(columnName)
         let normalizedCurrent = explorerSortColumn.map(normalizedIdentifier)
         let quotedColumn = sqlIdentifier(columnName, engine: selectedBookmark?.engine ?? .postgresql)
@@ -566,49 +737,148 @@ final class WorkspaceViewModel: ObservableObject {
         policy: DatabaseExecutionPolicy = .userQuery(confirmed: false),
         explorerTable: SchemaTableDescriptor? = nil
     ) {
+        guard !isRunning else { return }
         let currentRunToken = UUID()
         queryTask?.cancel()
         runToken = currentRunToken
         isRunning = true
         errorMessage = nil
+        let profile = selectedBookmark
+        let historySQL = activeBoundQuery?.sql == sql ? (activeBoundQuery?.sourceSQL ?? sql) : sql
+        executionHistory = (currentRunToken, QueryHistoryEntry(
+            title: title, sql: historySQL,
+            connectionName: profile.map { $0.name.isEmpty ? $0.host : $0.name } ?? L10n.text("Unassigned"),
+            summary: "", bookmarkID: profile?.id, database: activeDatabaseName, engine: profile?.engine
+        ), ProcessInfo.processInfo.systemUptime)
+        cancellationWriteWarning = nil
+        if let profile, !policy.requiresReadOnlySession, !SQLSafetyService.isReadOnlySQL(sql, engine: profile.engine) {
+            if profile.engine == .redis {
+                cancellationWriteWarning = RedisClientError.writeOutcomeUnknown.localizedDescription
+            } else if profile.engine == .clickhouse || profile.engine == .elasticsearch {
+                cancellationWriteWarning = HTTPDatabaseError.unconfirmedWrite.localizedDescription
+            }
+        }
+        let database = activeDatabaseName
+        let capturedQuery = queryText
+        let currentRange = SQLEditingService.statement(in: queryText, atUTF16: queryCursorOffset, engine: profile?.engine ?? .postgresql)
+        let executionOffset = currentRange.flatMap { String(queryText[$0]).trimmingCharacters(in: .whitespacesAndNewlines) == sql ? NSRange($0, in: queryText).location : nil }
+            ?? (queryText as NSString).range(of: sql).location
+        let usesConsole = explorerTable == nil && !policy.requiresReadOnlySession && profile?.engine.supportsConsoleTransactions == true
+        let manual = manualCommit
+        let sessionID = consoleSessionID
+        queryErrorRange = nil
         queryTask = Task {
+            var failureSQL = sql
+            var failureOffset = executionOffset
+            var completed: [QueryResultTable] = []
             do {
-                var table = try await DatabaseService.shared.execute(
-                    query: sql,
-                    values: values,
-                    profile: selectedBookmark,
-                    database: activeDatabaseName,
-                    policy: policy
-                )
-                table.sourceTableReference = explorerTable?.displayName ?? inferredTableReference(in: sql)
-                table.isExplorerGenerated = explorerTable != nil
-                table.sourceQuery = sql
+                let ranges = SQLEditingService.statementRanges(in: sql, engine: profile?.engine ?? .postgresql)
+                if ranges.count > 1, !values.isEmpty {
+                    throw NSError(domain: "PortSQL.Parameters", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.text("Run parameterized statements individually.")])
+                }
+                let statements = ranges.isEmpty ? [sql] : ranges.map { String(sql[$0]) }
+                for (index, statement) in statements.enumerated() {
+                    try Task.checkCancellation()
+                    failureSQL = statement
+                    failureOffset = executionOffset == NSNotFound ? NSNotFound : executionOffset + (ranges.indices.contains(index) ? NSRange(ranges[index], in: sql).location : 0)
+                    var table = try await DatabaseService.shared.execute(
+                        query: statement, values: values, profile: profile, database: database, policy: policy,
+                        sessionID: usesConsole ? sessionID : nil, manualCommit: manual
+                    )
+                    table.sourceTableReference = explorerTable?.displayName ?? inferredTableReference(in: statement)
+                    table.isExplorerGenerated = explorerTable != nil
+                    table.sourceQuery = statement
+                    completed.append(table)
+                }
+                let table = completed.last ?? .empty
+                let transactionOpen = await DatabaseService.shared.consoleHasTransaction(sessionID)
                 await MainActor.run {
                     guard self.runToken == currentRunToken else { return }
                     self.result = table
+                    self.resultSets = completed
+                    self.selectedResultIndex = max(0, completed.count - 1)
+                    self.hasOpenTransaction = transactionOpen
+                    self.loadRelationships(for: explorerTable, profile: profile, database: database)
                     self.queryTask = nil
+                    self.cancellationWriteWarning = nil
                     self.isRunning = false
                     self.errorMessage = nil
-                    self.libraryStore?.addHistory(
-                        title: title,
-                        sql: sql,
-                        connectionName: self.selectedBookmark?.name ?? L10n.text("Unassigned"),
-                        summary: table.executionSummary
-                    )
+                    self.finishExecutionHistory(token: currentRunToken, outcome: .succeeded, summary: table.executionSummary)
                     if self.shouldReloadSchema(after: sql) {
                         self.reloadSchema(forceRefresh: true)
                     }
                 }
             } catch {
+                let transactionOpen = await DatabaseService.shared.consoleHasTransaction(sessionID)
                 await MainActor.run {
                     guard self.runToken == currentRunToken else { return }
-                    self.errorMessage = error.localizedDescription
-                    self.result = QueryResultTable.empty
+                    self.errorMessage = SQLQueryDiagnostic.message(for: error)
+                    self.finishExecutionHistory(token: currentRunToken, outcome: error is CancellationError ? .cancelled : .failed,
+                                                summary: self.errorMessage ?? L10n.text("Failed"))
+                    if usesConsole { self.hasOpenTransaction = transactionOpen }
+                    if self.queryText == capturedQuery, failureOffset != NSNotFound,
+                       let range = SQLQueryDiagnostic.range(for: error, sql: failureSQL) {
+                        self.queryErrorRange = NSRange(location: failureOffset + range.location, length: range.length)
+                        self.queryCursorOffset = failureOffset + range.location
+                        self.querySelectionLength = range.length
+                    }
+                    self.resultSets = completed
+                    self.selectedResultIndex = max(0, completed.count - 1)
+                    self.result = completed.last ?? .empty
                     self.queryTask = nil
+                    self.cancellationWriteWarning = nil
                     self.isRunning = false
                 }
             }
         }
+    }
+
+    func selectResult(_ index: Int) {
+        guard resultSets.indices.contains(index) else { return }
+        selectedResultIndex = index
+        result = resultSets[index]
+        foreignKeys = []
+    }
+
+    private func loadRelationships(for table: SchemaTableDescriptor?, profile: ConnectionProfile?, database: String?) {
+        relationshipTask?.cancel()
+        foreignKeys = []
+        guard let table, let profile, profile.engine.isRelational else { return }
+        let expectedResult = result.sourceQuery
+        relationshipTask = Task {
+            do {
+                let keys = try await DatabaseService.shared.schemaForeignKeys(table: table, profile: profile, database: database)
+                guard !Task.isCancelled, result.sourceQuery == expectedResult else { return }
+                foreignKeys = keys
+            } catch { /* Data browsing stays available when metadata privileges are limited. */ }
+        }
+    }
+
+    func followForeignKey(_ key: SchemaForeignKey, row: QueryRow) {
+        guard let profile = selectedBookmark, profile.engine.isRelational,
+              !key.columns.isEmpty, key.columns.count == key.referencedColumns.count else { return }
+        var values: [QueryBoundValue] = []
+        for column in key.columns {
+            guard let index = result.columns.firstIndex(where: { $0.name == column }), row.cells.indices.contains(index) else { return }
+            switch row.cells[index] {
+            case .text(let value), .dateTime(let value): values.append(.string(value))
+            case .integer(let value):
+                if let integer = Int64(value) { values.append(.integer(integer)) } else { values.append(.decimal(value)) }
+            case .decimal(let value): values.append(.decimal(value))
+            case .boolean(let value): values.append(.boolean(value))
+            default: errorMessage = L10n.text("This reference has a NULL or unsupported key value."); return
+            }
+        }
+        let target = schemaCatalog.first { $0.schemaName == key.referencedSchema && $0.name == key.referencedTable }
+            ?? SchemaTableDescriptor(schemaName: key.referencedSchema, name: key.referencedTable, columns: [], rowCountEstimate: nil)
+        let clauses = key.referencedColumns.enumerated().map { index, column in
+            sqlIdentifier(column, engine: profile.engine) + " = " + (profile.engine == .postgresql ? "$\(index + 1)" : "?")
+        }
+        let sql = "SELECT * FROM " + sqlQualifiedTable(target, engine: profile.engine) + " WHERE " + clauses.joined(separator: " AND ") + " LIMIT 100;"
+        queryText = sql
+        activeBoundQuery = BoundQuery(sql: sql, values: values)
+        selectedExplorerTableID = target.id
+        run(sql: sql, title: target.displayName, values: values, policy: .readOnly, explorerTable: target)
     }
 
     private func runChecked(sql: String, title: String, values: [QueryBoundValue] = []) {
@@ -658,6 +928,81 @@ final class WorkspaceViewModel: ObservableObject {
 
     func cancelPendingSafetyConfirmation() {
         pendingSafetyConfirmation = nil
+    }
+
+    func cancelQuery() {
+        if let token = runToken {
+            finishExecutionHistory(token: token, outcome: .cancelled, summary: cancellationWriteWarning ?? L10n.text("Cancelled"))
+        }
+        if let cancellationWriteWarning { errorMessage = cancellationWriteWarning }
+        cancellationWriteWarning = nil
+        queryTask?.cancel()
+        queryTask = nil
+        runToken = nil
+        isRunning = false
+        hasOpenTransaction = false
+        let previousSession = consoleSessionID
+        consoleSessionID = UUID()
+        Task { await DatabaseService.shared.closeConsole(previousSession) }
+    }
+
+    func disconnectConsole() { cancelQuery() }
+
+    private func finishExecutionHistory(token: UUID, outcome: QueryHistoryOutcome, summary: String) {
+        guard let pending = executionHistory, pending.token == token else { return }
+        executionHistory = nil
+        var entry = pending.entry
+        entry.summary = summary
+        entry.outcome = outcome
+        entry.duration = max(0, ProcessInfo.processInfo.systemUptime - pending.started)
+        lastExecution = entry
+        libraryStore?.addHistory(entry)
+    }
+
+    func setManualCommit(_ enabled: Bool) {
+        guard selectedBookmark?.engine.supportsConsoleTransactions == true else { return }
+        guard !hasOpenTransaction, !isRunning else { return }
+        manualCommit = enabled
+    }
+
+    func finishTransaction(commit: Bool) {
+        guard !isRunning else { return }
+        isRunning = true
+        let sessionID = consoleSessionID
+        let token = UUID()
+        runToken = token
+        queryTask = Task {
+            do {
+                try Task.checkCancellation()
+                try await DatabaseService.shared.finishConsoleTransaction(sessionID, commit: commit)
+                guard runToken == token, !Task.isCancelled else { return }
+                hasOpenTransaction = false
+            } catch {
+                let transactionOpen = await DatabaseService.shared.consoleHasTransaction(sessionID)
+                guard runToken == token, !Task.isCancelled else { return }
+                errorMessage = error.localizedDescription
+                hasOpenTransaction = transactionOpen
+            }
+            isRunning = false; queryTask = nil; runToken = nil
+        }
+    }
+
+    var transferBoundQuery: BoundQuery? {
+        if let bound = activeBoundQuery, bound.sql == queryText { return bound }
+        let engine = selectedBookmark?.engine ?? .postgresql
+        guard QueryParameterService.parameters(in: queryText, engine: engine).isEmpty else { return nil }
+        let words = SQLEditingService.tokens(queryText, engine: engine)
+        if (engine.isMySQLFamily || engine == .sqlite), words.contains(where: { $0.text == "?" }) { return nil }
+        if engine == .postgresql, words.contains(where: { $0.text.range(of: #"^\$[0-9]+$"#, options: .regularExpression) != nil }) { return nil }
+        return BoundQuery(sql: queryText, values: [])
+    }
+
+    func useMongoTemplate(_ kind: String) {
+        guard isDocumentDatabase, let collection = selectedExplorerTable?.name else { return }
+        activeBoundQuery = nil
+        mongoDraft.mode = .command
+        queryText = MongoQueryService.template(kind, collection: collection)
+        refreshAssist()
     }
 
     func exportResultURL(format: QueryResultExportFormat) -> URL? {
@@ -725,6 +1070,7 @@ final class WorkspaceViewModel: ObservableObject {
                 originalIsNull: currentCell.isNull,
                 isEditable: selectedBookmark?.isReadOnly != true
                     && canUpdateRow
+                    && schemaColumn.isGenerated != true
                     && !currentCell.isBinary
                     && !Self.isUnsupportedBinaryColumn(schemaColumn)
                     && !editableIdentifierColumnNames.contains(normalizedIdentifier(schemaColumn.name))
@@ -751,7 +1097,7 @@ final class WorkspaceViewModel: ObservableObject {
                 column: column,
                 value: "",
                 originalValue: nil,
-                isEditable: !Self.isUnsupportedBinaryColumn(column)
+                isEditable: column.isGenerated != true && !Self.isUnsupportedBinaryColumn(column)
             )
         }
         dataEditorDraft = DataEditorDraft(mode: .insert, table: targetTable, fields: fields, rowID: nil)
@@ -840,14 +1186,6 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func createBookmark() {
-        let bookmarkCount = bookmarkStore?.bookmarks.count ?? 0
-        guard PremiumPolicy.canCreateBookmark(
-            existingCount: bookmarkCount,
-            hasPro: purchaseStore?.hasPro == true
-        ) else {
-            purchaseStore?.presentPaywall(for: .unlimitedBookmarks)
-            return
-        }
         selectedProfileForEdit = ConnectionProfile(
             name: "",
             engine: .postgresql,
@@ -860,21 +1198,47 @@ final class WorkspaceViewModel: ObservableObject {
         )
     }
 
-    func saveBookmark(_ profile: ConnectionProfile) {
-        bookmarkStore?.upsert(profile)
-        selectBookmark(profile.id)
+    @discardableResult
+    func saveBookmark(_ profile: ConnectionProfile) -> Bool {
+        guard !hasOpenTransaction else { errorMessage = ConsoleSessionError.pendingTransaction.localizedDescription; return false }
+        let oldEngine = selectedBookmark?.engine
+        guard bookmarkStore?.upsert(profile) == true else {
+            errorMessage = bookmarkStore?.errorMessage
+            return false
+        }
+        selectBookmark(profile.id, previousEngineOverride: oldEngine)
         selectedProfileForEdit = nil
+        return true
     }
 
-    func selectBookmark(_ id: UUID?) {
+    func selectBookmark(_ id: UUID?, previousEngineOverride: DatabaseEngine? = nil) {
+        guard !hasOpenTransaction else { errorMessage = ConsoleSessionError.pendingTransaction.localizedDescription; return }
+        disconnectConsole()
+        let previousEngine = previousEngineOverride ?? selectedBookmark?.engine
+        pendingSafetyConfirmation = nil
+        parameterDraft = nil
+        activeBoundQuery = nil
         cancelMutation()
         queryTask?.cancel()
         queryTask = nil
+        if let previousEngine {
+            engineDrafts[previousEngine] = (queryText, explorerWhereClause, explorerOrderByClause)
+        }
         selectedBookmarkID = id
+        if selectedBookmark?.engine.supportsConsoleTransactions != true { manualCommit = false }
+        mongoDraft.collection = ""
+        querySelectionLength = 0
+        if previousEngine != selectedBookmark?.engine {
+            let draft = selectedBookmark.flatMap { engineDrafts[$0.engine] }
+            queryText = draft?.query ?? ""
+            explorerWhereClause = draft?.filter ?? ""
+            explorerOrderByClause = draft?.sort ?? ""
+        }
         selectedDatabaseName = bookmarkStore?.bookmark(with: id)?.trimmedDefaultDatabase ?? ""
         explorerPageIndex = 0
         explorerPageSize = 25
         result = QueryResultTable.empty
+        resultSets = []
         runToken = nil
         isRunning = false
         schemaCatalog = []
@@ -885,15 +1249,22 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func selectDatabase(_ name: String) {
+        guard !hasOpenTransaction else { errorMessage = ConsoleSessionError.pendingTransaction.localizedDescription; return }
+        disconnectConsole()
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        pendingSafetyConfirmation = nil
+        parameterDraft = nil
+        activeBoundQuery = nil
         cancelMutation()
         queryTask?.cancel()
         queryTask = nil
         selectedDatabaseName = trimmed
+        mongoDraft.collection = ""
         explorerPageIndex = 0
         explorerPageSize = 25
         result = QueryResultTable.empty
+        resultSets = []
         runToken = nil
         isRunning = false
         schemaCatalog = []
@@ -909,7 +1280,7 @@ final class WorkspaceViewModel: ObservableObject {
         return String(compact.prefix(36))
     }
 
-    private func defaultQuery(for table: SchemaTableDescriptor) -> String {
+    func defaultQuery(for table: SchemaTableDescriptor) -> String {
         browseQuery(for: table, whereClause: "", orderByClause: "")
     }
 
@@ -918,6 +1289,14 @@ final class WorkspaceViewModel: ObservableObject {
         whereClause: String? = nil,
         orderByClause: String? = nil
     ) -> String {
+        if isDocumentDatabase {
+            return (try? MongoQueryService.browse(collection: table.name, filter: whereClause ?? explorerWhereClause,
+                sort: orderByClause ?? explorerOrderByClause, limit: explorerPageSize, skip: explorerPageIndex * explorerPageSize)) ?? ""
+        }
+        if selectedBookmark?.engine == .elasticsearch {
+            return ElasticsearchQueryService.browse(index: table.name, limit: explorerPageSize, offset: explorerPageIndex * explorerPageSize)
+        }
+        guard isSQLDatabase else { return "SCAN 0 COUNT 100" }
         let projection = table.columns
             .prefix(6)
             .map { sqlIdentifier($0.name, engine: selectedBookmark?.engine ?? .postgresql) }
@@ -980,11 +1359,18 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     private func shouldReloadSchema(after sql: String) -> Bool {
+        if isDocumentDatabase {
+            return (try? MongoQueryService.parse(sql)).map { ["create", "drop"].contains($0.name) } ?? false
+        }
+        if selectedBookmark?.engine == .elasticsearch, let command = try? ElasticsearchQueryService.parse(sql) {
+            return !command.isReadOnly && (command.method == "PUT" || command.method == "DELETE")
+        }
         let normalized = sql.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         return ["CREATE ", "ALTER ", "DROP ", "TRUNCATE "].contains { normalized.hasPrefix($0) }
     }
 
     private func mutationSQL(for draft: DataEditorDraft, engine: DatabaseEngine) -> BoundQuery? {
+        guard engine.supportsRowEditing else { return nil }
         var values: [QueryBoundValue] = []
         func bind(_ value: QueryBoundValue) -> String {
             values.append(value)
@@ -1089,9 +1475,9 @@ final class WorkspaceViewModel: ObservableObject {
 
     private func sqlIdentifier(_ value: String, engine: DatabaseEngine) -> String {
         switch engine {
-        case .mysql:
+        case .mysql, .mariadb:
             return "`\(value.replacingOccurrences(of: "`", with: "``"))`"
-        case .postgresql:
+        default:
             return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
         }
     }
@@ -1137,6 +1523,11 @@ final class WorkspaceViewModel: ObservableObject {
         bookmark: ConnectionProfile,
         available: [String]
     ) -> String? {
+        if bookmark.engine == .redis {
+            for value in [requested, bookmark.trimmedDefaultDatabase, "0"] {
+                if let database = Int32(value.trimmingCharacters(in: .whitespacesAndNewlines)), database >= 0 { return String(database) }
+            }
+        }
         let candidates = [
             requested,
             bookmark.trimmedDefaultDatabase

@@ -230,11 +230,3 @@ final class DataEditorValidationServiceTests: XCTestCase {
         )
     }
 }
-
-final class PremiumPolicyTests: XCTestCase {
-    func testFreeBookmarkLimitIsEnforcedAtCreationBoundary() {
-        XCTAssertTrue(PremiumPolicy.canCreateBookmark(existingCount: 2, hasPro: false))
-        XCTAssertFalse(PremiumPolicy.canCreateBookmark(existingCount: 3, hasPro: false))
-        XCTAssertTrue(PremiumPolicy.canCreateBookmark(existingCount: 3, hasPro: true))
-    }
-}

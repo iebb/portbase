@@ -1,1 +1,3 @@
-"CFBundleDisplayName" = "PortSQL";
+"CFBundleDisplayName" = "Portbase";
+
+"NSLocalNetworkUsageDescription" = "Portbase connects to database servers on your local network.";

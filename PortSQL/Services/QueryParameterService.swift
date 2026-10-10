@@ -11,7 +11,7 @@ struct QueryParameterDraft: Identifiable, Hashable {
     }
 }
 
-enum QueryBoundValue: Hashable, Sendable {
+enum QueryBoundValue: Codable, Hashable, Sendable {
     case null
     case string(String)
     case integer(Int64)
@@ -33,9 +33,10 @@ enum QueryBoundValue: Hashable, Sendable {
     }
 }
 
-struct BoundQuery: Hashable, Sendable {
+struct BoundQuery: Codable, Hashable, Sendable {
     let sql: String
     let values: [QueryBoundValue]
+    var sourceSQL: String? = nil
 }
 
 enum QueryParameterError: LocalizedError, Equatable {
@@ -48,7 +49,7 @@ enum QueryParameterError: LocalizedError, Equatable {
 
 enum QueryParameterService {
     static func parameters(in sql: String, engine: DatabaseEngine = .postgresql) -> [String] {
-        Array(Set(parameterTokens(in: sql, engine: engine).map(\.name))).sorted()
+        engine.supportsNativeParameters ? Array(Set(parameterTokens(in: sql, engine: engine).map(\.name))).sorted() : []
     }
 
     static func render(
@@ -78,6 +79,7 @@ enum QueryParameterService {
         nullParameters: Set<String> = [],
         engine: DatabaseEngine
     ) throws -> BoundQuery {
+        guard engine.supportsNativeParameters else { return BoundQuery(sql: sql, values: []) }
         let tokens = parameterTokens(in: sql, engine: engine)
         guard !tokens.isEmpty else { return BoundQuery(sql: sql, values: []) }
         if containsNativePlaceholder(in: sql, engine: engine) {
@@ -99,7 +101,7 @@ enum QueryParameterService {
             cursor = token.range.upperBound
         }
         rendered += sql[cursor...]
-        return BoundQuery(sql: rendered, values: binds)
+        return BoundQuery(sql: rendered, values: binds, sourceSQL: sql)
     }
 
     private struct ParameterToken {
@@ -108,6 +110,7 @@ enum QueryParameterService {
     }
 
     private static func parameterTokens(in sql: String, engine: DatabaseEngine) -> [ParameterToken] {
+        guard engine.supportsNativeParameters else { return [] }
         var tokens: [ParameterToken] = []
         var index = sql.startIndex
         var quote: Character?
@@ -125,7 +128,7 @@ enum QueryParameterService {
                 continue
             }
             if blockCommentDepth > 0 {
-                if character == "/", next == "*" { blockCommentDepth += 1; index = sql.index(after: nextIndex); continue }
+                if engine != .sqlite, character == "/", next == "*" { blockCommentDepth += 1; index = sql.index(after: nextIndex); continue }
                 if character == "*", next == "/" { blockCommentDepth -= 1; index = sql.index(after: nextIndex); continue }
                 index = nextIndex
                 continue
@@ -134,7 +137,7 @@ enum QueryParameterService {
                 if character == activeQuote {
                     if next == activeQuote { index = sql.index(after: nextIndex); continue }
                     quote = nil
-                } else if character == "\\", (activeQuote == "'" || activeQuote == "\"") {
+                } else if engine != .sqlite, character == "\\", (activeQuote == "'" || activeQuote == "\"") {
                     index = nextIndex < sql.endIndex ? sql.index(after: nextIndex) : nextIndex
                     continue
                 }
@@ -142,8 +145,9 @@ enum QueryParameterService {
                 continue
             }
             if character == "-", next == "-" { lineComment = true; index = sql.index(after: nextIndex); continue }
-            if engine == .mysql, character == "#" { lineComment = true; index = nextIndex; continue }
+            if engine.isMySQLFamily, character == "#" { lineComment = true; index = nextIndex; continue }
             if character == "/", next == "*" { blockCommentDepth = 1; index = sql.index(after: nextIndex); continue }
+            if engine == .sqlite, character == "[" { quote = "]"; index = nextIndex; continue }
             if character == "'" || character == "\"" || character == "`" { quote = character; index = nextIndex; continue }
             if engine == .postgresql,
                character == "$",
@@ -197,7 +201,7 @@ enum QueryParameterService {
                 continue
             }
             if blockCommentDepth > 0 {
-                if character == "/", next == "*" { blockCommentDepth += 1; index = sql.index(after: nextIndex); continue }
+                if engine != .sqlite, character == "/", next == "*" { blockCommentDepth += 1; index = sql.index(after: nextIndex); continue }
                 if character == "*", next == "/" { blockCommentDepth -= 1; index = sql.index(after: nextIndex); continue }
                 index = nextIndex
                 continue
@@ -206,7 +210,7 @@ enum QueryParameterService {
                 if character == activeQuote {
                     if next == activeQuote { index = sql.index(after: nextIndex); continue }
                     quote = nil
-                } else if character == "\\", activeQuote == "'" || activeQuote == "\"" {
+                } else if engine != .sqlite, character == "\\", activeQuote == "'" || activeQuote == "\"" {
                     index = nextIndex < sql.endIndex ? sql.index(after: nextIndex) : nextIndex
                     continue
                 }
@@ -214,8 +218,9 @@ enum QueryParameterService {
                 continue
             }
             if character == "-", next == "-" { lineComment = true; index = sql.index(after: nextIndex); continue }
-            if engine == .mysql, character == "#" { lineComment = true; index = nextIndex; continue }
+            if engine.isMySQLFamily, character == "#" { lineComment = true; index = nextIndex; continue }
             if character == "/", next == "*" { blockCommentDepth = 1; index = sql.index(after: nextIndex); continue }
+            if engine == .sqlite, character == "[" { quote = "]"; index = nextIndex; continue }
             if character == "'" || character == "\"" || character == "`" { quote = character; index = nextIndex; continue }
             if engine == .postgresql,
                character == "$",
@@ -228,8 +233,13 @@ enum QueryParameterService {
             }
 
             switch engine {
-            case .mysql:
+            case .mongodb, .redis, .elasticsearch, .clickhouse:
+                return false
+            case .mysql, .mariadb:
                 if character == "?" { return true }
+            case .sqlite:
+                if character == "?" { return true }
+                if (character == "$" || character == "@"), let next, next.isLetter || next.isNumber || next == "_" { return true }
             case .postgresql:
                 if character == "$", let next, ("1"..."9").contains(String(next)) {
                     return true
@@ -252,10 +262,10 @@ enum QueryResultExportFormat: String, CaseIterable, Identifiable {
 
 enum QueryResultExportService {
     static func write(_ result: QueryResultTable, format: QueryResultExportFormat) -> URL? {
-        guard !result.columns.isEmpty else { return nil }
+        guard !result.columns.isEmpty || (format == .json && result.documents != nil) else { return nil }
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("PortSQLExports", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent("portsql-result.\(format.fileExtension)")
+        let url = directory.appendingPathComponent("portbase-result.\(format.fileExtension)")
         let text: String
         switch format {
         case .csv:
@@ -288,6 +298,7 @@ enum QueryResultExportService {
     }
 
     private static func json(_ result: QueryResultTable) -> String {
+        if let documents = result.documents { return "[\n" + documents.joined(separator: ",\n") + "\n]" }
         let columnNames = QueryResultTable.disambiguatedColumnNames(result.columns.map(\.name))
         let objects = result.rows.map { row in
             Dictionary(uniqueKeysWithValues: columnNames.enumerated().map { index, name in

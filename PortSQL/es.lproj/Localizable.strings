@@ -2,8 +2,7 @@
 "Studio" = "Estudio";
 "Charts" = "Gráficos";
 "Servers" = "Servidores";
-"PORTSQL" = "PORTSQL";
-"Elegant database control, sized for iPhone." = "Elegante control de base de datos, tamaño para iPhone.";
+"PORTBASE" = "PORTBASE";
 "Live MySQL and PostgreSQL querying, schema browsing, charting, and row editing without placeholder datasets." = "Consultas, exploración de esquemas, gráficos y edición de filas de MySQL y PostgreSQL en vivo sin conjuntos de datos de marcador de posición.";
 "No active connection" = "No hay conexión activa";
 "Create or select a bookmark to start a live workspace." = "Cree o seleccione un marcador para iniciar un espacio de trabajo en vivo.";
@@ -48,14 +47,11 @@
 "Connect to a database and refresh the explorer to inspect live tables and columns." = "Conéctese a una base de datos y actualice el explorador para inspeccionar tablas y columnas activas.";
 "Choose a table to inspect its schema." = "Elige una tabla para inspeccionar su esquema.";
 "Library" = "Biblioteca";
-"Run queries to build a local history." = "Ejecutar consultas para construir un historial local.";
 "Reusable snippets" = "Fragmentos reutilizables";
 "Save Current" = "Guardar actual";
-"Save snippets for common admin tasks and diagnostics." = "Guarde fragmentos para tareas administrativas y diagnósticos comunes.";
 "Add to Visualizer" = "Agregar al visualizador";
 "Add to visualizer" = "Agregar al visualizador";
 "Add your first visualization when querying." = "Agrega tu primera visualización al consultar.";
-"Build a saved chart config from the current result set." = "Cree una configuración de gráfico guardada a partir del conjunto de resultados actual.";
 "Preset Name" = "Nombre preestablecido";
 "Saved chart name" = "Nombre del gráfico guardado";
 "Chart Title" = "Título del gráfico";
@@ -90,9 +86,7 @@
 "Premium Features" = "Funciones Premium";
 "Upgrade" = "Actualizar";
 "Settings" = "Ajustes";
-"PortSQL Pro" = "PortSQL Pro";
-"Designed as optional add-ons" = "Diseñado como complementos opcionales";
-"Core database access remains usable on the free plan. Pro is for convenience and polish, not basic connectivity." = "El acceso a la base de datos principal sigue siendo utilizable en el plan gratuito. Pro es por conveniencia y elegancia, no por conectividad básica.";
+"Portbase Pro" = "Portbase Pro";
 "Restore Purchases" = "Restaurar compras";
 "Sync" = "Sincronización";
 "Servers are mirrored through iCloud key-value sync." = "Los servidores se duplican mediante sincronización clave-valor iCloud.";
@@ -116,7 +110,7 @@
 "server, chart, folder" = "servidor, gráfico, carpeta";
 "Create your first MySQL or PostgreSQL server to start querying live data." = "Cree su primer servidor MySQL o PostgreSQL para comenzar a consultar datos en vivo.";
 "Table and column metadata is reused until this duration expires. The refresh button bypasses the cache." = "Los metadatos de tablas y columnas se reutilizan hasta que expire esta duración. El botón de actualización omite el caché.";
-"When caching is off, PortSQL always reloads table lists from the database and hides manual refresh controls." = "Cuando el almacenamiento en caché está desactivado, PortSQL siempre recarga las listas de tablas de la base de datos y oculta los controles de actualización manual.";
+"When caching is off, Portbase always reloads table lists from the database and hides manual refresh controls." = "Cuando el almacenamiento en caché está desactivado, Portbase siempre recarga las listas de tablas de la base de datos y oculta los controles de actualización manual.";
 "Columns" = "Columnas";
 "Column" = "Columna";
 "Add a new column to the live table schema." = "Agrega una nueva columna al esquema de la tabla activa.";
@@ -237,10 +231,10 @@
 "Confirm write" = "Confirmar escritura";
 "This statement can change database data. Review it carefully before running it against a live database." = "Esta sentencia puede modificar datos de la base de datos. Revísala cuidadosamente antes de ejecutarla en una base de datos activa.";
 "Add a SQL query to run this visualizer." = "Añade una consulta SQL para ejecutar esta visualización.";
-"Available with PortSQL Pro" = "Disponible con PortSQL Pro";
+"Available with Portbase Pro" = "Disponible con Portbase Pro";
 "Begins an App Store purchase" = "Inicia una compra en App Store";
 "Check your network connection and try again." = "Comprueba tu conexión de red e inténtalo de nuevo.";
-"Checks the App Store for previous PortSQL purchases" = "Busca compras anteriores de PortSQL en App Store";
+"Checks the App Store for previous Portbase purchases" = "Busca compras anteriores de Portbase en App Store";
 "Choose or save a bookmark before running this visualizer." = "Elige o guarda un marcador antes de ejecutar esta visualización.";
 "Current Result" = "Resultado actual";
 "Insert a new row with schema-aware validation." = "Inserta una fila nueva con validación según el esquema.";
@@ -286,6 +280,833 @@
 "Unencrypted Connection" = "Conexión sin cifrar";
 "Plaintext sends database credentials and data without encryption. Use it only for legacy servers on a trusted network." = "El texto sin cifrar envía las credenciales y los datos de la base de datos sin protección. Úsalo solo con servidores antiguos en una red de confianza.";
 "The selected file does not contain a valid X.509 certificate." = "El archivo seleccionado no contiene un certificado X.509 válido.";
-"PortSQL could not read this certificate file." = "PortSQL no pudo leer este archivo de certificado.";
+"Portbase could not read this certificate file." = "Portbase no pudo leer este archivo de certificado.";
 "TLS fallback allowed" = "Se permite recurrir a una conexión sin TLS";
 "Unencrypted" = "Sin cifrar";
+
+/* Document databases and adaptive workspaces */
+"Collections" = "Colecciones";
+"Collection" = "Colección";
+"Tables" = "Tablas";
+"Search collections" = "Buscar colecciones";
+"Search tables" = "Buscar tablas";
+"Filter (JSON)" = "Filtro (JSON)";
+"Sort (JSON)" = "Orden (JSON)";
+"Browse documents" = "Explorar documentos";
+"Select a database and refresh its collections." = "Selecciona una base de datos y actualiza sus colecciones.";
+"No documents matched the query." = "Ningún documento coincide con la consulta.";
+"Document %d" = "Documento %d";
+"Open full document" = "Abrir documento completo";
+"Aggregation" = "Agregación";
+"Indexes" = "Índices";
+"Insert document" = "Insertar documento";
+"Update documents" = "Actualizar documentos";
+"Delete documents" = "Eliminar documentos";
+"Query templates" = "Plantillas de consultas";
+"Open JSON editor" = "Abrir editor JSON";
+"JSON Editor" = "Editor JSON";
+"Cancel Query" = "Cancelar consulta";
+"Authentication database" = "Base de datos de autenticación";
+"Connect to a MongoDB host and port. SRV discovery and automatic replica-set failover are not supported." = "Conecta a un host y puerto de MongoDB. No se admiten el descubrimiento SRV ni la conmutación automática de réplicas.";
+"MongoDB requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "MongoDB requiere TLS en el modo Preferir TLS porque su protocolo no puede negociar de forma segura una conexión sin cifrar.";
+"Enter one valid MongoDB Extended JSON command (up to 1 MiB)." = "Introduce un comando MongoDB Extended JSON válido (hasta 1 MiB).";
+"This MongoDB command or option is not supported. Server-side JavaScript and unbounded cursors are disabled." = "Este comando u opción de MongoDB no es compatible. JavaScript del servidor y los cursores ilimitados están desactivados.";
+"MongoDB rejected the operation (code %@). Check permissions, command syntax, and server logs." = "MongoDB rechazó la operación (código %@). Revisa permisos, sintaxis y registros del servidor.";
+"Results were truncated at 10,000 documents or 32 MiB. Narrow the filter to retrieve more." = "Los resultados se truncaron a 10 000 documentos o 32 MiB. Restringe el filtro para obtener más.";
+"Enter a MongoDB Extended JSON command" = "Introduce un comando MongoDB Extended JSON";
+"SQL query editor" = "Editor de consultas SQL";
+"Enter the SQL statement to run against the selected database" = "Introduce la sentencia SQL para la base de datos seleccionada";
+"This operation only accepts read-only queries." = "Esta operación solo acepta consultas de lectura.";
+"History is empty." = "El historial está vacío.";
+"No saved snippets." = "No hay fragmentos guardados.";
+"Console" = "Consola";
+
+"Find" = "Buscar";
+"Command" = "Comando";
+"Projection (JSON)" = "Proyección (JSON)";
+"Skip" = "Omitir";
+"Limit" = "Límite";
+"Add Stage" = "Añadir etapa";
+"Enable stage" = "Activar etapa";
+"Move Up" = "Subir";
+"Move Down" = "Bajar";
+"Stage %d" = "Etapa %d";
+"Stage %d: Invalid JSON." = "Etapa %d: JSON no válido.";
+"%@: Invalid JSON object." = "%@: Objeto JSON no válido.";
+"Choose a collection." = "Elige una colección.";
+"Skip must be zero or greater. Limit must be between 1 and 10,000." = "Omitir debe ser 0 o más. El límite debe estar entre 1 y 10.000.";
+"Edit command" = "Editar comando";
+"Document" = "Documento";
+"Documents" = "Documentos";
+"Show All Fields" = "Mostrar todos los campos";
+"Show More" = "Mostrar más";
+"Configure Chart" = "Configurar gráfico";
+"Run a query with numeric fields to create a chart." = "Ejecuta una consulta con campos numéricos para crear un gráfico.";
+"Ln %d, Col %d" = "Lín. %d, Col. %d";
+"Selection" = "Selección";
+"Run Selection" = "Ejecutar selección";
+"Run All" = "Ejecutar todo";
+"Run the complete parameterized query to preserve its bound values." = "Ejecuta la consulta parametrizada completa para conservar sus valores vinculados.";
+"Undo" = "Deshacer";
+"Redo" = "Rehacer";
+"Indent" = "Aumentar sangría";
+"Outdent" = "Reducir sangría";
+"Find and Replace" = "Buscar y reemplazar";
+"Hide Keyboard" = "Ocultar teclado";
+"EXPORT" = "EXPORTAR";
+
+
+/* Database workspace */
+"%@ • %@" = "%@, %@";
+"%d pt" = "%d puntos";
+"Add Field" = "Añadir campo";
+"Add a database connection" = "Añadir una conexión de base de datos";
+"Add database connection" = "Añadir conexión de base de datos";
+"Additional seed hosts" = "Servidores iniciales adicionales";
+"An import record is too large. Each record must fit within 1 MiB." = "Un registro de importación es demasiado grande. Cada registro debe ocupar como máximo 1 MiB.";
+"Apply" = "Aplicar";
+"Apply URI" = "Aplicar URI";
+"Array" = "Arreglo";
+"Auto-commit" = "Confirmación automática";
+"Automatic" = "Automático";
+"Binary SQL columns are omitted from inserts. Import their values with a database-specific tool." = "Las columnas SQL binarias se omiten al insertar. Importa sus valores con una herramienta específica de la base de datos.";
+"Boolean" = "Booleano";
+"CSV" = "Archivo CSV";
+"CSV supports up to 4,096 columns in this operation. Export as JSON to preserve additional fields." = "Esta operación CSV admite hasta 4096 columnas. Exporta como JSON para conservar los campos adicionales.";
+"Cancelled" = "Cancelado";
+"Cells: %d" = "Celdas: %d";
+"Chart Previews" = "Vistas previas de gráficos";
+"Chart uses the loaded result only. Export all data from the query for the complete result." = "El gráfico solo usa el resultado cargado. Exporta todos los datos de la consulta para obtener el resultado completo.";
+"Charts are saved on this device. The library exceeds the iCloud sync limit." = "Los gráficos se guardan en este dispositivo. La biblioteca supera el límite de sincronización de iCloud.";
+"Choose CSV or JSON" = "Elegir CSV o JSON";
+"Choose database connection" = "Elegir conexión de base de datos";
+"Clear Chart Previews" = "Borrar vistas previas";
+"Clear Date Filter" = "Borrar filtro de fecha";
+"Clear Query History" = "Borrar historial de consultas";
+"Close Console" = "Cerrar consola";
+"Close Inspection" = "Cerrar inspección";
+"Column Mapping" = "Asignación de columnas";
+"Commit" = "Confirmar transacción";
+"Commit or roll back the current transaction first." = "Confirma o revierte primero la transacción actual.";
+"Configure Column" = "Configurar columna";
+"Confirm Import" = "Confirmar importación";
+"Connection" = "Conexión";
+"Connection URI" = "URI de conexión";
+"Console %d" = "Consola %d";
+"Consoles" = "Consolas";
+"Constraints" = "Restricciones";
+"Copy" = "Copiar";
+"Copy Definition" = "Copiar definición";
+"Copy Selected Cells" = "Copiar celdas seleccionadas";
+"Copy with Headers" = "Copiar con encabezados";
+"Data Transfer" = "Transferencia de datos";
+"Database" = "Base de datos";
+"Database Objects" = "Objetos de base de datos";
+"Database error %@: %@" = "Error de base de datos %@: %@";
+"Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data." = "Las contraseñas se guardan en el llavero de este dispositivo y ya no se incluyen en los marcadores de iCloud.";
+"Date Field" = "Campo de fecha";
+"Date Range" = "Intervalo de fechas";
+"Decimal" = "Número decimal";
+"Decimal128" = "Decimal de 128 bits";
+"Definition" = "Definición";
+"Delete Document" = "Eliminar documento";
+"Delete Permanently?" = "¿Eliminar permanentemente?";
+"Destination" = "Destino";
+"Destination column" = "Columna de destino";
+"Destination field" = "Campo de destino";
+"Direct connection" = "Conexión directa";
+"Document Actions" = "Acciones del documento";
+"Document editing requires MongoDB 4.2 or later with a transaction-capable replica set or sharded cluster. Standalone servers remain available for queries and imports." = "La edición de documentos requiere MongoDB 4.2 o posterior con un conjunto de réplicas o un clúster fragmentado que admita transacciones. Los servidores independientes siguen disponibles para consultas e importaciones.";
+"Double" = "Número de doble precisión";
+"Duplicate Document" = "Duplicar documento";
+"Edit Document" = "Editar documento";
+"Editor" = "Edición";
+"Enter a valid BSON document with unique field names. Documents must fit within 16 MiB." = "Introduce un documento BSON válido con nombres de campo únicos. Los documentos no deben superar los 16 MiB.";
+"Enter a valid mongodb:// or mongodb+srv:// connection URI." = "Introduce una URI de conexión válida con mongodb:// o mongodb+srv://.";
+"Every CSV record must have the same number of fields as its header." = "Cada registro CSV debe tener el mismo número de campos que la cabecera.";
+"Expected %d affected rows, received %d. The transaction was rolled back." = "Se esperaban %d filas afectadas y se recibieron %d. Se revirtió la transacción.";
+"Expected %d affected rows; the server did not report a count. The transaction was rolled back." = "Se esperaban %d filas afectadas; el servidor no informó el total. Se revirtió la transacción.";
+"Explicit LIMIT and filters are preserved." = "Se conservan los filtros y el LIMIT explícito.";
+"Export All Rows" = "Exportar todas las filas";
+"Export All Rows…" = "Exportar todas las filas…";
+"Export Chart" = "Exportar gráfico";
+"Export Data" = "Exportar datos";
+"Export PDF" = "Exportar como PDF";
+"Export PNG" = "Exportar como PNG";
+"Export failed" = "Error al exportar";
+"Export one read-only query at a time." = "Exporta una sola consulta de lectura cada vez.";
+"Exported %@." = "Se exportaron %@.";
+"Exporting: %@" = "Exportando: %@";
+"Extend cell selection" = "Ampliar selección de celdas";
+"Extended JSON" = "JSON extendido";
+"Field name" = "Nombre del campo";
+"Fields" = "Campos";
+"File" = "Archivo";
+"Finishing…" = "Finalizando…";
+"First row contains column names" = "La primera fila contiene nombres de columnas";
+"Foreign Keys" = "Claves foráneas";
+"From" = "Desde";
+"Functions" = "Funciones";
+"Go to %@" = "Ir a %@";
+"Hide Column" = "Ocultar columna";
+"History" = "Historial";
+"Import %d records" = "Importar %d registros";
+"Import Data" = "Importar datos";
+"Import Data…" = "Importar datos…";
+"Imported %@." = "Se importaron %@.";
+"Importing: %@" = "Importando: %@";
+"Insert Document" = "Insertar documento";
+"Insert into %@?" = "¿Insertar en %@?";
+"Inspect" = "Inspeccionar";
+"Inspect Chart" = "Inspeccionar gráfico";
+"Int32" = "Entero de 32 bits";
+"Int64" = "Entero de 64 bits";
+"Integer" = "Entero";
+"Invalid value" = "Valor no válido";
+"Invalid value for %@ at record %d." = "Valor no válido para %@ en el registro %d.";
+"Library Storage" = "Almacenamiento de biblioteca";
+"Loaded rows: %d" = "Filas cargadas: %d";
+"Loaded rows: %d / %d" = "Filas cargadas: %d / %d";
+"Manual Commit" = "Confirmación manual";
+"Matching Rows" = "Filas coincidentes";
+"Materialized Views" = "Vistas materializadas";
+"Missing field %@ at record %d. Map another field or omit this column." = "Falta el campo %@ en el registro %d. Asigna otro campo u omite esta columna.";
+"MongoDB CSV fields use Extended JSON to preserve BSON types." = "Los campos CSV de MongoDB usan Extended JSON para conservar los tipos BSON.";
+"MongoDB Connection" = "Conexión MongoDB";
+"MongoDB DNS discovery failed. Check the SRV hostname and network connection." = "Falló el descubrimiento DNS de MongoDB. Comprueba el nombre de host SRV y la conexión de red.";
+"MongoDB DNS records are invalid or point outside the seed domain." = "Los registros DNS de MongoDB no son válidos o apuntan fuera del dominio inicial.";
+"MongoDB commits each batch. Cancelled or failed imports can leave inserted documents." = "MongoDB confirma cada lote. Si se cancela o falla la importación, pueden quedar documentos insertados.";
+"MongoDB did not confirm the commit. Reload the collection to check the document before trying again." = "MongoDB no confirmó la transacción. Vuelve a cargar la colección y comprueba el documento antes de intentarlo de nuevo.";
+"MongoDB import stopped after %d confirmed records. The current batch may also contain saved documents. %@" = "La importación de MongoDB se detuvo tras %d registros confirmados. El lote actual también puede contener documentos guardados. %@";
+"Move this chart to Recently Deleted?" = "¿Mover este gráfico a Eliminados recientemente?";
+"MySQL column editing is disabled because Portbase cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead." = "La edición de columnas MySQL está desactivada porque Portbase aún no conserva todos los valores predeterminados, expresiones generadas, comentarios, juegos de caracteres, intercalaciones y atributos AUTO_INCREMENT. Añade una columna o usa SQL revisado.";
+"New Console" = "Nueva consola";
+"New Document" = "Documento nuevo";
+"Next results page" = "Página de resultados siguiente";
+"No plottable rows" = "No hay filas para graficar";
+"No writable MongoDB primary is available. Check the replica set and network connection, then retry." = "No hay un nodo primario de MongoDB disponible para escritura. Comprueba el conjunto de réplicas y la conexión de red e inténtalo de nuevo.";
+"Null" = "Nulo";
+"OK" = "Aceptar";
+"ObjectId" = "ID de objeto";
+"Open Row" = "Abrir fila";
+"Open row %d" = "Abrir fila %d";
+"Original Document" = "Documento original";
+"Parameters" = "Parámetros";
+"Pin Column" = "Fijar columna";
+"Pinned" = "Fijada";
+"Previous results page" = "Página de resultados anterior";
+"Primary Key" = "Clave primaria";
+"Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again." = "Se seleccionó TLS con CA privada, pero este dispositivo no tiene un certificado CA. Vuelve a importarlo.";
+"Private Key" = "Clave privada";
+"Procedures" = "Procedimientos";
+"Query Parameters" = "Parámetros de consulta";
+"Query results table" = "Tabla de resultados de consulta";
+"Range" = "Intervalo";
+"Reading: %@" = "Leyendo: %@";
+"Recently Closed Consoles" = "Consolas cerradas recientemente";
+"Refresh" = "Actualizar";
+"Refresh Tables" = "Actualizar tablas";
+"Remove Field" = "Quitar campo";
+"Remove additional hosts" = "Quitar servidores adicionales";
+"Rename" = "Renombrar";
+"Rename Console" = "Renombrar consola";
+"Reopen Closed Console" = "Reabrir consola cerrada";
+"Replica set" = "Conjunto de réplicas";
+"Reset Columns" = "Restablecer columnas";
+"Restore" = "Restaurar";
+"Result %d" = "Resultado %d";
+"Result Set" = "Conjunto de resultados";
+"Review" = "Revisar";
+"Review Changes" = "Revisar cambios";
+"Roll Back and Close Console?" = "¿Revertir y cerrar la consola?";
+"Rollback" = "Revertir transacción";
+"Rollback and Close" = "Revertir y cerrar";
+"Row %d, %@" = "Fila %d, %@";
+"Run Anyway" = "Ejecutar de todos modos";
+"Run parameterized statements individually." = "Ejecuta las instrucciones parametrizadas por separado.";
+"Run table browse query" = "Ejecutar consulta de tabla";
+"SQL import requires a transactional table so a failed import can roll back. Select an InnoDB table." = "La importación SQL requiere una tabla transaccional para revertir los fallos. Selecciona una tabla InnoDB.";
+"SQL imports use one transaction. An error before commit rolls back the file." = "La importación SQL usa una sola transacción. Un error antes de confirmar revierte todo el archivo.";
+"SSH Host" = "Servidor SSH";
+"SSH Port" = "Puerto SSH";
+"SSH Tunnel" = "Túnel SSH";
+"SSH Username" = "Usuario SSH";
+"SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported." = "Las credenciales SSH se guardan en el llavero del dispositivo. Portbase abre un reenvío local de bucle invertido y verifica la clave SSH después de la primera confianza. Admite contraseñas y claves privadas OpenSSH Ed25519/ECDSA sin cifrar.";
+"Save or Share" = "Guardar o compartir";
+"Saved Queries" = "Consultas guardadas";
+"Saved work could not be loaded. The original files have been preserved." = "No se pudo cargar el trabajo guardado. Se conservaron los archivos originales.";
+"Saved work could not be written. Free some device storage and try again." = "No se pudo guardar el trabajo. Libera espacio en el dispositivo e inténtalo de nuevo.";
+"Saving" = "Guardando";
+"Search database objects" = "Buscar objetos de base de datos";
+"Select All" = "Seleccionar todo";
+"Select a destination and map each included field to a different column." = "Selecciona un destino y asigna cada campo incluido a una columna diferente.";
+"Select a query or table to export." = "Selecciona una consulta o tabla para exportar.";
+"Select or create a bookmark before running a query." = "Selecciona o crea un marcador antes de ejecutar una consulta.";
+"Select table" = "Seleccionar tabla";
+"Server settings sync through iCloud. Passwords stay in this device’s Keychain." = "Los ajustes del servidor se sincronizan por iCloud. Las contraseñas permanecen en el llavero de este dispositivo.";
+"Source" = "Origen";
+"Statement" = "Sentencia";
+"Storage" = "Almacenamiento";
+"String" = "Cadena";
+"TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel." = "TLS mediante SSH requiere un nombre DNS de la base de datos para verificar el certificado. No se puede verificar de forma segura una dirección IP mediante el túnel local.";
+"Text" = "Texto";
+"The CSV contains an unterminated quote or an invalid field separator." = "El CSV contiene comillas sin cerrar o un separador de campos no válido.";
+"The MongoDB server belongs to a different replica set." = "El servidor MongoDB pertenece a otro conjunto de réplicas.";
+"The _id field cannot be changed when editing an existing document." = "No se puede cambiar el campo _id al editar un documento existente.";
+"The chart could not be rendered. Try exporting again." = "No se pudo generar el gráfico. Intenta exportarlo de nuevo.";
+"The column type contains unsupported or unsafe SQL syntax." = "El tipo de columna contiene sintaxis SQL no compatible o insegura.";
+"The connection ended while committing the import. Its outcome is unknown. Check the destination before retrying." = "La conexión se cerró al confirmar la importación. Se desconoce el resultado. Revisa el destino antes de volver a intentarlo.";
+"The database query timed out and its connection was closed." = "La consulta agotó el tiempo de espera y se cerró la conexión.";
+"The file contains no records." = "El archivo no contiene registros.";
+"The file must use UTF-8 text encoding." = "El archivo debe usar codificación UTF-8.";
+"The original document is checked again in a transaction. Conflicting changes cancel the save." = "El documento original se vuelve a comprobar dentro de una transacción. Los cambios en conflicto cancelan el guardado.";
+"The private CA certificate bundle is too large." = "El paquete de certificados de CA privada es demasiado grande.";
+"The private CA must be a valid PEM certificate bundle and must not contain a private key." = "La CA privada debe ser un paquete PEM válido y no puede contener claves privadas.";
+"The requested database driver is unavailable in this build." = "El controlador de base de datos no está disponible en esta compilación.";
+"The session closed in the background. Its pending transaction was not committed." = "La sesión se cerró en segundo plano. No se confirmó la transacción pendiente.";
+"This MySQL statement can commit implicitly. Commit or roll back, then switch to Auto-commit before running it." = "Esta instrucción MySQL puede confirmar implícitamente. Confirma o revierte y cambia a confirmación automática antes de ejecutarla.";
+"This URI contains an unsupported option. Portbase supports SCRAM authentication, primary reads, TLS, replica sets, and direct connections." = "Esta URI contiene una opción no compatible. Portbase admite autenticación SCRAM, lecturas del nodo primario, TLS, conjuntos de réplicas y conexiones directas.";
+"This connection is read-only and cannot execute write or schema statements." = "Esta conexión es de solo lectura y no puede ejecutar escrituras ni instrucciones de esquema.";
+"This console is already executing a command." = "Esta consola ya está ejecutando un comando.";
+"This document changed or was deleted after it was loaded. No changes were saved. Reload it before editing again." = "Este documento cambió o se eliminó después de cargarlo. No se guardó ningún cambio. Vuelve a cargarlo antes de editarlo.";
+"This reference has a NULL or unsupported key value." = "Esta referencia tiene una clave NULL o no compatible.";
+"This statement requires explicit confirmation before it can run." = "Esta instrucción requiere confirmación explícita antes de ejecutarse.";
+"Through" = "Hasta inclusive";
+"Timeout: %d s" = "Tiempo límite: %d s";
+"Trash" = "Papelera";
+"Truncated query result" = "Resultado de consulta truncado";
+"Type" = "Tipo";
+"Unpin Column" = "Desfijar columna";
+"Unquoted NULL is null; \\M is a missing field. Quote these values to import their text." = "NULL sin comillas es nulo; \\M indica un campo ausente. Usa comillas para importar estos valores como texto.";
+"Use DNS SRV discovery" = "Usar descubrimiento DNS SRV";
+"Use a JSON array of objects or one JSON object per line." = "Usa un arreglo JSON de objetos o un objeto JSON por línea.";
+"Use the console's transaction controls for Begin, Commit, and Rollback." = "Usa los controles de transacción de la consola para iniciar, confirmar y revertir.";
+"Value" = "Valor";
+"Value type" = "Tipo de valor";
+"Verified row edits require an InnoDB table so a failed edit can be rolled back." = "La edición verificada de filas requiere una tabla InnoDB para poder revertir una edición fallida.";
+"View Rows (%d)" = "Ver filas (%d)";
+"Views" = "Vistas";
+"Visible" = "Visible en la tabla";
+"Width" = "Ancho";
+"Width of %@" = "Ancho de %@";
+"Writes are sent once. Check the result before retrying an interrupted write." = "Las escrituras se envían una sola vez. Comprueba el resultado antes de volver a intentar una escritura interrumpida.";
+
+"CSV column names must be unique and nonempty." = "Los nombres de columnas CSV deben ser únicos y no estar vacíos.";
+
+"Command Editor" = "Editor de comandos";
+
+"File unavailable" = "Archivo no disponible";
+
+"Choose or create a SQLite database file." = "Elige o crea un archivo de base de datos SQLite.";
+
+"This engine requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "Este motor requiere TLS en el modo Preferir TLS porque su protocolo no puede negociar de forma segura una alternativa sin cifrar.";
+
+"The SQLite file is unavailable on this device. Import it or choose another local file." = "El archivo SQLite no está disponible en este dispositivo. Impórtalo o elige otro archivo local.";
+
+"The SQLite file name is invalid." = "El nombre del archivo SQLite no es válido.";
+
+"Choose an unencrypted SQLite database file." = "Elige un archivo de base de datos SQLite sin cifrar.";
+
+"This SQLite file is in use. Finish or cancel its queries before deleting it." = "Este archivo SQLite está en uso. Finaliza o cancela sus consultas antes de eliminarlo.";
+
+"Run SQLite statements individually or use Run All." = "Ejecuta las instrucciones SQLite por separado o usa «Ejecutar todo».";
+
+"The SQLite parameter count or value is invalid." = "La cantidad o el valor de los parámetros SQLite no es válido.";
+
+"SQLite file attachment, extension loading, and unsafe configuration commands are disabled." = "La conexión de archivos SQLite, la carga de extensiones y los comandos de configuración inseguros están desactivados.";
+
+"SQLite commands commit individually. Manual transaction commands are unavailable." = "Los comandos SQLite se confirman individualmente. Los comandos de transacción manual no están disponibles.";
+
+"SQLite error %d: %@" = "Error de SQLite %d: %@";
+
+"Statement executed successfully." = "Instrucción ejecutada correctamente.";
+
+"Database File" = "Archivo de base de datos";
+
+"No file selected" = "Ningún archivo seleccionado";
+
+"Import SQLite File…" = "Importar archivo SQLite…";
+
+"Create SQLite Database…" = "Crear base de datos SQLite…";
+
+"Manage Local Files…" = "Administrar archivos locales…";
+
+"SQLite Database" = "Base de datos SQLite";
+
+"Database files stay on this device. Deleting a bookmark keeps its file." = "Los archivos de base de datos permanecen en este dispositivo. Eliminar un marcador conserva su archivo.";
+
+"Create SQLite Database" = "Crear base de datos SQLite";
+
+"Database name" = "Nombre de la base de datos";
+
+"Create" = "Crear";
+
+"No local database files" = "No hay archivos de base de datos locales";
+
+"Selected" = "Seleccionado";
+
+"Local Database Files" = "Archivos de base de datos locales";
+
+"Delete Database File?" = "¿Eliminar el archivo de base de datos?";
+
+"Delete File" = "Eliminar archivo";
+
+"This permanently deletes the local database. Bookmarks that use it will need another file." = "Esto elimina permanentemente la base de datos local. Los marcadores que la usen necesitarán otro archivo.";
+
+"Temporary SQLite objects are unavailable because each command uses a new connection." = "Los objetos temporales de SQLite no están disponibles porque cada comando usa una conexión nueva.";
+
+"%@ ms remaining" = "Quedan %@ ms";
+
+"Add a set member." = "Añadir un miembro al conjunto.";
+
+"All types" = "Todos los tipos";
+
+"Append a list item." = "Añadir un elemento al final de la lista.";
+
+"Append a stream entry." = "Añadir una entrada al flujo.";
+
+"Base64" = "Codificación Base64";
+
+"Browse hash fields and values." = "Explorar campos y valores del hash.";
+
+"Browse keys with a cursor." = "Explorar claves con un cursor.";
+
+"Browse set members." = "Explorar los miembros del conjunto.";
+
+"Browse sorted-set members and scores." = "Explorar miembros y puntuaciones del conjunto ordenado.";
+
+"Complete the fields to preview the command." = "Completa los campos para previsualizar el comando.";
+
+"Create Key" = "Crear clave";
+
+"Cursor %@" = "Cursor: %@";
+
+"Database number" = "Número de base de datos";
+
+"Delete Key" = "Eliminar clave";
+
+"Delete a key asynchronously." = "Eliminar una clave de forma asíncrona.";
+
+"Display" = "Visualización";
+
+"Empty string" = "Cadena vacía";
+
+"Encoding" = "Codificación";
+
+"Enter a Redis database number from 0 to 2147483647." = "Introduce un número de base de datos Redis entre 0 y 2147483647.";
+
+"Enter one Redis command with valid arguments. Use quotes and \\xNN escapes for binary bytes." = "Introduce un comando Redis con argumentos válidos. Usa comillas y escapes \\xNN para bytes binarios.";
+
+"Entry ID" = "ID de entrada";
+
+"Expiration" = "Caducidad";
+
+"Expiration in milliseconds" = "Caducidad en milisegundos";
+
+"Index" = "Índice";
+
+"Inspect the key type." = "Consultar el tipo de clave.";
+
+"Key" = "Clave";
+
+"Key no longer exists" = "La clave ya no existe";
+
+"Key pattern" = "Patrón de clave";
+
+"Key type" = "Tipo de clave";
+
+"Keys" = "Claves";
+
+"Length" = "Longitud";
+
+"Load More Keys" = "Cargar más claves";
+
+"Loaded keys: %d" = "Claves cargadas: %d";
+
+"Member" = "Miembro";
+
+"Next Page" = "Página siguiente";
+
+"No expiration" = "Sin caducidad";
+
+"One command per run. Quote empty values and spaces; use \\xNN for binary bytes." = "Un comando por ejecución. Pon entre comillas los valores vacíos y los espacios; usa \\xNN para bytes binarios.";
+
+"Pattern" = "Patrón";
+
+"Read a bounded list range." = "Leer un intervalo limitado de la lista.";
+
+"Read a bounded stream range." = "Leer un intervalo limitado del flujo.";
+
+"Read a string value." = "Leer un valor de cadena.";
+
+"Read remaining expiration in milliseconds." = "Consultar el tiempo restante en milisegundos.";
+
+"Read-only" = "Solo lectura";
+
+"Redis authentication failed. Check the username and password in the connection." = "La autenticación de Redis ha fallado. Revisa el usuario y la contraseña de la conexión.";
+
+"Redis command" = "Comando Redis";
+
+"Redis command editor" = "Editor de comandos Redis";
+
+"Redis command reference" = "Referencia de comandos Redis";
+
+"Redis keys" = "Claves Redis";
+
+"Redis rejected the command (%@). Check its arguments and your account permissions." = "Redis ha rechazado el comando (%@). Revisa los argumentos y los permisos de tu cuenta.";
+
+"Redis returned %d rows." = "Redis ha devuelto %d filas.";
+
+"Redis returned an invalid or unsupported RESP2 reply." = "Redis ha devuelto una respuesta RESP2 no válida o no compatible.";
+
+"Redis value" = "Valor Redis";
+
+"Remove Expiration" = "Quitar caducidad";
+
+"Review Redis Write" = "Revisar escritura en Redis";
+
+"Scan complete" = "Exploración completada";
+
+"Score" = "Puntuación";
+
+"Set Expiration" = "Establecer caducidad";
+
+"Set expiration in milliseconds." = "Establecer la caducidad en milisegundos.";
+
+"The Redis connection closed before the reply arrived." = "La conexión Redis se cerró antes de recibir la respuesta.";
+
+"The Redis key changed or expired during inspection. Refresh its value." = "La clave Redis cambió o caducó durante la inspección. Actualiza su valor.";
+
+"The Redis reply exceeds the client limit. Use a smaller range or a SCAN cursor." = "La respuesta Redis supera el límite del cliente. Usa un intervalo menor o un cursor SCAN.";
+
+"The connection ended before Redis confirmed the write. Refresh the key before trying again." = "La conexión terminó antes de que Redis confirmara la escritura. Actualiza la clave antes de intentarlo de nuevo.";
+
+"The key limit was reached. Narrow the pattern and scan again." = "Se alcanzó el límite de claves. Restringe el patrón y vuelve a explorar.";
+
+"The reply was truncated. Use a smaller range in the command editor." = "La respuesta se truncó. Usa un intervalo menor en el editor de comandos.";
+
+"This Redis command changes data. Review the exact command before running it." = "Este comando Redis modifica datos. Revisa el comando exacto antes de ejecutarlo.";
+
+"This Redis command is unavailable. Use bounded data commands; administration, scripts, subscriptions and blocking operations are disabled." = "Este comando Redis no está disponible. Usa comandos de datos acotados; la administración, los scripts, las suscripciones y las operaciones bloqueantes están desactivados.";
+
+"This Redis key type cannot be inspected here." = "Este tipo de clave Redis no se puede inspeccionar aquí.";
+
+"This connection does not allow Redis writes." = "Esta conexión no permite escrituras en Redis.";
+
+"UTF-8" = "Texto UTF-8";
+
+"Use" = "Usar";
+
+"Write" = "Escritura";
+
+"Write Value" = "Escribir valor";
+
+"Write a hash field." = "Escribir un campo del hash.";
+
+"Write a sorted-set member and score." = "Escribir un miembro y su puntuación en el conjunto ordenado.";
+
+"Write a string and keep its expiration." = "Escribir una cadena conservando su caducidad.";
+
+"Scan" = "Explorar";
+
+"This Redis Cluster endpoint redirected the command. Connect through a cluster-aware proxy or to the node that owns this key." = "Este punto de acceso de Redis Cluster ha redirigido el comando. Conecta mediante un proxy compatible con clústeres o al nodo que contiene esta clave.";
+
+"Stop" = "Detener";
+
+"API Key" = "Clave de API";
+
+"Access Token" = "Token de acceso";
+
+"Aggregations" = "Agregaciones";
+
+"Authentication" = "Autenticación";
+
+"Count" = "Recuento";
+
+"Elasticsearch returned partial results. A shard failed or the search timed out." = "Elasticsearch devolvió resultados parciales. Falló un fragmento o la búsqueda agotó el tiempo de espera.";
+
+"HTTP Method" = "Método HTTP";
+
+"Invalid database HTTP request. Check the method, path and JSON body." = "Solicitud HTTP de base de datos no válida. Revisa el método, la ruta y el cuerpo JSON.";
+
+"Mappings" = "Mapeos";
+
+"Query Templates" = "Plantillas de consulta";
+
+"Request" = "Solicitud";
+
+"Request Body" = "Cuerpo de la solicitud";
+
+"Request Path" = "Ruta de la solicitud";
+
+"Run one ClickHouse statement without FORMAT, SETTINGS or INTO OUTFILE. Portbase controls the result format and limits." = "Ejecuta una sola sentencia de ClickHouse sin FORMAT, SETTINGS ni INTO OUTFILE. Portbase controla el formato y los límites de los resultados.";
+
+"Select an index." = "Selecciona un índice.";
+
+"The database redirected the request. Set the final server address in the bookmark." = "La base de datos redirigió la solicitud. Establece la dirección final del servidor en el marcador.";
+
+"The database response exceeds 32 MiB. Reduce the query size or select fewer fields." = "La respuesta de la base de datos supera los 32 MiB. Reduce el tamaño de la consulta o selecciona menos campos.";
+
+"The database returned HTTP %d. Check the request and server permissions." = "La base de datos devolvió HTTP %d. Revisa la solicitud y los permisos del servidor.";
+
+"The database returned an incomplete or invalid JSON response." = "La base de datos devolvió una respuesta JSON incompleta o no válida.";
+
+"The write was not confirmed. Check the server before retrying; it may have completed." = "No se confirmó la escritura. Revisa el servidor antes de reintentar; puede que se haya completado.";
+
+"This database command is not supported. Use a query or an individual document operation." = "Este comando de base de datos no es compatible. Usa una consulta o una operación sobre un documento individual.";
+
+"This engine does not support bound parameters in Portbase yet." = "Este motor aún no admite parámetros vinculados en Portbase.";
+
+"Username and password" = "Nombre de usuario y contraseña";
+
+/* Portbase 1.5 workspace tools */
+"%.3f s" = "%.3f seg.";
+"%@ Copy" = "Copia de %@";
+"%@ s" = "%@ seg.";
+"All Columns" = "Todas las columnas";
+"All Engines" = "Todos los motores";
+"All Statuses" = "Todos los estados";
+"Binary" = "Binario";
+"Cell value" = "Valor de celda";
+"Choose a UTF-8 text file smaller than 2 MB." = "Elige un archivo de texto UTF-8 de menos de 2 MB.";
+"Choose a connection with the same database engine before opening this query." = "Elige una conexión con el mismo motor antes de abrir esta consulta.";
+"Clear Filter" = "Borrar filtro";
+"Connect through SSH" = "Conectar mediante SSH";
+"Contains" = "Contiene";
+"Current connection only" = "Solo conexión actual";
+"Date / Time" = "Fecha / Hora";
+"Duplicate Connection" = "Duplicar conexión";
+"Edit Saved Query" = "Editar consulta guardada";
+"Edit saved query %@" = "Editar consulta guardada %@";
+"Empty text" = "Texto vacío";
+"Equals" = "Es igual a";
+"Failed" = "Fallida";
+"Filter Loaded Rows" = "Filtrar filas cargadas";
+"Filter queries" = "Filtrar consultas";
+"Filter servers" = "Filtrar servidores";
+"Filters apply to loaded rows only." = "Los filtros solo se aplican a las filas cargadas.";
+"Format JSON" = "Formatear JSON";
+"Go" = "Ir";
+"Go to Line" = "Ir a la línea";
+"Hex" = "Hexadecimal";
+"Hidden" = "Oculto";
+"Index Keys" = "Claves del índice";
+"Index results were truncated." = "Los resultados de índices se han truncado.";
+"Inspect Cell" = "Inspeccionar celda";
+"Line 1–%d" = "Línea 1–%d";
+"Line number" = "Número de línea";
+"Match" = "Coincidencia";
+"No" = "No";
+"No matching indexes" = "No hay índices coincidentes";
+"No matching queries" = "No hay consultas coincidentes";
+"No matching servers" = "No hay servidores coincidentes";
+"Open Script" = "Abrir script";
+"Options" = "Opciones";
+"Preview: first 4096 bytes. Share exports the complete value." = "Vista previa: primeros 4096 bytes. Compartir exporta el valor completo.";
+"Query name" = "Nombre de consulta";
+"Query notes" = "Notas de consulta";
+"Read-only connections" = "Conexiones de solo lectura";
+"Read-only mode" = "Modo de solo lectura";
+"Replace Query" = "Reemplazar consulta";
+"Replace current query?" = "¿Reemplazar la consulta actual?";
+"Reset Filters" = "Restablecer filtros";
+"Row %d" = "Fila %d";
+"Script File" = "Archivo de script";
+"Script Files" = "Archivos de script";
+"Search indexes" = "Buscar índices";
+"Search queries" = "Buscar consultas";
+"Search servers" = "Buscar servidores";
+"Share Script" = "Compartir script";
+"Share Value" = "Compartir valor";
+"Sparse" = "Disperso";
+"Status" = "Estado";
+"Succeeded" = "Correcta";
+"TTL" = "Tiempo de vida (TTL)";
+"TTL: %@ s" = "TTL: %@ seg.";
+"The saved connection is unavailable or its database engine changed." = "La conexión guardada no está disponible o su motor ha cambiado.";
+"Toggle SQL Comment" = "Alternar comentario SQL";
+"Unique" = "Único";
+"Use Current Connection" = "Usar conexión actual";
+"Yes" = "Sí";
+"Editing Tools" = "Herramientas de edición";
+
+// macOS workspace and iCloud synchronization
+"Connections are saved on this device. The library exceeds the iCloud sync limit." = "Las conexiones se guardan en este dispositivo. La biblioteca supera el límite de sincronización de iCloud.";
+"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "Las conexiones, consultas guardadas y configuraciones de gráficos se sincronizan con iCloud. Las contraseñas, claves, historial de consultas, resultados y archivos SQLite permanecen en este dispositivo.";
+"Decrease Text Size" = "Reducir tamaño del texto";
+"Delete Connection" = "Eliminar conexión";
+"Delete Connection?" = "¿Eliminar conexión?";
+"Edit Connection" = "Editar conexión";
+"Explain" = "Plan de ejecución";
+"Increase Text Size" = "Aumentar tamaño del texto";
+"JSON editor" = "Editor JSON";
+"Open Sample Database" = "Abrir base de datos de ejemplo";
+"Open Script…" = "Abrir script…";
+"Pending transactions on this connection will be rolled back." = "Se revertirán las transacciones pendientes de esta conexión.";
+"Pending transactions will be rolled back." = "Se revertirán las transacciones pendientes.";
+"Portbase" = "Portbase";
+"Query Library" = "Biblioteca de consultas";
+"Refresh Schema" = "Actualizar esquema";
+"Reset Text Size" = "Restablecer tamaño del texto";
+"Roll Back and Quit" = "Revertir y salir";
+"Roll Back and Quit?" = "¿Revertir y salir?";
+"SQL clause editor" = "Editor de cláusulas SQL";
+"SQL editor" = "Editor SQL";
+"Sample Database" = "Base de datos de ejemplo";
+"Save File" = "Guardar archivo";
+"Save Query" = "Guardar consulta";
+"Save Script…" = "Guardar script…";
+"Saved queries are on this device. The library exceeds the iCloud sync limit." = "Las consultas guardadas permanecen en este dispositivo. La biblioteca supera el límite de sincronización de iCloud.";
+"Sign in to iCloud in System Settings." = "Inicia sesión en iCloud en Ajustes del Sistema.";
+"Structure" = "Estructura";
+"Sync Now" = "Sincronizar ahora";
+"Text Size" = "Tamaño del texto";
+"Workspace" = "Espacio de trabajo";
+"iCloud" = "iCloud";
+"iCloud available" = "iCloud disponible";
+
+/* Desktop workspace */
+"Choose a collection" = "Selecciona una colección";
+"Connect" = "Conectar";
+"Filter" = "Filtro";
+"Sort" = "Ordenar";
+"Stage" = "Etapa";
+"Primary key" = "Clave primaria";
+
+/* Workspace redesign */
+"Accent Color" = "Color de acento";
+"Actions" = "Acciones";
+"Actions, tables, queries" = "Acciones, tablas, consultas";
+"Active connection" = "Conexión activa";
+"Activity" = "Actividad";
+"Add a connection to browse tables, run queries, and build charts." = "Añade una conexión para explorar tablas, ejecutar consultas y crear gráficos.";
+"Always dark" = "Siempre oscuro";
+"Always light" = "Siempre claro";
+"Analyzing results" = "Analizando resultados";
+"Appearance" = "Apariencia";
+"Browse Data" = "Explorar datos";
+"Cache %@" = "Caché %@";
+"Changes" = "Cambios";
+"Choose a database or refresh the schema." = "Elige una base de datos o actualiza el esquema.";
+"Choose database" = "Elegir base de datos";
+"Clear search" = "Borrar búsqueda";
+"Close %@" = "Cerrar %@";
+"Collections: %d" = "Colecciones: %d";
+"Common table expression" = "Expresión de tabla común";
+"Completeness" = "Completitud";
+"Connect your first database" = "Conecta tu primera base de datos";
+"Connections" = "Conexiones";
+"Copy Name" = "Copiar nombre";
+"Create index" = "Crear índice";
+"Current database" = "Base de datos actual";
+"Dark" = "Oscuro";
+"Database passwords, SSH keys, and private CA certificates stay in this device’s Keychain." = "Las contraseñas de bases de datos, las claves SSH y los certificados de CA privada permanecen en el llavero de este dispositivo.";
+"Date and time" = "Fecha y hora";
+"Delete rows" = "Eliminar filas";
+"Distinct" = "Distintos";
+"Documents: %d" = "Documentos: %d";
+"Edit %@" = "Editar %@";
+"Editable" = "Se puede editar";
+"Editor Theme" = "Tema del editor";
+"Emerald" = "Esmeralda";
+"Empty" = "Vacíos";
+"Encrypted" = "Cifradas";
+"Engines" = "Motores";
+"Filled values" = "Valores con datos";
+"Filter columns" = "Filtrar columnas";
+"Find actions, tables, and saved queries" = "Busca acciones, tablas y consultas guardadas";
+"Follows light and dark mode" = "Sigue el modo claro y oscuro";
+"Format Query" = "Formatear consulta";
+"General" = "Ajustes generales";
+"Go To" = "Ir a";
+"Good afternoon" = "Buenas tardes";
+"Good evening" = "Buenas noches";
+"Good morning" = "Buenos días";
+"Graphite" = "Grafito";
+"Group and count" = "Agrupar y contar";
+"History and saved queries" = "Historial y consultas guardadas";
+"Home" = "Inicio";
+"Indigo" = "Índigo";
+"Insert %@" = "Insertar %@";
+"Insert SQL template" = "Insertar plantilla SQL";
+"Insights" = "Análisis";
+"Join tables" = "Unir tablas";
+"Last 14 days" = "Últimos 14 días";
+"Last run: %@" = "Última ejecución: %@";
+"Light" = "Claro";
+"Loaded rows" = "Filas cargadas";
+"Loads this query into the console without running it" = "Carga esta consulta en la consola sin ejecutarla";
+"Match System" = "Como el sistema";
+"Max" = "Máx.";
+"Mean" = "Media";
+"Median" = "Mediana";
+"Median time" = "Tiempo mediano";
+"Min" = "Mín.";
+"Most active: %@" = "Más activa: %@";
+"Most frequent" = "Más frecuentes";
+"Navigate" = "Navegar";
+"Needs attention" = "Requiere atención";
+"New Query" = "Nueva consulta";
+"No collections" = "No hay colecciones";
+"No matches" = "Sin coincidencias";
+"No tables" = "No hay tablas";
+"Non-NULL cells" = "Celdas no NULL";
+"Numeric columns" = "Columnas numéricas";
+"Ocean" = "Océano";
+"On this device" = "En este dispositivo";
+"Open" = "Abrir";
+"Open Console" = "Abrir consola";
+"Open a fresh console" = "Abre una consola nueva";
+"Opens a new console. Hold for more options." = "Abre una consola nueva. Mantén pulsado para ver más opciones.";
+"Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase funciona con MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis y Elasticsearch.";
+"Queries per day" = "Consultas por día";
+"Queries run" = "Consultas ejecutadas";
+"Queries you run appear here. Loading one never runs it." = "Las consultas que ejecutes aparecerán aquí. Cargar una nunca la ejecuta.";
+"Recent Queries" = "Consultas recientes";
+"Result truncated" = "Resultado truncado";
+"Rose" = "Rosa";
+"Run a query to see column insights." = "Ejecuta una consulta para ver el análisis de columnas.";
+"Run a query to see results here." = "Ejecuta una consulta para ver los resultados aquí.";
+"Run a query to see your activity here." = "Ejecuta una consulta para ver tu actividad aquí.";
+"Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "Ejecuta una consulta con columnas numéricas y elige el botón de gráfico en Resultados para diseñar y guardar un gráfico.";
+"Running total" = "Total acumulado";
+"Save a query from the console to keep it one tap away." = "Guarda una consulta desde la consola para tenerla a un toque.";
+"Saved Charts" = "Gráficos guardados";
+"Saved: %d" = "Guardados: %d";
+"Search actions, tables, and queries" = "Buscar acciones, tablas y consultas";
+"Search…" = "Buscar…";
+"Select rows" = "Seleccionar filas";
+"Show All" = "Mostrar todo";
+"Size" = "Tamaño";
+"Statistics describe loaded rows only. They do not query the database again." = "Las estadísticas describen solo las filas cargadas. No vuelven a consultar la base de datos.";
+"Success rate" = "Tasa de éxito";
+"Suggestions" = "Sugerencias";
+"Summarizing loaded rows." = "Resumiendo las filas cargadas.";
+"Sunset" = "Atardecer";
+"Supported Engines" = "Motores compatibles";
+"Table list caching off" = "Caché de lista de tablas desactivada";
+"Tables: %d" = "Tablas: %d";
+"Templates" = "Plantillas";
+"Templates for %@" = "Plantillas para %@";
+"Transaction open" = "Transacción abierta";
+"Try a table name, a saved query, or an action such as Format." = "Prueba con el nombre de una tabla, una consulta guardada o una acción como Formatear.";
+"Unavailable" = "No disponible";
+"Update rows" = "Actualizar filas";
+"Value distribution" = "Distribución de valores";
+"Version %@ (%@)" = "Versión %@ (%@)";
+"Best Matches" = "Mejores resultados";
+"New SQLite Database" = "Nueva base de datos SQLite";
+"Queries: %d" = "Consultas: %d";
+"No live rows yet" = "Aún no hay filas";
+"No servers saved" = "No hay servidores guardados";
+"No saved charts yet" = "Aún no hay gráficos guardados";
+"No table selected" = "Ninguna tabla seleccionada";
+"Chart query missing" = "Falta la consulta del gráfico";
+"Export" = "Exportar";
+"SSH Password" = "Contraseña SSH";
+"Applies the current WHERE and ORDER BY clauses" = "Aplica las cláusulas WHERE y ORDER BY actuales";
+"Loads the following page of rows" = "Carga la siguiente página de filas";
+"Loads the preceding page of rows" = "Carga la página anterior de filas";
+"Opens chart configuration for these results" = "Abre la configuración del gráfico para estos resultados";
+"Opens the server connection form" = "Abre el formulario de conexión al servidor";
+"Refreshes this saved chart from its database" = "Actualiza este gráfico guardado desde su base de datos";

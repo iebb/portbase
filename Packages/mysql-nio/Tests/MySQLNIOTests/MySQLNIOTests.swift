@@ -32,6 +32,19 @@ struct MySQLNIOTests {
     }
     
     @Test
+    func handshakeSelectsRequestedDatabase() async throws {
+        let connection = try await MySQLConnection.test()
+        do {
+            let rows = try await connection.simpleQuery("SELECT DATABASE() AS selected_database").get()
+            #expect(rows.first?.column("selected_database")?.string == (env("MYSQL_DATABASE") ?? "test_database"))
+        } catch {
+            try? await connection.close().get()
+            throw error
+        }
+        try await connection.close().get()
+    }
+
+    @Test
     func decodingSumOfIntsWithNoRows() async throws {
         let conn = try await MySQLConnection.test()
 

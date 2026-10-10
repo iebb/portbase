@@ -44,9 +44,6 @@ enum VisualizationChartType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    var requiresPro: Bool {
-        self == .line || self == .area
-    }
 }
 
 enum VisualizationFieldMode: String, CaseIterable, Identifiable, Codable {
@@ -224,8 +221,15 @@ struct VisualizationPlotPoint: Identifiable, Hashable {
     let xText: String
     let xNumber: Double?
     let xDate: Date?
-    let yValue: Double
+    var yValue: Double
     let group: String?
-    let label: String?
+    var label: String?
     let metric: String?
+    var sourceRowIDs: [UUID] = []
+}
+
+struct VisualizationDateFilter: Equatable {
+    var field: String
+    var start: Date
+    var end: Date
 }

@@ -10,36 +10,42 @@ struct VisualizerView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 if libraryStore.visualizations.isEmpty {
-                    ContentUnavailableView(
-                        "No saved charts yet",
-                        systemImage: "chart.bar.xaxis",
-                        description: Text("Add your first visualization when querying.")
+                    PortbaseEmptyState(
+                        title: L10n.text("No saved charts yet"),
+                        message: L10n.text("Run a query with numeric columns, then choose the chart button in Results to design and save a chart."),
+                        systemImage: "chart.bar.xaxis"
                     )
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 80)
+                    .padding(.top, 60)
                 } else {
-                    ForEach(libraryStore.visualizations) { preset in
-                        VisualizationPresetCard(
-                            preset: preset,
-                            result: workspace.result,
-                            onEdit: { editingPreset = preset }
-                        )
+                    PortbaseSectionHeading(title: L10n.text("Saved Charts"), systemImage: "chart.bar.xaxis") {
+                        Text(L10n.format("Saved: %d", libraryStore.visualizations.count))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 380), spacing: 16, alignment: .top)], spacing: 16) {
+                        ForEach(libraryStore.visualizations) { preset in
+                            VisualizationPresetCard(
+                                preset: preset,
+                                result: workspace.result,
+                                onEdit: { editingPreset = preset }
+                            )
+                        }
                     }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
             .padding(.vertical, 18)
         }
-        .background(WorkbenchBackground().ignoresSafeArea())
+        .background(PortbaseBackdrop().ignoresSafeArea())
         .navigationTitle("Charts")
-        .navigationBarTitleDisplayMode(.inline)
+        .portbaseTitleDisplayMode(.inline)
         .sheet(item: $editingPreset) { preset in
             VisualizerComposerSheet(initialPreset: reconciledPreset(for: preset))
         }
     }
 
     private func reconciledPreset(for preset: SavedVisualizationPreset?) -> SavedVisualizationPreset {
-        VisualizationService.reconciledPreset(
+        if let preset { return preset }
+        return VisualizationService.reconciledPreset(
             preset,
             for: workspace.result,
             connectionProfileID: workspace.selectedBookmark?.id,
@@ -56,22 +62,21 @@ struct VisualizerComposerSheet: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var libraryStore: WorkspaceLibraryStore
     @EnvironmentObject private var bookmarks: BookmarkStore
-    @EnvironmentObject private var purchaseStore: PurchaseStore
 
     @State private var draft: SavedVisualizationPreset
     @State private var draftQueryCursorOffset = 0
+    @State private var draftQuerySelectionLength = 0
     @State private var expandedPreviewResult: QueryResultTable?
     @State private var isLoadingExpandedPreview = false
     @State private var expandedPreviewError: String?
     @State private var isConfirmingDelete = false
-    @State private var paywallFeature: PremiumFeature?
 
     init(initialPreset: SavedVisualizationPreset) {
         _draft = State(initialValue: initialPreset)
     }
 
     private var previewResult: QueryResultTable {
-        expandedPreviewResult ?? workspace.result
+        expandedPreviewResult ?? (isStoredPreset ? libraryStore.cachedVisualizationPreview(for: draft.id) ?? .empty : workspace.result)
     }
 
     private var fields: [VisualizationFieldDescriptor] {
@@ -98,7 +103,8 @@ struct VisualizerComposerSheet: View {
     }
 
     private var previewBookmark: ConnectionProfile? {
-        bookmarks.bookmark(with: draft.connectionProfileID) ?? workspace.selectedBookmark
+        if let id = draft.connectionProfileID { return bookmarks.bookmark(with: id) }
+        return workspace.selectedBookmark
     }
 
     private var isStoredPreset: Bool {
@@ -111,10 +117,7 @@ struct VisualizerComposerSheet: View {
                 VStack(alignment: .leading, spacing: 18) {
                     PanelCard {
                         VStack(alignment: .leading, spacing: 14) {
-                            SectionHeader(
-                                title: "Add to Visualizer",
-                                subtitle: "Build a saved chart config from the current result set."
-                            )
+                            SectionHeader(title: "Add to Visualizer")
 
                             LabeledVisualizerTextField(
                                 label: "Preset Name",
@@ -130,11 +133,12 @@ struct VisualizerComposerSheet: View {
 
                             VStack(alignment: .leading, spacing: 10) {
                                 HStack(alignment: .center, spacing: 10) {
-                                    Text("SQL")
+                                    Text("Query")
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(PortSQLPalette.ink)
                                     Spacer()
-                                    Menu {
+                                    if previewBookmark?.engine.isRelational != false {
+                                      Menu {
                                         Button("Remove LIMIT / OFFSET") {
                                             let cleaned = VisualizationService.queryWithoutLimitAndOffset(queryBinding.wrappedValue)
                                             queryBinding.wrappedValue = cleaned
@@ -152,6 +156,7 @@ struct VisualizerComposerSheet: View {
                                             .foregroundStyle(PortSQLPalette.ink)
                                     }
 
+                                    }
                                     Button {
                                         Task {
                                             await runPreview()
@@ -173,12 +178,14 @@ struct VisualizerComposerSheet: View {
                                     HighlightedQueryEditor(
                                         text: queryBinding,
                                         cursorOffset: $draftQueryCursorOffset,
-                                        colorScheme: colorScheme
+                                        selectionLength: $draftQuerySelectionLength,
+                                        colorScheme: colorScheme,
+                                        isJSON: previewBookmark?.engine.usesJSONEditor == true
                                     )
                                         .frame(minHeight: 150)
 
                                     if queryBinding.wrappedValue.isEmpty {
-                                        Text("SELECT delivered_at, package_count, distance_km, delivery_hours, category, region\nFROM chart_doc_shipments\nORDER BY delivered_at;")
+                                        Text(verbatim: previewBookmark?.engine.queryPlaceholder ?? "SELECT …")
                                             .font(.system(.body, design: .monospaced))
                                             .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
                                             .padding(.horizontal, 16)
@@ -204,15 +211,11 @@ struct VisualizerComposerSheet: View {
                                 ) {
                                     ForEach(VisualizationChartType.allCases) { chartType in
                                         Button {
-                                            if chartType.requiresPro && !purchaseStore.hasPro {
-                                                paywallFeature = .advancedCharts
-                                            } else {
-                                                draft.chartType = chartType
-                                            }
+                                            draft.chartType = chartType
                                         } label: {
                                             Label(
                                                 chartType.title,
-                                                systemImage: chartType.requiresPro && !purchaseStore.hasPro ? "lock.fill" : chartType.symbolName
+                                                systemImage: chartType.symbolName
                                             )
                                         }
                                     }
@@ -375,10 +378,6 @@ struct VisualizerComposerSheet: View {
                     if isStoredPreset {
                         PanelCard {
                             VStack(alignment: .leading, spacing: 12) {
-                                Text("Danger Zone")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(PortSQLPalette.ink)
-
                                 Button(role: .destructive) {
                                     isConfirmingDelete = true
                                 } label: {
@@ -396,7 +395,7 @@ struct VisualizerComposerSheet: View {
             }
             .background(WorkbenchBackground().ignoresSafeArea())
             .navigationTitle("Chart Config")
-            .navigationBarTitleDisplayMode(.inline)
+            .portbaseTitleDisplayMode(.inline)
             .alert("Delete Chart", isPresented: $isConfirmingDelete) {
                 Button("Delete", role: .destructive) {
                     libraryStore.deleteVisualization(draft)
@@ -404,10 +403,7 @@ struct VisualizerComposerSheet: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Delete this saved chart? This cannot be undone.")
-            }
-            .sheet(item: $paywallFeature) { feature in
-                PaywallView(feature: feature)
+                Text("Move this chart to Recently Deleted?")
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -415,10 +411,6 @@ struct VisualizerComposerSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        guard !draft.chartType.requiresPro || purchaseStore.hasPro else {
-                            paywallFeature = .advancedCharts
-                            return
-                        }
                         var stored = draft
                         stored.title = normalizedPresetTitle
                         stored.chartTitle = normalizedChartTitle
@@ -427,10 +419,10 @@ struct VisualizerComposerSheet: View {
                         stored.yFields = stored.resolvedYFields
                         stored.yField = stored.resolvedYFields.first ?? ""
                         stored.usesUnlimitedRows = false
-                        stored.connectionName = workspace.selectedBookmark?.name ?? stored.connectionName
-                        stored.connectionProfileID = workspace.selectedBookmark?.id ?? stored.connectionProfileID
-                        stored.databaseName = workspace.activeDatabaseName
-                        stored.sourceTableReference = workspace.result.sourceTableReference
+                        stored.connectionName = previewBookmark?.name ?? stored.connectionName
+                        stored.connectionProfileID = previewBookmark?.id ?? stored.connectionProfileID
+                        stored.databaseName = stored.databaseName ?? workspace.activeDatabaseName
+                        stored.sourceTableReference = stored.sourceTableReference ?? workspace.result.sourceTableReference
                         stored.sourceQuery = stored.sourceQuery ?? workspace.result.sourceQuery
                         libraryStore.saveVisualization(stored)
                         libraryStore.cacheVisualizationPreview(previewResult, for: stored.id)
@@ -513,7 +505,7 @@ struct VisualizerComposerSheet: View {
         let sourceQuery = queryBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !sourceQuery.isEmpty else {
             expandedPreviewResult = nil
-            expandedPreviewError = L10n.text("Add a SQL query to run this visualizer.")
+            expandedPreviewError = L10n.text("Chart query missing")
             isLoadingExpandedPreview = false
             return
         }
@@ -535,10 +527,6 @@ struct VisualizerComposerSheet: View {
             result.sourceTableReference = draft.sourceTableReference ?? workspace.result.sourceTableReference
             result.sourceQuery = sourceQuery
             await MainActor.run {
-                workspace.selectBookmark(bookmark.id)
-                if let database = draft.databaseName, !database.isEmpty {
-                    workspace.selectDatabase(database)
-                }
                 expandedPreviewResult = result
                 expandedPreviewError = nil
                 isLoadingExpandedPreview = false
@@ -578,7 +566,8 @@ private struct VisualizationPresetCard: View {
     }
 
     private var runnableBookmark: ConnectionProfile? {
-        bookmarks.bookmark(with: preset.connectionProfileID) ?? workspace.selectedBookmark
+        if let id = preset.connectionProfileID { return bookmarks.bookmark(with: id) }
+        return workspace.selectedBookmark
     }
 
     private var hasSourceQuery: Bool {
@@ -600,6 +589,13 @@ private struct VisualizationPresetCard: View {
         PanelCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: preset.chartType.symbolName)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .background(LinearGradient(colors: (runnableBookmark?.engine ?? .postgresql).brandColors, startPoint: .topLeading, endPoint: .bottomTrailing),
+                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(preset.title)
                             .font(.headline.weight(.bold))
@@ -619,30 +615,25 @@ private struct VisualizationPresetCard: View {
                                 await runPreset()
                             }
                         } label: {
-                            if isRunning {
-                                ProgressView()
-                                    .frame(width: 44, height: 44)
-                            } else {
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .frame(width: 44, height: 44)
+                            Group {
+                                if isRunning {
+                                    ProgressView().tint(.white)
+                                } else {
+                                    Image(systemName: "play.fill")
+                                }
                             }
+                            .toolIconChrome(prominent: true)
                         }
                         .buttonStyle(.plain)
-                        .foregroundStyle(.white)
-                        .background(PortSQLPalette.accent, in: Circle())
                         .disabled(isRunning || !hasSourceQuery || runnableBookmark == nil)
+                        .opacity(isRunning || !hasSourceQuery || runnableBookmark == nil ? 0.5 : 1)
                         .accessibilityLabel(L10n.format("Run %@ chart query", preset.title))
                         .accessibilityHint("Refreshes this saved chart from its database")
 
                         Button(action: onEdit) {
-                            Image(systemName: "slider.horizontal.3")
-                                .font(.system(size: 13, weight: .semibold))
-                                .frame(width: 44, height: 44)
+                            Image(systemName: "slider.horizontal.3").toolIconChrome()
                         }
                         .buttonStyle(.plain)
-                        .foregroundStyle(PortSQLPalette.ink)
-                        .background(PortSQLPalette.surface, in: Circle())
                         .accessibilityLabel(L10n.format("Edit %@ chart", preset.title))
                     }
                 }
@@ -652,7 +643,7 @@ private struct VisualizationPresetCard: View {
                         VisualizerMetaChip(text: "X \(preset.xField)")
                         VisualizerMetaChip(text: "Y \(preset.yFieldsSummary)")
                         if preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
-                            VisualizerMetaChip(text: "SQL")
+                            VisualizerMetaChip(text: runnableBookmark?.engine.queryLanguage ?? "SQL")
                         }
                         if preset.resolvedYFields.count > 1 {
                             VisualizerMetaChip(text: "Multi-metric")
@@ -740,7 +731,7 @@ private struct VisualizationPresetCard: View {
     private func runPreset() async {
         guard let sourceQuery = preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines),
               !sourceQuery.isEmpty else {
-            runError = L10n.text("This visualizer does not have a saved SQL query yet.")
+            runError = L10n.text("Chart query missing")
             return
         }
         guard let bookmark = runnableBookmark else {
@@ -760,10 +751,6 @@ private struct VisualizationPresetCard: View {
             result.sourceQuery = sourceQuery
             result.sourceTableReference = preset.sourceTableReference
             await MainActor.run {
-                workspace.selectBookmark(bookmark.id)
-                if let database = preset.databaseName, !database.isEmpty {
-                    workspace.selectDatabase(database)
-                }
                 loadedResult = result
                 libraryStore.cacheVisualizationPreview(result, for: preset.id)
                 runError = nil
@@ -779,22 +766,14 @@ private struct VisualizationPresetCard: View {
     }
 }
 
-private struct VisualizationChartPreview: View {
+struct VisualizationChartPlot: View {
     let preset: SavedVisualizationPreset
-    let result: QueryResultTable
+    let points: [VisualizationPlotPoint]
+    let xMode: VisualizationFieldMode
     var compact: Bool
-
-    private var fields: [VisualizationFieldDescriptor] {
-        VisualizationService.fieldDescriptors(for: result)
-    }
-
-    private var points: [VisualizationPlotPoint] {
-        VisualizationService.chartPoints(for: result, preset: preset)
-    }
-
-    private var xMode: VisualizationFieldMode {
-        VisualizationService.resolvedXMode(for: preset, fields: fields)
-    }
+    var selectedPointID: String?
+    var onSelect: ((VisualizationPlotPoint) -> Void)?
+    @State private var selectedAngle: Double?
 
     var body: some View {
         Group {
@@ -824,20 +803,35 @@ private struct VisualizationChartPreview: View {
             case .pie, .donut:
                 barMarks
             }
+            selectionMark
         }
         .chartXAxisLabel(preset.xAxisTitle)
         .chartYAxisLabel(preset.yAxisTitle)
         .chartLegend(compact ? .hidden : .visible)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Color.clear.contentShape(Rectangle())
+                    .onTapGesture { location in
+                        guard let frame = proxy.plotFrame else { return }
+                        let plotFrame = geometry[frame]
+                        guard plotFrame.contains(location) else { return }
+                        selectPoint(at: CGPoint(x: location.x - plotFrame.minX, y: location.y - plotFrame.minY), proxy: proxy)
+                    }
+                    .allowsHitTesting(onSelect != nil)
+                    .accessibilityHidden(true)
+            }
+        }
     }
 
     private var sectorChart: some View {
-        Chart(points) { point in
+        Chart(points.filter { $0.yValue > 0 }) { point in
             SectorMark(
                 angle: .value(preset.yAxisTitle, point.yValue),
                 innerRadius: .ratio(preset.chartType == .donut ? 0.56 : 0),
                 angularInset: 1.5
             )
-            .foregroundStyle(by: .value("Category", sectorTitle(for: point)))
+            .foregroundStyle(by: .value(L10n.text("Category"), sectorTitle(for: point)))
+            .opacity(selectedPointID == nil || selectedPointID == point.id ? 1 : 0.45)
             .annotation(position: .overlay) {
                 if let annotation = annotationText(for: point), shouldAnnotate {
                     Text(annotation)
@@ -847,6 +841,69 @@ private struct VisualizationChartPreview: View {
             }
         }
         .chartLegend(compact ? .hidden : .visible)
+        .chartAngleSelection(value: $selectedAngle)
+        .onChange(of: selectedAngle) { _, angle in
+            guard let angle else { return }
+            var total: Double = 0
+            for point in points where point.yValue > 0 {
+                total += point.yValue
+                if angle <= total { onSelect?(point); return }
+            }
+        }
+    }
+
+    @ChartContentBuilder
+    private var selectionMark: some ChartContent {
+        if let point = points.first(where: { $0.id == selectedPointID }) {
+            if preset.chartType == .rule {
+                RuleMark(y: .value(preset.yAxisTitle, point.yValue))
+                    .foregroundStyle(.secondary).lineStyle(StrokeStyle(lineWidth: 2, dash: [4, 4]))
+            } else if let date = point.xDate {
+                RuleMark(x: .value(preset.xAxisTitle, date))
+                    .foregroundStyle(.secondary).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            } else if let number = point.xNumber {
+                RuleMark(x: .value(preset.xAxisTitle, number))
+                    .foregroundStyle(.secondary).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            } else {
+                RuleMark(x: .value(preset.xAxisTitle, point.xText))
+                    .foregroundStyle(.secondary).lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            }
+        }
+    }
+
+    private func selectPoint(at location: CGPoint, proxy: ChartProxy) {
+        guard onSelect != nil else { return }
+        if preset.chartType == .rule {
+            if let point = points.min(by: {
+                abs((proxy.position(forY: $0.yValue) ?? 0) - location.y) < abs((proxy.position(forY: $1.yValue) ?? 0) - location.y)
+            }) { onSelect?(point) }
+            return
+        }
+        let positioned = points.compactMap { point -> (VisualizationPlotPoint, CGFloat)? in
+            let x: CGFloat?
+            switch xMode {
+            case .date: x = point.xDate.flatMap { proxy.position(forX: $0) }
+            case .number: x = point.xNumber.flatMap { proxy.position(forX: $0) }
+            case .category, .automatic: x = proxy.position(forX: point.xText)
+            }
+            return x.map { (point, $0) }
+        }
+        guard let nearestX = positioned.min(by: { abs($0.1 - location.x) < abs($1.1 - location.x) })?.1 else { return }
+        let candidates = positioned.filter { abs($0.1 - nearestX) < 1 }.map(\.0)
+        let stacked = preset.chartType == .bar || preset.chartType == .area
+        var positive: Double = 0
+        var negative: Double = 0
+        var nearest: (VisualizationPlotPoint, CGFloat)?
+        for point in candidates {
+            let start = stacked ? (point.yValue >= 0 ? positive : negative) : point.yValue
+            let end = stacked ? start + point.yValue : point.yValue
+            if point.yValue >= 0 { positive = end } else { negative = end }
+            guard let yStart = proxy.position(forY: start), let yEnd = proxy.position(forY: end) else { continue }
+            let low = min(yStart, yEnd), high = max(yStart, yEnd)
+            let distance = location.y < low ? low - location.y : (location.y > high ? location.y - high : 0)
+            if nearest == nil || distance < nearest!.1 { nearest = (point, distance) }
+        }
+        if let point = nearest?.0 { onSelect?(point) }
     }
 
     @ChartContentBuilder
@@ -857,7 +914,7 @@ private struct VisualizationChartPreview: View {
                 if let date = point.xDate {
                     if let group = point.group {
                         BarMark(x: .value(preset.xAxisTitle, date), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -879,7 +936,7 @@ private struct VisualizationChartPreview: View {
                 if let number = point.xNumber {
                     if let group = point.group {
                         BarMark(x: .value(preset.xAxisTitle, number), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -900,7 +957,7 @@ private struct VisualizationChartPreview: View {
             ForEach(points) { point in
                 if let group = point.group {
                     BarMark(x: .value(preset.xAxisTitle, point.xText), y: .value(preset.yAxisTitle, point.yValue))
-                        .foregroundStyle(by: .value("Group", group))
+                        .foregroundStyle(by: .value(L10n.text("Group"), group))
                         .annotation(position: .top) {
                             if let annotation = annotationText(for: point) {
                                 compactAnnotation(annotation)
@@ -927,7 +984,7 @@ private struct VisualizationChartPreview: View {
                 if let date = point.xDate {
                     if let group = point.group {
                         LineMark(x: .value(preset.xAxisTitle, date), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -949,7 +1006,7 @@ private struct VisualizationChartPreview: View {
                 if let number = point.xNumber {
                     if let group = point.group {
                         LineMark(x: .value(preset.xAxisTitle, number), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -970,7 +1027,7 @@ private struct VisualizationChartPreview: View {
             ForEach(points) { point in
                 if let group = point.group {
                     LineMark(x: .value(preset.xAxisTitle, point.xText), y: .value(preset.yAxisTitle, point.yValue))
-                        .foregroundStyle(by: .value("Group", group))
+                        .foregroundStyle(by: .value(L10n.text("Group"), group))
                         .annotation(position: .top) {
                             if let annotation = annotationText(for: point) {
                                 compactAnnotation(annotation)
@@ -997,7 +1054,7 @@ private struct VisualizationChartPreview: View {
                 if let date = point.xDate {
                     if let group = point.group {
                         AreaMark(x: .value(preset.xAxisTitle, date), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -1021,7 +1078,7 @@ private struct VisualizationChartPreview: View {
                 if let number = point.xNumber {
                     if let group = point.group {
                         AreaMark(x: .value(preset.xAxisTitle, number), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -1044,7 +1101,7 @@ private struct VisualizationChartPreview: View {
             ForEach(points) { point in
                 if let group = point.group {
                     AreaMark(x: .value(preset.xAxisTitle, point.xText), y: .value(preset.yAxisTitle, point.yValue))
-                        .foregroundStyle(by: .value("Group", group))
+                        .foregroundStyle(by: .value(L10n.text("Group"), group))
                         .annotation(position: .top) {
                             if let annotation = annotationText(for: point) {
                                 compactAnnotation(annotation)
@@ -1073,7 +1130,7 @@ private struct VisualizationChartPreview: View {
                 if let date = point.xDate {
                     if let group = point.group {
                         PointMark(x: .value(preset.xAxisTitle, date), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -1095,7 +1152,7 @@ private struct VisualizationChartPreview: View {
                 if let number = point.xNumber {
                     if let group = point.group {
                         PointMark(x: .value(preset.xAxisTitle, number), y: .value(preset.yAxisTitle, point.yValue))
-                            .foregroundStyle(by: .value("Group", group))
+                            .foregroundStyle(by: .value(L10n.text("Group"), group))
                             .annotation(position: .top) {
                                 if let annotation = annotationText(for: point) {
                                     compactAnnotation(annotation)
@@ -1116,7 +1173,7 @@ private struct VisualizationChartPreview: View {
             ForEach(points) { point in
                 if let group = point.group {
                     PointMark(x: .value(preset.xAxisTitle, point.xText), y: .value(preset.yAxisTitle, point.yValue))
-                        .foregroundStyle(by: .value("Group", group))
+                        .foregroundStyle(by: .value(L10n.text("Group"), group))
                         .annotation(position: .top) {
                             if let annotation = annotationText(for: point) {
                                 compactAnnotation(annotation)
@@ -1140,7 +1197,7 @@ private struct VisualizationChartPreview: View {
         ForEach(points) { point in
             if let group = point.group {
                 RuleMark(y: .value(preset.yAxisTitle, point.yValue))
-                    .foregroundStyle(by: .value("Group", group))
+                    .foregroundStyle(by: .value(L10n.text("Group"), group))
                     .annotation(position: .trailing) {
                         compactAnnotation(point.label ?? point.xText)
                     }
@@ -1192,7 +1249,7 @@ private struct LabeledVisualizerTextField: View {
                 .foregroundStyle(.secondary)
 
             TextField(placeholder, text: $text)
-                .textInputAutocapitalization(.words)
+                .portbaseTextCapitalization(.words)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
                 .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -1242,13 +1299,9 @@ private struct VisualizerMetaChip: View {
     var body: some View {
         Text(text)
             .font(.caption.weight(.semibold))
-            .foregroundStyle(PortSQLPalette.ink)
+            .foregroundStyle(PortSQLPalette.accent)
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(PortSQLPalette.surface, in: Capsule())
-            .overlay {
-                Capsule()
-                    .stroke(PortSQLPalette.stroke, lineWidth: 1)
-            }
+            .padding(.vertical, 6)
+            .background(PortSQLPalette.accent.opacity(0.10), in: Capsule())
     }
 }

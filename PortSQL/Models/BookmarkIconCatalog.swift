@@ -41,11 +41,6 @@ struct BookmarkIconCatalog {
     }()
 
     static func defaultName(for engine: DatabaseEngine) -> String {
-        switch engine {
-        case .mysql:
-            "cylinder.split.1x2.fill"
-        case .postgresql:
-            "shippingbox.circle.fill"
-        }
+        engine.symbolName
     }
 }

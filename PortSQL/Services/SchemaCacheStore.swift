@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 struct CachedSchemaCatalog: Codable, Hashable {
     let databases: [String]
@@ -67,17 +68,22 @@ final class SchemaCacheStore: @unchecked Sendable {
     }
 
     private func cacheKey(for profile: ConnectionProfile, requestedDatabase: String) -> String {
+        let optionsEncoder = JSONEncoder()
+        optionsEncoder.outputFormatting = .sortedKeys
+        let mongoOptions = profile.engine == .mongodb ? ((try? optionsEncoder.encode(profile.mongoConnection)).flatMap { String(data: $0, encoding: .utf8) } ?? "") : ""
         let raw = [
+            "schema-v2",
             profile.id.uuidString,
             profile.engine.rawValue,
             profile.host,
             String(profile.port),
             profile.username,
-            requestedDatabase.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            profile.engine == .mongodb ? profile.authenticationDatabase : "",
+            mongoOptions,
+            profile.sqliteFileName ?? "",
+            profile.httpAuthentication.rawValue,
+            requestedDatabase.trimmingCharacters(in: .whitespacesAndNewlines)
         ].joined(separator: "|")
-        return raw.data(using: .utf8)?.base64EncodedString()
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "=", with: "") ?? profile.id.uuidString
+        return SHA256.hash(data: Data(raw.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 }

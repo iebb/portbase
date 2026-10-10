@@ -1,6 +1,8 @@
 import Foundation
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
 
 enum DataEditorValidationService {
     static func validate(
@@ -75,7 +77,7 @@ enum DataEditorValidationService {
         return .string(rawValue)
     }
 
-    static func keyboardType(for column: SchemaColumnDescriptor) -> UIKeyboardType {
+    static func keyboardType(for column: SchemaColumnDescriptor) -> PortbaseKeyboardType {
         let type = column.type.lowercased()
         if isIntegerType(type) {
             return .numberPad

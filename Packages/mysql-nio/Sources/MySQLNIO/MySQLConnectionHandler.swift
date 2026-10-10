@@ -116,7 +116,7 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
         }
         self.serverCapabilities = handshakeRequest.capabilities
         if let tlsConfiguration = state.tlsConfiguration, handshakeRequest.capabilities.contains(.CLIENT_SSL) {
-            let capabilities = makeHandshakeCapabilities(serverCapabilities: handshakeRequest.capabilities, includeTLS: true)
+            let capabilities = makeHandshakeCapabilities(serverCapabilities: handshakeRequest.capabilities, includeTLS: true, database: state.database)
             let sslRequest = MySQLProtocol.SSLRequest(
                 capabilities: capabilities,
                 maxPacketSize: 0,
@@ -239,7 +239,7 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
         }
 
         let hash = try doInitialAuthPluginHandling(authPluginName: authPluginName, isTLS: isTLS, passwordInput: state.password, authPluginData: handshakeRequest.authPluginData, done: state.done)
-        let capabilities = makeHandshakeCapabilities(serverCapabilities: handshakeRequest.capabilities, includeTLS: isTLS)
+        let capabilities = makeHandshakeCapabilities(serverCapabilities: handshakeRequest.capabilities, includeTLS: isTLS, database: state.database)
 
         let res = MySQLPacket.HandshakeResponse41(
             capabilities: capabilities,
@@ -259,7 +259,8 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
 
     private func makeHandshakeCapabilities(
         serverCapabilities: MySQLProtocol.CapabilityFlags,
-        includeTLS: Bool
+        includeTLS: Bool,
+        database: String
     ) -> MySQLProtocol.CapabilityFlags {
         var capabilities: MySQLProtocol.CapabilityFlags = [
             .CLIENT_PROTOCOL_41,
@@ -269,6 +270,9 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
             .CLIENT_TRANSACTIONS,
         ]
 
+        if !database.isEmpty, serverCapabilities.contains(.CLIENT_CONNECT_WITH_DB) {
+            capabilities.insert(.CLIENT_CONNECT_WITH_DB)
+        }
         if serverCapabilities.contains(.CLIENT_DEPRECATE_EOF) {
             capabilities.insert(.CLIENT_DEPRECATE_EOF)
         }

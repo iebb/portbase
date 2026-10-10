@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "1430"
+   version = "1.7">
+   <BuildAction
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES"
+      runPostActionsOnFailure = "NO">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FFCE229CA3659D0B4DCF7410"
+               BuildableName = "PortSQL.app"
+               BlueprintName = "PortSQL"
+               ReferencedContainer = "container:PortSQL.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "NO"
+      onlyGenerateCoverageForSpecifiedTargets = "NO">
+      <MacroExpansion>
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "FFCE229CA3659D0B4DCF7410"
+            BuildableName = "PortSQL.app"
+            BlueprintName = "PortSQL"
+            ReferencedContainer = "container:PortSQL.xcodeproj">
+         </BuildableReference>
+      </MacroExpansion>
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "11BEA87EFC7639A8A1F4D418"
+               BuildableName = "PortSQLTests.xctest"
+               BlueprintName = "PortSQLTests"
+               ReferencedContainer = "container:PortSQL.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
+      <CommandLineArguments>
+      </CommandLineArguments>
+      <EnvironmentVariables>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_CLICKHOUSE_PORT"
+            value = "$(PORTBASE_TEST_CLICKHOUSE_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_ELASTICSEARCH_PORT"
+            value = "$(PORTBASE_TEST_ELASTICSEARCH_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_HTTP_CA_B64"
+            value = "$(PORTBASE_TEST_HTTP_CA_B64)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_HTTP_TLS_PORT"
+            value = "$(PORTBASE_TEST_HTTP_TLS_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_MARIADB_PORT"
+            value = "$(PORTBASE_TEST_MARIADB_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_REDIS_CA_B64"
+            value = "$(PORTBASE_TEST_REDIS_CA_B64)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_REDIS_PASSWORD"
+            value = "$(PORTBASE_TEST_REDIS_PASSWORD)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_REDIS_PORT"
+            value = "$(PORTBASE_TEST_REDIS_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_REDIS_TLS_PORT"
+            value = "$(PORTBASE_TEST_REDIS_TLS_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTSQL_TEST_MONGODB_CA_B64"
+            value = "$(PORTSQL_TEST_MONGODB_CA_B64)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTSQL_TEST_MONGODB_PORT"
+            value = "$(PORTSQL_TEST_MONGODB_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTSQL_TEST_MONGODB_REPLICA_PORT"
+            value = "$(PORTSQL_TEST_MONGODB_REPLICA_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTSQL_TEST_MONGODB_TLS_PORT"
+            value = "$(PORTSQL_TEST_MONGODB_TLS_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTSQL_TEST_MYSQL_PORT"
+            value = "$(PORTSQL_TEST_MYSQL_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTSQL_TEST_POSTGRES_PORT"
+            value = "$(PORTSQL_TEST_POSTGRES_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+      </EnvironmentVariables>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "FFCE229CA3659D0B4DCF7410"
+            BuildableName = "PortSQL.app"
+            BlueprintName = "PortSQL"
+            ReferencedContainer = "container:PortSQL.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "FFCE229CA3659D0B4DCF7410"
+            BuildableName = "PortSQL.app"
+            BlueprintName = "PortSQL"
+            ReferencedContainer = "container:PortSQL.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+   </ArchiveAction>
+</Scheme>

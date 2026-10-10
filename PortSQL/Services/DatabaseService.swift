@@ -17,7 +17,7 @@ import NIOSSL
 import PostgresNIO
 #endif
 
-private func withQueryTimeout<Value: Sendable>(
+func withQueryTimeout<Value: Sendable>(
     seconds: Int,
     closeConnection: @escaping @Sendable () -> Void,
     operation: @escaping @Sendable () async throws -> Value
@@ -158,33 +158,33 @@ enum DatabaseServiceError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unsupported:
-            "The requested database driver is unavailable in this build."
+            L10n.text("The requested database driver is unavailable in this build.")
         case .notConfigured:
-            "Select or create a bookmark before running a query."
+            L10n.text("Select or create a bookmark before running a query.")
         case .readOnlyViolation:
-            "This connection is read-only and cannot execute write or schema statements."
+            L10n.text("This connection is read-only and cannot execute write or schema statements.")
         case .unsafeQueryRequiresConfirmation:
-            "This statement requires explicit confirmation before it can run."
+            L10n.text("This statement requires explicit confirmation before it can run.")
         case .readOnlyQueryRequired:
-            "This operation only accepts read-only SQL."
+            L10n.text("This operation only accepts read-only queries.")
         case .queryTimedOut:
-            "The database query timed out and its connection was closed."
+            L10n.text("The database query timed out and its connection was closed.")
         case .invalidSchemaDefinition:
-            "The column type contains unsupported or unsafe SQL syntax."
+            L10n.text("The column type contains unsupported or unsafe SQL syntax.")
         case .mysqlColumnEditRequiresCompleteMetadata:
-            "MySQL column editing is disabled because PortSQL cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead."
+            L10n.text("MySQL column editing is disabled because Portbase cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead.")
         case .tlsIdentityUnavailableThroughTunnel:
-            "TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel."
+            L10n.text("TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel.")
         case .privateCACertificateMissing:
-            "Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again."
+            L10n.text("Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again.")
         case .privateCACertificateInvalid:
-            "The private CA must be a valid PEM certificate bundle and must not contain a private key."
+            L10n.text("The private CA must be a valid PEM certificate bundle and must not contain a private key.")
         case .privateCACertificateTooLarge:
-            "The private CA certificate bundle is too large."
+            L10n.text("The private CA certificate bundle is too large.")
         case .unexpectedAffectedRowCount(let expected, let actual):
             actual < 0
-                ? "Expected to affect \(expected) row(s), but the database did not report an affected-row count. The result cannot be verified safely."
-                : "Expected to affect \(expected) row(s), but the database reported \(actual). The row may have changed since it was loaded."
+                ? L10n.format("Expected %d affected rows; the server did not report a count. The transaction was rolled back.", expected)
+                : L10n.format("Expected %d affected rows, received %d. The transaction was rolled back.", expected, actual)
         }
     }
 }
@@ -195,7 +195,7 @@ enum DatabaseExecutionPolicy: Sendable {
     case mutation(expectedAffectedRows: Int? = nil)
 }
 
-private extension DatabaseExecutionPolicy {
+extension DatabaseExecutionPolicy {
     var requiresReadOnlySession: Bool {
         if case .readOnly = self { return true }
         return false
@@ -210,12 +210,36 @@ struct SchemaMutationPlan: Hashable {
     }
 }
 
+private final class SQLConsoleSession {
+    let profile: ConnectionProfile
+    let database: String?
+    var mysql: MySQLConnection?
+    var postgres: PostgresConnection?
+    var transactionOpen = false
+    var transactionalTables: Set<String> = []
+    init(profile: ConnectionProfile, database: String?) { self.profile = profile; self.database = database }
+}
+
+enum ConsoleSessionError: LocalizedError {
+    case busy, transactionControlsRequired, implicitCommit, pendingTransaction
+    var errorDescription: String? {
+        switch self {
+        case .busy: L10n.text("This console is already executing a command.")
+        case .transactionControlsRequired: L10n.text("Use the console's transaction controls for Begin, Commit, and Rollback.")
+        case .implicitCommit: L10n.text("This MySQL statement can commit implicitly. Commit or roll back, then switch to Auto-commit before running it.")
+        case .pendingTransaction: L10n.text("Commit or roll back the current transaction first.")
+        }
+    }
+}
+
 actor DatabaseService {
     static let shared = DatabaseService()
     private static let maximumMaterializedRows = 10_000
+    private var consoleSessions: [UUID: SQLConsoleSession] = [:]
+    private var busyConsoles: Set<UUID> = []
 
     #if canImport(MySQLNIO)
-    private let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     #endif
 
     func execute(
@@ -224,16 +248,50 @@ actor DatabaseService {
         profile: ConnectionProfile?,
         database: String? = nil,
         policy: DatabaseExecutionPolicy = .userQuery(confirmed: false),
-        timeoutSeconds: Int = 30
+        timeoutSeconds: Int = 30,
+        sessionID: UUID? = nil,
+        manualCommit: Bool = false
     ) async throws -> QueryResultTable {
         guard let profile else { throw DatabaseServiceError.notConfigured }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return QueryResultTable.empty }
-        try validateExecution(query: trimmed, profile: profile, policy: policy)
+        let mongoCommand = profile.engine == .mongodb ? try MongoQueryService.parse(trimmed) : nil
+        try validateExecution(query: trimmed, profile: profile, policy: policy, isReadOnly: mongoCommand?.isReadOnly)
         let timeout = max(1, min(timeoutSeconds, 300))
+        if let sessionID, profile.engine.supportsConsoleTransactions, !policy.requiresReadOnlySession, expectedAffectedRows(for: policy) == nil {
+            return try await executeConsole(id: sessionID, query: trimmed, values: values, profile: profile,
+                                            database: database, policy: policy, timeout: timeout, manualCommit: manualCommit)
+        }
 
         switch profile.engine {
-        case .mysql:
+        case .sqlite:
+            return try await SQLiteDatabaseClient.execute(query: trimmed, values: values, profile: profile, policy: policy, timeoutSeconds: timeout)
+        case .redis:
+            guard values.isEmpty, expectedAffectedRows(for: policy) == nil else { throw DatabaseServiceError.unsupported }
+            return try await RedisDatabaseClient.execute(query: RedisCommandService.parse(trimmed), profile: profile,
+                database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase) ?? "0",
+                timeoutSeconds: timeout, eventLoopGroup: eventLoopGroup)
+        case .clickhouse:
+            guard expectedAffectedRows(for: policy) == nil else { throw DatabaseServiceError.unsupported }
+            return try await ClickHouseDatabaseClient.execute(query: trimmed, values: values, profile: profile, database: database,
+                policy: policy, timeoutSeconds: timeout, eventLoopGroup: eventLoopGroup)
+        case .elasticsearch:
+            guard values.isEmpty, expectedAffectedRows(for: policy) == nil else { throw DatabaseServiceError.unsupported }
+            return try await ElasticsearchDatabaseClient.execute(command: ElasticsearchQueryService.parse(trimmed), profile: profile,
+                database: database, policy: policy, timeoutSeconds: timeout, eventLoopGroup: eventLoopGroup)
+        case .mongodb:
+            guard values.isEmpty else { throw MongoClientError.invalidCommand }
+            guard let command = mongoCommand else { throw MongoClientError.invalidCommand }
+            if case .mutation(let expected) = policy, expected != nil {
+                // MongoDB expected-count edits need a transaction-capable topology. Never write and verify afterwards.
+                throw DatabaseServiceError.unsupported
+            }
+            return try await MongoDatabaseClient.execute(
+                query: command, profile: profile,
+                database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase) ?? "admin",
+                timeoutSeconds: timeout, eventLoopGroup: eventLoopGroup
+            )
+        case .mysql, .mariadb:
             #if canImport(MySQLNIO)
             return try await executeMySQL(
                 query: trimmed,
@@ -262,12 +320,124 @@ actor DatabaseService {
         }
     }
 
-    private func validateExecution(
+    func performMongoDocumentMutation(request: MongoDocumentMutationRequest, profile: ConnectionProfile,
+                                      database: String, policy: DatabaseExecutionPolicy, timeoutSeconds: Int = 30) async throws -> QueryResultTable {
+        guard profile.engine == .mongodb else { throw DatabaseServiceError.unsupported }
+        guard case .mutation(let expected) = policy, expected == 1 else { throw DatabaseServiceError.unsafeQueryRequiresConfirmation }
+        try validateExecution(query: request.previewCommand(), profile: profile, policy: policy, isReadOnly: false)
+        return try await MongoDatabaseClient.performDocumentMutation(request: request, profile: profile, database: database,
+            timeoutSeconds: max(1, min(timeoutSeconds, 300)), eventLoopGroup: eventLoopGroup)
+    }
+
+    private func executeConsole(id: UUID, query: String, values: [QueryBoundValue], profile: ConnectionProfile,
+                                database: String?, policy: DatabaseExecutionPolicy, timeout: Int, manualCommit: Bool) async throws -> QueryResultTable {
+        guard busyConsoles.insert(id).inserted else { throw ConsoleSessionError.busy }
+        defer { busyConsoles.remove(id) }
+        // Console transaction state is owned here, never inferred from arbitrary SQL sent to the server.
+        let statements = SQLEditingService.statementRanges(in: query, engine: profile.engine)
+        for range in statements {
+            let statement = String(query[range])
+            if profile.engine.isMySQLFamily, SQLEditingService.protectedRanges(in: statement, engine: .mysql).contains(where: { statement[$0].hasPrefix("/*!") || statement[$0].hasPrefix("/*M!") }) {
+                throw ConsoleSessionError.transactionControlsRequired
+            }
+            let words = SQLEditingService.codeWords(statement, engine: profile.engine)
+            if let first = words.first, ["BEGIN", "START", "COMMIT", "ROLLBACK", "SAVEPOINT", "RELEASE", "END", "ABORT", "XA"].contains(first)
+                || (words.first == "PREPARE" && (profile.engine.isMySQLFamily || words.contains("TRANSACTION")))
+                || (words.first == "SET" && words.contains(where: { $0.contains("AUTOCOMMIT") || $0 == "TRANSACTION" })) {
+                throw ConsoleSessionError.transactionControlsRequired
+            }
+            if manualCommit, profile.engine.isMySQLFamily,
+               !["SELECT", "WITH", "INSERT", "UPDATE", "DELETE", "REPLACE", "SHOW", "EXPLAIN", "DESCRIBE", "DESC"].contains(words.first ?? "") {
+                throw ConsoleSessionError.implicitCommit
+            }
+        }
+        if let existing = consoleSessions[id], existing.profile != profile || existing.database != database {
+            await closeConsole(id)
+        }
+        let session = consoleSessions[id] ?? SQLConsoleSession(profile: profile, database: database)
+        consoleSessions[id] = session
+        do {
+            if profile.engine.isMySQLFamily, session.mysql == nil {
+                let connection = try await connectMySQL(profile: profile,
+                    database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase), loggerLabel: "ad.neko.portsql.console")
+                session.mysql = connection
+                try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
+                    try await self.configureMySQLSession(connection, profile: profile, policy: policy)
+                }
+            } else if profile.engine == .postgresql, session.postgres == nil {
+                let config = try await makePostgresConfiguration(profile: profile, database: postgresDatabaseName(for: profile, requested: database))
+                let connection = try await PostgresConnection.connect(on: eventLoopGroup.next(), configuration: config,
+                    id: 1, logger: Logger(label: "ad.neko.portsql.console")).get()
+                session.postgres = connection
+                try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() as EventLoopFuture<Void> }) {
+                    try await self.configurePostgresSession(connection, profile: profile, policy: policy)
+                }
+            }
+            try Task.checkCancellation()
+            if manualCommit, !session.transactionOpen {
+                try await consoleCommand("BEGIN", session: session, timeout: timeout)
+                session.transactionOpen = true
+            }
+            if !manualCommit, session.transactionOpen { throw ConsoleSessionError.pendingTransaction }
+            if manualCommit, profile.engine.isMySQLFamily, !SQLSafetyService.isReadOnlySQL(query, engine: .mysql), let connection = session.mysql {
+                try await requireMySQLTransactionalTable(query: query, connection: connection, timeout: timeout, session: session)
+            }
+            if profile.engine.isMySQLFamily {
+                return try await executeMySQL(query: query, values: values, profile: profile, database: database,
+                    policy: policy, timeoutSeconds: timeout, connectionOverride: session.mysql)
+            }
+            return try await executePostgres(query: query, values: values, profile: profile, database: database,
+                policy: policy, timeoutSeconds: timeout, connectionOverride: session.postgres)
+        } catch {
+            if consoleSessions[id] === session { consoleSessions.removeValue(forKey: id) }
+            await closeSession(session)
+            throw error
+        }
+    }
+
+    private func consoleCommand(_ sql: String, session: SQLConsoleSession, timeout: Int = 30) async throws {
+        if let connection = session.mysql {
+            try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
+                _ = try await connection.simpleQuery(sql).get()
+            }
+        } else if let connection = session.postgres {
+            try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() as EventLoopFuture<Void> }) {
+                _ = try await connection.query(sql).get()
+            }
+        }
+    }
+
+    func finishConsoleTransaction(_ id: UUID, commit: Bool) async throws {
+        guard busyConsoles.insert(id).inserted else { throw ConsoleSessionError.busy }
+        defer { busyConsoles.remove(id) }
+        guard let session = consoleSessions[id], session.transactionOpen else { return }
+        do {
+            try await consoleCommand(commit ? "COMMIT" : "ROLLBACK", session: session)
+            session.transactionOpen = false
+            session.transactionalTables = []
+        } catch { await closeConsole(id); throw error }
+    }
+
+    func consoleHasTransaction(_ id: UUID) -> Bool { consoleSessions[id]?.transactionOpen == true }
+
+    func closeConsole(_ id: UUID) async {
+        guard let session = consoleSessions.removeValue(forKey: id) else { return }
+        await closeSession(session)
+    }
+
+    private func closeSession(_ session: SQLConsoleSession) async {
+        // Closing rolls back pending work, including a query cancelled during connection setup.
+        if let connection = session.mysql { try? await connection.close().get() }
+        if let connection = session.postgres { try? await connection.close() }
+    }
+
+    func validateExecution(
         query: String,
         profile: ConnectionProfile,
-        policy: DatabaseExecutionPolicy
+        policy: DatabaseExecutionPolicy,
+        isReadOnly: Bool? = nil
     ) throws {
-        let isReadOnlySQL = SQLSafetyService.isReadOnlySQL(query, engine: profile.engine)
+        let isReadOnlySQL = isReadOnly ?? SQLSafetyService.isReadOnlySQL(query, engine: profile.engine)
         if profile.isReadOnly, !isReadOnlySQL {
             throw DatabaseServiceError.readOnlyViolation
         }
@@ -310,7 +480,9 @@ actor DatabaseService {
     ) throws -> SchemaMutationPlan {
         guard isSafeSchemaType(draft.type) else { throw DatabaseServiceError.invalidSchemaDefinition }
         switch engine {
-        case .mysql:
+        case .mongodb, .redis, .elasticsearch, .clickhouse, .sqlite:
+            throw DatabaseServiceError.unsupported
+        case .mysql, .mariadb:
             guard draft.mode == .add else {
                 throw DatabaseServiceError.mysqlColumnEditRequiresCompleteMetadata
             }
@@ -372,9 +544,9 @@ actor DatabaseService {
 
     nonisolated private static func identifier(_ value: String, engine: DatabaseEngine) -> String {
         switch engine {
-        case .mysql:
+        case .mysql, .mariadb:
             return "`\(value.replacingOccurrences(of: "`", with: "``"))`"
-        case .postgresql:
+        default:
             return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
         }
     }
@@ -383,7 +555,24 @@ actor DatabaseService {
         guard let profile else { return [] }
 
         switch profile.engine {
-        case .mysql:
+        case .sqlite:
+            return try await SQLiteDatabaseClient.loadSchema(profile: profile, database: database)
+        case .redis: return []
+        case .clickhouse:
+            return try await ClickHouseDatabaseClient.loadSchema(profile: profile, database: database, eventLoopGroup: eventLoopGroup)
+        case .elasticsearch:
+            return try await ElasticsearchDatabaseClient.loadSchema(profile: profile, database: database, eventLoopGroup: eventLoopGroup)
+        case .mongodb:
+            let result = try await execute(query: "{\"listCollections\":1,\"nameOnly\":true,\"authorizedCollections\":true}",
+                                           profile: profile, database: database, policy: .readOnly)
+            guard result.isTruncated != true else { throw MongoClientError.serverFailure(nil) }
+            let nameIndex = result.columns.firstIndex(where: { $0.name == "name" })
+            return result.rows.compactMap { row in
+                guard let nameIndex, row.cells.indices.contains(nameIndex) else { return nil }
+                return SchemaTableDescriptor(schemaName: database ?? profile.trimmedDefaultDatabase,
+                                             name: row.cells[nameIndex].displayValue, columns: [], rowCountEstimate: nil)
+            }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        case .mysql, .mariadb:
             #if canImport(MySQLNIO)
             return try await loadMySQLSchema(profile: profile, database: database)
             #else
@@ -402,7 +591,19 @@ actor DatabaseService {
         guard let profile else { return [] }
 
         switch profile.engine {
-        case .mysql:
+        case .sqlite: return try await SQLiteDatabaseClient.listDatabases(profile: profile)
+        case .redis: return [profile.trimmedDefaultDatabase.isEmpty ? "0" : profile.trimmedDefaultDatabase]
+        case .clickhouse:
+            return try await ClickHouseDatabaseClient.listDatabases(profile: profile, eventLoopGroup: eventLoopGroup)
+        case .elasticsearch:
+            return try await ElasticsearchDatabaseClient.listDatabases(profile: profile, eventLoopGroup: eventLoopGroup)
+        case .mongodb:
+            let result = try await execute(query: "{\"listDatabases\":1,\"nameOnly\":true,\"authorizedDatabases\":true}",
+                                           profile: profile, database: "admin", policy: .readOnly)
+            guard result.isTruncated != true else { throw MongoClientError.serverFailure(nil) }
+            guard let nameIndex = result.columns.firstIndex(where: { $0.name == "name" }) else { return [] }
+            return result.rows.map { $0.cells[nameIndex].displayValue }.sorted()
+        case .mysql, .mariadb:
             #if canImport(MySQLNIO)
             return try await listMySQLDatabases(profile: profile)
             #else
@@ -427,7 +628,9 @@ actor DatabaseService {
         guard Self.isSafeSchemaType(draft.type) else { throw DatabaseServiceError.invalidSchemaDefinition }
 
         switch profile.engine {
-        case .mysql:
+        case .mongodb, .redis, .elasticsearch, .clickhouse, .sqlite:
+            throw DatabaseServiceError.unsupported
+        case .mysql, .mariadb:
             #if canImport(MySQLNIO)
             try await applyMySQLSchemaColumnChange(draft, profile: profile, database: database)
             #else
@@ -452,7 +655,9 @@ actor DatabaseService {
         guard !profile.isReadOnly else { throw DatabaseServiceError.readOnlyViolation }
 
         switch profile.engine {
-        case .mysql:
+        case .mongodb, .redis, .elasticsearch, .clickhouse, .sqlite:
+            throw DatabaseServiceError.unsupported
+        case .mysql, .mariadb:
             #if canImport(MySQLNIO)
             try await dropMySQLSchemaColumn(column, from: table, profile: profile, database: database)
             #else
@@ -474,18 +679,22 @@ actor DatabaseService {
         profile: ConnectionProfile,
         database: String?,
         policy: DatabaseExecutionPolicy,
-        timeoutSeconds: Int
+        timeoutSeconds: Int,
+        connectionOverride: MySQLConnection? = nil
     ) async throws -> QueryResultTable {
-        let connection = try await connectMySQL(
+        let connection: MySQLConnection
+        if let connectionOverride { connection = connectionOverride }
+        else { connection = try await connectMySQL(
             profile: profile,
             database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase),
             loggerLabel: "ad.neko.portsql.mysql"
-        )
+        ) }
         do {
-            try await configureMySQLSession(connection, profile: profile, policy: policy)
+            if connectionOverride == nil { try await configureMySQLSession(connection, profile: profile, policy: policy) }
             let validatesMutation = expectedAffectedRows(for: policy) != nil
             if validatesMutation {
                 _ = try await connection.simpleQuery("START TRANSACTION").get()
+                try await requireMySQLTransactionalTable(query: query, connection: connection, timeout: timeoutSeconds)
             }
             let metadata = MySQLExecutionMetadata()
             let future = connection.query(
@@ -530,7 +739,7 @@ actor DatabaseService {
             } else {
                 summary = "Statement executed successfully."
             }
-            try await connection.close().get()
+            if connectionOverride == nil { try await connection.close().get() }
             return QueryResultTable(
                 columns: columns,
                 rows: mappedRows,
@@ -550,6 +759,51 @@ actor DatabaseService {
         }
     }
 
+    private func requireMySQLTransactionalTable(query: String, connection: MySQLConnection, timeout: Int, session: SQLConsoleSession? = nil) async throws {
+        let tokens = SQLEditingService.tokens(query, engine: .mysql)
+        var nesting = 0
+        var command: Int?
+        for index in tokens.indices {
+            if tokens[index].text == "(" { nesting += 1 }
+            if tokens[index].text == ")" { nesting -= 1 }
+            if nesting == 0, ["INSERT", "UPDATE", "DELETE", "REPLACE"].contains(tokens[index].keyword) { command = index; break }
+        }
+        guard let command else { throw ConsoleSessionError.implicitCommit }
+        let operation = tokens[command].keyword
+        var index = command + 1
+        while tokens.indices.contains(index), ["LOW_PRIORITY", "HIGH_PRIORITY", "IGNORE", "DELAYED"].contains(tokens[index].keyword) { index += 1 }
+        if tokens.indices.contains(index), ["INTO", "FROM"].contains(tokens[index].keyword) { index += 1 }
+        guard tokens.indices.contains(index), tokens[index].isIdentifier else { throw ConsoleSessionError.implicitCommit }
+        var schema = "", table = tokens[index].text
+        index += 1
+        if tokens.indices.contains(index + 1), tokens[index].text == ".", tokens[index + 1].isIdentifier {
+            schema = table; table = tokens[index + 1].text; index += 2
+        }
+        // Multiple mutation targets cannot be verified from a single table's engine.
+        if operation == "UPDATE" || operation == "DELETE" {
+            for token in tokens.dropFirst(index) {
+                if ["SET", "WHERE", "ORDER", "LIMIT", ";"].contains(token.keyword.isEmpty ? token.text : token.keyword) { break }
+                if [",", "JOIN", "USING", "FROM"].contains(token.keyword.isEmpty ? token.text : token.keyword) { throw ConsoleSessionError.implicitCommit }
+            }
+        }
+        let qualified = (schema.isEmpty ? "" : Self.schemaIdentifier(schema, engine: .mysql) + ".") + Self.schemaIdentifier(table, engine: .mysql)
+        if session?.transactionalTables.contains(qualified) == true { return }
+        let definition: String? = try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
+            // The metadata lock remains held until this transaction ends, preventing ALTER ENGINE races.
+            _ = try await connection.simpleQuery("SELECT 1 FROM " + qualified + " LIMIT 0").get()
+            let rows = try await connection.simpleQuery("SHOW CREATE TABLE " + qualified).get()
+            return rows.first?.column("Create Table")?.string
+        }
+        let ddl = SQLEditingService.tokens(definition ?? "", engine: .mysql)
+        let transactional = ddl.indices.contains { i in
+            ddl[i].keyword == "ENGINE" && ddl.indices.contains(i + 2) && ddl[i + 1].text == "=" && ddl[i + 2].keyword == "INNODB"
+        }
+        guard transactional else {
+            throw NSError(domain: "PortSQL.Safety", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.text("Verified row edits require an InnoDB table so a failed edit can be rolled back.")])
+        }
+        session?.transactionalTables.insert(qualified)
+    }
+
     private func loadMySQLSchema(profile: ConnectionProfile, database: String?) async throws -> [SchemaTableDescriptor] {
         guard let selectedDatabase = resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase) else {
             return []
@@ -564,7 +818,8 @@ actor DatabaseService {
                 columns.DATA_TYPE,
                 columns.IS_NULLABLE,
                 columns.COLUMN_KEY,
-                tables.TABLE_ROWS
+                tables.TABLE_ROWS,
+                tables.TABLE_TYPE
             FROM INFORMATION_SCHEMA.COLUMNS AS columns
             LEFT JOIN INFORMATION_SCHEMA.TABLES AS tables
                 ON tables.TABLE_SCHEMA = columns.TABLE_SCHEMA
@@ -593,7 +848,8 @@ actor DatabaseService {
                     schemaName: selectedDatabase,
                     name: tableName,
                     columns: columns,
-                    rowCountEstimate: rowCountEstimate
+                    rowCountEstimate: rowCountEstimate,
+                    objectKind: tableRows?.column("TABLE_TYPE")?.string == "VIEW" ? .view : .table
                 )
             }
             try await connection.close().get()
@@ -622,7 +878,7 @@ actor DatabaseService {
         }
     }
 
-    private func connectMySQL(profile: ConnectionProfile, database: String?, loggerLabel: String) async throws -> MySQLConnection {
+    func connectMySQL(profile: ConnectionProfile, database: String?, loggerLabel: String) async throws -> MySQLConnection {
         switch profile.transportSecurityMode {
         case .systemCA, .privateCA, .preferTLS:
             return try await openMySQLConnection(
@@ -668,7 +924,9 @@ actor DatabaseService {
             on: eventLoopGroup.next()
         ).get()
         do {
-            try await prepareMySQLSession(connection, database: database ?? "")
+            try await withQueryTimeout(seconds: 30, closeConnection: { _ = connection.close() }) {
+                try await self.prepareMySQLSession(connection, database: database ?? "")
+            }
             return connection
         } catch {
             try? await connection.close().get()
@@ -676,14 +934,14 @@ actor DatabaseService {
         }
     }
 
-    private func prepareMySQLSession(_ connection: MySQLConnection, database: String) async throws {
+    func prepareMySQLSession(_ connection: MySQLConnection, database: String) async throws {
         let trimmedDatabase = database.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedDatabase.isEmpty else { return }
         let escapedDatabase = trimmedDatabase.replacingOccurrences(of: "`", with: "``")
         _ = try await connection.simpleQuery("USE `\(escapedDatabase)`").get()
     }
 
-    private func configureMySQLSession(
+    func configureMySQLSession(
         _ connection: MySQLConnection,
         profile: ConnectionProfile,
         policy: DatabaseExecutionPolicy
@@ -738,7 +996,7 @@ actor DatabaseService {
         }
     }
 
-    private static func mysqlBind(_ value: QueryBoundValue) -> MySQLData {
+    static func mysqlBind(_ value: QueryBoundValue) -> MySQLData {
         switch value {
         case .null:
             return .null
@@ -754,7 +1012,7 @@ actor DatabaseService {
         }
     }
 
-    private static func cell(
+    static func cell(
         mysql data: MySQLData,
         definition: MySQLProtocol.ColumnDefinition41
     ) -> QueryCell {
@@ -831,21 +1089,26 @@ actor DatabaseService {
         profile: ConnectionProfile,
         database: String?,
         policy: DatabaseExecutionPolicy,
-        timeoutSeconds: Int
+        timeoutSeconds: Int,
+        connectionOverride: PostgresConnection? = nil
     ) async throws -> QueryResultTable {
+        let logger = Logger(label: "ad.neko.portsql.postgres")
+        let connection: PostgresConnection
+        if let connectionOverride { connection = connectionOverride }
+        else {
         let config = try await makePostgresConfiguration(
             profile: profile,
             database: postgresDatabaseName(for: profile, requested: database)
         )
-        let logger = Logger(label: "ad.neko.portsql.postgres")
-        let connection = try await PostgresConnection.connect(
+        connection = try await PostgresConnection.connect(
             on: eventLoopGroup.next(),
             configuration: config,
             id: 1,
             logger: logger
         ).get()
+        }
         do {
-            try await configurePostgresSession(connection, profile: profile, policy: policy)
+            if connectionOverride == nil { try await configurePostgresSession(connection, profile: profile, policy: policy) }
             let validatesMutation = expectedAffectedRows(for: policy) != nil
             if validatesMutation {
                 _ = try await connection.query("BEGIN").get()
@@ -925,7 +1188,7 @@ actor DatabaseService {
             } else {
                 summary = "Statement executed successfully."
             }
-            try await connection.close()
+            if connectionOverride == nil { try await connection.close() }
             return QueryResultTable(
                 columns: output.columns,
                 rows: output.rows,
@@ -945,7 +1208,7 @@ actor DatabaseService {
         }
     }
 
-    private static func postgresBindings(_ values: [QueryBoundValue]) throws -> PostgresBindings {
+    static func postgresBindings(_ values: [QueryBoundValue]) throws -> PostgresBindings {
         var bindings = PostgresBindings(capacity: values.count)
         for value in values {
             switch value {
@@ -968,14 +1231,14 @@ actor DatabaseService {
         return bindings
     }
 
-    private static func postgresRow(_ row: PostgresRow) -> QueryRow {
+    static func postgresRow(_ row: PostgresRow) -> QueryRow {
         let access = row.makeRandomAccess()
         return QueryRow(cells: (0..<access.count).map { index in
             cell(postgres: access[data: index])
         })
     }
 
-    private static func cell(postgres data: PostgresData) -> QueryCell {
+    static func cell(postgres data: PostgresData) -> QueryCell {
         guard data.value != nil else { return .null }
         switch data.type {
         case .bool:
@@ -1074,7 +1337,7 @@ actor DatabaseService {
         return formatter.string(from: date).trimmingTrailingZerosBeforeSQLSuffix
     }
 
-    private func configurePostgresSession(
+    func configurePostgresSession(
         _ connection: PostgresConnection,
         profile: ConnectionProfile,
         policy: DatabaseExecutionPolicy
@@ -1105,7 +1368,8 @@ actor DatabaseService {
                 cols.is_nullable,
                 COALESCE(pk.is_primary_key, false) AS is_primary_key,
                 COALESCE(uniq.is_unique, false) AS is_unique,
-                stats.row_estimate
+                stats.row_estimate,
+                (SELECT t.table_type FROM information_schema.tables t WHERE t.table_schema = cols.table_schema AND t.table_name = cols.table_name) AS table_type
             FROM information_schema.columns AS cols
             LEFT JOIN (
                 SELECT
@@ -1157,6 +1421,7 @@ actor DatabaseService {
 
             var tableMap: [String: (schema: String, name: String, columns: [SchemaColumnDescriptor])] = [:]
             var rowEstimates: [String: Int?] = [:]
+            var objectKinds: [String: SchemaObjectKind] = [:]
             for row in result.rows {
                 let access = row.makeRandomAccess()
                 let schemaName = access[data: "table_schema"].string ?? ""
@@ -1174,6 +1439,7 @@ actor DatabaseService {
                 }
                 tableMap[key]?.columns.append(column)
                 rowEstimates[key] = Self.postgresInteger(access[data: "row_estimate"])
+                objectKinds[key] = access[data: "table_type"].string == "VIEW" ? .view : .table
             }
 
             let catalog = tableMap.values
@@ -1187,7 +1453,8 @@ actor DatabaseService {
                         schemaName: $0.schema,
                         name: $0.name,
                         columns: $0.columns,
-                        rowCountEstimate: rowEstimates[key] ?? nil
+                        rowCountEstimate: rowEstimates[key] ?? nil,
+                        objectKind: objectKinds[key]
                     )
                 }
             try await connection.close()
@@ -1291,7 +1558,7 @@ actor DatabaseService {
         }
     }
 
-    private func connectPostgres(
+    func connectPostgres(
         profile: ConnectionProfile,
         database: String?,
         id: Int,
@@ -1310,7 +1577,7 @@ actor DatabaseService {
         ).get()
     }
 
-    private func makePostgresConfiguration(
+    func makePostgresConfiguration(
         profile: ConnectionProfile,
         database: String
     ) async throws -> PostgresConnection.Configuration {
@@ -1371,7 +1638,7 @@ actor DatabaseService {
         }
     }
 
-    private func resolvedDatabaseName(_ requested: String?, fallback: String) -> String? {
+    func resolvedDatabaseName(_ requested: String?, fallback: String) -> String? {
         let requestedName = requested?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !requestedName.isEmpty {
             return requestedName
@@ -1381,7 +1648,7 @@ actor DatabaseService {
         return fallbackName.isEmpty ? nil : fallbackName
     }
 
-    private func postgresDatabaseName(for profile: ConnectionProfile, requested: String?) -> String {
+    func postgresDatabaseName(for profile: ConnectionProfile, requested: String?) -> String {
         resolvedDatabaseName(requested, fallback: profile.trimmedDefaultDatabase)
             ?? postgresBootstrapDatabase(for: profile)
     }

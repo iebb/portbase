@@ -23,6 +23,10 @@ enum SQLSafetyService {
         readOnly: Bool,
         engine: DatabaseEngine = .postgresql
     ) -> SQLSafetyAssessment? {
+        if engine == .mongodb { return MongoQueryService.assessment(for: sql, readOnly: readOnly) }
+        if engine == .clickhouse { return ClickHouseQueryService.assessment(for: sql, readOnly: readOnly) }
+        if engine == .redis { return RedisCommandService.assessment(for: sql, readOnly: readOnly) }
+        if engine == .elasticsearch { return ElasticsearchQueryService.assessment(for: sql, readOnly: readOnly) }
         let statements = normalizedStatements(sql, engine: engine)
         guard !statements.isEmpty else { return nil }
 
@@ -84,6 +88,10 @@ enum SQLSafetyService {
         _ sql: String,
         engine: DatabaseEngine = .postgresql
     ) -> Bool {
+        if engine == .mongodb { return (try? MongoQueryService.parse(sql).isReadOnly) == true }
+        if engine == .clickhouse { return ClickHouseQueryService.isReadOnly(sql) }
+        if engine == .redis { return (try? RedisCommandService.parse(sql).isReadOnly) == true }
+        if engine == .elasticsearch { return (try? ElasticsearchQueryService.parse(sql).isReadOnly) == true }
         let statements = normalizedStatements(sql, engine: engine)
         return !statements.isEmpty && statements.allSatisfy(isReadOnlyStatement)
     }
@@ -92,9 +100,11 @@ enum SQLSafetyService {
         for sql: String,
         engine: DatabaseEngine = .postgresql
     ) -> String? {
+        if engine == .mongodb { return MongoQueryService.explain(sql) }
+        guard engine.isSQL else { return nil }
         let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, isReadOnlySQL(trimmed, engine: engine) else { return nil }
-        return "EXPLAIN \(trimmed)"
+        return "\(engine == .sqlite ? "EXPLAIN QUERY PLAN" : "EXPLAIN") \(trimmed)"
     }
 
     private static func containsSchemaMutation(_ normalized: String) -> Bool {
@@ -149,7 +159,7 @@ enum SQLSafetyService {
     }
 
     private static func normalizedStatements(_ sql: String, engine: DatabaseEngine) -> [String] {
-        let backslashModes = engine == .mysql ? [true, false] : [false]
+        let backslashModes = engine.isMySQLFamily ? [true, false] : [false]
         return Array(Set(backslashModes.flatMap { mysqlBackslashEscapes in
             sanitizedSQL(
                 sql,
@@ -212,7 +222,7 @@ enum SQLSafetyService {
             }
 
 
-            if engine == .mysql, character == "#" {
+            if engine.isMySQLFamily, character == "#" {
                 output.append(" ")
                 index = nextIndex
                 while index < sql.endIndex, sql[index] != "\n", sql[index] != "\r" {
@@ -279,7 +289,7 @@ enum SQLSafetyService {
                 output.append(" ")
                 index = nextIndex
                 while index < sql.endIndex {
-                    if ((engine == .mysql && mysqlBackslashEscapes) || postgresEscapeString),
+                    if ((engine.isMySQLFamily && mysqlBackslashEscapes) || postgresEscapeString),
                        sql[index] == "\\",
                        quote != "`" {
                         let afterEscape = sql.index(after: index)
@@ -325,7 +335,7 @@ enum SQLSafetyService {
         afterSecondDash index: String.Index,
         engine: DatabaseEngine
     ) -> Bool {
-        guard engine == .mysql else { return true }
+        guard engine.isMySQLFamily else { return true }
         guard index < sql.endIndex else { return false }
         return sql[index].unicodeScalars.allSatisfy { $0.value <= 0x20 }
     }

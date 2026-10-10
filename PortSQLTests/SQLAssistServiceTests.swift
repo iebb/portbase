@@ -53,6 +53,29 @@ final class SQLAssistServiceTests: XCTestCase {
         XCTAssertEqual(formatted, "SELECT id\nFROM users\nWHERE active = true\nORDER BY id")
     }
 
+    func testFormattingPreservesLiteralsIdentifiersCommentsAndDollarQuotedBodies() {
+        let sql = "select 'select  from where', \"order by\", $body$select from; \nwhere$body$, E'it\\'s from' from users -- where select\nwhere id = 1 /* outer /* where */ select */"
+        let formatted = SQLAssistService.format(sql)
+        for protected in ["'select  from where'", "\"order by\"", "$body$select from; \nwhere$body$", "E'it\\'s from'", "-- where select\n", "/* outer /* where */ select */"] {
+            XCTAssertTrue(formatted.contains(protected), protected)
+        }
+        XCTAssertTrue(formatted.hasPrefix("SELECT"))
+        XCTAssertEqual(SQLAssistService.format(#"select 'a\' from t where x = 'b'"#, engine: .mysql), #"select 'a\' from t where x = 'b'"#)
+    }
+
+    func testUnicodeSelectionAndCompletionDoNotRewriteOtherText() throws {
+        let sql = "SELECT '👩🏽‍💻  日本語'; SELECT * FROM ord"
+        let applied = SQLAssistService.applySuggestion("orders", to: sql, cursorOffset: sql.utf16.count)
+        XCTAssertEqual(applied.query, "SELECT '👩🏽‍💻  日本語'; SELECT * FROM orders")
+        XCTAssertEqual(applied.cursorOffset, applied.query.utf16.count)
+        let range = (sql as NSString).range(of: "SELECT * FROM ord")
+        let selection = try XCTUnwrap(SQLEditingService.selection(in: sql, offset: range.location, length: range.length))
+        XCTAssertEqual(String(sql[selection]), "SELECT * FROM ord")
+        XCTAssertNil(SQLEditingService.selection(in: sql, offset: sql.utf16.count, length: 1))
+        XCTAssertTrue(SQLAssistService.suggestions(for: "SELECT 'from'", catalog: [], activeDatabase: nil, cursorOffset: 10).isEmpty)
+        XCTAssertEqual(SQLAssistService.applySuggestion("id", to: "SELECT ", cursorOffset: 7).query, "SELECT id")
+    }
+
     private var ordersTable: SchemaTableDescriptor {
         SchemaTableDescriptor(
             schemaName: "shop",

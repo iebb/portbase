@@ -2,8 +2,7 @@
 "Studio" = "工作台";
 "Charts" = "图表";
 "Servers" = "服务器";
-"PORTSQL" = "PORTSQL";
-"Elegant database control, sized for iPhone." = "为 iPhone 打造的优雅数据库控制台。";
+"PORTBASE" = "PORTBASE";
 "Live MySQL and PostgreSQL querying, schema browsing, charting, and row editing without placeholder datasets." = "连接真实 MySQL 和 PostgreSQL，运行查询、浏览结构、生成图表并编辑数据行。";
 "No active connection" = "没有活动连接";
 "Create or select a bookmark to start a live workspace." = "创建或选择书签以开始实时工作区。";
@@ -48,14 +47,11 @@
 "Connect to a database and refresh the explorer to inspect live tables and columns." = "连接数据库并刷新浏览器，以查看实时表和字段。";
 "Choose a table to inspect its schema." = "选择一个表以查看其结构。";
 "Library" = "库";
-"Run queries to build a local history." = "运行查询以建立本地历史记录。";
 "Reusable snippets" = "可复用片段";
 "Save Current" = "保存当前内容";
-"Save snippets for common admin tasks and diagnostics." = "保存常用管理和诊断任务的片段。";
 "Add to Visualizer" = "添加到可视化";
 "Add to visualizer" = "添加到可视化";
 "Add your first visualization when querying." = "查询后添加第一个可视化。";
-"Build a saved chart config from the current result set." = "从当前结果集创建可保存的图表配置。";
 "Preset Name" = "预设名称";
 "Saved chart name" = "已保存图表名称";
 "Chart Title" = "图表标题";
@@ -90,9 +86,7 @@
 "Premium Features" = "高级功能";
 "Upgrade" = "升级";
 "Settings" = "设置";
-"PortSQL Pro" = "PortSQL Pro";
-"Designed as optional add-ons" = "设计为可选附加功能";
-"Core database access remains usable on the free plan. Pro is for convenience and polish, not basic connectivity." = "核心数据库访问在免费计划中仍然可用。 Pro 是为了方便和美观，而不是基本的连接性。";
+"Portbase Pro" = "Portbase Pro";
 "Restore Purchases" = "恢复购买";
 "Sync" = "同步";
 "Servers are mirrored through iCloud key-value sync." = "服务器通过 iCloud 键值同步镜像。";
@@ -116,7 +110,7 @@
 "server, chart, folder" = "服务器、图表、文件夹";
 "Create your first MySQL or PostgreSQL server to start querying live data." = "创建第一个 MySQL 或 PostgreSQL 服务器，开始查询实时数据。";
 "Table and column metadata is reused until this duration expires. The refresh button bypasses the cache." = "表和列元数据将被重复使用，直到该持续时间到期。刷新按钮绕过缓存。";
-"When caching is off, PortSQL always reloads table lists from the database and hides manual refresh controls." = "当缓存关闭时，PortSQL 始终从数据库重新加载表列表并隐藏手动刷新控件。";
+"When caching is off, Portbase always reloads table lists from the database and hides manual refresh controls." = "当缓存关闭时，Portbase 始终从数据库重新加载表列表并隐藏手动刷新控件。";
 "Columns" = "字段";
 "Column" = "字段";
 "Add a new column to the live table schema." = "向实时表结构添加新字段。";
@@ -237,10 +231,10 @@
 "Confirm write" = "确认写入";
 "This statement can change database data. Review it carefully before running it against a live database." = "此语句可能会更改数据库数据。在实时数据库上运行前，请仔细检查。";
 "Add a SQL query to run this visualizer." = "添加用于运行此可视化的 SQL 查询。";
-"Available with PortSQL Pro" = "PortSQL Pro 可用";
+"Available with Portbase Pro" = "Portbase Pro 可用";
 "Begins an App Store purchase" = "开始 App Store 购买";
 "Check your network connection and try again." = "请检查网络连接并重试。";
-"Checks the App Store for previous PortSQL purchases" = "在 App Store 中检查之前的 PortSQL 购买记录";
+"Checks the App Store for previous Portbase purchases" = "在 App Store 中检查之前的 Portbase 购买记录";
 "Choose or save a bookmark before running this visualizer." = "运行此可视化前，请选择或保存书签。";
 "Current Result" = "当前结果";
 "Insert a new row with schema-aware validation." = "使用基于结构的校验插入新数据行。";
@@ -286,6 +280,833 @@
 "Unencrypted Connection" = "未加密连接";
 "Plaintext sends database credentials and data without encryption. Use it only for legacy servers on a trusted network." = "明文会在不加密的情况下发送数据库凭据和数据。仅可对受信任网络中的旧式服务器使用此模式。";
 "The selected file does not contain a valid X.509 certificate." = "所选文件不包含有效的 X.509 证书。";
-"PortSQL could not read this certificate file." = "PortSQL 无法读取此证书文件。";
+"Portbase could not read this certificate file." = "Portbase 无法读取此证书文件。";
 "TLS fallback allowed" = "允许 TLS 回退";
 "Unencrypted" = "未加密";
+
+/* Document databases and adaptive workspaces */
+"Collections" = "集合";
+"Collection" = "集合";
+"Tables" = "表";
+"Search collections" = "搜索集合";
+"Search tables" = "搜索表";
+"Filter (JSON)" = "筛选条件（JSON）";
+"Sort (JSON)" = "排序（JSON）";
+"Browse documents" = "浏览文档";
+"Select a database and refresh its collections." = "选择数据库并刷新其集合。";
+"No documents matched the query." = "没有与查询匹配的文档。";
+"Document %d" = "文档 %d";
+"Open full document" = "打开完整文档";
+"Aggregation" = "聚合";
+"Indexes" = "索引";
+"Insert document" = "插入文档";
+"Update documents" = "更新文档";
+"Delete documents" = "删除文档";
+"Query templates" = "查询模板";
+"Open JSON editor" = "打开 JSON 编辑器";
+"JSON Editor" = "JSON 编辑器";
+"Cancel Query" = "取消查询";
+"Authentication database" = "认证数据库";
+"Connect to a MongoDB host and port. SRV discovery and automatic replica-set failover are not supported." = "连接到 MongoDB 主机和端口。暂不支持 SRV 发现和副本集自动故障转移。";
+"MongoDB requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "MongoDB 在优先使用 TLS 模式下仍要求 TLS，因为其协议无法安全协商回退到明文连接。";
+"Enter one valid MongoDB Extended JSON command (up to 1 MiB)." = "请输入一条有效的 MongoDB Extended JSON 命令（最大 1 MiB）。";
+"This MongoDB command or option is not supported. Server-side JavaScript and unbounded cursors are disabled." = "不支持此 MongoDB 命令或选项。服务器端 JavaScript 和无界游标已禁用。";
+"MongoDB rejected the operation (code %@). Check permissions, command syntax, and server logs." = "MongoDB 拒绝了操作（代码 %@）。请检查权限、命令语法和服务器日志。";
+"Results were truncated at 10,000 documents or 32 MiB. Narrow the filter to retrieve more." = "结果已在 10,000 个文档或 32 MiB 处截断。请缩小筛选范围以获取更多数据。";
+"Enter a MongoDB Extended JSON command" = "输入 MongoDB Extended JSON 命令";
+"SQL query editor" = "SQL 查询编辑器";
+"Enter the SQL statement to run against the selected database" = "输入要在所选数据库上执行的 SQL 语句";
+"This operation only accepts read-only queries." = "此操作仅接受只读查询。";
+"History is empty." = "暂无历史记录。";
+"No saved snippets." = "暂无保存的片段。";
+"Console" = "控制台";
+
+"Find" = "查找";
+"Command" = "命令";
+"Projection (JSON)" = "投影 (JSON)";
+"Skip" = "跳过";
+"Limit" = "上限";
+"Add Stage" = "添加阶段";
+"Enable stage" = "启用阶段";
+"Move Up" = "上移";
+"Move Down" = "下移";
+"Stage %d" = "阶段 %d";
+"Stage %d: Invalid JSON." = "阶段 %d：JSON 无效。";
+"%@: Invalid JSON object." = "%@：JSON 对象无效。";
+"Choose a collection." = "请选择集合。";
+"Skip must be zero or greater. Limit must be between 1 and 10,000." = "跳过数量必须不小于 0，上限必须介于 1 和 10,000 之间。";
+"Edit command" = "编辑命令";
+"Document" = "文档";
+"Documents" = "文档";
+"Show All Fields" = "显示全部字段";
+"Show More" = "显示更多";
+"Configure Chart" = "配置图表";
+"Run a query with numeric fields to create a chart." = "运行包含数值字段的查询以创建图表。";
+"Ln %d, Col %d" = "第 %d 行，第 %d 列";
+"Selection" = "选中部分";
+"Run Selection" = "运行选中部分";
+"Run All" = "全部运行";
+"Run the complete parameterized query to preserve its bound values." = "请运行完整的参数化查询以保留绑定值。";
+"Undo" = "撤销";
+"Redo" = "重做";
+"Indent" = "增加缩进";
+"Outdent" = "减少缩进";
+"Find and Replace" = "查找和替换";
+"Hide Keyboard" = "隐藏键盘";
+"EXPORT" = "导出";
+
+
+/* Database workspace */
+"%@ • %@" = "%@，%@";
+"%d pt" = "%d 点";
+"Add Field" = "添加字段";
+"Add a database connection" = "添加数据库连接";
+"Add database connection" = "新建数据库连接";
+"Additional seed hosts" = "其他种子主机";
+"An import record is too large. Each record must fit within 1 MiB." = "导入记录过大。每条记录不能超过 1 MiB。";
+"Apply" = "应用";
+"Apply URI" = "应用 URI";
+"Array" = "数组";
+"Auto-commit" = "自动提交";
+"Automatic" = "自动";
+"Binary SQL columns are omitted from inserts. Import their values with a database-specific tool." = "插入时会跳过 SQL 二进制列。请使用数据库专用工具导入这些值。";
+"Boolean" = "布尔值";
+"CSV" = "CSV 文件";
+"CSV supports up to 4,096 columns in this operation. Export as JSON to preserve additional fields." = "此 CSV 操作最多支持 4,096 列。请导出为 JSON 以保留更多字段。";
+"Cancelled" = "已取消";
+"Cells: %d" = "单元格：%d";
+"Chart Previews" = "图表预览";
+"Chart uses the loaded result only. Export all data from the query for the complete result." = "图表仅使用已加载的结果。要获取完整结果，请导出查询的全部数据。";
+"Charts are saved on this device. The library exceeds the iCloud sync limit." = "图表已保存在此设备上。库大小超过了 iCloud 同步上限。";
+"Choose CSV or JSON" = "选择 CSV 或 JSON";
+"Choose database connection" = "选择数据库连接";
+"Clear Chart Previews" = "清除图表预览";
+"Clear Date Filter" = "清除日期筛选";
+"Clear Query History" = "清除查询历史";
+"Close Console" = "关闭控制台";
+"Close Inspection" = "关闭详情";
+"Column Mapping" = "列映射";
+"Commit" = "提交";
+"Commit or roll back the current transaction first." = "请先提交或回滚当前事务。";
+"Configure Column" = "配置列";
+"Confirm Import" = "确认导入";
+"Connection" = "连接";
+"Connection URI" = "连接 URI";
+"Console %d" = "控制台 %d";
+"Consoles" = "控制台";
+"Constraints" = "约束";
+"Copy" = "复制";
+"Copy Definition" = "复制定义";
+"Copy Selected Cells" = "复制选中的单元格";
+"Copy with Headers" = "连同列名复制";
+"Data Transfer" = "数据传输";
+"Database" = "数据库";
+"Database Objects" = "数据库对象";
+"Database error %@: %@" = "数据库错误 %@：%@";
+"Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data." = "数据库密码保存在此设备的钥匙串中，不再写入 iCloud 书签数据。";
+"Date Field" = "日期字段";
+"Date Range" = "日期范围";
+"Decimal" = "小数";
+"Decimal128" = "128 位十进制数";
+"Definition" = "定义";
+"Delete Document" = "删除文档";
+"Delete Permanently?" = "永久删除？";
+"Destination" = "目标";
+"Destination column" = "目标列";
+"Destination field" = "目标字段";
+"Direct connection" = "直接连接";
+"Document Actions" = "文档操作";
+"Document editing requires MongoDB 4.2 or later with a transaction-capable replica set or sharded cluster. Standalone servers remain available for queries and imports." = "编辑文档需要 MongoDB 4.2 或更高版本，以及支持事务的副本集或分片集群。独立服务器仍可用于查询和导入。";
+"Double" = "双精度浮点数";
+"Duplicate Document" = "复制文档";
+"Edit Document" = "编辑文档";
+"Editor" = "编辑器";
+"Enter a valid BSON document with unique field names. Documents must fit within 16 MiB." = "请输入字段名称唯一的有效 BSON 文档。文档大小不得超过 16 MiB。";
+"Enter a valid mongodb:// or mongodb+srv:// connection URI." = "请输入有效的 mongodb:// 或 mongodb+srv:// 连接 URI。";
+"Every CSV record must have the same number of fields as its header." = "每条 CSV 记录的字段数必须与表头相同。";
+"Expected %d affected rows, received %d. The transaction was rolled back." = "预期影响 %d 行，实际为 %d 行。事务已回滚。";
+"Expected %d affected rows; the server did not report a count. The transaction was rolled back." = "预期影响 %d 行，但服务器未报告行数。事务已回滚。";
+"Explicit LIMIT and filters are preserved." = "保留显式 LIMIT 和筛选条件。";
+"Export All Rows" = "导出所有行";
+"Export All Rows…" = "导出所有行…";
+"Export Chart" = "导出图表";
+"Export Data" = "导出数据";
+"Export PDF" = "导出为 PDF";
+"Export PNG" = "导出为 PNG";
+"Export failed" = "导出失败";
+"Export one read-only query at a time." = "每次只能导出一条只读查询。";
+"Exported %@." = "已导出 %@。";
+"Exporting: %@" = "正在导出：%@";
+"Extend cell selection" = "扩展单元格选区";
+"Extended JSON" = "扩展 JSON";
+"Field name" = "字段名称";
+"Fields" = "字段";
+"File" = "文件";
+"Finishing…" = "正在完成…";
+"First row contains column names" = "第一行为列名";
+"Foreign Keys" = "外键";
+"From" = "开始日期";
+"Functions" = "函数";
+"Go to %@" = "转到 %@";
+"Hide Column" = "隐藏列";
+"History" = "历史";
+"Import %d records" = "导入 %d 条记录";
+"Import Data" = "导入数据";
+"Import Data…" = "导入数据…";
+"Imported %@." = "已导入 %@。";
+"Importing: %@" = "正在导入：%@";
+"Insert Document" = "插入文档";
+"Insert into %@?" = "插入到 %@？";
+"Inspect" = "查看详情";
+"Inspect Chart" = "查看图表详情";
+"Int32" = "32 位整数";
+"Int64" = "64 位整数";
+"Integer" = "整数";
+"Invalid value" = "无效值";
+"Invalid value for %@ at record %d." = "字段 %@ 在第 %d 条记录中的值无效。";
+"Library Storage" = "库储存管理";
+"Loaded rows: %d" = "已加载行数：%d";
+"Loaded rows: %d / %d" = "已加载行数：%d / %d";
+"Manual Commit" = "手动提交";
+"Matching Rows" = "匹配的行";
+"Materialized Views" = "物化视图";
+"Missing field %@ at record %d. Map another field or omit this column." = "第 %2$d 条记录缺少字段 %1$@。请映射其他字段或跳过此列。";
+"MongoDB CSV fields use Extended JSON to preserve BSON types." = "MongoDB CSV 字段使用 Extended JSON 保留 BSON 类型。";
+"MongoDB Connection" = "MongoDB 连接";
+"MongoDB DNS discovery failed. Check the SRV hostname and network connection." = "MongoDB DNS 发现失败。请检查 SRV 主机名和网络连接。";
+"MongoDB DNS records are invalid or point outside the seed domain." = "MongoDB DNS 记录无效，或指向种子域之外。";
+"MongoDB commits each batch. Cancelled or failed imports can leave inserted documents." = "MongoDB 会逐批提交。取消或失败后，已插入的文档可能仍然保留。";
+"MongoDB did not confirm the commit. Reload the collection to check the document before trying again." = "MongoDB 未确认提交。再次尝试前，请重新加载集合以检查文档。";
+"MongoDB import stopped after %d confirmed records. The current batch may also contain saved documents. %@" = "MongoDB 导入在确认 %d 条记录后停止。当前批次也可能包含已保存的文档。%@";
+"Move this chart to Recently Deleted?" = "将此图表移至“最近删除”？";
+"MySQL column editing is disabled because Portbase cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead." = "MySQL 列编辑已禁用，因为 Portbase 尚无法保留所有现有默认值、生成表达式、注释、字符集、排序规则和 AUTO_INCREMENT 属性。请添加新列或使用经过检查的 SQL。";
+"New Console" = "新建控制台";
+"New Document" = "新文档";
+"Next results page" = "下一页结果";
+"No plottable rows" = "没有可绘制的行";
+"No writable MongoDB primary is available. Check the replica set and network connection, then retry." = "没有可写的 MongoDB 主节点。请检查副本集和网络连接，然后重试。";
+"Null" = "空值";
+"OK" = "确定";
+"ObjectId" = "对象 ID";
+"Open Row" = "打开行";
+"Open row %d" = "打开第 %d 行";
+"Original Document" = "原始文档";
+"Parameters" = "参数";
+"Pin Column" = "固定列";
+"Pinned" = "已固定";
+"Previous results page" = "上一页结果";
+"Primary Key" = "主键";
+"Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again." = "已选择私有 CA TLS，但此设备上没有 CA 证书。请重新导入证书。";
+"Private Key" = "私钥";
+"Procedures" = "存储过程";
+"Query Parameters" = "查询参数";
+"Query results table" = "查询结果表";
+"Range" = "范围";
+"Reading: %@" = "正在读取：%@";
+"Recently Closed Consoles" = "最近关闭的控制台";
+"Refresh" = "刷新";
+"Refresh Tables" = "刷新表";
+"Remove Field" = "移除字段";
+"Remove additional hosts" = "移除其他主机";
+"Rename" = "重命名";
+"Rename Console" = "重命名控制台";
+"Reopen Closed Console" = "重新打开已关闭的控制台";
+"Replica set" = "副本集";
+"Reset Columns" = "重置列";
+"Restore" = "恢复";
+"Result %d" = "结果 %d";
+"Result Set" = "结果集";
+"Review" = "检查";
+"Review Changes" = "检查更改";
+"Roll Back and Close Console?" = "回滚并关闭控制台？";
+"Rollback" = "回滚";
+"Rollback and Close" = "回滚并关闭";
+"Row %d, %@" = "第 %d 行，%@";
+"Run Anyway" = "仍然执行";
+"Run parameterized statements individually." = "请逐条执行参数化语句。";
+"Run table browse query" = "执行表浏览查询";
+"SQL import requires a transactional table so a failed import can roll back. Select an InnoDB table." = "SQL 导入需要支持事务的表，以便失败时回滚。请选择 InnoDB 表。";
+"SQL imports use one transaction. An error before commit rolls back the file." = "SQL 导入使用单个事务。提交前出错会回滚整个文件。";
+"SSH Host" = "SSH 主机";
+"SSH Port" = "SSH 端口";
+"SSH Tunnel" = "SSH 隧道";
+"SSH Username" = "SSH 用户名";
+"SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported." = "SSH 凭据保存在此设备的钥匙串中。Portbase 建立本地回环转发，并在首次信任后验证 SSH 主机密钥。支持密码登录及未加密的 OpenSSH Ed25519/ECDSA 私钥。";
+"Save or Share" = "保存或分享";
+"Saved Queries" = "已保存的查询";
+"Saved work could not be loaded. The original files have been preserved." = "无法加载已保存的工作。原始文件已保留。";
+"Saved work could not be written. Free some device storage and try again." = "无法保存工作。请释放设备储存空间后重试。";
+"Saving" = "正在保存";
+"Search database objects" = "搜索数据库对象";
+"Select All" = "全选";
+"Select a destination and map each included field to a different column." = "请选择目标，并将每个选中的字段映射到不同的列。";
+"Select a query or table to export." = "请选择要导出的查询或表。";
+"Select or create a bookmark before running a query." = "运行查询前，请选择或创建书签。";
+"Select table" = "选择表";
+"Server settings sync through iCloud. Passwords stay in this device’s Keychain." = "服务器设置通过 iCloud 同步。密码保留在此设备的钥匙串中。";
+"Source" = "来源";
+"Statement" = "语句";
+"Storage" = "储存空间";
+"String" = "字符串";
+"TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel." = "通过 SSH 隧道使用 TLS 需要数据库 DNS 主机名来验证证书身份。无法通过回环隧道安全验证 IP 地址。";
+"Text" = "文本";
+"The CSV contains an unterminated quote or an invalid field separator." = "CSV 包含未闭合的引号或无效的字段分隔符。";
+"The MongoDB server belongs to a different replica set." = "MongoDB 服务器属于其他副本集。";
+"The _id field cannot be changed when editing an existing document." = "编辑现有文档时，无法更改 _id 字段。";
+"The chart could not be rendered. Try exporting again." = "无法渲染图表。请重新尝试导出。";
+"The column type contains unsupported or unsafe SQL syntax." = "列类型包含不受支持或不安全的 SQL 语法。";
+"The connection ended while committing the import. Its outcome is unknown. Check the destination before retrying." = "提交导入时连接已断开，结果未知。重试前请检查目标。";
+"The database query timed out and its connection was closed." = "数据库查询超时，连接已关闭。";
+"The file contains no records." = "文件中没有记录。";
+"The file must use UTF-8 text encoding." = "文件必须使用 UTF-8 文本编码。";
+"The original document is checked again in a transaction. Conflicting changes cancel the save." = "将在事务中再次检查原始文档。如果更改冲突，将取消保存。";
+"The private CA certificate bundle is too large." = "私有 CA 证书包过大。";
+"The private CA must be a valid PEM certificate bundle and must not contain a private key." = "私有 CA 必须是有效的 PEM 证书包，且不得包含私钥。";
+"The requested database driver is unavailable in this build." = "此构建版本中没有所需的数据库驱动。";
+"The session closed in the background. Its pending transaction was not committed." = "会话已在后台关闭。待处理的事务未提交。";
+"This MySQL statement can commit implicitly. Commit or roll back, then switch to Auto-commit before running it." = "此 MySQL 语句可能隐式提交。请先提交或回滚，再切换到自动提交后执行。";
+"This URI contains an unsupported option. Portbase supports SCRAM authentication, primary reads, TLS, replica sets, and direct connections." = "此 URI 包含不支持的选项。Portbase 支持 SCRAM 身份验证、主节点读取、TLS、副本集和直接连接。";
+"This connection is read-only and cannot execute write or schema statements." = "此连接为只读，无法执行写入或架构语句。";
+"This console is already executing a command." = "此控制台正在执行命令。";
+"This document changed or was deleted after it was loaded. No changes were saved. Reload it before editing again." = "此文档在加载后已被更改或删除。未保存任何更改。再次编辑前，请重新加载。";
+"This reference has a NULL or unsupported key value." = "此引用包含 NULL 或不受支持的键值。";
+"This statement requires explicit confirmation before it can run." = "此语句需要明确确认后才能运行。";
+"Through" = "截止日期（含当天）";
+"Timeout: %d s" = "超时：%d 秒";
+"Trash" = "回收站";
+"Truncated query result" = "查询结果已截断";
+"Type" = "类型";
+"Unpin Column" = "取消固定列";
+"Unquoted NULL is null; \\M is a missing field. Quote these values to import their text." = "不带引号的 NULL 表示空值，\\M 表示缺失字段。如需导入为文本，请加上引号。";
+"Use DNS SRV discovery" = "使用 DNS SRV 发现";
+"Use a JSON array of objects or one JSON object per line." = "请使用 JSON 对象数组，或每行一个 JSON 对象。";
+"Use the console's transaction controls for Begin, Commit, and Rollback." = "请使用控制台的事务控件开始、提交和回滚事务。";
+"Value" = "值";
+"Value type" = "值类型";
+"Verified row edits require an InnoDB table so a failed edit can be rolled back." = "已验证的行编辑需要 InnoDB 表，以便在失败时回滚。";
+"View Rows (%d)" = "查看行（%d）";
+"Views" = "视图";
+"Visible" = "可见";
+"Width" = "宽度";
+"Width of %@" = "%@ 的宽度";
+"Writes are sent once. Check the result before retrying an interrupted write." = "写入请求只发送一次。重试中断的写入前，请先检查结果。";
+
+"CSV column names must be unique and nonempty." = "CSV 列名必须唯一且不能为空。";
+
+"Command Editor" = "命令编辑器";
+
+"File unavailable" = "文件不可用";
+
+"Choose or create a SQLite database file." = "请选择或创建 SQLite 数据库文件。";
+
+"This engine requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "此引擎的协议无法安全协商回退到明文，因此在“优先 TLS”模式下仍须使用 TLS。";
+
+"The SQLite file is unavailable on this device. Import it or choose another local file." = "此设备上没有可用的 SQLite 文件。请导入文件或选择其他本地文件。";
+
+"The SQLite file name is invalid." = "SQLite 文件名无效。";
+
+"Choose an unencrypted SQLite database file." = "请选择未加密的 SQLite 数据库文件。";
+
+"This SQLite file is in use. Finish or cancel its queries before deleting it." = "此 SQLite 文件正在使用中。请完成或取消相关查询后再删除。";
+
+"Run SQLite statements individually or use Run All." = "请逐条运行 SQLite 语句，或使用“全部运行”。";
+
+"The SQLite parameter count or value is invalid." = "SQLite 参数数量或值无效。";
+
+"SQLite file attachment, extension loading, and unsafe configuration commands are disabled." = "已禁用 SQLite 文件附加、扩展加载和不安全的配置命令。";
+
+"SQLite commands commit individually. Manual transaction commands are unavailable." = "SQLite 命令会逐条提交。不支持手动事务命令。";
+
+"SQLite error %d: %@" = "SQLite 错误 %d：%@";
+
+"Statement executed successfully." = "语句执行成功。";
+
+"Database File" = "数据库文件";
+
+"No file selected" = "未选择文件";
+
+"Import SQLite File…" = "导入 SQLite 文件…";
+
+"Create SQLite Database…" = "创建 SQLite 数据库…";
+
+"Manage Local Files…" = "管理本地文件…";
+
+"SQLite Database" = "SQLite 数据库";
+
+"Database files stay on this device. Deleting a bookmark keeps its file." = "数据库文件仅保存在此设备上。删除书签会保留文件。";
+
+"Create SQLite Database" = "创建 SQLite 数据库";
+
+"Database name" = "数据库名称";
+
+"Create" = "创建";
+
+"No local database files" = "没有本地数据库文件";
+
+"Selected" = "已选择";
+
+"Local Database Files" = "本地数据库文件";
+
+"Delete Database File?" = "删除数据库文件？";
+
+"Delete File" = "删除文件";
+
+"This permanently deletes the local database. Bookmarks that use it will need another file." = "这将永久删除本地数据库。使用此数据库的书签将需要选择其他文件。";
+
+"Temporary SQLite objects are unavailable because each command uses a new connection." = "每条命令都会使用新连接，因此不支持 SQLite 临时对象。";
+
+"%@ ms remaining" = "剩余 %@ 毫秒";
+
+"Add a set member." = "向集合添加成员。";
+
+"All types" = "所有类型";
+
+"Append a list item." = "在列表末尾添加项目。";
+
+"Append a stream entry." = "向流追加条目。";
+
+"Base64" = "Base64 编码";
+
+"Browse hash fields and values." = "浏览哈希字段和值。";
+
+"Browse keys with a cursor." = "使用游标浏览键。";
+
+"Browse set members." = "浏览集合成员。";
+
+"Browse sorted-set members and scores." = "浏览有序集合的成员和分数。";
+
+"Complete the fields to preview the command." = "填写字段以预览命令。";
+
+"Create Key" = "创建键";
+
+"Cursor %@" = "游标 %@";
+
+"Database number" = "数据库编号";
+
+"Delete Key" = "删除键";
+
+"Delete a key asynchronously." = "异步删除键。";
+
+"Display" = "显示";
+
+"Empty string" = "空字符串";
+
+"Encoding" = "编码";
+
+"Enter a Redis database number from 0 to 2147483647." = "请输入 0 到 2147483647 之间的 Redis 数据库编号。";
+
+"Enter one Redis command with valid arguments. Use quotes and \\xNN escapes for binary bytes." = "请输入一条参数有效的 Redis 命令。二进制字节请使用引号和 \\xNN 转义。";
+
+"Entry ID" = "条目 ID";
+
+"Expiration" = "过期时间";
+
+"Expiration in milliseconds" = "过期时间（毫秒）";
+
+"Index" = "索引";
+
+"Inspect the key type." = "查看键类型。";
+
+"Key" = "键";
+
+"Key no longer exists" = "键已不存在";
+
+"Key pattern" = "键匹配模式";
+
+"Key type" = "键类型";
+
+"Keys" = "键";
+
+"Length" = "长度";
+
+"Load More Keys" = "加载更多键";
+
+"Loaded keys: %d" = "已加载键：%d";
+
+"Member" = "成员";
+
+"Next Page" = "下一页";
+
+"No expiration" = "永不过期";
+
+"One command per run. Quote empty values and spaces; use \\xNN for binary bytes." = "每次运行一条命令。空值和空格请用引号包裹；二进制字节使用 \\xNN。";
+
+"Pattern" = "匹配模式";
+
+"Read a bounded list range." = "读取限定范围的列表。";
+
+"Read a bounded stream range." = "读取限定范围的流。";
+
+"Read a string value." = "读取字符串值。";
+
+"Read remaining expiration in milliseconds." = "读取剩余过期时间（毫秒）。";
+
+"Read-only" = "只读";
+
+"Redis authentication failed. Check the username and password in the connection." = "Redis 身份验证失败。请检查连接中的用户名和密码。";
+
+"Redis command" = "Redis 命令";
+
+"Redis command editor" = "Redis 命令编辑器";
+
+"Redis command reference" = "Redis 命令参考";
+
+"Redis keys" = "Redis 键";
+
+"Redis rejected the command (%@). Check its arguments and your account permissions." = "Redis 拒绝了命令（%@）。请检查参数和账户权限。";
+
+"Redis returned %d rows." = "Redis 返回了 %d 行。";
+
+"Redis returned an invalid or unsupported RESP2 reply." = "Redis 返回了无效或不受支持的 RESP2 响应。";
+
+"Redis value" = "Redis 值";
+
+"Remove Expiration" = "移除过期时间";
+
+"Review Redis Write" = "确认 Redis 写入";
+
+"Scan complete" = "扫描完成";
+
+"Score" = "分数";
+
+"Set Expiration" = "设置过期时间";
+
+"Set expiration in milliseconds." = "以毫秒为单位设置过期时间。";
+
+"The Redis connection closed before the reply arrived." = "Redis 连接在收到响应前已关闭。";
+
+"The Redis key changed or expired during inspection. Refresh its value." = "Redis 键在查看期间发生变化或已过期。请刷新值。";
+
+"The Redis reply exceeds the client limit. Use a smaller range or a SCAN cursor." = "Redis 响应超出客户端限制。请缩小范围或使用 SCAN 游标。";
+
+"The connection ended before Redis confirmed the write. Refresh the key before trying again." = "Redis 确认写入前连接已断开。请先刷新键，再尝试操作。";
+
+"The key limit was reached. Narrow the pattern and scan again." = "已达到键数量上限。请缩小匹配范围并重新扫描。";
+
+"The reply was truncated. Use a smaller range in the command editor." = "响应已截断。请在命令编辑器中使用更小的范围。";
+
+"This Redis command changes data. Review the exact command before running it." = "此 Redis 命令会修改数据。请在运行前确认完整命令。";
+
+"This Redis command is unavailable. Use bounded data commands; administration, scripts, subscriptions and blocking operations are disabled." = "此 Redis 命令不可用。请使用范围受限的数据命令；管理、脚本、订阅和阻塞操作已禁用。";
+
+"This Redis key type cannot be inspected here." = "无法在此查看这种 Redis 键类型。";
+
+"This connection does not allow Redis writes." = "此连接不允许 Redis 写入。";
+
+"UTF-8" = "UTF-8 文本";
+
+"Use" = "使用";
+
+"Write" = "写入";
+
+"Write Value" = "写入值";
+
+"Write a hash field." = "写入哈希字段。";
+
+"Write a sorted-set member and score." = "写入有序集合成员和分数。";
+
+"Write a string and keep its expiration." = "写入字符串并保留过期时间。";
+
+"Scan" = "扫描";
+
+"This Redis Cluster endpoint redirected the command. Connect through a cluster-aware proxy or to the node that owns this key." = "此 Redis Cluster 端点重定向了命令。请通过支持集群的代理连接，或连接到该键所属的节点。";
+
+"Stop" = "停止";
+
+"API Key" = "API 密钥";
+
+"Access Token" = "访问令牌";
+
+"Aggregations" = "聚合";
+
+"Authentication" = "身份验证";
+
+"Count" = "计数";
+
+"Elasticsearch returned partial results. A shard failed or the search timed out." = "Elasticsearch 返回了部分结果。某个分片失败或搜索超时。";
+
+"HTTP Method" = "HTTP 方法";
+
+"Invalid database HTTP request. Check the method, path and JSON body." = "数据库 HTTP 请求无效。请检查方法、路径和 JSON 正文。";
+
+"Mappings" = "字段映射";
+
+"Query Templates" = "查询模板";
+
+"Request" = "请求";
+
+"Request Body" = "请求正文";
+
+"Request Path" = "请求路径";
+
+"Run one ClickHouse statement without FORMAT, SETTINGS or INTO OUTFILE. Portbase controls the result format and limits." = "请运行一条不含 FORMAT、SETTINGS 或 INTO OUTFILE 的 ClickHouse 语句。结果格式和限制由 Portbase 控制。";
+
+"Select an index." = "请选择索引。";
+
+"The database redirected the request. Set the final server address in the bookmark." = "数据库重定向了请求。请在书签中设置最终服务器地址。";
+
+"The database response exceeds 32 MiB. Reduce the query size or select fewer fields." = "数据库响应超过 32 MiB。请缩小查询范围或减少所选字段。";
+
+"The database returned HTTP %d. Check the request and server permissions." = "数据库返回 HTTP %d。请检查请求和服务器权限。";
+
+"The database returned an incomplete or invalid JSON response." = "数据库返回了不完整或无效的 JSON 响应。";
+
+"The write was not confirmed. Check the server before retrying; it may have completed." = "写入未获确认。可能已完成，请在重试前检查服务器。";
+
+"This database command is not supported. Use a query or an individual document operation." = "不支持此数据库命令。请使用查询或单个文档操作。";
+
+"This engine does not support bound parameters in Portbase yet." = "Portbase 暂不支持此引擎的绑定参数。";
+
+"Username and password" = "用户名和密码";
+
+/* Portbase 1.5 workspace tools */
+"%.3f s" = "%.3f 秒";
+"%@ Copy" = "%@ 副本";
+"%@ s" = "%@ 秒";
+"All Columns" = "所有列";
+"All Engines" = "所有引擎";
+"All Statuses" = "所有状态";
+"Binary" = "二进制";
+"Cell value" = "单元格值";
+"Choose a UTF-8 text file smaller than 2 MB." = "请选择小于 2 MB 的 UTF-8 文本文件。";
+"Choose a connection with the same database engine before opening this query." = "打开此查询前，请选择使用相同数据库引擎的连接。";
+"Clear Filter" = "清除筛选";
+"Connect through SSH" = "通过 SSH 连接";
+"Contains" = "包含";
+"Current connection only" = "仅当前连接";
+"Date / Time" = "日期 / 时间";
+"Duplicate Connection" = "复制连接";
+"Edit Saved Query" = "编辑已保存查询";
+"Edit saved query %@" = "编辑已保存查询 %@";
+"Empty text" = "空文本";
+"Equals" = "等于";
+"Failed" = "失败";
+"Filter Loaded Rows" = "筛选已加载的行";
+"Filter queries" = "筛选查询";
+"Filter servers" = "筛选服务器";
+"Filters apply to loaded rows only." = "筛选仅适用于已加载的行。";
+"Format JSON" = "格式化 JSON";
+"Go" = "跳转";
+"Go to Line" = "跳转到行";
+"Hex" = "十六进制";
+"Hidden" = "隐藏";
+"Index Keys" = "索引键";
+"Index results were truncated." = "索引结果已截断。";
+"Inspect Cell" = "检查单元格";
+"Line 1–%d" = "行 1–%d";
+"Line number" = "行号";
+"Match" = "匹配条件";
+"No" = "否";
+"No matching indexes" = "没有匹配的索引";
+"No matching queries" = "没有匹配的查询";
+"No matching servers" = "没有匹配的服务器";
+"Open Script" = "打开脚本";
+"Options" = "选项";
+"Preview: first 4096 bytes. Share exports the complete value." = "预览：前 4096 字节。分享将导出完整值。";
+"Query name" = "查询名称";
+"Query notes" = "查询备注";
+"Read-only connections" = "只读连接";
+"Read-only mode" = "只读模式";
+"Replace Query" = "替换查询";
+"Replace current query?" = "替换当前查询？";
+"Reset Filters" = "重置筛选";
+"Row %d" = "第 %d 行";
+"Script File" = "脚本文件";
+"Script Files" = "脚本文件";
+"Search indexes" = "搜索索引";
+"Search queries" = "搜索查询";
+"Search servers" = "搜索服务器";
+"Share Script" = "分享脚本";
+"Share Value" = "分享值";
+"Sparse" = "稀疏";
+"Status" = "状态";
+"Succeeded" = "成功";
+"TTL" = "生存时间 (TTL)";
+"TTL: %@ s" = "TTL：%@ 秒";
+"The saved connection is unavailable or its database engine changed." = "已保存的连接不可用，或其数据库引擎已更改。";
+"Toggle SQL Comment" = "切换 SQL 注释";
+"Unique" = "唯一";
+"Use Current Connection" = "使用当前连接";
+"Yes" = "是";
+"Editing Tools" = "编辑工具";
+
+// macOS workspace and iCloud synchronization
+"Connections are saved on this device. The library exceeds the iCloud sync limit." = "连接已保存在此设备上。资料库超出了 iCloud 同步限制。";
+"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "连接、已保存的查询和图表配置通过 iCloud 同步。密码、密钥、查询历史、结果和 SQLite 文件保留在此设备上。";
+"Decrease Text Size" = "缩小文字";
+"Delete Connection" = "删除连接";
+"Delete Connection?" = "删除连接？";
+"Edit Connection" = "编辑连接";
+"Explain" = "执行计划";
+"Increase Text Size" = "放大文字";
+"JSON editor" = "JSON 编辑器";
+"Open Sample Database" = "打开示例数据库";
+"Open Script…" = "打开脚本…";
+"Pending transactions on this connection will be rolled back." = "此连接的待提交事务将被回滚。";
+"Pending transactions will be rolled back." = "待提交事务将被回滚。";
+"Portbase" = "Portbase";
+"Query Library" = "查询资料库";
+"Refresh Schema" = "刷新结构";
+"Reset Text Size" = "重置文字大小";
+"Roll Back and Quit" = "回滚并退出";
+"Roll Back and Quit?" = "回滚并退出？";
+"SQL clause editor" = "SQL 子句编辑器";
+"SQL editor" = "SQL 编辑器";
+"Sample Database" = "示例数据库";
+"Save File" = "保存文件";
+"Save Query" = "保存查询";
+"Save Script…" = "保存脚本…";
+"Saved queries are on this device. The library exceeds the iCloud sync limit." = "已保存的查询保留在此设备上。资料库超出了 iCloud 同步限制。";
+"Sign in to iCloud in System Settings." = "请在系统设置中登录 iCloud。";
+"Structure" = "结构";
+"Sync Now" = "立即同步";
+"Text Size" = "文字大小";
+"Workspace" = "工作区";
+"iCloud" = "iCloud";
+"iCloud available" = "iCloud 可用";
+
+/* Desktop workspace */
+"Choose a collection" = "选择集合";
+"Connect" = "连接";
+"Filter" = "筛选";
+"Sort" = "排序";
+"Stage" = "阶段";
+"Primary key" = "主键";
+
+/* Workspace redesign */
+"Accent Color" = "强调色";
+"Actions" = "操作";
+"Actions, tables, queries" = "操作、表、查询";
+"Active connection" = "当前连接";
+"Activity" = "活动";
+"Add a connection to browse tables, run queries, and build charts." = "添加连接以浏览表、运行查询并创建图表。";
+"Always dark" = "始终深色";
+"Always light" = "始终浅色";
+"Analyzing results" = "正在分析结果";
+"Appearance" = "外观";
+"Browse Data" = "浏览数据";
+"Cache %@" = "缓存 %@";
+"Changes" = "更改";
+"Choose a database or refresh the schema." = "选择数据库或刷新架构。";
+"Choose database" = "选择数据库";
+"Clear search" = "清除搜索";
+"Close %@" = "关闭 %@";
+"Collections: %d" = "集合：%d";
+"Common table expression" = "公用表表达式";
+"Completeness" = "完整度";
+"Connect your first database" = "连接你的第一个数据库";
+"Connections" = "连接";
+"Copy Name" = "复制名称";
+"Create index" = "创建索引";
+"Current database" = "当前数据库";
+"Dark" = "深色";
+"Database passwords, SSH keys, and private CA certificates stay in this device’s Keychain." = "数据库密码、SSH 密钥和私有 CA 证书保留在此设备的钥匙串中。";
+"Date and time" = "日期和时间";
+"Delete rows" = "删除行";
+"Distinct" = "去重值";
+"Documents: %d" = "文档：%d";
+"Edit %@" = "编辑 %@";
+"Editable" = "可编辑";
+"Editor Theme" = "编辑器主题";
+"Emerald" = "翡翠绿";
+"Empty" = "空值";
+"Encrypted" = "已加密";
+"Engines" = "引擎";
+"Filled values" = "已填写的值";
+"Filter columns" = "筛选列";
+"Find actions, tables, and saved queries" = "查找操作、表和已保存的查询";
+"Follows light and dark mode" = "跟随浅色和深色模式";
+"Format Query" = "格式化查询";
+"General" = "通用";
+"Go To" = "前往";
+"Good afternoon" = "下午好";
+"Good evening" = "晚上好";
+"Good morning" = "早上好";
+"Graphite" = "石墨灰";
+"Group and count" = "分组并计数";
+"History and saved queries" = "历史记录和已保存的查询";
+"Home" = "主页";
+"Indigo" = "靛蓝";
+"Insert %@" = "插入 %@";
+"Insert SQL template" = "插入 SQL 模板";
+"Insights" = "洞察";
+"Join tables" = "联接表";
+"Last 14 days" = "最近 14 天";
+"Last run: %@" = "上次运行：%@";
+"Light" = "浅色";
+"Loaded rows" = "已加载的行";
+"Loads this query into the console without running it" = "将此查询载入控制台但不运行";
+"Match System" = "跟随系统";
+"Max" = "最大值";
+"Mean" = "平均值";
+"Median" = "中位数";
+"Median time" = "中位耗时";
+"Min" = "最小值";
+"Most active: %@" = "最活跃：%@";
+"Most frequent" = "最常见";
+"Navigate" = "导航";
+"Needs attention" = "需要注意";
+"New Query" = "新建查询";
+"No collections" = "没有集合";
+"No matches" = "无匹配项";
+"No tables" = "没有表";
+"Non-NULL cells" = "非 NULL 单元格";
+"Numeric columns" = "数值列";
+"Ocean" = "海洋蓝";
+"On this device" = "在此设备上";
+"Open" = "打开";
+"Open Console" = "打开控制台";
+"Open a fresh console" = "打开新的控制台";
+"Opens a new console. Hold for more options." = "打开新的控制台。按住可查看更多选项。";
+"Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase 支持 MySQL、MariaDB、PostgreSQL、SQLite、ClickHouse、MongoDB、Redis 和 Elasticsearch。";
+"Queries per day" = "每日查询数";
+"Queries run" = "已运行查询";
+"Queries you run appear here. Loading one never runs it." = "运行过的查询会显示在这里。载入查询不会运行它。";
+"Recent Queries" = "最近的查询";
+"Result truncated" = "结果已截断";
+"Rose" = "玫瑰粉";
+"Run a query to see column insights." = "运行查询以查看列洞察。";
+"Run a query to see results here." = "运行查询以在此查看结果。";
+"Run a query to see your activity here." = "运行查询以在此查看你的活动。";
+"Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "运行包含数值列的查询，然后在结果中选择图表按钮来设计并保存图表。";
+"Running total" = "累计总和";
+"Save a query from the console to keep it one tap away." = "在控制台中保存查询，即可一键调用。";
+"Saved Charts" = "已保存的图表";
+"Saved: %d" = "已保存：%d";
+"Search actions, tables, and queries" = "搜索操作、表和查询";
+"Search…" = "搜索…";
+"Select rows" = "查询行";
+"Show All" = "显示全部";
+"Size" = "大小";
+"Statistics describe loaded rows only. They do not query the database again." = "统计信息仅描述已加载的行，不会再次查询数据库。";
+"Success rate" = "成功率";
+"Suggestions" = "建议";
+"Summarizing loaded rows." = "正在汇总已加载的行。";
+"Sunset" = "日落橙";
+"Supported Engines" = "支持的引擎";
+"Table list caching off" = "表列表缓存已关闭";
+"Tables: %d" = "表：%d";
+"Templates" = "模板";
+"Templates for %@" = "%@ 的模板";
+"Transaction open" = "事务未结束";
+"Try a table name, a saved query, or an action such as Format." = "试试表名、已保存的查询或“格式化”等操作。";
+"Unavailable" = "不可用";
+"Update rows" = "更新行";
+"Value distribution" = "值分布";
+"Version %@ (%@)" = "版本 %@ (%@)";
+"Best Matches" = "最佳匹配";
+"New SQLite Database" = "新建 SQLite 数据库";
+"Queries: %d" = "查询：%d";
+"No live rows yet" = "暂无数据行";
+"No servers saved" = "没有已保存的服务器";
+"No saved charts yet" = "暂无已保存的图表";
+"No table selected" = "未选择表";
+"Chart query missing" = "缺少图表查询";
+"Export" = "导出";
+"SSH Password" = "SSH 密码";
+"Applies the current WHERE and ORDER BY clauses" = "应用当前的 WHERE 和 ORDER BY 子句";
+"Loads the following page of rows" = "加载下一页数据行";
+"Loads the preceding page of rows" = "加载上一页数据行";
+"Opens chart configuration for these results" = "为这些结果打开图表配置";
+"Opens the server connection form" = "打开服务器连接表单";
+"Refreshes this saved chart from its database" = "从数据库刷新此已保存的图表";

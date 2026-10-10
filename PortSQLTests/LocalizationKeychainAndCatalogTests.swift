@@ -97,11 +97,11 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
     func testNonEnglishCatalogsHaveNoUnexpectedEnglishIdentityFallbacks() throws {
         let baseline = try localizableStrings(for: "en")
         let universallyInvariantKeys: Set<String> = [
-            "PORTSQL", "WHERE", "ORDER", "SQL", "PortSQL Pro", "JSON", "NULL", "PK",
+            "PORTBASE", "Portbase", "iCloud", "WHERE", "ORDER", "SQL", "Portbase Pro", "JSON", "NULL", "PK",
         ]
         let localeSpecificInvariantKeys: [String: Set<String>] = [
-            "de": ["FORMAT", "EXPLAIN", "SCHEMA", "Server", "Name", "Host", "Port", "Auto"],
-            "es": ["Host", "Auto"],
+            "de": ["FORMAT", "EXPLAIN", "SCHEMA", "Server", "Name", "Host", "Port", "Auto", "Filter"],
+            "es": ["Host", "Auto", "No"],
             "fr": ["Mode", "Port", "Page %d", "Auto", "Date"],
             "ja": [],
             "ko": [],
@@ -177,12 +177,6 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
         XCTAssertFalse(json.contains("passphrase"))
         XCTAssertFalse(json.contains("CA CERTIFICATE SECRET"))
         XCTAssertTrue(json.contains("<keychain>"))
-    }
-
-    func testPurchaseCatalogSortsKnownProductsBeforeUnknownProducts() {
-        XCTAssertLessThan(PurchaseCatalog.sortIndex(for: PurchaseCatalog.proMonthly), PurchaseCatalog.sortIndex(for: PurchaseCatalog.proYearly))
-        XCTAssertLessThan(PurchaseCatalog.sortIndex(for: PurchaseCatalog.proYearly), PurchaseCatalog.sortIndex(for: PurchaseCatalog.proLifetime))
-        XCTAssertLessThan(PurchaseCatalog.sortIndex(for: PurchaseCatalog.proLifetime), PurchaseCatalog.sortIndex(for: "unknown.product"))
     }
 
     private func localizableStrings(for locale: String) throws -> [String: String] {

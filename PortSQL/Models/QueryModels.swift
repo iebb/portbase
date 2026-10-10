@@ -166,12 +166,14 @@ struct SchemaColumnDescriptor: Identifiable, Codable, Hashable {
     let isNullable: Bool
     let isPrimaryKey: Bool
     let isUnique: Bool
+    var isGenerated: Bool? = nil
 
     private enum CodingKeys: String, CodingKey {
         case name
         case type
         case isNullable
         case isPrimaryKey
+        case isGenerated
         case isUnique
     }
 }
@@ -182,12 +184,14 @@ struct SchemaTableDescriptor: Identifiable, Codable, Hashable {
     let name: String
     let columns: [SchemaColumnDescriptor]
     let rowCountEstimate: Int?
+    var objectKind: SchemaObjectKind? = nil
 
     private enum CodingKeys: String, CodingKey {
         case schemaName
         case name
         case columns
         case rowCountEstimate
+        case objectKind
     }
 
     var displayName: String {
@@ -295,6 +299,18 @@ struct SchemaColumnDeletionTarget: Identifiable, Hashable {
     let column: SchemaColumnDescriptor
 }
 
+enum QueryHistoryOutcome: String, Codable, CaseIterable {
+    case succeeded, failed, cancelled
+
+    var title: String {
+        switch self {
+        case .succeeded: L10n.text("Succeeded")
+        case .failed: L10n.text("Failed")
+        case .cancelled: L10n.text("Cancelled")
+        }
+    }
+}
+
 struct QueryHistoryEntry: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     var title: String
@@ -302,6 +318,11 @@ struct QueryHistoryEntry: Identifiable, Codable, Hashable {
     var connectionName: String
     var summary: String
     var executedAt: Date = .now
+    var bookmarkID: UUID?
+    var database: String?
+    var engine: DatabaseEngine?
+    var duration: TimeInterval?
+    var outcome: QueryHistoryOutcome?
 }
 
 struct SavedQuerySnippet: Identifiable, Codable, Hashable {
@@ -310,6 +331,10 @@ struct SavedQuerySnippet: Identifiable, Codable, Hashable {
     var sql: String
     var note: String = ""
     var createdAt: Date = .now
+    var updatedAt: Date?
+    var bookmarkID: UUID?
+    var database: String?
+    var engine: DatabaseEngine?
 }
 
 struct QueryResultTable: Codable, Hashable {
@@ -323,6 +348,8 @@ struct QueryResultTable: Codable, Hashable {
     var affectedRowCount: Int?
     var isTruncated: Bool?
     var isExplorerGenerated: Bool?
+    // Canonical Extended JSON preserves BSON types and missing fields in exports.
+    var documents: [String]? = nil
 
     static let empty = QueryResultTable(
         columns: [],

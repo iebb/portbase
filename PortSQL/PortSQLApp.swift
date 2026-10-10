@@ -1,27 +1,29 @@
+#if !os(macOS)
 import SwiftUI
 
 @main
 struct PortSQLApp: App {
-    @StateObject private var bookmarkStore = BookmarkStore()
-    @StateObject private var libraryStore = WorkspaceLibraryStore()
-    @StateObject private var workspace = WorkspaceViewModel()
-    @StateObject private var purchaseStore = PurchaseStore()
+    @StateObject private var bookmarkStore = BookmarkStore(cloudSyncEnabled: !WorkspaceFileStore.isTestHost)
+    @StateObject private var libraryStore = WorkspaceLibraryStore(directory: WorkspaceFileStore.directory, cloudSyncEnabled: !WorkspaceFileStore.isTestHost)
+    @StateObject private var consoles = ConsoleStore()
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(bookmarkStore)
                 .environmentObject(libraryStore)
-                .environmentObject(workspace)
-                .environmentObject(purchaseStore)
+                .environmentObject(consoles.active.workspace)
+                .environmentObject(consoles)
                 .task {
-                    workspace.configure(
-                        bookmarkStore: bookmarkStore,
-                        libraryStore: libraryStore,
-                        purchaseStore: purchaseStore
-                    )
-                    await purchaseStore.configure()
+                    consoles.configure(bookmarks: bookmarkStore, library: libraryStore)
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .background { consoles.suspend() }
+                    else if phase == .inactive { consoles.save() }
                 }
         }
     }
 }
+
+#endif

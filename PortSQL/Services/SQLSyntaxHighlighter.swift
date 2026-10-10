@@ -29,6 +29,12 @@ enum SQLSyntaxHighlighter {
 
     static func tokens(in query: String) -> [SQLToken] {
         let characters = Array(query)
+        let utf16Offsets = characters.reduce(into: [0]) { offsets, character in
+            offsets.append(offsets.last! + String(character).utf16.count)
+        }
+        func range(_ start: Int, _ end: Int) -> NSRange {
+            NSRange(location: utf16Offsets[start], length: utf16Offsets[end] - utf16Offsets[start])
+        }
         var tokens: [SQLToken] = []
         var index = 0
 
@@ -41,7 +47,7 @@ enum SQLSyntaxHighlighter {
                 while index < characters.count && characters[index] != "\n" {
                     index += 1
                 }
-                tokens.append(SQLToken(range: NSRange(location: start, length: index - start), kind: .comment))
+                tokens.append(SQLToken(range: range(start, index), kind: .comment))
                 continue
             }
 
@@ -55,7 +61,7 @@ enum SQLSyntaxHighlighter {
                     }
                     index += 1
                 }
-                tokens.append(SQLToken(range: NSRange(location: start, length: index - start), kind: .comment))
+                tokens.append(SQLToken(range: range(start, index), kind: .comment))
                 continue
             }
 
@@ -78,7 +84,7 @@ enum SQLSyntaxHighlighter {
                     }
                     index += 1
                 }
-                tokens.append(SQLToken(range: NSRange(location: start, length: index - start), kind: .stringLiteral))
+                tokens.append(SQLToken(range: range(start, index), kind: .stringLiteral))
                 continue
             }
 
@@ -88,7 +94,7 @@ enum SQLSyntaxHighlighter {
                 while index < characters.count && (characters[index].isNumber || characters[index] == ".") {
                     index += 1
                 }
-                tokens.append(SQLToken(range: NSRange(location: start, length: index - start), kind: .numberLiteral))
+                tokens.append(SQLToken(range: range(start, index), kind: .numberLiteral))
                 continue
             }
 
@@ -100,16 +106,31 @@ enum SQLSyntaxHighlighter {
                 }
                 let token = String(characters[start..<index]).uppercased()
                 let kind: SQLTokenKind = keywords.contains(token) ? .keyword : .identifier
-                tokens.append(SQLToken(range: NSRange(location: start, length: index - start), kind: kind))
+                tokens.append(SQLToken(range: range(start, index), kind: kind))
                 continue
             }
 
             if !character.isWhitespace {
-                tokens.append(SQLToken(range: NSRange(location: index, length: 1), kind: .symbol))
+                tokens.append(SQLToken(range: range(index, index + 1), kind: .symbol))
             }
             index += 1
         }
 
         return tokens
+    }
+}
+
+enum JSONSyntaxHighlighter {
+    static func tokens(in text: String) -> [SQLToken] {
+        let pattern = #""(?:[^"\\]|\\.)*"|-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?|\b(?:true|false|null)\b|[{}\[\]:,]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let string = text as NSString
+        return regex.matches(in: text, range: NSRange(location: 0, length: string.length)).map { match in
+            let value = string.substring(with: match.range)
+            let kind: SQLTokenKind = value.hasPrefix("\"") ? .stringLiteral
+                : ["true", "false", "null"].contains(value) ? .keyword
+                : value.first?.isNumber == true || value.hasPrefix("-") ? .numberLiteral : .symbol
+            return SQLToken(range: match.range, kind: kind)
+        }
     }
 }

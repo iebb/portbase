@@ -2,8 +2,7 @@
 "Studio" = "工作台";
 "Charts" = "圖表";
 "Servers" = "伺服器";
-"PORTSQL" = "PORTSQL";
-"Elegant database control, sized for iPhone." = "為 iPhone 打造的優雅資料庫控制台。";
+"PORTBASE" = "PORTBASE";
 "Live MySQL and PostgreSQL querying, schema browsing, charting, and row editing without placeholder datasets." = "連接真實 MySQL 和 PostgreSQL，執行查詢、瀏覽結構、建立圖表並編輯資料列。";
 "No active connection" = "沒有使用中的連線";
 "Create or select a bookmark to start a live workspace." = "建立或選擇書籤以開始即時工作區。";
@@ -48,14 +47,11 @@
 "Connect to a database and refresh the explorer to inspect live tables and columns." = "連接到資料庫並重新整理資源管理器以檢查活動表和列。";
 "Choose a table to inspect its schema." = "選擇資料表以檢查其結構。";
 "Library" = "資料庫";
-"Run queries to build a local history." = "執行查詢以建立本機歷史記錄​​。";
 "Reusable snippets" = "可重複使用的片段";
 "Save Current" = "儲存目前";
-"Save snippets for common admin tasks and diagnostics." = "保存常見管理任務和診斷的片段。";
 "Add to Visualizer" = "加入視覺化";
 "Add to visualizer" = "加入視覺化";
 "Add your first visualization when querying." = "查詢後加入第一個視覺化。";
-"Build a saved chart config from the current result set." = "從目前結果集建立已儲存的圖表配置。";
 "Preset Name" = "預設名稱";
 "Saved chart name" = "已儲存的圖表名稱";
 "Chart Title" = "圖表標題";
@@ -90,9 +86,7 @@
 "Premium Features" = "進階功能";
 "Upgrade" = "升級";
 "Settings" = "設定";
-"PortSQL Pro" = "PortSQL Pro";
-"Designed as optional add-ons" = "設計為可選附加元件";
-"Core database access remains usable on the free plan. Pro is for convenience and polish, not basic connectivity." = "核心資料庫存取在免費方案中仍然可用。 Pro 是為了方便和美觀，而不是基本的連結性。";
+"Portbase Pro" = "Portbase Pro";
 "Restore Purchases" = "恢復購買";
 "Sync" = "同步";
 "Servers are mirrored through iCloud key-value sync." = "伺服器透過 iCloud 鍵值同步進行鏡像。";
@@ -116,7 +110,7 @@
 "server, chart, folder" = "伺服器、圖表、資料夾";
 "Create your first MySQL or PostgreSQL server to start querying live data." = "建立您的第一個 MySQL 或 PostgreSQL 伺服器以開始查詢即時資料。";
 "Table and column metadata is reused until this duration expires. The refresh button bypasses the cache." = "表格和列元資料將重複使用，直到該持續時間到期。刷新按鈕繞過快取。";
-"When caching is off, PortSQL always reloads table lists from the database and hides manual refresh controls." = "當快取關閉時，PortSQL 始終從資料庫重新載入表格清單並隱藏手動刷新控制項。";
+"When caching is off, Portbase always reloads table lists from the database and hides manual refresh controls." = "當快取關閉時，Portbase 始終從資料庫重新載入表格清單並隱藏手動刷新控制項。";
 "Columns" = "欄位";
 "Column" = "欄位";
 "Add a new column to the live table schema." = "將新欄位加入即時資料表結構。";
@@ -237,10 +231,10 @@
 "Confirm write" = "確認寫入";
 "This statement can change database data. Review it carefully before running it against a live database." = "此陳述式可能會變更資料庫資料。在即時資料庫上執行前，請仔細檢查。";
 "Add a SQL query to run this visualizer." = "加入用於執行此視覺化的 SQL 查詢。";
-"Available with PortSQL Pro" = "可透過 PortSQL Pro 使用";
+"Available with Portbase Pro" = "可透過 Portbase Pro 使用";
 "Begins an App Store purchase" = "開始 App Store 購買";
 "Check your network connection and try again." = "請檢查網路連線並再試一次。";
-"Checks the App Store for previous PortSQL purchases" = "在 App Store 中檢查先前的 PortSQL 購買記錄";
+"Checks the App Store for previous Portbase purchases" = "在 App Store 中檢查先前的 Portbase 購買記錄";
 "Choose or save a bookmark before running this visualizer." = "執行此視覺化前，請選擇或儲存書籤。";
 "Current Result" = "目前結果";
 "Insert a new row with schema-aware validation." = "使用結構感知驗證插入新資料列。";
@@ -286,6 +280,833 @@
 "Unencrypted Connection" = "未加密連線";
 "Plaintext sends database credentials and data without encryption. Use it only for legacy servers on a trusted network." = "明文會在未加密的情況下傳送資料庫憑證與資料。僅可對受信任網路中的舊式伺服器使用此模式。";
 "The selected file does not contain a valid X.509 certificate." = "所選檔案不包含有效的 X.509 憑證。";
-"PortSQL could not read this certificate file." = "PortSQL 無法讀取此憑證檔案。";
+"Portbase could not read this certificate file." = "Portbase 無法讀取此憑證檔案。";
 "TLS fallback allowed" = "允許 TLS 退回";
 "Unencrypted" = "未加密";
+
+/* Document databases and adaptive workspaces */
+"Collections" = "集合";
+"Collection" = "集合";
+"Tables" = "資料表";
+"Search collections" = "搜尋集合";
+"Search tables" = "搜尋資料表";
+"Filter (JSON)" = "篩選條件（JSON）";
+"Sort (JSON)" = "排序（JSON）";
+"Browse documents" = "瀏覽文件";
+"Select a database and refresh its collections." = "選擇資料庫並重新整理其集合。";
+"No documents matched the query." = "沒有符合查詢的文件。";
+"Document %d" = "文件 %d";
+"Open full document" = "開啟完整文件";
+"Aggregation" = "彙總";
+"Indexes" = "索引";
+"Insert document" = "插入文件";
+"Update documents" = "更新文件";
+"Delete documents" = "刪除文件";
+"Query templates" = "查詢範本";
+"Open JSON editor" = "開啟 JSON 編輯器";
+"JSON Editor" = "JSON 編輯器";
+"Cancel Query" = "取消查詢";
+"Authentication database" = "驗證資料庫";
+"Connect to a MongoDB host and port. SRV discovery and automatic replica-set failover are not supported." = "連線至 MongoDB 主機和連接埠。暫不支援 SRV 探索和副本集自動容錯移轉。";
+"MongoDB requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "MongoDB 在優先使用 TLS 模式下仍要求 TLS，因為其協定無法安全協商回退至明文連線。";
+"Enter one valid MongoDB Extended JSON command (up to 1 MiB)." = "請輸入一條有效的 MongoDB Extended JSON 指令（最大 1 MiB）。";
+"This MongoDB command or option is not supported. Server-side JavaScript and unbounded cursors are disabled." = "不支援此 MongoDB 指令或選項。伺服器端 JavaScript 和無限游標已停用。";
+"MongoDB rejected the operation (code %@). Check permissions, command syntax, and server logs." = "MongoDB 拒絕了操作（代碼 %@）。請檢查權限、指令語法和伺服器記錄。";
+"Results were truncated at 10,000 documents or 32 MiB. Narrow the filter to retrieve more." = "結果已在 10,000 份文件或 32 MiB 處截斷。請縮小篩選範圍以取得更多資料。";
+"Enter a MongoDB Extended JSON command" = "輸入 MongoDB Extended JSON 指令";
+"SQL query editor" = "SQL 查詢編輯器";
+"Enter the SQL statement to run against the selected database" = "輸入要在所選資料庫執行的 SQL 陳述式";
+"This operation only accepts read-only queries." = "此操作僅接受唯讀查詢。";
+"History is empty." = "尚無歷史記錄。";
+"No saved snippets." = "尚無已儲存的片段。";
+"Console" = "主控台";
+
+"Find" = "尋找";
+"Command" = "命令";
+"Projection (JSON)" = "投影 (JSON)";
+"Skip" = "略過";
+"Limit" = "上限";
+"Add Stage" = "新增階段";
+"Enable stage" = "啟用階段";
+"Move Up" = "上移";
+"Move Down" = "下移";
+"Stage %d" = "階段 %d";
+"Stage %d: Invalid JSON." = "階段 %d：JSON 無效。";
+"%@: Invalid JSON object." = "%@：JSON 物件無效。";
+"Choose a collection." = "請選擇集合。";
+"Skip must be zero or greater. Limit must be between 1 and 10,000." = "略過數量必須不小於 0，上限必須介於 1 和 10,000 之間。";
+"Edit command" = "編輯命令";
+"Document" = "文件";
+"Documents" = "文件";
+"Show All Fields" = "顯示所有欄位";
+"Show More" = "顯示更多";
+"Configure Chart" = "設定圖表";
+"Run a query with numeric fields to create a chart." = "執行包含數值欄位的查詢以建立圖表。";
+"Ln %d, Col %d" = "第 %d 行，第 %d 欄";
+"Selection" = "選取範圍";
+"Run Selection" = "執行選取範圍";
+"Run All" = "全部執行";
+"Run the complete parameterized query to preserve its bound values." = "請執行完整的參數化查詢以保留繫結值。";
+"Undo" = "復原";
+"Redo" = "重做";
+"Indent" = "增加縮排";
+"Outdent" = "減少縮排";
+"Find and Replace" = "尋找與取代";
+"Hide Keyboard" = "隱藏鍵盤";
+"EXPORT" = "匯出";
+
+
+/* Database workspace */
+"%@ • %@" = "%@，%@";
+"%d pt" = "%d 點";
+"Add Field" = "加入欄位";
+"Add a database connection" = "新增資料庫連線";
+"Add database connection" = "建立資料庫連線";
+"Additional seed hosts" = "其他種子主機";
+"An import record is too large. Each record must fit within 1 MiB." = "匯入記錄過大。每筆記錄不能超過 1 MiB。";
+"Apply" = "套用";
+"Apply URI" = "套用 URI";
+"Array" = "陣列";
+"Auto-commit" = "自動提交";
+"Automatic" = "自動";
+"Binary SQL columns are omitted from inserts. Import their values with a database-specific tool." = "插入時會略過 SQL 二進位欄。請使用資料庫專用工具匯入這些值。";
+"Boolean" = "布林值";
+"CSV" = "CSV 檔案";
+"CSV supports up to 4,096 columns in this operation. Export as JSON to preserve additional fields." = "此 CSV 操作最多支援 4,096 欄。請匯出為 JSON 以保留更多欄位。";
+"Cancelled" = "已取消";
+"Cells: %d" = "儲存格：%d";
+"Chart Previews" = "圖表預覽";
+"Chart uses the loaded result only. Export all data from the query for the complete result." = "圖表僅使用已載入的結果。若要取得完整結果，請匯出查詢的全部資料。";
+"Charts are saved on this device. The library exceeds the iCloud sync limit." = "圖表已儲存在此裝置。資料庫大小超過 iCloud 同步上限。";
+"Choose CSV or JSON" = "選擇 CSV 或 JSON";
+"Choose database connection" = "選擇資料庫連線";
+"Clear Chart Previews" = "清除圖表預覽";
+"Clear Date Filter" = "清除日期篩選";
+"Clear Query History" = "清除查詢記錄";
+"Close Console" = "關閉主控台";
+"Close Inspection" = "關閉詳細資訊";
+"Column Mapping" = "欄位對應";
+"Commit" = "提交";
+"Commit or roll back the current transaction first." = "請先提交或復原目前的交易。";
+"Configure Column" = "設定欄";
+"Confirm Import" = "確認匯入";
+"Connection" = "連線";
+"Connection URI" = "連線 URI";
+"Console %d" = "主控台 %d";
+"Consoles" = "主控台";
+"Constraints" = "約束";
+"Copy" = "複製";
+"Copy Definition" = "複製定義";
+"Copy Selected Cells" = "複製選取的儲存格";
+"Copy with Headers" = "連同欄名複製";
+"Data Transfer" = "資料傳輸";
+"Database" = "資料庫";
+"Database Objects" = "資料庫物件";
+"Database error %@: %@" = "資料庫錯誤 %@：%@";
+"Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data." = "資料庫密碼儲存在此裝置的鑰匙圈，不再寫入 iCloud 書籤資料。";
+"Date Field" = "日期欄位";
+"Date Range" = "日期範圍";
+"Decimal" = "小數";
+"Decimal128" = "128 位元十進位數";
+"Definition" = "定義";
+"Delete Document" = "刪除文件";
+"Delete Permanently?" = "永久刪除？";
+"Destination" = "目的地";
+"Destination column" = "目標欄";
+"Destination field" = "目標欄位";
+"Direct connection" = "直接連線";
+"Document Actions" = "文件操作";
+"Document editing requires MongoDB 4.2 or later with a transaction-capable replica set or sharded cluster. Standalone servers remain available for queries and imports." = "編輯文件需要 MongoDB 4.2 或以上版本，以及支援交易的複本集或分片叢集。獨立伺服器仍可用於查詢和匯入。";
+"Double" = "雙精度浮點數";
+"Duplicate Document" = "複製文件";
+"Edit Document" = "編輯文件";
+"Editor" = "編輯器";
+"Enter a valid BSON document with unique field names. Documents must fit within 16 MiB." = "請輸入欄位名稱唯一的有效 BSON 文件。文件大小不得超過 16 MiB。";
+"Enter a valid mongodb:// or mongodb+srv:// connection URI." = "請輸入有效的 mongodb:// 或 mongodb+srv:// 連線 URI。";
+"Every CSV record must have the same number of fields as its header." = "每筆 CSV 記錄的欄位數必須與標頭相同。";
+"Expected %d affected rows, received %d. The transaction was rolled back." = "預期影響 %d 列，實際為 %d 列。交易已復原。";
+"Expected %d affected rows; the server did not report a count. The transaction was rolled back." = "預期影響 %d 列，但伺服器未回報列數。交易已復原。";
+"Explicit LIMIT and filters are preserved." = "保留明確設定的 LIMIT 與篩選條件。";
+"Export All Rows" = "匯出所有資料列";
+"Export All Rows…" = "匯出所有資料列…";
+"Export Chart" = "匯出圖表";
+"Export Data" = "匯出資料";
+"Export PDF" = "匯出為 PDF";
+"Export PNG" = "匯出為 PNG";
+"Export failed" = "匯出失敗";
+"Export one read-only query at a time." = "每次只能匯出一個唯讀查詢。";
+"Exported %@." = "已匯出 %@。";
+"Exporting: %@" = "正在匯出：%@";
+"Extend cell selection" = "擴展儲存格選取範圍";
+"Extended JSON" = "延伸 JSON";
+"Field name" = "欄位名稱";
+"Fields" = "欄位";
+"File" = "檔案";
+"Finishing…" = "正在完成…";
+"First row contains column names" = "第一列包含欄名";
+"Foreign Keys" = "外部索引鍵";
+"From" = "開始日期";
+"Functions" = "函式";
+"Go to %@" = "前往 %@";
+"Hide Column" = "隱藏欄";
+"History" = "記錄";
+"Import %d records" = "匯入 %d 筆記錄";
+"Import Data" = "匯入資料";
+"Import Data…" = "匯入資料…";
+"Imported %@." = "已匯入 %@。";
+"Importing: %@" = "正在匯入：%@";
+"Insert Document" = "插入文件";
+"Insert into %@?" = "插入至 %@？";
+"Inspect" = "查看詳細資訊";
+"Inspect Chart" = "查看圖表詳細資訊";
+"Int32" = "32 位元整數";
+"Int64" = "64 位元整數";
+"Integer" = "整數";
+"Invalid value" = "無效值";
+"Invalid value for %@ at record %d." = "欄位 %@ 在第 %d 筆記錄中的值無效。";
+"Library Storage" = "資料庫儲存管理";
+"Loaded rows: %d" = "已載入列數：%d";
+"Loaded rows: %d / %d" = "已載入列數：%d / %d";
+"Manual Commit" = "手動提交";
+"Matching Rows" = "符合的列";
+"Materialized Views" = "具體化檢視";
+"Missing field %@ at record %d. Map another field or omit this column." = "第 %2$d 筆記錄缺少欄位 %1$@。請對應其他欄位或略過此欄。";
+"MongoDB CSV fields use Extended JSON to preserve BSON types." = "MongoDB CSV 欄位使用 Extended JSON 保留 BSON 型別。";
+"MongoDB Connection" = "MongoDB 連線";
+"MongoDB DNS discovery failed. Check the SRV hostname and network connection." = "MongoDB DNS 探索失敗。請檢查 SRV 主機名稱和網路連線。";
+"MongoDB DNS records are invalid or point outside the seed domain." = "MongoDB DNS 記錄無效，或指向種子網域之外。";
+"MongoDB commits each batch. Cancelled or failed imports can leave inserted documents." = "MongoDB 會逐批提交。取消或失敗後，已插入的文件可能仍然保留。";
+"MongoDB did not confirm the commit. Reload the collection to check the document before trying again." = "MongoDB 未確認提交。再次嘗試前，請重新載入集合以檢查文件。";
+"MongoDB import stopped after %d confirmed records. The current batch may also contain saved documents. %@" = "MongoDB 匯入在確認 %d 筆記錄後停止。目前批次也可能包含已儲存的文件。%@";
+"Move this chart to Recently Deleted?" = "要將此圖表移至「最近刪除」嗎？";
+"MySQL column editing is disabled because Portbase cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead." = "MySQL 欄位編輯已停用，因為 Portbase 尚無法保留所有預設值、產生運算式、註解、字元集、定序及 AUTO_INCREMENT 屬性。請新增欄位或使用已檢查的 SQL。";
+"New Console" = "新增主控台";
+"New Document" = "新文件";
+"Next results page" = "下一頁結果";
+"No plottable rows" = "沒有可繪製的列";
+"No writable MongoDB primary is available. Check the replica set and network connection, then retry." = "沒有可寫入的 MongoDB 主節點。請檢查複本集和網路連線，然後重試。";
+"Null" = "空值";
+"OK" = "確定";
+"ObjectId" = "物件 ID";
+"Open Row" = "開啟列";
+"Open row %d" = "開啟第 %d 列";
+"Original Document" = "原始文件";
+"Parameters" = "參數";
+"Pin Column" = "固定欄";
+"Pinned" = "已固定";
+"Previous results page" = "上一頁結果";
+"Primary Key" = "主索引鍵";
+"Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again." = "已選取私人 CA TLS，但此裝置沒有 CA 憑證。請重新匯入憑證。";
+"Private Key" = "私密金鑰";
+"Procedures" = "預存程序";
+"Query Parameters" = "查詢參數";
+"Query results table" = "查詢結果表";
+"Range" = "範圍";
+"Reading: %@" = "正在讀取：%@";
+"Recently Closed Consoles" = "最近關閉的主控台";
+"Refresh" = "重新整理";
+"Refresh Tables" = "重新整理資料表";
+"Remove Field" = "移除欄位";
+"Remove additional hosts" = "移除其他主機";
+"Rename" = "重新命名";
+"Rename Console" = "重新命名主控台";
+"Reopen Closed Console" = "重新開啟已關閉的主控台";
+"Replica set" = "複本集";
+"Reset Columns" = "重設欄";
+"Restore" = "還原";
+"Result %d" = "結果 %d";
+"Result Set" = "結果集";
+"Review" = "檢查";
+"Review Changes" = "檢查變更";
+"Roll Back and Close Console?" = "復原交易並關閉主控台？";
+"Rollback" = "復原交易";
+"Rollback and Close" = "復原交易並關閉";
+"Row %d, %@" = "第 %d 列，%@";
+"Run Anyway" = "仍要執行";
+"Run parameterized statements individually." = "請逐一執行參數化陳述式。";
+"Run table browse query" = "執行資料表瀏覽查詢";
+"SQL import requires a transactional table so a failed import can roll back. Select an InnoDB table." = "SQL 匯入需要支援交易的資料表，以便失敗時回復。請選擇 InnoDB 資料表。";
+"SQL imports use one transaction. An error before commit rolls back the file." = "SQL 匯入使用單一交易。提交前出錯會回復整個檔案的匯入。";
+"SSH Host" = "SSH 主機";
+"SSH Port" = "SSH 連接埠";
+"SSH Tunnel" = "SSH 通道";
+"SSH Username" = "SSH 使用者名稱";
+"SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported." = "SSH 憑證儲存在此裝置的鑰匙圈。Portbase 建立本機回送轉送，並在首次信任後驗證 SSH 主機金鑰。支援密碼登入及未加密的 OpenSSH Ed25519/ECDSA 私密金鑰。";
+"Save or Share" = "儲存或分享";
+"Saved Queries" = "已儲存的查詢";
+"Saved work could not be loaded. The original files have been preserved." = "無法載入已儲存的工作。原始檔案已保留。";
+"Saved work could not be written. Free some device storage and try again." = "無法儲存工作。請釋出裝置儲存空間後再試一次。";
+"Saving" = "儲存中";
+"Search database objects" = "搜尋資料庫物件";
+"Select All" = "全選";
+"Select a destination and map each included field to a different column." = "請選擇目的地，並將每個選取的欄位對應至不同的欄。";
+"Select a query or table to export." = "請選擇要匯出的查詢或資料表。";
+"Select or create a bookmark before running a query." = "執行查詢前，請選取或建立書籤。";
+"Select table" = "選擇資料表";
+"Server settings sync through iCloud. Passwords stay in this device’s Keychain." = "伺服器設定透過 iCloud 同步。密碼保留在此裝置的鑰匙圈。";
+"Source" = "來源";
+"Statement" = "陳述式";
+"Storage" = "儲存空間";
+"String" = "字串";
+"TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel." = "透過 SSH 通道使用 TLS 需要資料庫 DNS 主機名稱，以驗證憑證身分。無法透過回送通道安全驗證 IP 位址。";
+"Text" = "文字";
+"The CSV contains an unterminated quote or an invalid field separator." = "CSV 包含未閉合的引號或無效的欄位分隔符號。";
+"The MongoDB server belongs to a different replica set." = "MongoDB 伺服器屬於其他複本集。";
+"The _id field cannot be changed when editing an existing document." = "編輯現有文件時，無法變更 _id 欄位。";
+"The chart could not be rendered. Try exporting again." = "無法繪製圖表。請重新嘗試匯出。";
+"The column type contains unsupported or unsafe SQL syntax." = "欄位類型包含不支援或不安全的 SQL 語法。";
+"The connection ended while committing the import. Its outcome is unknown. Check the destination before retrying." = "提交匯入時連線已中斷，結果未知。重試前請檢查目的地。";
+"The database query timed out and its connection was closed." = "資料庫查詢逾時，連線已關閉。";
+"The file contains no records." = "檔案中沒有記錄。";
+"The file must use UTF-8 text encoding." = "檔案必須使用 UTF-8 文字編碼。";
+"The original document is checked again in a transaction. Conflicting changes cancel the save." = "將在交易中再次檢查原始文件。如果變更發生衝突，將取消儲存。";
+"The private CA certificate bundle is too large." = "私人 CA 憑證套件過大。";
+"The private CA must be a valid PEM certificate bundle and must not contain a private key." = "私人 CA 必須是有效的 PEM 憑證套件，且不得包含私密金鑰。";
+"The requested database driver is unavailable in this build." = "此建置版本無法使用所需的資料庫驅動程式。";
+"The session closed in the background. Its pending transaction was not committed." = "連線工作階段已在背景關閉。待處理的交易未提交。";
+"This MySQL statement can commit implicitly. Commit or roll back, then switch to Auto-commit before running it." = "此 MySQL 陳述式可能隱含提交。請先提交或復原，再切換至自動提交後執行。";
+"This URI contains an unsupported option. Portbase supports SCRAM authentication, primary reads, TLS, replica sets, and direct connections." = "此 URI 包含不支援的選項。Portbase 支援 SCRAM 驗證、主節點讀取、TLS、複本集和直接連線。";
+"This connection is read-only and cannot execute write or schema statements." = "此連線為唯讀，無法執行寫入或結構描述陳述式。";
+"This console is already executing a command." = "此主控台正在執行命令。";
+"This document changed or was deleted after it was loaded. No changes were saved. Reload it before editing again." = "此文件在載入後已被變更或刪除。未儲存任何變更。再次編輯前，請重新載入。";
+"This reference has a NULL or unsupported key value." = "此參照包含 NULL 或不支援的索引鍵值。";
+"This statement requires explicit confirmation before it can run." = "此陳述式需要明確確認後才能執行。";
+"Through" = "截止日期（含當日）";
+"Timeout: %d s" = "逾時：%d 秒";
+"Trash" = "垃圾桶";
+"Truncated query result" = "查詢結果已截斷";
+"Type" = "類型";
+"Unpin Column" = "取消固定欄";
+"Unquoted NULL is null; \\M is a missing field. Quote these values to import their text." = "不含引號的 NULL 表示空值，\\M 表示缺少欄位。如需匯入為文字，請加上引號。";
+"Use DNS SRV discovery" = "使用 DNS SRV 探索";
+"Use a JSON array of objects or one JSON object per line." = "請使用 JSON 物件陣列，或每行一個 JSON 物件。";
+"Use the console's transaction controls for Begin, Commit, and Rollback." = "請使用主控台的交易控制項開始、提交及復原交易。";
+"Value" = "值";
+"Value type" = "值型別";
+"Verified row edits require an InnoDB table so a failed edit can be rolled back." = "經驗證的資料列編輯需要 InnoDB 資料表，才能在失敗時復原。";
+"View Rows (%d)" = "檢視列（%d）";
+"Views" = "檢視表";
+"Visible" = "顯示";
+"Width" = "寬度";
+"Width of %@" = "%@ 的寬度";
+"Writes are sent once. Check the result before retrying an interrupted write." = "寫入要求只傳送一次。重試中斷的寫入前，請先檢查結果。";
+
+"CSV column names must be unique and nonempty." = "CSV 欄名必須唯一且不能為空白。";
+
+"Command Editor" = "命令編輯器";
+
+"File unavailable" = "檔案無法使用";
+
+"Choose or create a SQLite database file." = "請選擇或建立 SQLite 資料庫檔案。";
+
+"This engine requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback." = "此引擎的通訊協定無法安全協商退回明文，因此在「優先 TLS」模式下仍須使用 TLS。";
+
+"The SQLite file is unavailable on this device. Import it or choose another local file." = "此裝置上沒有可用的 SQLite 檔案。請匯入檔案或選擇其他本機檔案。";
+
+"The SQLite file name is invalid." = "SQLite 檔案名稱無效。";
+
+"Choose an unencrypted SQLite database file." = "請選擇未加密的 SQLite 資料庫檔案。";
+
+"This SQLite file is in use. Finish or cancel its queries before deleting it." = "此 SQLite 檔案正在使用中。請完成或取消相關查詢後再刪除。";
+
+"Run SQLite statements individually or use Run All." = "請逐條執行 SQLite 陳述式，或使用「全部執行」。";
+
+"The SQLite parameter count or value is invalid." = "SQLite 參數數量或值無效。";
+
+"SQLite file attachment, extension loading, and unsafe configuration commands are disabled." = "已停用 SQLite 檔案附加、擴充功能載入及不安全的設定指令。";
+
+"SQLite commands commit individually. Manual transaction commands are unavailable." = "SQLite 指令會逐條提交。不支援手動交易指令。";
+
+"SQLite error %d: %@" = "SQLite 錯誤 %d：%@";
+
+"Statement executed successfully." = "陳述式執行成功。";
+
+"Database File" = "資料庫檔案";
+
+"No file selected" = "未選擇檔案";
+
+"Import SQLite File…" = "匯入 SQLite 檔案…";
+
+"Create SQLite Database…" = "建立 SQLite 資料庫…";
+
+"Manage Local Files…" = "管理本機檔案…";
+
+"SQLite Database" = "SQLite 資料庫";
+
+"Database files stay on this device. Deleting a bookmark keeps its file." = "資料庫檔案僅儲存在此裝置上。刪除書籤仍會保留檔案。";
+
+"Create SQLite Database" = "建立 SQLite 資料庫";
+
+"Database name" = "資料庫名稱";
+
+"Create" = "建立";
+
+"No local database files" = "沒有本機資料庫檔案";
+
+"Selected" = "已選取";
+
+"Local Database Files" = "本機資料庫檔案";
+
+"Delete Database File?" = "刪除資料庫檔案？";
+
+"Delete File" = "刪除檔案";
+
+"This permanently deletes the local database. Bookmarks that use it will need another file." = "這將永久刪除本機資料庫。使用此資料庫的書籤將需要選擇其他檔案。";
+
+"Temporary SQLite objects are unavailable because each command uses a new connection." = "每條指令都會使用新連線，因此不支援 SQLite 暫存物件。";
+
+"%@ ms remaining" = "剩餘 %@ 毫秒";
+
+"Add a set member." = "向集合新增成員。";
+
+"All types" = "所有類型";
+
+"Append a list item." = "在串列末尾新增項目。";
+
+"Append a stream entry." = "向串流新增項目。";
+
+"Base64" = "Base64 編碼";
+
+"Browse hash fields and values." = "瀏覽雜湊欄位和值。";
+
+"Browse keys with a cursor." = "使用游標瀏覽鍵。";
+
+"Browse set members." = "瀏覽集合成員。";
+
+"Browse sorted-set members and scores." = "瀏覽排序集合的成員和分數。";
+
+"Complete the fields to preview the command." = "填寫欄位以預覽命令。";
+
+"Create Key" = "建立鍵";
+
+"Cursor %@" = "游標 %@";
+
+"Database number" = "資料庫編號";
+
+"Delete Key" = "刪除鍵";
+
+"Delete a key asynchronously." = "非同步刪除鍵。";
+
+"Display" = "顯示";
+
+"Empty string" = "空字串";
+
+"Encoding" = "編碼";
+
+"Enter a Redis database number from 0 to 2147483647." = "請輸入 0 到 2147483647 之間的 Redis 資料庫編號。";
+
+"Enter one Redis command with valid arguments. Use quotes and \\xNN escapes for binary bytes." = "請輸入一條引數有效的 Redis 命令。二進位位元組請使用引號和 \\xNN 跳脫。";
+
+"Entry ID" = "項目 ID";
+
+"Expiration" = "到期時間";
+
+"Expiration in milliseconds" = "到期時間（毫秒）";
+
+"Index" = "索引";
+
+"Inspect the key type." = "檢視鍵類型。";
+
+"Key" = "鍵";
+
+"Key no longer exists" = "鍵已不存在";
+
+"Key pattern" = "鍵比對模式";
+
+"Key type" = "鍵類型";
+
+"Keys" = "鍵";
+
+"Length" = "長度";
+
+"Load More Keys" = "載入更多鍵";
+
+"Loaded keys: %d" = "已載入鍵：%d";
+
+"Member" = "成員";
+
+"Next Page" = "下一頁";
+
+"No expiration" = "永不到期";
+
+"One command per run. Quote empty values and spaces; use \\xNN for binary bytes." = "每次執行一條命令。空值和空格請用引號包住；二進位位元組使用 \\xNN。";
+
+"Pattern" = "比對模式";
+
+"Read a bounded list range." = "讀取限定範圍的串列。";
+
+"Read a bounded stream range." = "讀取限定範圍的串流。";
+
+"Read a string value." = "讀取字串值。";
+
+"Read remaining expiration in milliseconds." = "讀取剩餘到期時間（毫秒）。";
+
+"Read-only" = "唯讀";
+
+"Redis authentication failed. Check the username and password in the connection." = "Redis 驗證失敗。請檢查連線中的使用者名稱和密碼。";
+
+"Redis command" = "Redis 命令";
+
+"Redis command editor" = "Redis 命令編輯器";
+
+"Redis command reference" = "Redis 命令參考";
+
+"Redis keys" = "Redis 鍵";
+
+"Redis rejected the command (%@). Check its arguments and your account permissions." = "Redis 拒絕了命令（%@）。請檢查引數和帳號權限。";
+
+"Redis returned %d rows." = "Redis 傳回了 %d 列。";
+
+"Redis returned an invalid or unsupported RESP2 reply." = "Redis 傳回了無效或不支援的 RESP2 回應。";
+
+"Redis value" = "Redis 值";
+
+"Remove Expiration" = "移除到期時間";
+
+"Review Redis Write" = "確認 Redis 寫入";
+
+"Scan complete" = "掃描完成";
+
+"Score" = "分數";
+
+"Set Expiration" = "設定到期時間";
+
+"Set expiration in milliseconds." = "以毫秒為單位設定到期時間。";
+
+"The Redis connection closed before the reply arrived." = "Redis 連線在收到回應前已關閉。";
+
+"The Redis key changed or expired during inspection. Refresh its value." = "Redis 鍵在檢視期間已變更或到期。請重新整理值。";
+
+"The Redis reply exceeds the client limit. Use a smaller range or a SCAN cursor." = "Redis 回應超出用戶端限制。請縮小範圍或使用 SCAN 游標。";
+
+"The connection ended before Redis confirmed the write. Refresh the key before trying again." = "Redis 確認寫入前連線已中斷。請先重新整理鍵，再嘗試操作。";
+
+"The key limit was reached. Narrow the pattern and scan again." = "已達到鍵數量上限。請縮小比對範圍並重新掃描。";
+
+"The reply was truncated. Use a smaller range in the command editor." = "回應已截斷。請在命令編輯器中使用更小的範圍。";
+
+"This Redis command changes data. Review the exact command before running it." = "此 Redis 命令會修改資料。請在執行前確認完整命令。";
+
+"This Redis command is unavailable. Use bounded data commands; administration, scripts, subscriptions and blocking operations are disabled." = "此 Redis 命令無法使用。請使用範圍受限的資料命令；管理、指令碼、訂閱和阻塞操作已停用。";
+
+"This Redis key type cannot be inspected here." = "無法在此檢視這種 Redis 鍵類型。";
+
+"This connection does not allow Redis writes." = "此連線不允許 Redis 寫入。";
+
+"UTF-8" = "UTF-8 文字";
+
+"Use" = "使用";
+
+"Write" = "寫入";
+
+"Write Value" = "寫入值";
+
+"Write a hash field." = "寫入雜湊欄位。";
+
+"Write a sorted-set member and score." = "寫入排序集合成員和分數。";
+
+"Write a string and keep its expiration." = "寫入字串並保留到期時間。";
+
+"Scan" = "掃描";
+
+"This Redis Cluster endpoint redirected the command. Connect through a cluster-aware proxy or to the node that owns this key." = "此 Redis Cluster 端點重新導向了命令。請透過支援叢集的代理連線，或連線到該鍵所屬的節點。";
+
+"Stop" = "停止";
+
+"API Key" = "API 金鑰";
+
+"Access Token" = "存取權杖";
+
+"Aggregations" = "彙總";
+
+"Authentication" = "身分驗證";
+
+"Count" = "計數";
+
+"Elasticsearch returned partial results. A shard failed or the search timed out." = "Elasticsearch 傳回部分結果。某個分片失敗或搜尋逾時。";
+
+"HTTP Method" = "HTTP 方法";
+
+"Invalid database HTTP request. Check the method, path and JSON body." = "資料庫 HTTP 請求無效。請檢查方法、路徑和 JSON 本文。";
+
+"Mappings" = "欄位對應";
+
+"Query Templates" = "查詢範本";
+
+"Request" = "請求";
+
+"Request Body" = "請求本文";
+
+"Request Path" = "請求路徑";
+
+"Run one ClickHouse statement without FORMAT, SETTINGS or INTO OUTFILE. Portbase controls the result format and limits." = "請執行一條不含 FORMAT、SETTINGS 或 INTO OUTFILE 的 ClickHouse 陳述式。結果格式和限制由 Portbase 控制。";
+
+"Select an index." = "請選取索引。";
+
+"The database redirected the request. Set the final server address in the bookmark." = "資料庫重新導向了請求。請在書籤中設定最終伺服器位址。";
+
+"The database response exceeds 32 MiB. Reduce the query size or select fewer fields." = "資料庫回應超過 32 MiB。請縮小查詢範圍或減少所選欄位。";
+
+"The database returned HTTP %d. Check the request and server permissions." = "資料庫傳回 HTTP %d。請檢查請求和伺服器權限。";
+
+"The database returned an incomplete or invalid JSON response." = "資料庫傳回不完整或無效的 JSON 回應。";
+
+"The write was not confirmed. Check the server before retrying; it may have completed." = "寫入未獲確認。可能已完成，請在重試前檢查伺服器。";
+
+"This database command is not supported. Use a query or an individual document operation." = "不支援此資料庫命令。請使用查詢或單一文件操作。";
+
+"This engine does not support bound parameters in Portbase yet." = "Portbase 暫不支援此引擎的繫結參數。";
+
+"Username and password" = "使用者名稱和密碼";
+
+/* Portbase 1.5 workspace tools */
+"%.3f s" = "%.3f 秒";
+"%@ Copy" = "%@ 副本";
+"%@ s" = "%@ 秒";
+"All Columns" = "所有欄位";
+"All Engines" = "所有引擎";
+"All Statuses" = "所有狀態";
+"Binary" = "二進位";
+"Cell value" = "儲存格值";
+"Choose a UTF-8 text file smaller than 2 MB." = "請選擇小於 2 MB 的 UTF-8 文字檔案。";
+"Choose a connection with the same database engine before opening this query." = "開啟此查詢前，請選擇使用相同資料庫引擎的連線。";
+"Clear Filter" = "清除篩選";
+"Connect through SSH" = "透過 SSH 連線";
+"Contains" = "包含";
+"Current connection only" = "僅目前連線";
+"Date / Time" = "日期 / 時間";
+"Duplicate Connection" = "複製連線";
+"Edit Saved Query" = "編輯已儲存查詢";
+"Edit saved query %@" = "編輯已儲存查詢 %@";
+"Empty text" = "空文字";
+"Equals" = "等於";
+"Failed" = "失敗";
+"Filter Loaded Rows" = "篩選已載入的列";
+"Filter queries" = "篩選查詢";
+"Filter servers" = "篩選伺服器";
+"Filters apply to loaded rows only." = "篩選僅適用於已載入的列。";
+"Format JSON" = "格式化 JSON";
+"Go" = "跳轉";
+"Go to Line" = "跳轉至行";
+"Hex" = "十六進位";
+"Hidden" = "隱藏";
+"Index Keys" = "索引鍵";
+"Index results were truncated." = "索引結果已截斷。";
+"Inspect Cell" = "檢視儲存格";
+"Line 1–%d" = "行 1–%d";
+"Line number" = "行號";
+"Match" = "比對條件";
+"No" = "否";
+"No matching indexes" = "沒有符合的索引";
+"No matching queries" = "沒有符合的查詢";
+"No matching servers" = "沒有符合的伺服器";
+"Open Script" = "開啟腳本";
+"Options" = "選項";
+"Preview: first 4096 bytes. Share exports the complete value." = "預覽：前 4096 位元組。分享將匯出完整值。";
+"Query name" = "查詢名稱";
+"Query notes" = "查詢備註";
+"Read-only connections" = "唯讀連線";
+"Read-only mode" = "唯讀模式";
+"Replace Query" = "取代查詢";
+"Replace current query?" = "取代目前查詢？";
+"Reset Filters" = "重設篩選";
+"Row %d" = "第 %d 列";
+"Script File" = "腳本檔案";
+"Script Files" = "腳本檔案";
+"Search indexes" = "搜尋索引";
+"Search queries" = "搜尋查詢";
+"Search servers" = "搜尋伺服器";
+"Share Script" = "分享腳本";
+"Share Value" = "分享值";
+"Sparse" = "稀疏";
+"Status" = "狀態";
+"Succeeded" = "成功";
+"TTL" = "存留時間 (TTL)";
+"TTL: %@ s" = "TTL：%@ 秒";
+"The saved connection is unavailable or its database engine changed." = "已儲存的連線無法使用，或其資料庫引擎已變更。";
+"Toggle SQL Comment" = "切換 SQL 註解";
+"Unique" = "唯一";
+"Use Current Connection" = "使用目前連線";
+"Yes" = "是";
+"Editing Tools" = "編輯工具";
+
+// macOS workspace and iCloud synchronization
+"Connections are saved on this device. The library exceeds the iCloud sync limit." = "連線已儲存在此裝置上。資料庫超出了 iCloud 同步限制。";
+"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "連線、已儲存的查詢和圖表設定透過 iCloud 同步。密碼、金鑰、查詢記錄、結果和 SQLite 檔案保留在此裝置上。";
+"Decrease Text Size" = "縮小文字";
+"Delete Connection" = "刪除連線";
+"Delete Connection?" = "刪除連線？";
+"Edit Connection" = "編輯連線";
+"Explain" = "執行計畫";
+"Increase Text Size" = "放大文字";
+"JSON editor" = "JSON 編輯器";
+"Open Sample Database" = "開啟範例資料庫";
+"Open Script…" = "開啟指令稿…";
+"Pending transactions on this connection will be rolled back." = "此連線的待提交交易將被回復。";
+"Pending transactions will be rolled back." = "待提交交易將被回復。";
+"Portbase" = "Portbase";
+"Query Library" = "查詢資料庫";
+"Refresh Schema" = "重新整理結構";
+"Reset Text Size" = "重設文字大小";
+"Roll Back and Quit" = "回復並結束";
+"Roll Back and Quit?" = "回復並結束？";
+"SQL clause editor" = "SQL 子句編輯器";
+"SQL editor" = "SQL 編輯器";
+"Sample Database" = "範例資料庫";
+"Save File" = "儲存檔案";
+"Save Query" = "儲存查詢";
+"Save Script…" = "儲存指令稿…";
+"Saved queries are on this device. The library exceeds the iCloud sync limit." = "已儲存的查詢保留在此裝置上。資料庫超出了 iCloud 同步限制。";
+"Sign in to iCloud in System Settings." = "請在系統設定中登入 iCloud。";
+"Structure" = "結構";
+"Sync Now" = "立即同步";
+"Text Size" = "文字大小";
+"Workspace" = "工作區";
+"iCloud" = "iCloud";
+"iCloud available" = "iCloud 可用";
+
+/* Desktop workspace */
+"Choose a collection" = "選擇集合";
+"Connect" = "連線";
+"Filter" = "篩選";
+"Sort" = "排序";
+"Stage" = "階段";
+"Primary key" = "主鍵";
+
+/* Workspace redesign */
+"Accent Color" = "強調色";
+"Actions" = "操作";
+"Actions, tables, queries" = "操作、表格、查詢";
+"Active connection" = "目前連線";
+"Activity" = "活動";
+"Add a connection to browse tables, run queries, and build charts." = "加入連線以瀏覽表格、執行查詢並建立圖表。";
+"Always dark" = "永遠深色";
+"Always light" = "永遠淺色";
+"Analyzing results" = "正在分析結果";
+"Appearance" = "外觀";
+"Browse Data" = "瀏覽資料";
+"Cache %@" = "快取 %@";
+"Changes" = "變更";
+"Choose a database or refresh the schema." = "選擇資料庫或重新整理結構描述。";
+"Choose database" = "選擇資料庫";
+"Clear search" = "清除搜尋";
+"Close %@" = "關閉 %@";
+"Collections: %d" = "集合：%d";
+"Common table expression" = "通用資料表運算式";
+"Completeness" = "完整度";
+"Connect your first database" = "連線你的第一個資料庫";
+"Connections" = "連線";
+"Copy Name" = "拷貝名稱";
+"Create index" = "建立索引";
+"Current database" = "目前資料庫";
+"Dark" = "深色";
+"Database passwords, SSH keys, and private CA certificates stay in this device’s Keychain." = "資料庫密碼、SSH 金鑰和私人 CA 憑證會保留在此裝置的鑰匙圈中。";
+"Date and time" = "日期與時間";
+"Delete rows" = "刪除列";
+"Distinct" = "相異值";
+"Documents: %d" = "文件：%d";
+"Edit %@" = "編輯 %@";
+"Editable" = "可編輯";
+"Editor Theme" = "編輯器主題";
+"Emerald" = "翡翠綠";
+"Empty" = "空白";
+"Encrypted" = "已加密";
+"Engines" = "引擎";
+"Filled values" = "已填入的值";
+"Filter columns" = "篩選欄位";
+"Find actions, tables, and saved queries" = "尋找操作、表格和已儲存的查詢";
+"Follows light and dark mode" = "跟隨淺色與深色模式";
+"Format Query" = "格式化查詢";
+"General" = "一般";
+"Go To" = "前往";
+"Good afternoon" = "午安";
+"Good evening" = "晚安";
+"Good morning" = "早安";
+"Graphite" = "石墨灰";
+"Group and count" = "分組並計數";
+"History and saved queries" = "記錄與已儲存的查詢";
+"Home" = "首頁";
+"Indigo" = "靛藍";
+"Insert %@" = "插入 %@";
+"Insert SQL template" = "插入 SQL 範本";
+"Insights" = "洞察";
+"Join tables" = "聯結表格";
+"Last 14 days" = "最近 14 天";
+"Last run: %@" = "上次執行：%@";
+"Light" = "淺色";
+"Loaded rows" = "已載入的列";
+"Loads this query into the console without running it" = "將此查詢載入主控台但不執行";
+"Match System" = "跟隨系統";
+"Max" = "最大值";
+"Mean" = "平均值";
+"Median" = "中位數";
+"Median time" = "中位耗時";
+"Min" = "最小值";
+"Most active: %@" = "最活躍：%@";
+"Most frequent" = "最常見";
+"Navigate" = "導覽";
+"Needs attention" = "需要注意";
+"New Query" = "新增查詢";
+"No collections" = "沒有集合";
+"No matches" = "沒有符合項目";
+"No tables" = "沒有表格";
+"Non-NULL cells" = "非 NULL 儲存格";
+"Numeric columns" = "數值欄位";
+"Ocean" = "海洋藍";
+"On this device" = "在此裝置上";
+"Open" = "打開";
+"Open Console" = "打開主控台";
+"Open a fresh console" = "打開新的主控台";
+"Opens a new console. Hold for more options." = "打開新的主控台。按住可查看更多選項。";
+"Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch." = "Portbase 支援 MySQL、MariaDB、PostgreSQL、SQLite、ClickHouse、MongoDB、Redis 和 Elasticsearch。";
+"Queries per day" = "每日查詢數";
+"Queries run" = "已執行查詢";
+"Queries you run appear here. Loading one never runs it." = "執行過的查詢會顯示在這裡。載入查詢不會執行它。";
+"Recent Queries" = "最近的查詢";
+"Result truncated" = "結果已截斷";
+"Rose" = "玫瑰粉";
+"Run a query to see column insights." = "執行查詢以檢視欄位洞察。";
+"Run a query to see results here." = "執行查詢以在此檢視結果。";
+"Run a query to see your activity here." = "執行查詢以在此檢視你的活動。";
+"Run a query with numeric columns, then choose the chart button in Results to design and save a chart." = "執行包含數值欄位的查詢，然後在結果中選擇圖表按鈕來設計並儲存圖表。";
+"Running total" = "累計總和";
+"Save a query from the console to keep it one tap away." = "在主控台中儲存查詢，即可一鍵叫用。";
+"Saved Charts" = "已儲存的圖表";
+"Saved: %d" = "已儲存：%d";
+"Search actions, tables, and queries" = "搜尋操作、表格和查詢";
+"Search…" = "搜尋⋯";
+"Select rows" = "查詢列";
+"Show All" = "顯示全部";
+"Size" = "大小";
+"Statistics describe loaded rows only. They do not query the database again." = "統計資料只描述已載入的列，不會再次查詢資料庫。";
+"Success rate" = "成功率";
+"Suggestions" = "建議";
+"Summarizing loaded rows." = "正在彙整已載入的列。";
+"Sunset" = "日落橙";
+"Supported Engines" = "支援的引擎";
+"Table list caching off" = "表格列表快取已關閉";
+"Tables: %d" = "表格：%d";
+"Templates" = "範本";
+"Templates for %@" = "%@ 的範本";
+"Transaction open" = "交易未結束";
+"Try a table name, a saved query, or an action such as Format." = "試試表格名稱、已儲存的查詢或「格式化」等操作。";
+"Unavailable" = "無法使用";
+"Update rows" = "更新列";
+"Value distribution" = "值分佈";
+"Version %@ (%@)" = "版本 %@ (%@)";
+"Best Matches" = "最佳符合";
+"New SQLite Database" = "新增 SQLite 資料庫";
+"Queries: %d" = "查詢：%d";
+"No live rows yet" = "尚無資料列";
+"No servers saved" = "沒有已儲存的伺服器";
+"No saved charts yet" = "尚無已儲存的圖表";
+"No table selected" = "未選擇表格";
+"Chart query missing" = "缺少圖表查詢";
+"Export" = "輸出";
+"SSH Password" = "SSH 密碼";
+"Applies the current WHERE and ORDER BY clauses" = "套用目前的 WHERE 與 ORDER BY 子句";
+"Loads the following page of rows" = "載入下一頁資料列";
+"Loads the preceding page of rows" = "載入上一頁資料列";
+"Opens chart configuration for these results" = "為這些結果打開圖表設定";
+"Opens the server connection form" = "打開伺服器連線表單";
+"Refreshes this saved chart from its database" = "從資料庫重新整理此已儲存的圖表";
