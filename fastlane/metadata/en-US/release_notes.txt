@@ -1,0 +1,1 @@
+Search and filter servers, duplicate connections, navigate editor line numbers, toggle SQL comments, and open or share query files. Query history now records duration and failed or cancelled runs; saved queries have editable names, notes, and connection context. Inspect complete cell values, filter loaded rows, and browse MongoDB indexes in a dedicated inspector.

@@ -1,0 +1,1 @@
+MySQL/PostgreSQL에 직접 또는 SSH 터널로 연결해 iPhone에서 SQL 실행, 테이블 탐색, 행 편집, 차트 생성을 수행하세요.

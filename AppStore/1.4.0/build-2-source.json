@@ -1,0 +1,712 @@
+{
+  "version": "1.4.0",
+  "build": "2",
+  "sourceFileCount": 176,
+  "sourceTreeSHA256": "ff154d50a8ee645f38a6b37842c9b4e713286eeff86f3b76bcdc20a982ccc5cf",
+  "files": [
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Exports.swift",
+      "sha256": "e0f61d6328e19a4912fbe8024422c1348cc53eab46ceaa2b9d99cc2e5dcccfd0"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLConnection.swift",
+      "sha256": "598b269bf1af2a745cd2a1ccc6cc9df79e3f363c65470c2e879fcf950ac2728d"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLConnectionHandler.swift",
+      "sha256": "adcea5eaabd360c86a8d12eb15e83f29a792241c4ff29c1dcab38c0f7def9ced"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLData.swift",
+      "sha256": "453ccd8331b2db68da1e618f9e5d4e72ae625c841ee5e0307eb6ce07744d0302"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLDataConvertible.swift",
+      "sha256": "308e404408e649868d5d7b9a155aabd2413d7ba82e6700a1ef621f3e931834cf"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLDatabase.swift",
+      "sha256": "7240ea6ea23dbbd73e4a7d41b9110af0cc736ac78523fb5a5c736b52a41367e6"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLError.swift",
+      "sha256": "cd8935f49ded8a8334746d89f915bc732a70da8053c3b38b29e3a2807b67a0eb"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLQueryCommand.swift",
+      "sha256": "17a7f58eed751d88ee650208eb15033a4e1e890bd38c2a1c340dc66a9452d0e4"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLRow.swift",
+      "sha256": "b70bfcc7f92be4c9382a1ffbb3fe09914c9700870bad9f3cc6500cc278a80177"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLSimpleQueryCommand.swift",
+      "sha256": "196c3c722e2ee41a6f67209129bcbd0265c64354860ca93b3ee9216827758a63"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/MySQLTime.swift",
+      "sha256": "394d03692a6b6c9f6777a838ab6083c2d37fc5af18c14e4536b3c8fb5f9e4f35"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Packet/MySQLPacket.swift",
+      "sha256": "9e7e679eefe5c6a66b8c2c6de9cd4c6c27b5864126669e5aaf9f00db18083b7e"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Packet/MySQLPacketDecoder.swift",
+      "sha256": "826a9a5cc19d1dc6ad3244cba1237e66c002991d13fafc33165eda1be5d93f77"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Packet/MySQLPacketEncoder.swift",
+      "sha256": "b88ff98f5c9dbccf26586bd47fdc6471fd15ac79b5e21b073e32d9a028f3c658"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Packet/MySQLPacketSequence.swift",
+      "sha256": "e12ada62951e2958dd14532e705ed5a0bf54bd4a33bac7a8417812041c596aee"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+BinaryResultSetRow.swift",
+      "sha256": "40ab7ca288830d97473e4f74d0c2c0938cf9f315fb6be27c9b6dec03f284ed24"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+COM_QUERY.swift",
+      "sha256": "a35dd7b117ef1e556f5b0c1cad99a336274c49740aa86c04b8b9b02c621a642e"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+COM_QUERY_Response.swift",
+      "sha256": "10b1d89d10f1034a1c9d87d21708d4d9c8d97d62ba03fcbaea7232d84b7081cf"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+COM_QUIT.swift",
+      "sha256": "ba57ee79998410e5cec7f30ed70abec4f4506fc18b4ade9c9807e5361e7595d9"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+COM_STMT_CLOSE.swift",
+      "sha256": "72e53d9367ece2c6e6098d171efac98ab648fa1625683f84706c5d5dc2cca09a"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+COM_STMT_EXECUTE.swift",
+      "sha256": "b8432c5893f7e467a7d73645b26495c071df2062ee1b853bc5211f8a3f047638"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+COM_STMT_PREPARE.swift",
+      "sha256": "b4a05aa8d5a81f73e382d832b6351164dee9a5ff7f17ce315d3c9fa3a4b6ccb6"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+COM_STMT_PREPARE_OK.swift",
+      "sha256": "b290e2152b58d70363adc1daf69f48b4141ded9a66e77e20f8500dc87b0ec311"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+CapabilityFlags.swift",
+      "sha256": "1120925ec5ee95e78138e94f1cd773b6bf3ebe2323d51bb9516ac13b2c97db46"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+CharacterSet.swift",
+      "sha256": "839b33b30dec6468abc50e290380d1b28a7704ead03a765b61b4997645cbbdda"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+ColumnDefinition41.swift",
+      "sha256": "be7b7803624d8fcf2d49c48de8dab92fc216838ce6a45919751efb4773337377"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+ColumnFlags.swift",
+      "sha256": "8d3660023002cacb4c56d51184ed31fa22919980d2b168a89348566419189d3e"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+DataType.swift",
+      "sha256": "5f1282b3b1c4a4b190fc59e42970cdcc55fc9b1dc826df2e5f0f4eb23912145d"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+ERR_Packet.swift",
+      "sha256": "9d23f1a51228d1dece6a0002abd2ed96df7b634e64d0c8f2ab572da360731eff"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+ErrorCode.swift",
+      "sha256": "3c5e16c841f09cc479f40ee8528590875b3d1cdb1223874400e45e349f475e70"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+HandshakeResponse41.swift",
+      "sha256": "f8076bf5635cddcd704277942be05f856051e8698891cd097bedd95df737f632"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+HandshakeV10.swift",
+      "sha256": "b5bcaf283fb196bfcabe8e44083fa143dbbf63a20bf6c217d974f63e8430c2e6"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+NullBitmap.swift",
+      "sha256": "c16bfc16da2edd500434344385da9a8f0e2d592471522e832b0a802a1ce86b79"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+OK_Packet.swift",
+      "sha256": "9b68895397c9b6487c4e70acc3a1b1041dfd8bbb00778bc613397916e6e6ab94"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+SSLRequest.swift",
+      "sha256": "8cefe205ef8fd7edadd78d8b542e20d78432554fc23eb3cc9ab230f3734fc2c0"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+StatusFlags.swift",
+      "sha256": "5c83d42182aab7db891c1e938f4896d3e83764a4945784a2349c8ca34ff6fe13"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol+TextResultSetRow.swift",
+      "sha256": "4c7f38a08ee8c0f9e6f97cef8bed1db3f18d5b9023636bf5170c9de789e50e28"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Protocol/MySQLProtocol.swift",
+      "sha256": "386b1999cbc0488a8dc5dfda43f5d0c5f6abf7a4ca9b9cfdce73d786d01535d1"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Utilities/CryptoUtils.swift",
+      "sha256": "e0206978ea0b5f15ed9609721ff5f0f46915179150ef0aff61fae0e390434af6"
+    },
+    {
+      "path": "Packages/mysql-nio/Sources/MySQLNIO/Utilities/NIOUtils.swift",
+      "sha256": "1b3099b81bb816362ef1fe2e7415379724cdb03aa34c4a034f51dc8e0400fbb0"
+    },
+    {
+      "path": "Packages/mysql-nio/Tests/MySQLNIOTests/MySQLNIOTests.swift",
+      "sha256": "7d65ccd1ebd7da5aeb5c3b2ebe3b57ebb66f623214e635f4b98779326b5413d3"
+    },
+    {
+      "path": "Packages/mysql-nio/Tests/MySQLNIOTests/Utilities.swift",
+      "sha256": "7e66f58a9be4621a5716a6b0e1de45d3098c90eb6e0eea86a7388031ad2e5d29"
+    },
+    {
+      "path": "PortSQL/Models/Bookmark.swift",
+      "sha256": "5c090f73c31bdceb421f16126ce38be405f5ace2610a195a85d0381177fea945"
+    },
+    {
+      "path": "PortSQL/Models/BookmarkIconCatalog.swift",
+      "sha256": "659f9a569010c63353fb6070d72117c25cfb894699d79afd41b4b93a29ffa13f"
+    },
+    {
+      "path": "PortSQL/Models/DataTransferModels.swift",
+      "sha256": "b9513887f00575d55772e5592ff0cd4cac2d7cdf291e7ea41803ce097276ce1e"
+    },
+    {
+      "path": "PortSQL/Models/ElasticsearchModels.swift",
+      "sha256": "6e61739604d53e343064c1969091401fb7650d31efa98daa70e9e72c5b94d6f4"
+    },
+    {
+      "path": "PortSQL/Models/HTTPDatabaseModels.swift",
+      "sha256": "1d23f22923c51ab5e64b49a176a3f057594f973a4cd37c097d50e368ec2652f6"
+    },
+    {
+      "path": "PortSQL/Models/MongoConnectionOptions.swift",
+      "sha256": "b55da2816538ec40926af5462b9d60d960364a4d5151faabaa9e38e72813023c"
+    },
+    {
+      "path": "PortSQL/Models/MongoDocumentDraft.swift",
+      "sha256": "eb198c8fcd98a14f3eb96e11799783177dd5c740337f83240e192b545968aa3f"
+    },
+    {
+      "path": "PortSQL/Models/MongoQueryDraft.swift",
+      "sha256": "92976599d57ef17c4b8ce0542abe88c733ea84ab6eea7d6de4188f8cd9851988"
+    },
+    {
+      "path": "PortSQL/Models/ProductUIState.swift",
+      "sha256": "b74e30ce53bfbf0e60a92ac906186d367f02c094a1c54c2c8c00698aa1a2b1ca"
+    },
+    {
+      "path": "PortSQL/Models/QueryModels.swift",
+      "sha256": "96c4f5419483220312df962832886ec668eca7ea9d4e2738ff11dbee3f09b086"
+    },
+    {
+      "path": "PortSQL/Models/RedisModels.swift",
+      "sha256": "67370d1b1a7d5d45d3a5b6639f327dc23b6da4dc642d50edc6aff586ae9cf028"
+    },
+    {
+      "path": "PortSQL/Models/SQLiteModels.swift",
+      "sha256": "3eecf121d641e9a5f2ad5eea425350fd7e8b54cba3d73a9addfc4e780fe37682"
+    },
+    {
+      "path": "PortSQL/Models/SchemaObjects.swift",
+      "sha256": "d9b95fe58db37e9ddb013b825797509d5214bb28d5aee9a3e7b7d5894b9bc5b5"
+    },
+    {
+      "path": "PortSQL/Models/VisualizationModels.swift",
+      "sha256": "24faa36198002090e9696e8e168b191a7fb9435f8e5d016ee48c575026da85e7"
+    },
+    {
+      "path": "PortSQL/PortSQL-Bridging-Header.h",
+      "sha256": "a6e96b42da55990ea5a809277fe75773791ec1a1ed991010bf2f2bb81af6ba43"
+    },
+    {
+      "path": "PortSQL/PortSQL.entitlements",
+      "sha256": "62f190c18414b6957bb4a563fd6d14aaf2cf5a93836cf9f4e8cc267b79afea57"
+    },
+    {
+      "path": "PortSQL/PortSQLApp.swift",
+      "sha256": "439594ba71fd0598f91bfc49497215f967fe24ef7bfdd320575d1ad0a268d877"
+    },
+    {
+      "path": "PortSQL/Services/BookmarkStore.swift",
+      "sha256": "c1e19956e9622c498041744c7e10d4e74063f59d1962ff93216fa26e33c06963"
+    },
+    {
+      "path": "PortSQL/Services/ClickHouseDatabaseClient.swift",
+      "sha256": "1d8dcdf84e1baebf875cfdddec0d0efb1b0152d8eec49b74cccc67f44fdfe658"
+    },
+    {
+      "path": "PortSQL/Services/ClickHouseQueryService.swift",
+      "sha256": "528550833906d66b6bfe4768715d9495e3950d5afff0a7e61d59a142a33cfa1f"
+    },
+    {
+      "path": "PortSQL/Services/ConsoleStore.swift",
+      "sha256": "305986e87758e1bb01519f536f005db3665c80540a840696b4db403286802125"
+    },
+    {
+      "path": "PortSQL/Services/DataEditorValidationService.swift",
+      "sha256": "8b2963dd90828d42810d2a08155341234ffcb20ffbd8258d2aa70d6b054f9c8c"
+    },
+    {
+      "path": "PortSQL/Services/DataExportWriter.swift",
+      "sha256": "ab869c7209a9129d672d00d4151e110f3589067007b1a78833fcd46f882fdae6"
+    },
+    {
+      "path": "PortSQL/Services/DataTransferCodec.swift",
+      "sha256": "163e96bdb27ff5f18c2852246670d0e9d767d24d8f8e4c8d53396f26d2acf151"
+    },
+    {
+      "path": "PortSQL/Services/DatabaseService+DataTransfer.swift",
+      "sha256": "c5e7125a3bf92cefc0eaf17e4b8f35c4b6eaa0dd63ea5fc3264bce242c84c6ff"
+    },
+    {
+      "path": "PortSQL/Services/DatabaseService+Redis.swift",
+      "sha256": "8fd462cf43404e48561b8f7e3acda6df651b162e1da709ded9f63423eb5547b7"
+    },
+    {
+      "path": "PortSQL/Services/DatabaseService+SchemaObjects.swift",
+      "sha256": "2c11f0766b2de8188fe7f3f89283e52cf51428638a95508279b2accc989b8e38"
+    },
+    {
+      "path": "PortSQL/Services/DatabaseService.swift",
+      "sha256": "d399f90dfe75c030b3622ba671dfa0110070ceed9bd68373cd13b244b1b527b7"
+    },
+    {
+      "path": "PortSQL/Services/ElasticsearchDatabaseClient.swift",
+      "sha256": "4084aedad2a5e45735cebc5fb4ea2c22691e83542f80bd4cc02056e8db88d068"
+    },
+    {
+      "path": "PortSQL/Services/ElasticsearchQueryService.swift",
+      "sha256": "dd8cc9755bb7cda897efe89ad01948171b30bcc877b7a6a1e53bef204d6d7873"
+    },
+    {
+      "path": "PortSQL/Services/HTTPDatabaseJSON.swift",
+      "sha256": "fcb05476f48b5ebbf6c43cd4803a8387120db9869e834d0284009150c93400f1"
+    },
+    {
+      "path": "PortSQL/Services/HTTPDatabaseTransport.swift",
+      "sha256": "bf0b34281a5aeae958ebbebe9bb0ac04be7b7749410ee84ff8d6c128c93388c0"
+    },
+    {
+      "path": "PortSQL/Services/KeychainService.swift",
+      "sha256": "d3a42557e3673362f2106b8e056b33680f468751eced80d4baed5d42cf763afc"
+    },
+    {
+      "path": "PortSQL/Services/Localization.swift",
+      "sha256": "44284e52b17d6189e7e4c5c5c729456a5528e3e730fe08575b79e7a92faed837"
+    },
+    {
+      "path": "PortSQL/Services/MongoDNSResolver.swift",
+      "sha256": "c94966eb7d6d59858facbe1478f317c82d2d6eb6ddd76123f698a9242b3ffd5a"
+    },
+    {
+      "path": "PortSQL/Services/MongoDatabaseClient.swift",
+      "sha256": "3c33cb1240ffa74844bc3c7417641cf8eae61421472d6424394c0c52c6a10f44"
+    },
+    {
+      "path": "PortSQL/Services/MongoExtendedJSON.swift",
+      "sha256": "41e9f5cdd00a4e50b25fc5dc78fbbe14328f04d7c5550b50e4a1c770b2013c6e"
+    },
+    {
+      "path": "PortSQL/Services/MongoQueryService.swift",
+      "sha256": "aa96a69f27cdfd0182f5cc4577d5f7d223bae14617764020b39819efee25e4f1"
+    },
+    {
+      "path": "PortSQL/Services/QueryParameterService.swift",
+      "sha256": "88481862105a6e7dd43150b495cb6b8e098fe3b070dc5728bb4d802d4bbe8222"
+    },
+    {
+      "path": "PortSQL/Services/RedisCommandService.swift",
+      "sha256": "a91e33d52a6e909d6c3482b38d9a3a516ad1fb11bd7aa44cc67a8cbb0d3e26f7"
+    },
+    {
+      "path": "PortSQL/Services/RedisDatabaseClient.swift",
+      "sha256": "c8f224811c36211ff6d0dbb54c4cecaea98f0f33b57336e83d6f418f3ae32281"
+    },
+    {
+      "path": "PortSQL/Services/RedisRESPCodec.swift",
+      "sha256": "3fcd4184de4d469eb751bf71dc5449044a161639abf2af8a6655468f4f063ab6"
+    },
+    {
+      "path": "PortSQL/Services/SQLAssistService.swift",
+      "sha256": "f7b11bb4735012d6c97520c706721f9e5a54e9a50db6f2656e72319414c30682"
+    },
+    {
+      "path": "PortSQL/Services/SQLEditingService.swift",
+      "sha256": "73c59439a08cec73e702e91afa7ed5a3abb76980386a54a611fff6ab24c4c1a8"
+    },
+    {
+      "path": "PortSQL/Services/SQLQueryDiagnostic.swift",
+      "sha256": "0cb6a63f0c9b7dafb75db022d5b1ce4f17ada2eeaae7c0d1451bd9806f0751eb"
+    },
+    {
+      "path": "PortSQL/Services/SQLSafetyService.swift",
+      "sha256": "6306c81f14a278178829cea8d2e14df95e5db0389e923c036666d1008e706b99"
+    },
+    {
+      "path": "PortSQL/Services/SQLStructureService.swift",
+      "sha256": "c5f825fc6f6eeef9843e6a5aee2e91d364c75df4a0c6ba44d27b1dbe23f7e7f7"
+    },
+    {
+      "path": "PortSQL/Services/SQLSyntaxHighlighter.swift",
+      "sha256": "d39521d0ca8d3684f9e50a015f9b851077ccd2397945d772469436b3eae38150"
+    },
+    {
+      "path": "PortSQL/Services/SQLiteBridge.c",
+      "sha256": "58f7d9aa561a838d862ab7668f97bef2ad2ad17cdf1c7456b6239c3f894f849c"
+    },
+    {
+      "path": "PortSQL/Services/SQLiteBridge.h",
+      "sha256": "8a9356f23627458566b7cd8bac1a0ff5157160411480c3906e0a83b02d7e5202"
+    },
+    {
+      "path": "PortSQL/Services/SQLiteDataTransfer.swift",
+      "sha256": "99bb2aad69e67fea2ab478c601c46318dfad13687d918764ed58a8984b2334bc"
+    },
+    {
+      "path": "PortSQL/Services/SQLiteDatabaseClient.swift",
+      "sha256": "ec6b3caa89b02e984595c680794c9e3f96c7600c6003ce4f9ba8de10a58a23f8"
+    },
+    {
+      "path": "PortSQL/Services/SQLiteFileStore.swift",
+      "sha256": "660f956dc3803d151da3c29e61b67f64a22ec3b70fb04c65129450f5e5a991b2"
+    },
+    {
+      "path": "PortSQL/Services/SQLiteSchemaService.swift",
+      "sha256": "b7336e4c6be2fcc9a5e6cba50a52c89feac298b952c65b0bc5d27f0142afce55"
+    },
+    {
+      "path": "PortSQL/Services/SQLiteStatementService.swift",
+      "sha256": "4092dddf0d759d96436658b945aea60f45450ddf099259f4d9576e5af0b16f7b"
+    },
+    {
+      "path": "PortSQL/Services/SSHTunnelService.swift",
+      "sha256": "08365656ced4e9484f7def0222364c56159017991476d349ecee783b95162fc0"
+    },
+    {
+      "path": "PortSQL/Services/SchemaCacheStore.swift",
+      "sha256": "3310481b9d4e68d732098d2af826351644fde3d64ce5494f645e95ea7af19563"
+    },
+    {
+      "path": "PortSQL/Services/VisualizationService.swift",
+      "sha256": "0964ceab3cd3f2f4c96d9472744784d089668b33836069e2f03f3fe70d93d164"
+    },
+    {
+      "path": "PortSQL/Services/WorkspaceFileStore.swift",
+      "sha256": "563c49777a74be9d191afc0780a1c65d6fad0bcf2968885fdbd2d944c6e4a72b"
+    },
+    {
+      "path": "PortSQL/Services/WorkspaceLibraryStore.swift",
+      "sha256": "d28ac69b03571b22a542813889fdfb836daeaa996d323ea2df06e25cbb2555c2"
+    },
+    {
+      "path": "PortSQL/ViewModels/WorkspaceViewModel.swift",
+      "sha256": "2ccc37066d3161edf44bf0d2123799b597890c95ec8a1d18e7f2a377d90ef49d"
+    },
+    {
+      "path": "PortSQL/Views/AdaptiveWorkspaceView.swift",
+      "sha256": "bfe6cf39bdc12cb8aa5accc5ac46476f391a441fc7a12482abab25c09b6750a3"
+    },
+    {
+      "path": "PortSQL/Views/ConnectionStatusLine.swift",
+      "sha256": "392fec0533e7bec6e001d17409997c27a1d21b6006ec95d0c7a97edc2f9c1016"
+    },
+    {
+      "path": "PortSQL/Views/ConsoleTabBar.swift",
+      "sha256": "aef76e192d3d3fc5db26e2fb35ef5fb504fc6f9a58178c5f2f2d201639dd39ac"
+    },
+    {
+      "path": "PortSQL/Views/ConsoleTransactionControls.swift",
+      "sha256": "32c14e887ac357ee7d0fdfe343c80a180352c442b0d39201e890d970b8e816c0"
+    },
+    {
+      "path": "PortSQL/Views/DataTransferView.swift",
+      "sha256": "6cdf8cceb0fb79aea73a2fe8cf584daef3c9c41f4593a2679642411214e679ef"
+    },
+    {
+      "path": "PortSQL/Views/ElasticsearchExplorerView.swift",
+      "sha256": "4fa8d6f82dd7bcc7f8198528268c9d6e22775782a06038713df2e4a28e6ecd75"
+    },
+    {
+      "path": "PortSQL/Views/ElasticsearchQueryEditorCard.swift",
+      "sha256": "070f8169b8ac6437e366d10c22707deca3e6964a24f88b991fa63dbd891a0311"
+    },
+    {
+      "path": "PortSQL/Views/ExplorerView.swift",
+      "sha256": "46a27116aeb8503cc8e6589598412053479a3cd925e8ff43f768977bfa5e2b71"
+    },
+    {
+      "path": "PortSQL/Views/HTTPDatabaseAuthenticationSection.swift",
+      "sha256": "5db1a39abadaa566e8e671a8370f26a76febbf9a5ac8fa286d76e951411265e0"
+    },
+    {
+      "path": "PortSQL/Views/HighlightedQueryEditor.swift",
+      "sha256": "1d83c15a34d33a274aba3f9daf03b3bbe692a913e0e203aa711e6a3fe02e78c5"
+    },
+    {
+      "path": "PortSQL/Views/InteractiveChartView.swift",
+      "sha256": "adba8d9d9630c75541aa3190e929f2d7c6d49fdae45be230ce43de3ec06d2a00"
+    },
+    {
+      "path": "PortSQL/Views/LibraryStorageView.swift",
+      "sha256": "5728fee07e16530be1000c2fa2d6bfd1c5cfe8f65ed1e91bc356ebff7b15cbbd"
+    },
+    {
+      "path": "PortSQL/Views/MongoConnectionURISection.swift",
+      "sha256": "4591e2a17969b1e8f8838322be28c8c814437ab99ee711768d3cbc7dc1dd210b"
+    },
+    {
+      "path": "PortSQL/Views/MongoDocumentEditor.swift",
+      "sha256": "0852f52c37a49eae1ec9342f026d05f37bc440e7ca0566a513db907c9983c260"
+    },
+    {
+      "path": "PortSQL/Views/MongoExplorerView.swift",
+      "sha256": "8c8935f845ff4e1eb50652dd400cbf7350d5b1dab972f14292b7f4d7c5895ede"
+    },
+    {
+      "path": "PortSQL/Views/MongoQueryEditorCard.swift",
+      "sha256": "f1eca21dceced43f26c39055733cd09c3c284b9f2926f58e13b34aee00102bd6"
+    },
+    {
+      "path": "PortSQL/Views/RedisExplorerView.swift",
+      "sha256": "8d1b7db212da821af46b97eb1b7e66e7dd61c545e8978ddb50c87423a21600c4"
+    },
+    {
+      "path": "PortSQL/Views/RedisQueryEditorCard.swift",
+      "sha256": "27b387cd6b8caec673fc06dd4a53b6978b925aa06050df5d1c5c699ab4012c5a"
+    },
+    {
+      "path": "PortSQL/Views/ResultGridView.swift",
+      "sha256": "97cc3752fec126fc759dbe918dfe628dce776c5f69f5ed7556c6937ca25f32db"
+    },
+    {
+      "path": "PortSQL/Views/RootView.swift",
+      "sha256": "2968dc4d869d3e05ba3b5ffc1f81f9bd6f462c69439a9dd578b646242e1d18c4"
+    },
+    {
+      "path": "PortSQL/Views/SQLiteConnectionSection.swift",
+      "sha256": "22cc7c5112ee2064b11eb01da85cdf76615cf38bd071b581fcf55f92e1dd3f7f"
+    },
+    {
+      "path": "PortSQL/Views/SchemaBrowserView.swift",
+      "sha256": "f151f2fc6c83199607f947ecdc39d0967face114e0ff21733393d04df5c096be"
+    },
+    {
+      "path": "PortSQL/Views/SettingsView.swift",
+      "sha256": "f2710929922cc4bcc91d7ee2f3bb512c28eccf3b7491cc3aedf3d0750db3ba29"
+    },
+    {
+      "path": "PortSQL/Views/VisualizerView.swift",
+      "sha256": "7c7965bfdb4b842468a2a5b4260dcbce54d0158864b5da8600db3c46f8e57300"
+    },
+    {
+      "path": "PortSQL/de.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/de.lproj/Localizable.strings",
+      "sha256": "ff1601364fa32de9fdacf108d783ade05753317dfa68d51b5ab094374b432b16"
+    },
+    {
+      "path": "PortSQL/de.lproj/Localizable.stringsdict",
+      "sha256": "bf8df6327da613cf63eb9b794e3c2b7713a00f181a43a46e8c811ccc406ab415"
+    },
+    {
+      "path": "PortSQL/en.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/en.lproj/Localizable.strings",
+      "sha256": "6a7d7ca71682e2ba279f32fa1d933f523ff729de567988cb57727baccdf829fe"
+    },
+    {
+      "path": "PortSQL/en.lproj/Localizable.stringsdict",
+      "sha256": "0bda947d7aa03bde8fe02a7314e6f6e543fa2e79fd2804b90a730fff6aec194d"
+    },
+    {
+      "path": "PortSQL/es.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/es.lproj/Localizable.strings",
+      "sha256": "cd124d943c7652be5a2017cdb0221c620984af46f01f4c9f36bc62c6f0069f41"
+    },
+    {
+      "path": "PortSQL/es.lproj/Localizable.stringsdict",
+      "sha256": "1d8bcb60e94cc1df5e86eb9b5e2a0131f88167a087261d9a476c55bb8f20fbe4"
+    },
+    {
+      "path": "PortSQL/fr.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/fr.lproj/Localizable.strings",
+      "sha256": "5de70089ec6698ebd188d451d653a5edf5e5a72db1414d577534eac63502f0e8"
+    },
+    {
+      "path": "PortSQL/fr.lproj/Localizable.stringsdict",
+      "sha256": "e214e0ef3c4d19c99f1122d78f08422b625d8f9e6a6cecfe8c943e15701b808c"
+    },
+    {
+      "path": "PortSQL/ja.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/ja.lproj/Localizable.strings",
+      "sha256": "ce2f8de345b3b0d202c21bdf3783e99c64442221ef4015d534d5bbded36c9f4b"
+    },
+    {
+      "path": "PortSQL/ja.lproj/Localizable.stringsdict",
+      "sha256": "e8f2e5940d06b9d510e1f02669e411ae04641448b0b1b7c22fd2dffaa36e47a0"
+    },
+    {
+      "path": "PortSQL/ko.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/ko.lproj/Localizable.strings",
+      "sha256": "12fd813d8d66d4cf032ba2d5287e96ab4ea9dee3bc210449257dba841cdbb514"
+    },
+    {
+      "path": "PortSQL/ko.lproj/Localizable.stringsdict",
+      "sha256": "c2550386e31aee7cf9788cea2517451764fd1efc281cf718d4a7210b4843264b"
+    },
+    {
+      "path": "PortSQL/pt-BR.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/pt-BR.lproj/Localizable.strings",
+      "sha256": "94b34406fc56766048e83122958a367f58b282326109561f506fe45cdca637f5"
+    },
+    {
+      "path": "PortSQL/pt-BR.lproj/Localizable.stringsdict",
+      "sha256": "51511320849df3e7ff3c3661d0e34e3fa3b7a428f7808a70f9cc9d6a6ae6be76"
+    },
+    {
+      "path": "PortSQL/ru.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/ru.lproj/Localizable.strings",
+      "sha256": "e97ec30b8d97166b466a2763a12f00b72acd5b1fd3bbeea9291baf4457592fa0"
+    },
+    {
+      "path": "PortSQL/ru.lproj/Localizable.stringsdict",
+      "sha256": "d47ac539fb954d33f30543be814b6b9f3f9c66f07509d9a37e4adf5835f07b70"
+    },
+    {
+      "path": "PortSQL/zh-Hans.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/zh-Hans.lproj/Localizable.strings",
+      "sha256": "63b4fe674b1c4218fced00959414c6e0707bbcf098dfeb744d441609f6c211e9"
+    },
+    {
+      "path": "PortSQL/zh-Hans.lproj/Localizable.stringsdict",
+      "sha256": "25b3cfd713ee79f1517d01b9b070daaf8a9e74dea7110dfa978efbfb78b82e52"
+    },
+    {
+      "path": "PortSQL/zh-Hant.lproj/InfoPlist.strings",
+      "sha256": "e445656e42f50afc00d506f12a7700148115f50b701e53ae163a86a3d0460375"
+    },
+    {
+      "path": "PortSQL/zh-Hant.lproj/Localizable.strings",
+      "sha256": "3ab1ac1bfb3461f9dcf968f07d41047c890a7c068c95a29d011d383798c27e5a"
+    },
+    {
+      "path": "PortSQL/zh-Hant.lproj/Localizable.stringsdict",
+      "sha256": "873e76feb5d429c38c1437420063bcc30dd16ffb36ce0fe7923ba71a212a449a"
+    },
+    {
+      "path": "PortSQL.xcodeproj/project.pbxproj",
+      "sha256": "db838147917f8b791ff592be8b0510866d20dd581e30d2a24d789d121ce7f106"
+    },
+    {
+      "path": "PortSQLTests/ConsoleStorageAndSQLTests.swift",
+      "sha256": "cc6ecf5763ded2509463640f275a322130b259ab164d3bc2668128c0dfed27c7"
+    },
+    {
+      "path": "PortSQLTests/DataEditorValidationServiceTests.swift",
+      "sha256": "bdf7f508d5c2d227505e1f9d23951fcda0921177816333430b5cc397dc34c32b"
+    },
+    {
+      "path": "PortSQLTests/DataTransferServiceTests.swift",
+      "sha256": "1cf64581ce7fab7eca239f6fab9269d3911ce090c483d7dc8de9030f5667a91f"
+    },
+    {
+      "path": "PortSQLTests/DatabaseSafetyTests.swift",
+      "sha256": "0aad1e776a0bcc809df1d205b506888941f37e5eda0a04f589ab4c4f8fb966ea"
+    },
+    {
+      "path": "PortSQLTests/HTTPDatabaseClientTests.swift",
+      "sha256": "793093eb1a8353c97f5d3f494dd6c179b67274cad114452e4ec4d017aa9ba343"
+    },
+    {
+      "path": "PortSQLTests/LocalizationKeychainAndCatalogTests.swift",
+      "sha256": "481f31fc4e46ad44d26fd04ebe9fd18bb8ebf4926dfeff00933002940310572d"
+    },
+    {
+      "path": "PortSQLTests/MongoDocumentEditingTests.swift",
+      "sha256": "458db0121f559920232e87f4bf51ed6a0a1277cfdb0e6af3d1e96cbacc5e308a"
+    },
+    {
+      "path": "PortSQLTests/MongoQueryServiceTests.swift",
+      "sha256": "1a5781f38a584b2cf0ddfb6f42cc235d07bdd511ef2d77b364ec868d675a2b87"
+    },
+    {
+      "path": "PortSQLTests/ProductUIStateTests.swift",
+      "sha256": "bfe81d73bad6052bff22c3d958e3314dcf41694e16289e0b2019c966e712c759"
+    },
+    {
+      "path": "PortSQLTests/QueryParameterAndExportServiceTests.swift",
+      "sha256": "b1f829954d066a2931e4605269ca7a686fcac566114f9b2deac7dd435981e1be"
+    },
+    {
+      "path": "PortSQLTests/RedisServiceTests.swift",
+      "sha256": "20ca8c010e6d1e1f30079f548e47d401c0eae85748f2c42381091e935bf0ca0e"
+    },
+    {
+      "path": "PortSQLTests/ResultGridChartTests.swift",
+      "sha256": "ad070a737c4bf6e6927e14dad5771aed9fb3a2f182dff4cf26037e619d7a39c3"
+    },
+    {
+      "path": "PortSQLTests/SQLAssistServiceTests.swift",
+      "sha256": "44607ff9b2846b09294414e008303b04ae0a96495cc55369998fe7ab6b206569"
+    },
+    {
+      "path": "PortSQLTests/SQLSafetyServiceTests.swift",
+      "sha256": "f261f784f2249eced3f42f1eacbe20cd32c17f9062c95b980d135b33d6bd2e62"
+    },
+    {
+      "path": "PortSQLTests/SQLiteDatabaseClientTests.swift",
+      "sha256": "d44bab9bd7a9bf82c361e615d5ded4fea857be4d6638ea9676e7909ec4498a8a"
+    },
+    {
+      "path": "PortSQLTests/SSHTunnelServiceTests.swift",
+      "sha256": "f07c8e9ed42a4f96c70b382175f2f25f57c60b09ada001c266386cc1cce7e510"
+    },
+    {
+      "path": "PortSQLTests/VisualizationServiceTests.swift",
+      "sha256": "72fada2820b519ec48407ca3ef403b72039a0d654e7fbcc054be0a26487f39c3"
+    },
+    {
+      "path": "project.yml",
+      "sha256": "c331ab59aab2c847cbd1bd37df1bc8b55fd3fa54f119d3966936488c0ae655ad"
+    }
+  ]
+}

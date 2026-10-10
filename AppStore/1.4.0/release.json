@@ -1,0 +1,73 @@
+{
+  "name": "Portbase",
+  "version": "1.4.0",
+  "build": "1",
+  "appID": "6762447018",
+  "bundleID": "ad.neko.portsql",
+  "buildUploadID": "36b25cd6-c6f2-4912-9462-9db25ee26310",
+  "buildID": "36b25cd6-c6f2-4912-9462-9db25ee26310",
+  "buildState": "VALID",
+  "appStoreState": "WAITING_FOR_REVIEW",
+  "verifiedAt": "2026-09-22T10:49:08.331347+00:00",
+  "validation": {
+    "maintainedAppTests": 129,
+    "temporarySimulatorChecks": 1,
+    "focusedFinalChecks": 20,
+    "finalHTTPChecks": 3,
+    "vendoredMySQLTests": 46,
+    "localizationCatalogs": 30,
+    "secretScanFindings": 0,
+    "physicalDeviceChecks": false,
+    "releaseSDK": "iphoneos27.0",
+    "screenshotCaptureDevices": 2,
+    "screenshotFilesVerified": 20
+  },
+  "engines": [
+    "MySQL",
+    "MariaDB",
+    "PostgreSQL",
+    "MongoDB",
+    "SQLite",
+    "Redis",
+    "ClickHouse",
+    "Elasticsearch"
+  ],
+  "previousReview": {
+    "version": "1.3.0",
+    "submissionID": "2a020e5f-c65b-49a4-a242-9c7ab0658279",
+    "state": "CANCELED_AND_REPLACED"
+  },
+  "metadataSHA256": "1cec0fc88fb2a823d6cd7d6fe8ac19a5858d517a87e42f0b72a022b5fc38da03",
+  "appInformationSHA256": "ad42418906cec65d7cd17294601adb5bac05eb9aaf3c1087e18041e16b7ca9da",
+  "sourceManifestSHA256": "47d30e39137538ff6b3e7b68806b75083b3ebeb053109b3a95a14121b27c15c3",
+  "buildUploadState": "COMPLETE",
+  "buildUploadErrors": 0,
+  "buildUploadWarnings": 0,
+  "appStoreVersionID": "a20a2407-b369-40b6-8e1d-551504740838",
+  "reviewSubmissionID": "158fead7-d77e-4d63-893d-c718d6aa21ce",
+  "reviewSubmissionState": "WAITING_FOR_REVIEW",
+  "submittedAt": "2026-09-22T10:48:03.506Z",
+  "releaseType": "AFTER_APPROVAL",
+  "metadataLocalesVerified": 10,
+  "nameLocalesVerified": 10,
+  "appInfoID": "b278b583-eed6-47bc-aba0-cd6298425fb8",
+  "sourceStatus": "uncommitted",
+  "archiveExecutableSHA256": "11d6bfbee2b2c97c3c9ba3003d2faf77b3fca4318e436debfea16ca326ac10d6",
+  "verificationEvidenceSHA256": "bb25155e137f8a306987e292c6efc809e23627e15e518c8dd6c29259689065aa",
+  "previousScreenshotReview": {
+    "submissionID": "abc166ca-e622-4864-a174-4230622bd2a7",
+    "submittedAt": "2026-09-22T10:04:21.9Z",
+    "state": "CANCELED_AND_REPLACED",
+    "reason": "Screenshot refresh"
+  },
+  "previousVerificationEvidenceSHA256": "4ae4d912def2095f19d61e02ff50ce76df9a13eb69aa07d97c38fe9f43dd3fc7",
+  "screenshots": {
+    "locale": "en-US",
+    "iPhone": 10,
+    "iPad": 10,
+    "otherLocalesInherit": true,
+    "allComplete": true,
+    "manifest": "screenshots.json",
+    "manifestSHA256": "43994c0555b18b5608e6bab7160e2e3677487449d81073a61dbe506437575f4b"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "en-US": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,ClickHouse,Elasticsearch,query editor",
+  "de-DE": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,Datenbank,Abfragen,SSH,ClickHouse",
+  "es-ES": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,base de datos,consultas,SSH,ClickHouse",
+  "fr-FR": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,base de données,requêtes,SSH,ClickHouse",
+  "ja": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,データベース,クエリ,SSH",
+  "ko": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,데이터베이스,쿼리,SSH,ClickHouse",
+  "pt-BR": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,banco de dados,consultas,SSH,ClickHouse",
+  "ru": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,база данных,запросы,SSH",
+  "zh-Hans": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,数据库,查询,SSH,ClickHouse",
+  "zh-Hant": "PortSQL,SQL,MySQL,PostgreSQL,MongoDB,SQLite,Redis,MariaDB,資料庫,查詢,SSH,ClickHouse"
+}

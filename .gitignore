@@ -12,3 +12,6 @@ PortSQL.xcodeproj/xcuserdata/
 
 *.swp
 *.swo
+
+# Local archives, exports, and IPA checks (never committed)
+build/

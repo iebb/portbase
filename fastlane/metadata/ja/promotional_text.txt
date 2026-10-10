@@ -1,0 +1,1 @@
+MySQL/PostgreSQLへ直接接続またはSSHトンネルで接続し、iPhoneでSQL実行、テーブル閲覧、行編集、グラフ化まで行えます。

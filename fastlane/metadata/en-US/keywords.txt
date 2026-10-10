@@ -1,0 +1,1 @@
+database manager,postgresql,ssh tunnel,query editor,row editor,schema,tables,charts,db admin

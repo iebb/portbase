@@ -1,0 +1,1 @@
+Execute SQL com conexões diretas ou túneis SSH para MySQL/PostgreSQL, navegue por tabelas ao vivo, edite linhas e crie gráficos.

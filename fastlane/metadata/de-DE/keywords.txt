@@ -1,0 +1,1 @@
+SQL,MySQL,Postgres,Datenbank,SSH Tunnel,Abfrage,Tabellen,Zeilen,Diagramme,DB Admin

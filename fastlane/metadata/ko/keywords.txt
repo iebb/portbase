@@ -1,0 +1,1 @@
+SQL,MySQL,Postgres,SSH터널,데이터베이스,쿼리,테이블,행편집,차트,DB관리

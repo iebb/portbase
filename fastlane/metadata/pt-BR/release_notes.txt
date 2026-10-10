@@ -1,0 +1,1 @@
+Pesquise e filtre servidores, duplique conexões, navegue por linhas do editor, alterne comentários SQL e abra ou compartilhe arquivos de consultas. O histórico registra duração, falhas e cancelamentos. Edite nomes, notas e contexto de conexão das consultas salvas. Inspecione valores completos de células, filtre linhas carregadas e explore índices MongoDB em uma tela dedicada.

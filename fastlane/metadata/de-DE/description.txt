@@ -1,0 +1,23 @@
+PortSQL ist ein nativer iPhone-SQL-Client für MySQL und PostgreSQL, entwickelt für schnelle Produktionsprüfungen und praktische Datenbankarbeit unterwegs.
+
+Mit PortSQL können Sie:
+
+- MySQL- und PostgreSQL-Server verbinden und gespeicherte Profile über iCloud synchronisieren.
+- Echte SQL-Abfragen mit Syntaxhervorhebung, Autovervollständigung, Formatierung und explain-Unterstützung ausführen.
+- Datenbanken, Schemas, Tabellen und Spalten in einem kompakten mobilen Explorer durchsuchen.
+- Ergebnisse mit Paging, Spaltensortierung und Zeilendetails prüfen.
+- Zeilen mit schemaabhängiger Validierung für Text, Zahlen, Datum, Zeitstempel, UUID und JSON einfügen und bearbeiten.
+- Aus SQL-Ergebnissen Balken-, Linien-, Flächen-, Punkt-, Kreis- und Donutdiagramme erstellen.
+- Diagrammvorlagen speichern und später im Charts-Tab erneut öffnen.
+
+PortSQL ist für Entwickler, Betriebsteams, Analysten, Gründer und Supportteams gedacht, die auf dem iPhone einen echten Datenbankclient benötigen.
+
+Typische Einsätze:
+
+- Produktionsdaten abseits des Schreibtischs prüfen
+- Supportfälle anhand echter Zeilen untersuchen
+- Geschäftskennzahlen aus SQL-Abfragen ansehen
+- Schemaänderungen und Tabellenstrukturen unterwegs validieren
+- Gezielt Zeilen aktualisieren, ohne ein Notebook zu öffnen
+
+PortSQL arbeitet mit Live-Datenbankverbindungen. Abfragen, Schema-Browsing, Zeilenbearbeitung und Diagramme sind für reale MySQL- und PostgreSQL-Workflows gebaut.

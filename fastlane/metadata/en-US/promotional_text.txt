@@ -1,0 +1,1 @@
+Manage MySQL and PostgreSQL databases from iPhone: run SQL over direct or SSH-tunneled connections, browse tables, edit rows, and chart results.

@@ -1,0 +1,248 @@
+{
+  "version": "1.5.0",
+  "build": "2",
+  "verifiedAt": "2026-10-02T17:24:04.886304+00:00",
+  "simulatorResults": {
+    "fullSuite": {
+      "result": "Passed",
+      "totalTestCount": 136,
+      "passedTests": 125,
+      "failedTests": 0,
+      "skippedTests": 11,
+      "testFailures": [],
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "E6AE5DE2-B925-47DF-AFD3-BD2A5D9C0B39",
+            "deviceName": "iPhone 17 Pro",
+            "modelName": "iPhone 17 Pro",
+            "osBuildNumber": "24A5390f",
+            "osVersion": "27.0",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 125,
+          "skippedTests": 11,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ]
+    },
+    "focusedFinal": {
+      "result": "Passed",
+      "totalTestCount": 16,
+      "passedTests": 16,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "testFailures": [],
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "E6AE5DE2-B925-47DF-AFD3-BD2A5D9C0B39",
+            "deviceName": "iPhone 17 Pro",
+            "modelName": "iPhone 17 Pro",
+            "osBuildNumber": "24A5390f",
+            "osVersion": "27.0",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 16,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ],
+      "environmentDescription": "PortSQL \u00b7 Built with macOS 27.0"
+    },
+    "iPadUI": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "testFailures": [],
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "A252EFA9-9822-45F4-B3E2-7C3B1C3C95F3",
+            "deviceName": "Kikazaru Shots iPad",
+            "modelName": "iPad Pro 13-inch (M5)",
+            "osBuildNumber": "24A5390f",
+            "osVersion": "27.0",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 1,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ],
+      "environmentDescription": "PortSQL \u00b7 Built with macOS 27.0"
+    },
+    "DuoUI": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "testFailures": [],
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "36CE8F6A-C66C-462B-B346-C5BF98430590",
+            "deviceName": "iPhone Duo",
+            "modelName": "iPhone",
+            "osBuildNumber": "24A94401",
+            "osVersion": "27.1",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 1,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ],
+      "environmentDescription": "PortSQL \u00b7 Built with macOS 27.0"
+    },
+    "redisPhoneUI": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "testFailures": [],
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "E5607406-1150-46C2-8BAF-3991466DCC45",
+            "deviceName": "iPhone 18 Pro Max",
+            "modelName": "iPhone 18 Pro Max",
+            "osBuildNumber": "24A5390f",
+            "osVersion": "27.0",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 1,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ]
+    },
+    "redisIPadUI": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "testFailures": [],
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "A252EFA9-9822-45F4-B3E2-7C3B1C3C95F3",
+            "deviceName": "Kikazaru Shots iPad",
+            "modelName": "iPad Pro 13-inch (M5)",
+            "osBuildNumber": "24A5390f",
+            "osVersion": "27.0",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 1,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ]
+    },
+    "redisDuoUI": {
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "testFailures": [],
+      "devicesAndConfigurations": [
+        {
+          "device": {
+            "architecture": "arm64",
+            "deviceId": "36CE8F6A-C66C-462B-B346-C5BF98430590",
+            "deviceName": "iPhone Duo",
+            "modelName": "iPhone",
+            "osBuildNumber": "24A94401",
+            "osVersion": "27.1",
+            "platform": "iOS Simulator"
+          },
+          "expectedFailures": 0,
+          "failedTests": 0,
+          "passedTests": 1,
+          "skippedTests": 0,
+          "testPlanConfiguration": {
+            "configurationId": "1",
+            "configurationName": "Test Scheme Action"
+          }
+        }
+      ]
+    }
+  },
+  "phoneUISucceeded": true,
+  "vendoredMySQLTests": {
+    "xctestPassed": 23,
+    "swiftTestingPassed": 23,
+    "totalPassed": 46
+  },
+  "localizationCatalogs": 30,
+  "newFocusedTests": 9,
+  "finalFocusedTests": 16,
+  "liveUIFixtures": [
+    "SQLite",
+    "MongoDB indexes",
+    "Redis key scan and hash inspection"
+  ],
+  "physicalDeviceChecks": false,
+  "integrationSkipped": 11,
+  "sourceTreeSHA256": "08b3d9481ad425f57f1178f42852c48a6355a09ca8e489a9963f064ecf1e168f",
+  "sourceManifestSHA256": "c3a0172b29ef6bd12fe98991873adc7c33f3efe0e993f758dc783d82e79f5e5d",
+  "archiveExecutableSHA256": "1df5bdf4e1da62e3b76fe419640237008a72c6daf8ecfc4b7aa6fa77b4e96682",
+  "archiveSignatureVerified": true,
+  "iCloudKVS": "9733K94JUG.ad.neko.portsql",
+  "releaseSDK": "iphoneos27.0",
+  "diffCheck": "passed",
+  "secretScan": {
+    "shippingSourceFindings": 0,
+    "knownTestFixtures": 4
+  },
+  "screenshots": {
+    "iPhone": 10,
+    "iPad": 10,
+    "newCaptures": 18,
+    "reusedUnchangedCaptures": 2,
+    "additionalIndexDetails": 2
+  },
+  "additionalFix": "Redis key rows respond across their full 44-point target"
+}
