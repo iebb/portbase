@@ -92,18 +92,37 @@ struct GridCollectionBridge: NSViewRepresentable {
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
             guard let identifier = tableColumn?.identifier, let index = Int(identifier.rawValue), parent.result.rows.indices.contains(row) else { return nil }
             let value = parent.result.rows[row].cells.indices.contains(index) ? parent.result.rows[row].cells[index] : .null
-            let field = (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTextField) ?? NSTextField(labelWithString: "")
-            field.identifier = identifier
-            field.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+            let container = (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTableCellView) ?? Self.makeCell(identifier)
+            guard let field = container.textField else { return container }
+            field.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
             field.stringValue = value.isNull ? "NULL" : value.displayValue.isEmpty ? "\"\"" : value.displayValue
             field.lineBreakMode = .byTruncatingTail
-            field.textColor = value.isNull ? .secondaryLabelColor : .labelColor
+            field.textColor = value.isNull ? .tertiaryLabelColor : .labelColor
+            switch value {
+            case .integer, .decimal: field.alignment = .right
+            default: field.alignment = .left
+            }
             field.toolTip = value.isNull ? L10n.text("NULL") : value.displayValue.isEmpty ? L10n.text("Empty text") : value.displayValue
             field.setAccessibilityValue(field.toolTip)
             if let position = parent.visibleColumns.firstIndex(of: index), parent.selection?.contains(row: row, column: position) == true {
                 field.drawsBackground = true; field.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15)
             } else { field.drawsBackground = false }
-            return field
+            return container
+        }
+        /// A cell with horizontal insets, so right-aligned numbers don't touch the next column.
+        private static func makeCell(_ identifier: NSUserInterfaceItemIdentifier) -> NSTableCellView {
+            let cell = NSTableCellView()
+            cell.identifier = identifier
+            let field = NSTextField(labelWithString: "")
+            field.translatesAutoresizingMaskIntoConstraints = false
+            cell.addSubview(field)
+            cell.textField = field
+            NSLayoutConstraint.activate([
+                field.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 6),
+                field.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
+                field.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            ])
+            return cell
         }
         func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {
             if let index = Int(tableColumn.identifier.rawValue) { parent.onSort?(parent.result.columns[index].name) }

@@ -12,7 +12,6 @@ struct PortbaseMacApp: App {
         Window("Portbase", id: "workspace") {
             DesktopWorkspaceView()
                 .formStyle(.grouped)
-                .controlSize(.small)
                 .environmentObject(bookmarks)
                 .environmentObject(library)
                 .environmentObject(consoles)

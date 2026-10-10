@@ -7,6 +7,7 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 `PortSQL/Views/DesignSystem.swift` defines the visual tokens and components used across all platforms:
 
 - **Palette**: adaptive canvas, surface, sunken, and stroke colors with a single flat accent. Cards are flat with a hairline border; there are no decorative glows or shadows. `PortSQLPalette` reads these tokens, so existing screens adopt them automatically.
+- **App icon**: the yellow duck on a plain white background (`PortSQL/AppIcon.icon`, shared by iOS and macOS).
 - **Accent and appearance**: six accents (Indigo, Ocean, Emerald, Sunset, Rose, Graphite), whose dark variants keep white button labels readable, and System/Light/Dark appearance, stored in `UserDefaults` (`Portbase.accent`, `Portbase.appearance`) and applied with `.portbaseTheme()`.
 - **Components**: `PanelCard`, `PortbaseChip`, `PortbaseMetricTile`, `PortbaseEmptyState`, `PortbaseSectionHeading`, `BookmarkAvatar` (engine gradients), `ConnectionSecurityChips`, and `toolIconChrome()` for 44-point tool buttons. Liquid Glass is used on iOS/macOS 26 and later, with a material fallback.
 - **Editor themes**: `EditorTheme.swift` provides Portbase, Midnight, Paper, Solarized, and Ember syntax palettes (`Portbase.editorTheme`). The UIKit and AppKit editors both use them, including the line-number gutter and caret.
@@ -24,10 +25,12 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 | Settings | iOS Settings sheet; Mac Settings window (General, Appearance, Editor) | Appearance, accent, editor theme, iCloud status and Sync Now, library storage, version, and supported engines. |
 | Engine picker | Connection editor | Brand-colored engine tiles replace the menu picker; port, authentication, and icon defaults still follow the selected engine. |
 | Query Library | Console library button; Home → Query Library | History rows show outcome, duration, and connection with one-tap outcome filters; saved queries show engine and database. Loading an entry never runs it. |
+| Connection strings | Connection editor (first section); ⌘K → Import Connection String; Mac sidebar + menu | Imports PostgreSQL, MySQL, MariaDB (including `jdbc:`), MongoDB (`mongodb://`, `mongodb+srv://`), Redis (`redis://`, `rediss://`), ClickHouse, and Elasticsearch URLs: host, port, percent-decoded credentials, database, and TLS requirements. A string that asks for no TLS or for a fallback never changes the transport mode; a notice explains how to choose it explicitly. Ignored options are listed by name only. |
+| Connection errors | Mac top bar and sidebar; Home; console and Explorer on iPhone and iPad | Driver errors are expanded (PostgreSQL connection errors and errors such as NIOSSL's are no longer "The operation couldn’t be completed") and classified as untrusted, mismatched, or expired certificates, TLS unavailable or failed, sign-in failure, unreachable server, or timeout, each with guidance, bounded raw details, Copy Details, Reconnect, and Edit Connection. The Mac uses a single-row banner and a one-line sidebar entry so long errors never change the layout. |
 | Keyboard and haptics | iPad hardware keyboard: ⌘1–⌘5 tabs, ⌘K search, ⌘, settings; Mac: ⌘0 Home, ⌘1–⌘4 destinations | iPhone and iPad give success or error haptics when a console run finishes. |
 
 The console tab strip, Servers list (summary tiles, security chips, active indicator), Explorer sidebar (row-count badges) and table header chips, Charts grid, and status banners were restyled with the shared components.
 
 ## Tests
 
-`PortSQLTests/WorkspaceInsightsAndPaletteTests.swift` covers insight statistics (NULL versus empty text, binary values, temporal ranges, constant histograms), activity aggregation, template quoting and UTF-16 insertion, palette ranking, and preference fallbacks.
+`PortSQLTests/ConnectionImportAndIssueTests.swift` covers connection-string parsing (credentials, IPv6, JDBC, Redis databases, HTTP engines, and the rule that imports never enable plaintext) and error classification. `PortSQLTests/WorkspaceInsightsAndPaletteTests.swift` covers insight statistics (NULL versus empty text, binary values, temporal ranges, constant histograms), activity aggregation, template quoting and UTF-16 insertion, palette ranking, and preference fallbacks.

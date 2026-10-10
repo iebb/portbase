@@ -125,7 +125,7 @@ struct ExplorerWorkspaceView: View {
                 if workspace.selectedBookmark != nil, workspace.schemaCatalog.isEmpty, !workspace.isLoadingSchema {
                     ContentUnavailableView(workspace.isDocumentDatabase ? L10n.text("No collections") : L10n.text("No tables"),
                                            systemImage: "tablecells",
-                                           description: Text(workspace.schemaErrorMessage ?? L10n.text("Choose a database or refresh the schema.")))
+                                           description: Text(workspace.schemaErrorMessage.map { ConnectionIssue.classify($0).title } ?? L10n.text("Choose a database or refresh the schema.")))
                 }
             }
             .searchable(text: $search, prompt: workspace.isDocumentDatabase ? L10n.text("Search collections") : L10n.text("Search tables"))

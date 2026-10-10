@@ -70,30 +70,15 @@ struct HomeView: View {
                 }
 
                 HStack(spacing: 12) {
-                    Menu {
-                        ForEach(workspace.availableDatabases, id: \.self) { database in
-                            Button {
-                                workspace.selectDatabase(database)
-                            } label: {
-                                if workspace.activeDatabaseName == database { Label(database, systemImage: "checkmark") } else { Text(database) }
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
-                            else { Image(systemName: "externaldrive") }
-                            Text(workspace.activeDatabaseName ?? L10n.text("Database")).lineLimit(1)
-                            Image(systemName: "chevron.up.chevron.down").font(.caption2)
-                        }
-                        .font(.subheadline)
-                        .frame(minHeight: PortbaseControlSize.minimumHeight)
-                    }
-                    .disabled(workspace.availableDatabases.isEmpty)
-                    .accessibilityLabel("Choose database")
+                    DatabasePicker()
                     if !workspace.schemaCatalog.isEmpty {
                         Text(tableCountLabel).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer(minLength: 0)
+                }
+
+                if let error = workspace.schemaErrorMessage {
+                    ConnectionIssueBanner(message: error, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
                 }
 
                 HStack(spacing: 10) {
@@ -163,6 +148,7 @@ struct HomeView: View {
             PortbaseSectionHeading(title: L10n.text("Recent Queries")) {
                 if !library.history.isEmpty {
                     Button("Show All") { onNavigate(.library) }
+                        .buttonStyle(.borderless)
                         .font(.subheadline)
                         .frame(minHeight: PortbaseControlSize.minimumHeight)
                 }
@@ -244,6 +230,7 @@ struct HomeView: View {
                     Image(systemName: "plus")
                         .frame(width: PortbaseControlSize.minimumHeight, height: PortbaseControlSize.minimumHeight)
                 }
+                .buttonStyle(.borderless)
                 .accessibilityLabel("Add Connection")
             }
             VStack(spacing: 0) {
@@ -405,5 +392,33 @@ struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+
+/// A native menu picker for the current connection's databases.
+struct DatabasePicker: View {
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
+            Picker(selection: Binding(
+                get: { workspace.activeDatabaseName ?? "" },
+                set: { if !$0.isEmpty { workspace.selectDatabase($0) } }
+            )) {
+                if workspace.availableDatabases.isEmpty {
+                    Text(workspace.activeDatabaseName ?? L10n.text("Database")).tag(workspace.activeDatabaseName ?? "")
+                }
+                ForEach(workspace.availableDatabases, id: \.self) { database in
+                    Text(database).tag(database)
+                }
+            } label: {
+                Label("Database", systemImage: "externaldrive")
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+            .disabled(workspace.availableDatabases.isEmpty || workspace.isLoadingSchema)
+            .accessibilityLabel("Choose database")
+        }
     }
 }

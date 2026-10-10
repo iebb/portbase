@@ -279,6 +279,8 @@ struct CommandPaletteView: View {
                                keywords: "tab") { consoles.add(); onNavigate(.console) },
             CommandPaletteItem(id: "add-connection", group: .actions, title: L10n.text("Add Connection"), systemImage: "plus.circle.fill",
                                keywords: "server bookmark") { workspace.createBookmark() },
+            CommandPaletteItem(id: "import-string", group: .actions, title: L10n.text("Import Connection String"), systemImage: "link",
+                               keywords: "url uri dsn jdbc postgres mysql redis mongodb") { workspace.createBookmark() },
             CommandPaletteItem(id: "new-sqlite", group: .actions, title: L10n.text("New SQLite Database"), systemImage: "internaldrive.fill",
                                keywords: "local file create") { onCreateSQLite() },
             CommandPaletteItem(id: "refresh-schema", group: .actions, title: L10n.text("Refresh Schema"), systemImage: "arrow.clockwise",

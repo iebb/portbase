@@ -174,7 +174,7 @@ enum PortbaseMetrics {
     static let chipRadius: CGFloat = 8
 #if os(macOS)
     static let cardPadding: CGFloat = 14
-    static let toolSize: CGFloat = 28
+    static let toolSize: CGFloat = 30
 #else
     static let cardPadding: CGFloat = 16
     static let toolSize: CGFloat = 44

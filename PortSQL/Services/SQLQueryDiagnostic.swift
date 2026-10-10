@@ -7,7 +7,7 @@ enum SQLQueryDiagnostic {
         if let error = error as? PSQLError, let message = error.serverInfo?[.message] {
             return L10n.format("Database error %@: %@", error.serverInfo?[.sqlState] ?? "", message)
         }
-        return error.localizedDescription
+        return DatabaseErrorFormatter.message(for: error)
     }
 
     static func range(for error: Error, sql: String) -> NSRange? {

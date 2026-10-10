@@ -636,11 +636,7 @@ struct QueryEditorCard: View {
     @ViewBuilder
     private var feedbackSection: some View {
         if let schemaErrorMessage = workspace.schemaErrorMessage {
-            StatusBanner(
-                title: "Schema refresh failed",
-                message: schemaErrorMessage,
-                tint: .orange
-            )
+            ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
         }
 
         ForEach(workspace.hints) { hint in
@@ -870,11 +866,15 @@ struct ResultsCard: View {
                 }
 
                 if let errorMessage = workspace.errorMessage {
-                    StatusBanner(
-                        title: "Execution failed",
-                        message: errorMessage,
-                        tint: .red
-                    )
+                    if ConnectionIssue.isConnectionProblem(errorMessage) {
+                        ConnectionIssueBanner(message: errorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
+                    } else {
+                        StatusBanner(
+                            title: "Execution failed",
+                            message: errorMessage,
+                            tint: .red
+                        )
+                    }
                 }
 
                 if workspace.result.documents != nil || workspace.result.affectedRowCount != nil || workspace.result.isTruncated == true {
@@ -1632,6 +1632,8 @@ struct BookmarkEditorView: View {
     @State private var isImportingPrivateCA = false
     @State private var privateCAImportError: String?
     @State private var saveError: String?
+    /// Set when a connection string import changes the engine, so its imported port is kept.
+    @State private var keepsImportedEndpoint = false
 
     private static let certificateContentTypes: [UTType] = {
         let filenameTypes = ["pem", "crt", "cer"].compactMap { UTType(filenameExtension: $0) }
@@ -1652,9 +1654,12 @@ struct BookmarkEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
+                ConnectionStringImportSection(profile: $profile, willChangeEngine: { keepsImportedEndpoint = true })
+
                 Section("Engine") {
                     EngineChooser(selection: $profile.engine)
                     .onChange(of: profile.engine) { oldValue, engine in
+                        if keepsImportedEndpoint { keepsImportedEndpoint = false; return }
                         profile.port = engine == .clickhouse && profile.transportSecurityMode == .plaintext ? 8123 : engine.defaultPort
                         if engine == .clickhouse, profile.httpAuthentication == .apiKey { profile.httpAuthentication = .basic }
                         if engine == .redis, Int32(profile.trimmedDefaultDatabase).map({ $0 >= 0 }) != true { profile.defaultDatabase = "0" }
@@ -1804,7 +1809,6 @@ struct BookmarkEditorView: View {
             }
 #if os(macOS)
             .formStyle(.grouped)
-            .controlSize(.small)
             .navigationTitle("Connection")
 #else
             .navigationTitle("Connection")

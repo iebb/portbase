@@ -293,12 +293,12 @@ final class WorkspaceViewModel: ObservableObject {
         let original = queryText
         if isDocumentDatabase {
             do { queryText = MongoQueryService.pretty(try MongoQueryService.parse(queryText).command) }
-            catch { errorMessage = error.localizedDescription }
+            catch { errorMessage = DatabaseErrorFormatter.message(for: error) }
             return
         }
         if selectedBookmark?.engine == .elasticsearch {
             do { queryText = try ElasticsearchQueryService.parse(queryText).preview }
-            catch { errorMessage = error.localizedDescription }
+            catch { errorMessage = DatabaseErrorFormatter.message(for: error) }
             return
         }
         guard isSQLDatabase else { return }
@@ -421,7 +421,7 @@ final class WorkspaceViewModel: ObservableObject {
                     self.availableDatabases = self.resolveFallbackDatabases(for: bookmark)
                     self.schemaCatalog = []
                     self.selectedExplorerTableID = nil
-                    self.schemaErrorMessage = error.localizedDescription
+                    self.schemaErrorMessage = DatabaseErrorFormatter.message(for: error)
                     self.isLoadingSchema = false
                     self.rebuildSchemaSuggestions()
                     self.refreshAssist()
@@ -594,7 +594,7 @@ final class WorkspaceViewModel: ObservableObject {
             sql = isDocumentDatabase ? try MongoQueryService.browse(collection: targetTable.name, filter: explorerWhereClause,
                 sort: explorerOrderByClause, limit: explorerPageSize, skip: explorerPageIndex * explorerPageSize) : browseQuery(for: targetTable)
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = DatabaseErrorFormatter.message(for: error)
             return
         }
         activeBoundQuery = nil
@@ -980,7 +980,7 @@ final class WorkspaceViewModel: ObservableObject {
             } catch {
                 let transactionOpen = await DatabaseService.shared.consoleHasTransaction(sessionID)
                 guard runToken == token, !Task.isCancelled else { return }
-                errorMessage = error.localizedDescription
+                errorMessage = DatabaseErrorFormatter.message(for: error)
                 hasOpenTransaction = transactionOpen
             }
             isRunning = false; queryTask = nil; runToken = nil

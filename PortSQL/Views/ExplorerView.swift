@@ -161,13 +161,7 @@ struct ExplorerView: View {
                             )
                         }
                     } else if let schemaErrorMessage = workspace.schemaErrorMessage {
-                        PanelCard {
-                            StatusBanner(
-                                title: "Schema unavailable",
-                                message: schemaErrorMessage,
-                                tint: .orange
-                            )
-                        }
+                        ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
                     } else if filteredTables.isEmpty {
                         PanelCard {
                             if workspace.selectedBookmark == nil {

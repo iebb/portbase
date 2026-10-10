@@ -127,7 +127,7 @@ struct ResultGridView: View {
 #if canImport(UIKit)
         max(44, UIFont.preferredFont(forTextStyle: .footnote).lineHeight + 22)
 #else
-        28
+        30
 #endif
     }
     private var configurationKey: String? {
@@ -179,7 +179,7 @@ struct ResultGridView: View {
                 .buttonStyle(.borderless)
                 .font(.subheadline)
 #if os(macOS)
-                .font(.system(size: 12)).controlSize(.small).padding(.horizontal, 8)
+                .font(.system(size: 13)).padding(.horizontal, 8)
 #endif
             }
             if filter.isActive {
