@@ -1153,3 +1153,10 @@
 "Staging" = "Предпродакшен";
 "Tab-Separated" = "С разделителями-табуляциями";
 "Testing" = "Тестирование";
+"Connected in %@." = "Подключено за %@.";
+"Connected in %@. Databases: %d" = "Подключено за %@. Базы данных: %d";
+"Pin" = "Закрепить";
+"Unpin" = "Открепить";
+"Test Connection" = "Проверить подключение";
+"Testing uses read-only requests and doesn’t save the connection." = "Проверка использует только запросы на чтение и не сохраняет подключение.";
+"Testing…" = "Проверка…";

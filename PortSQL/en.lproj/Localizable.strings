@@ -1153,3 +1153,10 @@
 "Staging" = "Staging";
 "Tab-Separated" = "Tab-Separated";
 "Testing" = "Testing";
+"Connected in %@." = "Connected in %@.";
+"Connected in %@. Databases: %d" = "Connected in %@. Databases: %d";
+"Pin" = "Pin";
+"Unpin" = "Unpin";
+"Test Connection" = "Test Connection";
+"Testing uses read-only requests and doesn’t save the connection." = "Testing uses read-only requests and doesn’t save the connection.";
+"Testing…" = "Testing…";

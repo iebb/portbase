@@ -1153,3 +1153,10 @@
 "Staging" = "스테이징";
 "Tab-Separated" = "탭으로 구분";
 "Testing" = "테스트";
+"Connected in %@." = "%@ 만에 연결되었습니다.";
+"Connected in %@. Databases: %d" = "%@ 만에 연결되었습니다. 데이터베이스: %d";
+"Pin" = "고정";
+"Unpin" = "고정 해제";
+"Test Connection" = "연결 테스트";
+"Testing uses read-only requests and doesn’t save the connection." = "테스트는 읽기 전용 요청만 사용하며 연결을 저장하지 않습니다.";
+"Testing…" = "테스트 중…";

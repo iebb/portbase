@@ -80,3 +80,37 @@ final class CopyFormatsAndEnvironmentTests: XCTestCase {
         XCTAssertNil(MongoDocumentSummary.identifier(in: #"{"name": "no id"}"#))
     }
 }
+
+@MainActor
+final class PinnedTablesAndTesterTests: XCTestCase {
+    private func table(_ name: String) -> SchemaTableDescriptor {
+        SchemaTableDescriptor(schemaName: "public", name: name, columns: [], rowCountEstimate: nil)
+    }
+
+    func testPinnedTablesPartitionInPinOrderAndPersistPerScope() throws {
+        let suite = "PinnedTablesTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let profile = UUID()
+        let scope = PinnedTableStore.scope(profileID: profile, database: "orders")
+        let store = PinnedTableStore(defaults: defaults)
+        store.toggle("public.users", in: scope)
+        store.toggle("public.audit", in: scope)
+
+        let groups = store.partition([table("audit"), table("orders"), table("users")], in: scope)
+        XCTAssertEqual(groups.pinned.map(\.name), ["users", "audit"], "Pinned tables keep the order they were pinned in")
+        XCTAssertEqual(groups.others.map(\.name), ["orders"])
+        XCTAssertTrue(PinnedTableStore(defaults: defaults).isPinned("public.users", in: scope), "Pins persist")
+        XCTAssertFalse(store.isPinned("public.users", in: PinnedTableStore.scope(profileID: profile, database: "other")))
+
+        store.toggle("public.users", in: scope)
+        XCTAssertFalse(store.isPinned("public.users", in: scope))
+        store.removeAll(for: profile)
+        XCTAssertTrue(store.pins.isEmpty)
+    }
+
+    func testConnectionTestSummaries() {
+        XCTAssertTrue(ConnectionTester.summary(.init(duration: 0.084, databaseCount: 3)).contains("3"))
+        XCTAssertFalse(ConnectionTester.summary(.init(duration: 0.2, databaseCount: nil)).isEmpty)
+    }
+}

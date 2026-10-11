@@ -73,8 +73,24 @@ struct GridCollectionBridge: NSViewRepresentable {
             let column = table.tableColumns[position]
             if let width = configuration.widths[index], old.configuration.widths[index] != width { column.width = width }
             let arrow = sortedColumn == result.columns[index].name ? (sortDirection == "DESC" ? " ▾" : " ▴") : ""
-            column.title = result.columns[index].name + arrow
-            column.headerToolTip = primaryKeys.contains(result.columns[index].name) ? L10n.text("Primary key") : result.columns[index].type
+            let name = result.columns[index].name, type = result.columns[index].type
+            column.title = name + arrow
+            // Show the type beside the name in a quieter style, as desktop SQL clients do.
+            let header = NSMutableAttributedString()
+            if primaryKeys.contains(name), let key = NSImage(systemSymbolName: "key.fill", accessibilityDescription: L10n.text("Primary key")) {
+                let attachment = NSTextAttachment()
+                attachment.image = key.withSymbolConfiguration(.init(pointSize: 10, weight: .semibold))
+                header.append(NSAttributedString(attachment: attachment))
+                header.append(NSAttributedString(string: " "))
+            }
+            header.append(NSAttributedString(string: name + arrow,
+                                             attributes: [.font: NSFont.systemFont(ofSize: 12, weight: .semibold), .foregroundColor: NSColor.labelColor]))
+            if !type.isEmpty {
+                header.append(NSAttributedString(string: "  " + type.lowercased(),
+                                                 attributes: [.font: NSFont.systemFont(ofSize: 10), .foregroundColor: NSColor.tertiaryLabelColor]))
+            }
+            column.headerCell.attributedStringValue = header
+            column.headerToolTip = primaryKeys.contains(name) ? L10n.text("Primary key") + " · " + type : type
         }
         if old.result != result || old.selection != selection || old.visibleColumns != visibleColumns || table.numberOfRows != result.rows.count { table.reloadData() }
     }

@@ -1450,6 +1450,7 @@ struct BookmarksView: View {
             Button("Delete", role: .destructive) {
                 let offsets = IndexSet(bookmarks.bookmarks.indices.filter { pendingDeletionIDs.contains(bookmarks.bookmarks[$0].id) })
                 bookmarks.delete(at: offsets)
+                pendingDeletionIDs.forEach { PinnedTableStore.shared.removeAll(for: $0) }
                 pendingDeletionIDs = []
             }
             Button("Cancel", role: .cancel) {
@@ -1636,6 +1637,8 @@ struct BookmarkEditorView: View {
     @State private var saveError: String?
     /// Set when a connection string import changes the engine, so its imported port is kept.
     @State private var keepsImportedEndpoint = false
+    @State private var testTask: Task<Void, Never>?
+    @State private var testResult: Result<ConnectionTester.Success, Error>?
 
     private static let certificateContentTypes: [UTType] = {
         let filenameTypes = ["pem", "crt", "cer"].compactMap { UTType(filenameExtension: $0) }
@@ -1812,6 +1815,33 @@ struct BookmarkEditorView: View {
                 }
 
                 }
+                Section {
+                    Button {
+                        runConnectionTest()
+                    } label: {
+                        HStack(spacing: 8) {
+                            if testTask != nil { ProgressView().controlSize(.small) }
+                            else { Image(systemName: "bolt.horizontal.circle") }
+                            Text(testTask != nil ? L10n.text("Testing…") : L10n.text("Test Connection"))
+                        }
+                        .frame(minHeight: PortbaseControlSize.minimumHeight)
+                    }
+                    .disabled(!canSave || testTask != nil)
+                    switch testResult {
+                    case .success(let success):
+                        Label(ConnectionTester.summary(success), systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    case .failure(let error):
+                        ConnectionIssueBanner(message: DatabaseErrorFormatter.message(for: error))
+                            .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                    case nil:
+                        EmptyView()
+                    }
+                } footer: {
+                    Text("Testing uses read-only requests and doesn’t save the connection.")
+                }
+                .onChange(of: profile) { _, _ in testResult = nil }
+
                 if let saveError { Section { Text(saveError).foregroundStyle(.red).textSelection(.enabled) } }
                 Section("Notes") {
                     TextField("Notes", text: $profile.notes, axis: .vertical)
@@ -1839,6 +1869,7 @@ struct BookmarkEditorView: View {
             .sheet(isPresented: $isShowingIconPicker) {
                 BookmarkIconPicker(profile: $profile)
             }
+            .onDisappear { testTask?.cancel() }
             .fileImporter(
                 isPresented: $isImportingPrivateCA,
                 allowedContentTypes: Self.certificateContentTypes,
@@ -1864,6 +1895,21 @@ struct BookmarkEditorView: View {
                     privateCAImportError = L10n.text("Portbase could not read this certificate file.")
                 }
             }
+        }
+    }
+
+    private func runConnectionTest() {
+        testTask?.cancel()
+        testResult = nil
+        let candidate = profile
+        testTask = Task {
+            do {
+                let success = try await ConnectionTester.test(candidate)
+                if !Task.isCancelled { testResult = .success(success) }
+            } catch {
+                if !Task.isCancelled { testResult = .failure(error) }
+            }
+            testTask = nil
         }
     }
 

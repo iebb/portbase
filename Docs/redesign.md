@@ -30,6 +30,9 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 | Environments | Connection editor → Environment | Label a connection Development, Testing, Staging, or Production. Its color appears as a stripe and badge above the console and Explorer, in the Mac top bar and sidebar, on Home, and in the server list. Older data decodes as unlabeled, and an unknown label from a newer version never drops the connection. |
 | Copy As | Results → Copy menu; grid context menus (iOS and Mac) | Copy the selection, or every loaded row, as CSV, tab-separated text, JSON, Markdown, or SQL INSERT statements. NULL, empty text, numbers, booleans, JSON, and bytes stay distinct; SQL literals follow each engine's quoting and binary syntax and are never executed by Portbase. |
 | MongoDB documents | MongoDB results → Documents | Each document is a card headed by its decoded `_id`, with Copy JSON and Open actions. |
+| Test Connection | Connection editor | Checks unsaved settings with read-only requests (listing databases, or `PING` for Redis) and reports the time taken, or the explained connection issue. Nothing is saved. |
+| Column types | Result grid headers | Each column shows its database type under (iOS) or beside (Mac) its name. |
+| Pinned tables | Explorer sidebar (swipe or context menu); Mac sidebar context menu | Pinned tables stay at the top of the list for that connection and database on this device, and are cleared when the connection is deleted. |
 | Keyboard and haptics | iPad hardware keyboard: ⌘1–⌘5 tabs, ⌘K search, ⌘, settings; Mac: ⌘0 Home, ⌘1–⌘4 destinations | iPhone and iPad give success or error haptics when a console run finishes. |
 
 The console tab strip, Servers list (summary tiles, security chips, active indicator), Explorer sidebar (row-count badges) and table header chips, Charts grid, and status banners were restyled with the shared components.

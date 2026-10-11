@@ -468,6 +468,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
                 : .monospacedSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .footnote).pointSize, weight: .regular)
             cell.label.textColor = header || rowNumber ? .secondaryLabel : .label
             cell.label.textAlignment = rowNumber ? .center : .left
+            cell.label.numberOfLines = 1
             cell.symbol.image = nil
             cell.accessibilityCustomActions = nil
             cell.accessibilityTraits = selected ? [.button, .selected] : .button
@@ -484,7 +485,17 @@ private struct GridCollectionBridge: UIViewRepresentable {
             if header {
                 let sorted = parent.sortedColumn == column.name
                 cell.symbol.image = parent.primaryKeys.contains(column.name) ? UIImage(systemName: "key.fill") : nil
-                cell.label.text = column.name + (sorted ? (parent.sortDirection == "DESC" ? " ↓" : " ↑") : "")
+                let title = NSMutableAttributedString(string: column.name + (sorted ? (parent.sortDirection == "DESC" ? " ↓" : " ↑") : ""),
+                                                      attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1).withWeight(.semibold),
+                                                                   .foregroundColor: UIColor.label])
+                // The column's type sits under its name, as in desktop SQL clients.
+                if !column.type.isEmpty {
+                    title.append(NSAttributedString(string: "\n" + column.type.lowercased(),
+                                                    attributes: [.font: UIFont.preferredFont(forTextStyle: .caption2),
+                                                                 .foregroundColor: UIColor.tertiaryLabel]))
+                    cell.label.numberOfLines = 2
+                }
+                cell.label.attributedText = title
                 cell.accessibilityLabel = column.name
                 cell.accessibilityValue = ResultGridAccessibility.headerValue(column: column, isPrimaryKey: parent.primaryKeys.contains(column.name), sortDirection: sorted ? parent.sortDirection : nil)
                 cell.accessibilityCustomActions = [UIAccessibilityCustomAction(name: L10n.text("Configure Column")) { [weak self] _ in

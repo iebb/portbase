@@ -1153,3 +1153,10 @@
 "Staging" = "Staging";
 "Tab-Separated" = "Tabulatorgetrennt";
 "Testing" = "Test";
+"Connected in %@." = "Verbunden in %@.";
+"Connected in %@. Databases: %d" = "Verbunden in %@. Datenbanken: %d";
+"Pin" = "Anheften";
+"Unpin" = "Lösen";
+"Test Connection" = "Verbindung testen";
+"Testing uses read-only requests and doesn’t save the connection." = "Der Test verwendet nur Leseanfragen und sichert die Verbindung nicht.";
+"Testing…" = "Test läuft …";

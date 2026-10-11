@@ -1153,3 +1153,10 @@
 "Staging" = "Preproducción";
 "Tab-Separated" = "Separado por tabulaciones";
 "Testing" = "Pruebas";
+"Connected in %@." = "Conectado en %@.";
+"Connected in %@. Databases: %d" = "Conectado en %@. Bases de datos: %d";
+"Pin" = "Fijar";
+"Unpin" = "Dejar de fijar";
+"Test Connection" = "Probar conexión";
+"Testing uses read-only requests and doesn’t save the connection." = "La prueba usa solicitudes de solo lectura y no guarda la conexión.";
+"Testing…" = "Probando…";

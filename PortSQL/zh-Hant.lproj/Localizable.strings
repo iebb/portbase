@@ -1153,3 +1153,10 @@
 "Staging" = "預備環境";
 "Tab-Separated" = "定位字元分隔";
 "Testing" = "測試";
+"Connected in %@." = "已在 %@ 內連線。";
+"Connected in %@. Databases: %d" = "已在 %@ 內連線。資料庫：%d";
+"Pin" = "釘選";
+"Unpin" = "取消釘選";
+"Test Connection" = "測試連線";
+"Testing uses read-only requests and doesn’t save the connection." = "測試僅使用唯讀請求，不會儲存連線。";
+"Testing…" = "正在測試⋯";

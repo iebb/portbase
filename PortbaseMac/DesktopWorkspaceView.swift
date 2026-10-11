@@ -30,6 +30,20 @@ struct DesktopWorkspaceView: View {
     @State private var showsPalette = false
     @State private var deletingProfile: ConnectionProfile?
     @State private var createsSQLite = false
+    @ObservedObject private var pinnedTables = PinnedTableStore.shared
+
+    private var pinScope: String {
+        PinnedTableStore.scope(profileID: workspace.selectedBookmarkID, database: workspace.activeDatabaseName)
+    }
+
+    /// The current connection's tables matching the search, with pinned tables first.
+    private func sidebarTables(for profile: ConnectionProfile) -> [SchemaTableDescriptor] {
+        let matches = workspace.schemaCatalog.filter {
+            search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || profile.name.localizedCaseInsensitiveContains(search)
+        }
+        let groups = pinnedTables.partition(matches, in: pinScope)
+        return groups.pinned + groups.others
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -101,6 +115,7 @@ struct DesktopWorkspaceView: View {
                 if let profile = deletingProfile, let index = bookmarks.bookmarks.firstIndex(where: { $0.id == profile.id }) {
                     for console in consoles.consoles where console.workspace.selectedBookmarkID == profile.id { console.workspace.disconnectConsole() }
                     bookmarks.delete(at: IndexSet(integer: index))
+                    pinnedTables.removeAll(for: profile.id)
                     for console in consoles.consoles where console.workspace.selectedBookmarkID == profile.id { console.workspace.selectBookmark(bookmarks.bookmarks.first?.id) }
                 }
                 deletingProfile = nil
@@ -207,14 +222,19 @@ struct DesktopWorkspaceView: View {
                                 if let error = workspace.schemaErrorMessage {
                                     SidebarConnectionIssueRow(message: error)
                                 }
-                                ForEach(workspace.schemaCatalog.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || profile.name.localizedCaseInsensitiveContains(search) }) { table in
+                                ForEach(sidebarTables(for: profile)) { table in
                                     let selected = workspace.selectedExplorerTableID == table.id && destination == .explorer
+                                    let pinned = pinnedTables.isPinned(table.displayName, in: pinScope)
                                     Button { workspace.selectExplorerTable(table); destination = .explorer } label: {
                                         HStack(spacing: 6) {
                                             Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc" : table.objectKind?.symbol ?? "tablecells")
                                                 .foregroundStyle(selected ? PortSQLPalette.accent : .secondary)
                                                 .frame(width: 16)
                                             Text(table.name).lineLimit(1)
+                                            if pinned {
+                                                Image(systemName: "pin.fill").font(.system(size: 9)).foregroundStyle(Color(red: 0.96, green: 0.62, blue: 0.04))
+                                                    .accessibilityLabel(L10n.text("Pinned"))
+                                            }
                                             Spacer(minLength: 4)
                                             if let estimate = table.rowCountEstimate {
                                                 Text(estimate.formatted(.number.notation(.compactName)))
@@ -229,6 +249,10 @@ struct DesktopWorkspaceView: View {
                                         Button("Query") { workspace.queryText = workspace.defaultQuery(for: table); destination = .console }
                                         Button("Structure") { workspace.selectedExplorerTableID = table.id; destination = .structure }
                                         Button("Copy") { PortbaseClipboard.copy(table.displayName) }
+                                        Divider()
+                                        Button(pinned ? L10n.text("Unpin") : L10n.text("Pin")) {
+                                            withAnimation { pinnedTables.toggle(table.displayName, in: pinScope) }
+                                        }
                                     }
                                 }
                             } else {

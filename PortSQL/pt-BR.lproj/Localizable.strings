@@ -1153,3 +1153,10 @@
 "Staging" = "Homologação";
 "Tab-Separated" = "Separado por tabulações";
 "Testing" = "Testes";
+"Connected in %@." = "Conectado em %@.";
+"Connected in %@. Databases: %d" = "Conectado em %@. Bancos de dados: %d";
+"Pin" = "Fixar";
+"Unpin" = "Desafixar";
+"Test Connection" = "Testar conexão";
+"Testing uses read-only requests and doesn’t save the connection." = "O teste usa solicitações somente leitura e não salva a conexão.";
+"Testing…" = "Testando…";

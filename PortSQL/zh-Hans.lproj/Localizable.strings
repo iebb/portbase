@@ -1153,3 +1153,10 @@
 "Staging" = "预发布";
 "Tab-Separated" = "制表符分隔";
 "Testing" = "测试";
+"Connected in %@." = "已在 %@ 内连接。";
+"Connected in %@. Databases: %d" = "已在 %@ 内连接。数据库：%d";
+"Pin" = "置顶";
+"Unpin" = "取消置顶";
+"Test Connection" = "测试连接";
+"Testing uses read-only requests and doesn’t save the connection." = "测试仅使用只读请求，不会保存连接。";
+"Testing…" = "正在测试…";

@@ -1153,3 +1153,10 @@
 "Staging" = "ステージング";
 "Tab-Separated" = "タブ区切り";
 "Testing" = "テスト";
+"Connected in %@." = "%@ で接続しました。";
+"Connected in %@. Databases: %d" = "%@ で接続しました。データベース: %d";
+"Pin" = "ピン留め";
+"Unpin" = "ピン留めを解除";
+"Test Connection" = "接続をテスト";
+"Testing uses read-only requests and doesn’t save the connection." = "テストは読み取り専用のリクエストのみを使い、接続は保存しません。";
+"Testing…" = "テスト中…";

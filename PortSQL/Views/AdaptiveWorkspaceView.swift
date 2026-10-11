@@ -42,6 +42,11 @@ struct ExplorerWorkspaceView: View {
     var showsConsole = false
     @State private var search = ""
     @State private var preferredColumn: NavigationSplitViewColumn = .detail
+    @ObservedObject private var pinnedTables = PinnedTableStore.shared
+
+    private var pinScope: String {
+        PinnedTableStore.scope(profileID: workspace.selectedBookmarkID, database: workspace.activeDatabaseName)
+    }
 
     var body: some View {
         NavigationSplitView(preferredCompactColumn: $preferredColumn) {
@@ -67,56 +72,15 @@ struct ExplorerWorkspaceView: View {
                     NavigationLink { SchemaBrowserView() } label: { Label("Database Objects", systemImage: "square.stack.3d.up") }
                 }
               }
-              Section {
-                ForEach(workspace.schemaCatalog.filter { search.isEmpty || $0.displayName.localizedCaseInsensitiveContains(search) }) { table in
-                    let selected = workspace.selectedExplorerTableID == table.id
-                    Button {
-                        workspace.selectExplorerTable(table)
-                        preferredColumn = .detail
-                    } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc.fill" : (table.objectKind?.symbol ?? "tablecells"))
-                                .font(.subheadline)
-                                .foregroundStyle(selected ? PortSQLPalette.accent : .secondary)
-                                .frame(width: 22)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(table.name)
-                                    .font(.subheadline.weight(selected ? .semibold : .regular))
-                                    .foregroundStyle(PortSQLPalette.ink)
-                                    .lineLimit(1)
-                                let details = [table.schemaName.isEmpty ? nil : table.schemaName,
-                                               table.columns.isEmpty ? nil : L10n.plural("column_count_short", count: table.columns.count)].compactMap { $0 }
-                                if !details.isEmpty {
-                                    Text(details.joined(separator: " · "))
-                                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                                }
-                            }
-                            Spacer(minLength: 4)
-                            if let estimate = table.rowCountEstimate {
-                                Text(estimate.formatted(.number.notation(.compactName)))
-                                    .font(.caption2.monospacedDigit().weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 6).padding(.vertical, 2)
-                                    .background(PortSQLPalette.sunken, in: Capsule())
-                                    .accessibilityLabel(L10n.plural("row_count", count: estimate))
-                            }
-                        }
-                        .frame(minHeight: 44, alignment: .leading)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .listRowBackground(selected ? PortSQLPalette.accent.opacity(0.10) : nil)
-                    .accessibilityAddTraits(selected ? [.isSelected] : [])
-                    .contextMenu {
-                        Button("Query", systemImage: "terminal") { workspace.queryText = workspace.defaultQuery(for: table) }
-                        Button("Copy Name", systemImage: "doc.on.doc") { PortbaseClipboard.copy(table.displayName) }
-                        if workspace.selectedBookmark?.engine.supportsSchemaObjects == true {
-                            NavigationLink("Structure") {
-                                SchemaObjectView(object: SchemaObject(id: table.displayName, schema: table.schemaName, name: table.name, kind: table.objectKind ?? .table))
-                            }
-                        }
-                    }
+              let filtered = workspace.schemaCatalog.filter { search.isEmpty || $0.displayName.localizedCaseInsensitiveContains(search) }
+              let groups = pinnedTables.partition(filtered, in: pinScope)
+              if !groups.pinned.isEmpty {
+                Section("Pinned") {
+                    ForEach(groups.pinned) { table in tableRow(table) }
                 }
+              }
+              Section {
+                ForEach(groups.others) { table in tableRow(table) }
               } header: {
                   Text(workspace.isDocumentDatabase ? L10n.text("Collections") : L10n.text("Tables"))
               }
@@ -146,5 +110,65 @@ struct ExplorerWorkspaceView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .safeAreaInset(edge: .top, spacing: 0) { if !showsConsole { ConnectionStatusLine() } }
+    }
+
+    private func pinButton(_ table: SchemaTableDescriptor) -> some View {
+        let pinned = pinnedTables.isPinned(table.displayName, in: pinScope)
+        return Button(pinned ? L10n.text("Unpin") : L10n.text("Pin"), systemImage: pinned ? "pin.slash" : "pin") {
+            withAnimation { pinnedTables.toggle(table.displayName, in: pinScope) }
+        }
+    }
+
+    @ViewBuilder
+    private func tableRow(_ table: SchemaTableDescriptor) -> some View {
+        let selected = workspace.selectedExplorerTableID == table.id
+        Button {
+            workspace.selectExplorerTable(table)
+            preferredColumn = .detail
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc.fill" : (table.objectKind?.symbol ?? "tablecells"))
+                    .font(.subheadline)
+                    .foregroundStyle(selected ? PortSQLPalette.accent : .secondary)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(table.name)
+                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .foregroundStyle(PortSQLPalette.ink)
+                        .lineLimit(1)
+                    let details = [table.schemaName.isEmpty ? nil : table.schemaName,
+                                   table.columns.isEmpty ? nil : L10n.plural("column_count_short", count: table.columns.count)].compactMap { $0 }
+                    if !details.isEmpty {
+                        Text(details.joined(separator: " · "))
+                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 4)
+                if let estimate = table.rowCountEstimate {
+                    Text(estimate.formatted(.number.notation(.compactName)))
+                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(PortSQLPalette.sunken, in: Capsule())
+                        .accessibilityLabel(L10n.plural("row_count", count: estimate))
+                }
+            }
+            .frame(minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowBackground(selected ? PortSQLPalette.accent.opacity(0.10) : nil)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
+        .swipeActions(edge: .leading) { pinButton(table).tint(.orange) }
+        .contextMenu {
+            Button("Query", systemImage: "terminal") { workspace.queryText = workspace.defaultQuery(for: table) }
+            Button("Copy Name", systemImage: "doc.on.doc") { PortbaseClipboard.copy(table.displayName) }
+            pinButton(table)
+            if workspace.selectedBookmark?.engine.supportsSchemaObjects == true {
+                NavigationLink("Structure") {
+                    SchemaObjectView(object: SchemaObject(id: table.displayName, schema: table.schemaName, name: table.name, kind: table.objectKind ?? .table))
+                }
+            }
+        }
     }
 }
