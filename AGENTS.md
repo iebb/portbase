@@ -53,7 +53,7 @@ This repository is archived. If work resumes, treat the decisions below as proje
 
 ## Release automation
 
-- Xcode Cloud follows changes to `master`, builds the triggering commit, and uses the shared `PortSQLCloud` and `PortbaseMacCloud` schemes. Keep manual starts for deliberate rebuilds; do not restore the retired GitHub Actions upload workflow.
+- Xcode Cloud follows changes to `master`, builds the triggering commit, and uses the shared `PortSQLCloud` and `PortbaseMacCloud` schemes. Keep Cloud actions limited to archives with internal and external TestFlight delivery; do not restore the retired GitHub Actions upload workflow.
 - Xcode Cloud manages signing for `Release-Cloud`. Preserve existing local Debug/Release signing settings and entitlements. Do not manually create, revoke, or replace certificates as part of routine CI repair, or copy signing keys into the repository.
 - Choose an App Store-compatible marketing version at runtime rather than uploading into a closed or lower version train.
 - Keep the system export tool path (`/usr/bin:/bin:/usr/sbin:/sbin`) for archive export to avoid Homebrew `rsync` incompatibilities.

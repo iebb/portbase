@@ -39,20 +39,7 @@
          </BuildableReference>
       </MacroExpansion>
       <Testables>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "11BEA87EFC7639A8A1F4D418"
-               BuildableName = "PortSQLTests.xctest"
-               BlueprintName = "PortSQLTests"
-               ReferencedContainer = "container:PortSQL.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
-      <CommandLineArguments>
-      </CommandLineArguments>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

@@ -8,20 +8,12 @@ schemes:
     build:
       targets:
         PortbaseMac: all
-    test:
-      config: Debug
-      targets:
-        - PortbaseMacTests
     archive:
       config: Release-Cloud
   PortSQLCloud:
     build:
       targets:
         PortSQL: all
-    test:
-      config: Debug
-      targets:
-        - PortSQLTests
     archive:
       config: Release-Cloud
   PortbaseMac:

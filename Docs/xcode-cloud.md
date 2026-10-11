@@ -1,15 +1,14 @@
 # Xcode Cloud
 
 Xcode Cloud replaces `.github/workflows/nightly-testflight.yml`. The release
-workflow watches changes to `master`, runs the existing iOS and native macOS test
-suites, and archives both apps for TestFlight and App Store distribution. Manual
-runs remain available for deliberate rebuilds. A branch-change trigger avoids
-nightly uploads of unchanged commits.
+workflow watches changes to `master` and archives both apps for internal and
+external TestFlight distribution. There are no test actions or manual-start
+conditions. A branch-change trigger avoids nightly uploads of unchanged commits.
 
 ## Schemes and signing
 
-- `PortSQLCloud`: iOS tests in Debug; archive in Release-Cloud.
-- `PortbaseMacCloud`: native macOS tests in Debug; archive in Release-Cloud.
+- `PortSQLCloud`: iOS archive in Release-Cloud.
+- `PortbaseMacCloud`: native macOS archive in Release-Cloud.
 - Both Cloud archives use automatic signing and team `7P8CLHDH5G`.
 - Existing `PortSQL` and `PortbaseMac` schemes keep their local release settings.
   The Mac Release configuration retains the `Portbase Mac App Store` profile.
@@ -39,14 +38,14 @@ upload. No GitHub Actions signing bundle or App Store Connect key is needed.
 Use the existing Portbase app record (`6762447018`) and repository
 `kitta-co/portsql`, with `PortSQL.xcodeproj` as the container:
 
-1. Enable a branch-change start condition for exactly `master`, plus manual start.
+1. Enable a branch-change start condition for exactly `master`.
 2. Select release Xcode 27 and a compatible macOS environment.
 3. Enable Clean and restrict workflow editing so archives are App Store eligible.
-4. Test `PortSQLCloud` on one current iPhone simulator and `PortbaseMacCloud` on Mac.
-5. Archive `PortSQLCloud` for any iOS device and `PortbaseMacCloud` for any Mac,
+4. Archive `PortSQLCloud` for any iOS device and `PortbaseMacCloud` for any Mac,
    with the TestFlight and App Store distribution audience.
-6. Use the existing internal TestFlight group for delivery. External beta review
-   and public App Store review remain separate submission steps.
+5. Add internal and external TestFlight post-actions for each archive, using the
+   existing `internal` and `external` groups. External beta review and public
+   App Store review remain separate submission steps.
 
 Public Swift package repositories can be fetched without installing the Xcode
 Cloud GitHub app in their owners' organizations. Do not request access to Apple,

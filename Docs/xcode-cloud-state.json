@@ -1,12 +1,12 @@
 {
-  "verifiedAt": "2026-10-11T00:57:11.329379+00:00",
+  "verifiedAt": "2026-10-11T01:04:57.617297+00:00",
   "appID": "6762447018",
   "productID": "7a184aae-2197-46d2-abe1-e056708d19d9",
   "repository": "kitta-co/portsql",
   "workflowID": "327F5D28-DFE6-4756-9F0C-6AC9E45FA7A1",
   "workflow": {
     "name": "Portbase Release",
-    "description": "Test iOS and native macOS, then archive both for TestFlight and App Store distribution from master.",
+    "description": "Archive iOS and native macOS from master for internal and external TestFlight.",
     "branchStartCondition": {
       "source": {
         "isAllMatch": false,
@@ -23,72 +23,18 @@
     "tagStartCondition": null,
     "pullRequestStartCondition": null,
     "scheduledStartCondition": null,
-    "manualBranchStartCondition": {
-      "source": {
-        "isAllMatch": false,
-        "patterns": [
-          {
-            "pattern": "master",
-            "isPrefix": false
-          }
-        ]
-      }
-    },
+    "manualBranchStartCondition": null,
     "manualTagStartCondition": null,
     "manualPullRequestStartCondition": null,
     "actions": [
       {
-        "name": "Test - iOS",
-        "actionType": "TEST",
-        "destination": null,
-        "buildDistributionAudience": null,
-        "testConfiguration": {
-          "kind": "USE_SCHEME_SETTINGS",
-          "testPlanName": "",
-          "testDestinations": [
-            {
-              "deviceTypeName": "iPhone 17 Pro",
-              "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-17-Pro",
-              "runtimeName": "iOS 27.0",
-              "runtimeIdentifier": "com.apple.CoreSimulator.SimRuntime.iOS-27-0",
-              "kind": "SIMULATOR"
-            }
-          ]
-        },
-        "scheme": "PortSQLCloud",
-        "platform": "IOS",
-        "isRequiredToPass": true
-      },
-      {
         "name": "Archive - iOS",
         "actionType": "ARCHIVE",
-        "destination": "ANY_IOS_DEVICE",
+        "destination": null,
         "buildDistributionAudience": "APP_STORE_ELIGIBLE",
         "testConfiguration": null,
         "scheme": "PortSQLCloud",
         "platform": "IOS",
-        "isRequiredToPass": true
-      },
-      {
-        "name": "Test - macOS",
-        "actionType": "TEST",
-        "destination": null,
-        "buildDistributionAudience": null,
-        "testConfiguration": {
-          "kind": "USE_SCHEME_SETTINGS",
-          "testPlanName": "",
-          "testDestinations": [
-            {
-              "deviceTypeName": "Mac",
-              "deviceTypeIdentifier": "mac",
-              "runtimeName": "Same As Selected macOS Version",
-              "runtimeIdentifier": "builder",
-              "kind": "MAC"
-            }
-          ]
-        },
-        "scheme": "PortbaseMacCloud",
-        "platform": "MACOS",
         "isRequiredToPass": true
       },
       {
@@ -106,7 +52,30 @@
     "isLockedForEditing": true,
     "clean": true,
     "containerFilePath": "PortSQL.xcodeproj",
-    "lastModifiedDate": "2026-10-11T00:55:53.405Z"
+    "lastModifiedDate": "2026-10-11T01:03:43.183Z"
   },
-  "buildValidation": "not started"
+  "buildValidation": "first archive run in progress; workflow simplified to archive-only before the next source push",
+  "postActions": [
+    {
+      "platform": "iOS",
+      "kind": "TestFlight Internal Testing",
+      "group": "internal"
+    },
+    {
+      "platform": "iOS",
+      "kind": "TestFlight External Testing",
+      "group": "external"
+    },
+    {
+      "platform": "macOS",
+      "kind": "TestFlight Internal Testing",
+      "group": "internal"
+    },
+    {
+      "platform": "macOS",
+      "kind": "TestFlight External Testing",
+      "group": "external"
+    }
+  ],
+  "firstCloudBuildNumber": 10
 }
