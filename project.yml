@@ -1,5 +1,29 @@
 name: PortSQL
+configs:
+  Debug: debug
+  Release: release
+  Release-Cloud: release
 schemes:
+  PortbaseMacCloud:
+    build:
+      targets:
+        PortbaseMac: all
+    test:
+      config: Debug
+      targets:
+        - PortbaseMacTests
+    archive:
+      config: Release-Cloud
+  PortSQLCloud:
+    build:
+      targets:
+        PortSQL: all
+    test:
+      config: Debug
+      targets:
+        - PortSQLTests
+    archive:
+      config: Release-Cloud
   PortbaseMac:
     build:
       targets:
@@ -159,6 +183,9 @@ targets:
           CODE_SIGN_STYLE: Manual
           CODE_SIGN_IDENTITY: Apple Distribution
           PROVISIONING_PROFILE_SPECIFIER: Portbase Mac App Store
+          ONLY_ACTIVE_ARCH: NO
+        Release-Cloud:
+          CODE_SIGN_STYLE: Automatic
           ONLY_ACTIVE_ARCH: NO
     dependencies:
       - package: MongoKitten
