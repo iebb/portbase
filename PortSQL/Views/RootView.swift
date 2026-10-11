@@ -808,6 +808,10 @@ struct ResultsCard: View {
     private let pagerControlHeight: CGFloat = 44
 
     private var hasTabularResult: Bool { !workspace.result.columns.isEmpty }
+    private var queryPlan: QueryPlan? {
+        guard QueryPlanService.isExplainResult(workspace.result) else { return nil }
+        return QueryPlanService.plan(from: workspace.result, engine: workspace.selectedBookmark?.engine ?? .postgresql)
+    }
 
     var body: some View {
         PanelCard {
@@ -859,6 +863,7 @@ struct ResultsCard: View {
                     .pickerStyle(.segmented)
                 } else if hasTabularResult && !workspace.isRunning {
                     Picker("Results", selection: $tableResultView) {
+                        if queryPlan != nil { Label("Plan", systemImage: "list.bullet.indent").tag("plan") }
                         Label("Table", systemImage: "tablecells").tag("table")
                         Label("Insights", systemImage: "sparkles").tag("insights")
                     }
@@ -964,10 +969,16 @@ struct ResultsCard: View {
                     )
                 } else if workspace.result.documents == nil && tableResultView == "insights" {
                     ResultInsightsView(result: workspace.result)
+                } else if workspace.result.documents == nil && tableResultView == "plan", let queryPlan {
+                    QueryPlanView(plan: queryPlan)
                 } else {
                     resultTable
                 }
             }
+        }
+        .onChange(of: queryPlan != nil, initial: true) { _, hasPlan in
+            // Explain results open on their plan; other results return to the table.
+            if hasPlan { tableResultView = "plan" } else if tableResultView == "plan" { tableResultView = "table" }
         }
         .sheet(isPresented: $isShowingSchemaSheet) {
             schemaSheet
@@ -1050,12 +1061,18 @@ struct ResultsCard: View {
             actionsForCell: { rowIndex, columnIndex in
                 guard workspace.result.rows.indices.contains(rowIndex), workspace.result.columns.indices.contains(columnIndex) else { return [] }
                 let row = workspace.result.rows[rowIndex]
-                return workspace.foreignKeys.filter { $0.columns.contains(workspace.result.columns[columnIndex].name) }.map { key in
+                var actions = workspace.foreignKeys.filter { $0.columns.contains(workspace.result.columns[columnIndex].name) }.map { key in
                     ResultGridRowAction(title: L10n.format("Go to %@", key.referencedTable)) {
                         guard workspace.result.rows.contains(where: { $0.id == row.id }) else { return }
                         workspace.followForeignKey(key, row: row)
                     }
                 }
+                if workspace.canInsertIntoCurrentTable, workspace.selectedBookmark?.isReadOnly != true, workspace.result.documents == nil {
+                    actions.insert(ResultGridRowAction(title: L10n.text("Duplicate Row"), symbolName: "plus.square.on.square") {
+                        workspace.prepareDuplicate(row: row)
+                    }, at: 0)
+                }
+                return actions
             },
             copyEngine: workspace.selectedBookmark?.engine,
             copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName

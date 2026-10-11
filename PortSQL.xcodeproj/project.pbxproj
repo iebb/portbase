@@ -45,7 +45,9 @@
 		1DDAF727A09CACD67B95B03A /* DatabaseService+DataTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA37ABF0B4F735A4AE66464B /* DatabaseService+DataTransfer.swift */; };
 		1E18FF043CAAEE593834094B /* MongoDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7867B3292D0801CEF08B739 /* MongoDatabaseClient.swift */; };
 		1E64BAE770072DE127C77049 /* SQLSafetyServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */; };
+		1E69E8B64C7777CEA5C89830 /* QueryPlanAndDuplicateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */; };
 		1E8EA809618D2BD72EEFAEC9 /* RedisExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B0A370E82250B1810FDAEF /* RedisExplorerView.swift */; };
+		1EA99AE62070991C88462F58 /* QueryPlanAndDuplicateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */; };
 		20632EE6856900E2D355C7E8 /* SQLSafetyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50BB47279C113C0DDAD076A2 /* SQLSafetyService.swift */; };
 		20DFF208BACA38F4811613D7 /* SQLSyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */; };
 		21761F0B2E88CB7C8FF61D78 /* RedisDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE5661E67BD7F142174871C /* RedisDatabaseClient.swift */; };
@@ -175,6 +177,7 @@
 		844E54BB7106AD53815C2890 /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C43FD9CD8FFE98EA50A6AFE /* ExplorerView.swift */; };
 		86EDEB93300F512693176EF1 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */; };
 		8711D518313BB446FC280F8B /* NIOHTTP1 in Frameworks */ = {isa = PBXBuildFile; productRef = 03FADCDDCCAE0BDA655ECA72 /* NIOHTTP1 */; };
+		884192A7C374801C0C5DAF65 /* QueryPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */; };
 		8955EE2BC4F582387F068C91 /* MongoDocumentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2958FC4E2B745E93C90C45B /* MongoDocumentEditor.swift */; };
 		8A3821456C079FD236135759 /* DatabaseSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */; };
 		8A564980FC3AD9E971E4AAA0 /* MongoQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D16A9DA7C565C1D6AF7543 /* MongoQueryService.swift */; };
@@ -238,8 +241,10 @@
 		BAF1A917DE7EFEBD71C31664 /* BookmarkIconCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */; };
 		BBB3948B8C7BE6FB57C53369 /* DataTransferCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D4EFAF42F531F9539F6EDA /* DataTransferCodec.swift */; };
 		BBBCE3578E3F464E6393549B /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 390FD0E554A554B968FD2C83 /* NIOSSH */; };
+		BDBA77BFC29C23310DE87955 /* QueryPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */; };
 		BED11A309EFB0DE37F25D657 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */; };
 		BF914C434AA65586E8D62F69 /* MongoDocumentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2958FC4E2B745E93C90C45B /* MongoDocumentEditor.swift */; };
+		BFAB685F6C704AA5704A4DA3 /* QueryPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7ED5BC215AA4E7222335938 /* QueryPlanView.swift */; };
 		C057ACAD8C4CDECB0263AD2E /* EditorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9031C5697CDA58F9C4079CA2 /* EditorTheme.swift */; };
 		C1BA6039F0763AA690AC652E /* MySQLNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 18736417DDF51B6ABD0DAF72 /* MySQLNIO */; };
 		C1E934566FFF6E7AE1DA4BB9 /* MongoDocumentEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5386C3FB749D9E3C6F4B50C /* MongoDocumentEditingTests.swift */; };
@@ -292,6 +297,7 @@
 		F455B079CFF7001426061604 /* SchemaBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA673F1C8FB7ADB6B7FA6BB4 /* SchemaBrowserView.swift */; };
 		F48644F4C21CE757C4E3ECE9 /* RedisCommandService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C14B81968F6B961EC57B9332 /* RedisCommandService.swift */; };
 		F48D868C8FB4473B51106833 /* MongoConnectionURISection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58750B53D283A84AE142316 /* MongoConnectionURISection.swift */; };
+		F4E9B3E3ACDCEDF1D4333D61 /* QueryPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7ED5BC215AA4E7222335938 /* QueryPlanView.swift */; };
 		F6778A3C26F81896FE27E9E0 /* LocalSQLiteDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B36875515CEA46E2FF225D5 /* LocalSQLiteDatabase.swift */; };
 		F7AF0B56113CC79A9B1FB3C9 /* ResultGridChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251D87D88DCD9B94086CB2C2 /* ResultGridChartTests.swift */; };
 		F820077C467AE9C08D281E27 /* ElasticsearchQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E631A350C0B3328E7171FF4E /* ElasticsearchQueryService.swift */; };
@@ -370,6 +376,7 @@
 		3EDF1388F29A03F73175F5CF /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ja; path = ja.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		3EE53A06B4D778F2F9E510D1 /* PinnedTableStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedTableStore.swift; sourceTree = "<group>"; };
 		3F931BDF7628C962CE3B5ACE /* MongoExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoExplorerView.swift; sourceTree = "<group>"; };
+		4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryPlanAndDuplicateTests.swift; sourceTree = "<group>"; };
 		4652F0CAD2489F2A36BCE616 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
 		465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataEditorValidationService.swift; sourceTree = "<group>"; };
 		46D099F14C26E51D6333F2A1 /* SQLiteConnectionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteConnectionSection.swift; sourceTree = "<group>"; };
@@ -463,6 +470,7 @@
 		C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParameterAndExportServiceTests.swift; sourceTree = "<group>"; };
 		CA37ABF0B4F735A4AE66464B /* DatabaseService+DataTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DatabaseService+DataTransfer.swift"; sourceTree = "<group>"; };
 		CA673F1C8FB7ADB6B7FA6BB4 /* SchemaBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaBrowserView.swift; sourceTree = "<group>"; };
+		CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryPlanService.swift; sourceTree = "<group>"; };
 		CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHTunnelServiceTests.swift; sourceTree = "<group>"; };
 		CF2634609186A8C0C442FED0 /* VisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizerView.swift; sourceTree = "<group>"; };
 		D2D0276E9870FCF05D930284 /* HTTPDatabaseAuthenticationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPDatabaseAuthenticationSection.swift; sourceTree = "<group>"; };
@@ -470,6 +478,7 @@
 		D51D052A6EDBBBEC17FF22ED /* SQLTemplateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLTemplateService.swift; sourceTree = "<group>"; };
 		D580722EA09FAA6C99677231 /* SQLiteDatabaseClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteDatabaseClientTests.swift; sourceTree = "<group>"; };
 		D686DBEF679D564B9F556AC8 /* RedisRESPCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisRESPCodec.swift; sourceTree = "<group>"; };
+		D7ED5BC215AA4E7222335938 /* QueryPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryPlanView.swift; sourceTree = "<group>"; };
 		D85CB4CB9C1C326CE1965C54 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ru; path = ru.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		DA54A12478FFE3FC1B19012D /* DatabaseErrorFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseErrorFormatter.swift; sourceTree = "<group>"; };
 		DBE5661E67BD7F142174871C /* RedisDatabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisDatabaseClient.swift; sourceTree = "<group>"; };
@@ -641,6 +650,7 @@
 				52D16A9DA7C565C1D6AF7543 /* MongoQueryService.swift */,
 				3EE53A06B4D778F2F9E510D1 /* PinnedTableStore.swift */,
 				E8C0B78E00C4985082E65410 /* QueryParameterService.swift */,
+				CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */,
 				C14B81968F6B961EC57B9332 /* RedisCommandService.swift */,
 				DBE5661E67BD7F142174871C /* RedisDatabaseClient.swift */,
 				D686DBEF679D564B9F556AC8 /* RedisRESPCodec.swift */,
@@ -688,6 +698,7 @@
 				15ABDD9D3363094B27F1C170 /* MongoQueryServiceTests.swift */,
 				8DB7EBAD5423F6AFD0A4984F /* ProductUIStateTests.swift */,
 				C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */,
+				4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */,
 				FA803D509860DB47C604F547 /* RedisServiceTests.swift */,
 				251D87D88DCD9B94086CB2C2 /* ResultGridChartTests.swift */,
 				E39B44C66543C65AE60594D5 /* SQLAssistServiceTests.swift */,
@@ -774,6 +785,7 @@
 				63C52CE99FBA2ED6D018425D /* MongoQueryEditorCard.swift */,
 				9C872754AF981E9529ECBC05 /* NewSQLiteDatabasePrompt.swift */,
 				04DF60A3CC28A1715A9CEB85 /* PlatformSupport.swift */,
+				D7ED5BC215AA4E7222335938 /* QueryPlanView.swift */,
 				69B0A370E82250B1810FDAEF /* RedisExplorerView.swift */,
 				F29DF17A5E18CD2E54079465 /* RedisQueryEditorCard.swift */,
 				84B9D14041642CE740791883 /* ResultCellInspector.swift */,
@@ -1070,6 +1082,8 @@
 				5FE9D0D0F21E5543E06131E6 /* ProductUIState.swift in Sources */,
 				F362C30AF47219D0E17A9B0A /* QueryModels.swift in Sources */,
 				2D114BC1B6B8959F8D42831C /* QueryParameterService.swift in Sources */,
+				BDBA77BFC29C23310DE87955 /* QueryPlanService.swift in Sources */,
+				F4E9B3E3ACDCEDF1D4333D61 /* QueryPlanView.swift in Sources */,
 				F48644F4C21CE757C4E3ECE9 /* RedisCommandService.swift in Sources */,
 				21761F0B2E88CB7C8FF61D78 /* RedisDatabaseClient.swift in Sources */,
 				77F7B4CF5C709554CD4B2961 /* RedisExplorerView.swift in Sources */,
@@ -1133,6 +1147,7 @@
 				41C2D891989D6871B30DB1EA /* MongoQueryServiceTests.swift in Sources */,
 				61A3900733ECECC7820CD038 /* ProductUIStateTests.swift in Sources */,
 				437BA04B864EB17A28149E47 /* QueryParameterAndExportServiceTests.swift in Sources */,
+				1EA99AE62070991C88462F58 /* QueryPlanAndDuplicateTests.swift in Sources */,
 				07636E71B9789D2EE0DB3E24 /* RedisServiceTests.swift in Sources */,
 				D973259D5B46C6C16518A235 /* ResultGridChartTests.swift in Sources */,
 				9C6D50C36E191E664544E879 /* SQLAssistServiceTests.swift in Sources */,
@@ -1161,6 +1176,7 @@
 				7EF165E31E9C457C44DBA91C /* MongoDocumentEditingTests.swift in Sources */,
 				25F1F84D1130640DF8491AFC /* MongoQueryServiceTests.swift in Sources */,
 				8A80F1989B95AEED61B61D15 /* QueryParameterAndExportServiceTests.swift in Sources */,
+				1E69E8B64C7777CEA5C89830 /* QueryPlanAndDuplicateTests.swift in Sources */,
 				66C754302A675F2AF2791EDC /* RedisServiceTests.swift in Sources */,
 				F7AF0B56113CC79A9B1FB3C9 /* ResultGridChartTests.swift in Sources */,
 				7B0635F3FA17FEF9133579D7 /* SQLAssistServiceTests.swift in Sources */,
@@ -1243,6 +1259,8 @@
 				6FCC70B5A9F6BA67BDDDB951 /* ProductUIState.swift in Sources */,
 				B4188143545AF24376A1B143 /* QueryModels.swift in Sources */,
 				840D1CEF920D56AB08F43F45 /* QueryParameterService.swift in Sources */,
+				884192A7C374801C0C5DAF65 /* QueryPlanService.swift in Sources */,
+				BFAB685F6C704AA5704A4DA3 /* QueryPlanView.swift in Sources */,
 				778A9B7ADB5856331F12A5B9 /* RedisCommandService.swift in Sources */,
 				4E9DD6FCC2CF82F59419E172 /* RedisDatabaseClient.swift in Sources */,
 				1E8EA809618D2BD72EEFAEC9 /* RedisExplorerView.swift in Sources */,

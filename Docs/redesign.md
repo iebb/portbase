@@ -33,6 +33,9 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 | Test Connection | Connection editor | Checks unsaved settings with read-only requests (listing databases, or `PING` for Redis) and reports the time taken, or the explained connection issue. Nothing is saved. |
 | Column types | Result grid headers | Each column shows its database type under (iOS) or beside (Mac) its name. |
 | Pinned tables | Explorer sidebar (swipe or context menu); Mac sidebar context menu | Pinned tables stay at the top of the list for that connection and database on this device, and are cleared when the connection is deleted. |
+| Visual EXPLAIN | Explain → Results → Plan (selected automatically) | PostgreSQL and ClickHouse text plans, SQLite query plans, and MySQL/MariaDB EXPLAIN rows become an indented tree with costs, relative cost bars, row estimates, details, and warnings for full scans, sorts without an index, and temporary tables. |
+| Duplicate Row | Row context menu for editable Explorer tables | Opens the insert editor pre-filled from the row; primary-key and unique columns start empty, NULL stays NULL, and binary values are left out. Saving uses the normal reviewed, parameter-bound insert. |
+| Row Details | Mac results bar → Row Details | Lists the selected row's fields vertically with types, NULL and empty-text styling, and per-field copy. |
 | Keyboard and haptics | iPad hardware keyboard: ⌘1–⌘5 tabs, ⌘K search, ⌘, settings; Mac: ⌘0 Home, ⌘1–⌘4 destinations | iPhone and iPad give success or error haptics when a console run finishes. |
 
 The console tab strip, Servers list (summary tiles, security chips, active indicator), Explorer sidebar (row-count badges) and table header chips, Charts grid, and status banners were restyled with the shared components.

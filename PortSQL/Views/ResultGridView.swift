@@ -90,6 +90,8 @@ struct ResultGridView: View {
     /// Enables SQL INSERT copying with engine-specific literals.
     var copyEngine: DatabaseEngine?
     var copyTableName: String?
+    /// Reports the loaded-row index of the focused cell's row, for detail panes.
+    var onSelectRow: ((Int?) -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var configuration = ResultGridConfiguration()
@@ -224,6 +226,10 @@ struct ResultGridView: View {
         .onChange(of: result.columns.map { $0.name + ":" + $0.type }) { _, _ in filter = LoadedResultFilter(); updateFilter() }
         .onChange(of: result) { _, _ in updateFilter() }
         .onChange(of: filter) { _, _ in updateFilter() }
+        .onChange(of: selection) { _, value in
+            guard let onSelectRow else { return }
+            if let row = value?.end.row, rowIndices.indices.contains(row) { onSelectRow(rowIndices[row]) } else { onSelectRow(nil) }
+        }
         .onAppear { updateFilter() }
         .onChange(of: configurationKey, initial: true) { _, key in
             selection = nil

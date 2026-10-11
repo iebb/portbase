@@ -503,6 +503,12 @@ private struct DesktopResultsView: View {
     @State private var selectedDocument: MongoDocumentSelection?
     @State private var exportURL: URL?
     @State private var tableMode = "table"
+    @AppStorage("Portbase.showsRowDetails") private var showsRowDetails = false
+    @State private var focusedRow: Int?
+    private var queryPlan: QueryPlan? {
+        guard QueryPlanService.isExplainResult(workspace.result) else { return nil }
+        return QueryPlanService.plan(from: workspace.result, engine: workspace.selectedBookmark?.engine ?? .postgresql)
+    }
     private var chartPreset: SavedVisualizationPreset {
         VisualizationService.reconciledPreset(nil, for: workspace.result, connectionProfileID: workspace.selectedBookmark?.id,
             connectionName: workspace.selectedBookmark?.name ?? L10n.text("Current Result"), databaseName: workspace.activeDatabaseName, sourceTableReference: workspace.result.sourceTableReference)
@@ -514,6 +520,7 @@ private struct DesktopResultsView: View {
                 Text("Results").fontWeight(.semibold)
                 if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
                     Picker("Results", selection: $tableMode) {
+                        if queryPlan != nil { Label("Plan", systemImage: "list.bullet.indent").tag("plan") }
                         Label("Table", systemImage: "tablecells").tag("table")
                         Label("Insights", systemImage: "sparkles").tag("insights")
                     }.labelsHidden().pickerStyle(.segmented).fixedSize()
@@ -530,6 +537,11 @@ private struct DesktopResultsView: View {
                 if workspace.isRunning { ProgressView().controlSize(.small) }
                 Spacer()
                 if workspace.isDocumentDatabase { MongoInsertDocumentButton() }
+                if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
+                    Toggle(isOn: $showsRowDetails) { Label("Row Details", systemImage: "sidebar.right") }
+                        .toggleStyle(.button)
+                        .help(L10n.text("Show the selected row’s fields"))
+                }
                 if canChart { Button("Configure Chart", systemImage: "chart.xyaxis.line") { composerPreset = chartPreset } }
                 Menu {
                     Button("CSV") { exportURL = workspace.exportResultURL(format: .csv) }
@@ -554,14 +566,24 @@ private struct DesktopResultsView: View {
                 .padding(10)
             }
             Group {
-                if (presentation == "insights" && workspace.result.documents != nil) || (tableMode == "insights" && workspace.result.documents == nil && !workspace.result.columns.isEmpty) {
+                if tableMode == "plan", workspace.result.documents == nil, let queryPlan {
+                    ScrollView { QueryPlanView(plan: queryPlan).padding(14) }
+                } else if (presentation == "insights" && workspace.result.documents != nil) || (tableMode == "insights" && workspace.result.documents == nil && !workspace.result.columns.isEmpty) {
                     ScrollView { ResultInsightsView(result: workspace.result).padding(14) }
                 } else if presentation == "chart" && workspace.result.documents != nil {
                     if canChart { VisualizationChartPreview(preset: chartPreset, result: workspace.result, compact: false).padding(12) }
                     else { Text("Run a query with numeric fields to create a chart.").foregroundStyle(.secondary) }
                 } else if presentation == "documents", let documents = workspace.result.documents {
                     ScrollView { MongoDocumentResults(documents: documents, context: MongoDocumentMutationContext.from(workspace: workspace)).padding(12) }
-                } else if !workspace.result.columns.isEmpty { grid }
+                } else if !workspace.result.columns.isEmpty {
+                    if showsRowDetails {
+                        HSplitView {
+                            grid.frame(minWidth: 320)
+                            RowDetailsPanel(result: workspace.result, rowIndex: focusedRow)
+                                .frame(minWidth: 240, idealWidth: 300, maxWidth: 480)
+                        }
+                    } else { grid }
+                }
                 else { Text(workspace.result.affectedRowCount != nil ? workspace.result.executionSummary : L10n.text("No live rows yet")).font(.callout).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity) }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
@@ -577,6 +599,9 @@ private struct DesktopResultsView: View {
                     Button("Next results page", systemImage: "chevron.right") { workspace.goToNextExplorerPage() }.labelStyle(.iconOnly).disabled(!workspace.canGoToNextExplorerPage)
                 }
             }.font(.system(size: 12)).buttonStyle(.borderless).padding(.horizontal, 10).frame(height: 32).background(PortSQLPalette.panel)
+        }
+        .onChange(of: queryPlan != nil, initial: true) { _, hasPlan in
+            if hasPlan { tableMode = "plan" } else if tableMode == "plan" { tableMode = "table" }
         }
         .sheet(item: $composerPreset) { preset in VisualizerComposerSheet(initialPreset: preset).frame(minWidth: 680, minHeight: 520) }
         .sheet(item: $selectedDocument) { selection in MongoDocumentInspector(selection: selection).frame(minWidth: 600, minHeight: 480) }
@@ -595,12 +620,19 @@ private struct DesktopResultsView: View {
             actionsForCell: { row, column in
                 guard workspace.result.rows.indices.contains(row), workspace.result.columns.indices.contains(column) else { return [] }
                 let value = workspace.result.rows[row]
-                return workspace.foreignKeys.filter { $0.columns.contains(workspace.result.columns[column].name) }.map { key in
+                var actions = workspace.foreignKeys.filter { $0.columns.contains(workspace.result.columns[column].name) }.map { key in
                     ResultGridRowAction(title: L10n.format("Go to %@", key.referencedTable)) { workspace.followForeignKey(key, row: value) }
                 }
+                if workspace.canInsertIntoCurrentTable, workspace.selectedBookmark?.isReadOnly != true, workspace.result.documents == nil {
+                    actions.insert(ResultGridRowAction(title: L10n.text("Duplicate Row"), symbolName: "plus.square.on.square") {
+                        workspace.prepareDuplicate(row: value)
+                    }, at: 0)
+                }
+                return actions
             },
             copyEngine: workspace.selectedBookmark?.engine,
-            copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName)
+            copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName,
+            onSelectRow: { focusedRow = $0 })
     }
 }
 
@@ -826,5 +858,62 @@ private struct SidebarConnectionIssueRow: View {
                 .padding(12)
                 .frame(width: 420)
         }
+    }
+}
+
+/// The fields of one loaded row, listed vertically with their types.
+private struct RowDetailsPanel: View {
+    let result: QueryResultTable
+    let rowIndex: Int?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Row Details").font(.system(size: 13, weight: .semibold))
+                Spacer()
+                if let rowIndex { Text(L10n.format("Row %d", rowIndex + 1)).font(.caption).foregroundStyle(.secondary) }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 32)
+            .background(PortSQLPalette.panel)
+            Divider()
+            if let rowIndex, result.rows.indices.contains(rowIndex) {
+                let row = result.rows[rowIndex]
+                List {
+                    ForEach(result.columns.indices, id: \.self) { index in
+                        let cell = row.cells.indices.contains(index) ? row.cells[index] : .null
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Text(result.columns[index].name).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                                Text(result.columns[index].type.lowercased()).font(.system(size: 10)).foregroundStyle(.tertiary)
+                                Spacer(minLength: 4)
+                                Button { PortbaseClipboard.copy(cell.displayValue) } label: { Image(systemName: "doc.on.doc") }
+                                    .buttonStyle(.borderless)
+                                    .disabled(cell.isNull)
+                                    .help(L10n.text("Copy"))
+                            }
+                            Group {
+                                if cell.isNull {
+                                    Text(verbatim: "NULL").italic().foregroundStyle(.tertiary)
+                                } else if cell.displayValue.isEmpty {
+                                    Text(verbatim: "\"\"").foregroundStyle(.tertiary).help(L10n.text("Empty text"))
+                                } else {
+                                    Text(cell.displayValue).textSelection(.enabled).lineLimit(12)
+                                }
+                            }
+                            .font(.system(size: 13, design: .monospaced))
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+                .listStyle(.inset)
+            } else {
+                Text("Select a cell to see its row.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .background(PortSQLPalette.surface)
     }
 }

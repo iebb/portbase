@@ -1105,6 +1105,27 @@ final class WorkspaceViewModel: ObservableObject {
         dataEditorErrorMessage = nil
     }
 
+    /// Opens the insert editor pre-filled from a loaded row. Primary-key and unique columns start empty so
+    /// the database can assign them, and binary values are left out. Nothing is written until the editor is saved.
+    func prepareDuplicate(row: QueryRow) {
+        prepareInsert()
+        guard var draft = dataEditorDraft, draft.mode == .insert else { return }
+        let names = result.columns.map { normalizedIdentifier($0.name) }
+        // Ambiguous result columns can't be matched to table columns safely; keep the blank insert form.
+        guard Set(names).count == names.count else { return }
+        draft.fields = draft.fields.map { field in
+            guard field.isEditable, !field.column.isPrimaryKey, !field.column.isUnique,
+                  let index = names.firstIndex(of: normalizedIdentifier(field.column.name)) else { return field }
+            let cell = row.cells[safe: index] ?? .null
+            guard !cell.isBinary else { return field }
+            var copy = field
+            copy.value = cell.isNull ? "" : cell.displayValue
+            copy.isNull = cell.isNull
+            return copy
+        }
+        dataEditorDraft = draft
+    }
+
     func saveDataEditor() {
         guard let draft = dataEditorDraft,
               let bookmark = selectedBookmark else {
