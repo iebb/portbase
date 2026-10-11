@@ -1140,3 +1140,16 @@
 "This connection string asks for an unencrypted connection. TLS stays required; choose Plaintext Only under Transport Security only if the server has no TLS." = "この接続文字列は暗号化されない接続を求めています。TLS は必須のままです。サーバーが TLS に対応していない場合に限り、転送セキュリティで「平文のみ」を選んでください。";
 "This connection string is incomplete or malformed. Check the host, port, and encoding." = "この接続文字列は不完全か形式が正しくありません。ホスト、ポート、エンコードを確認してください。";
 "This connection string names a CA certificate file. Import that certificate under Transport Security." = "この接続文字列は CA 証明書ファイルを指定しています。その証明書を転送セキュリティで取り込んでください。";
+"A labeled environment shows a colored stripe and badge wherever this connection is open." = "環境を設定すると、この接続を開いている場所に色付きの帯とバッジが表示されます。";
+"Copy All Rows As" = "すべての行を次の形式でコピー";
+"Copy As" = "形式を指定してコピー";
+"Copy JSON" = "JSON をコピー";
+"Copy Selection As" = "選択範囲を次の形式でコピー";
+"Development" = "開発";
+"Environment" = "環境";
+"Environment: %@" = "環境: %@";
+"Production" = "本番";
+"SQL INSERT Statements" = "SQL INSERT 文";
+"Staging" = "ステージング";
+"Tab-Separated" = "タブ区切り";
+"Testing" = "テスト";

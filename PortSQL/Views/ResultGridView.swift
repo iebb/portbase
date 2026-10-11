@@ -87,6 +87,9 @@ struct ResultGridView: View {
     var onSort: ((String) -> Void)?
     var onOpenRow: ((Int) -> Void)?
     var actionsForCell: ((Int, Int) -> [ResultGridRowAction])?
+    /// Enables SQL INSERT copying with engine-specific literals.
+    var copyEngine: DatabaseEngine?
+    var copyTableName: String?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var configuration = ResultGridConfiguration()
@@ -161,6 +164,11 @@ struct ResultGridView: View {
                     Menu {
                         Button("Copy Selected Cells") { copySelection() }.disabled(selection == nil)
                         Button("Copy with Headers") { copySelection(headers: true) }.disabled(selection == nil)
+                        Section(selection == nil ? L10n.text("Copy All Rows As") : L10n.text("Copy Selection As")) {
+                            ForEach(ResultCopyFormat.available(for: copyEngine)) { format in
+                                Button(format.title, systemImage: format.systemImage) { copy(as: format) }
+                            }
+                        }
                         Button("Select All") { selectAll() }
                     } label: {
                         Label("Copy", systemImage: "doc.on.doc")
@@ -199,7 +207,9 @@ struct ResultGridView: View {
                 onInspectCell: { row, column in inspect(row: row, column: column) },
                 onConfigureColumn: { focusedColumn = $0; showsColumns = true },
                 onPinColumn: { index in togglePinned(index) },
-                onHideColumn: { index in hideColumn(index) }
+                onHideColumn: { index in hideColumn(index) },
+                copyFormats: ResultCopyFormat.available(for: copyEngine),
+                onCopyAs: { copy(as: $0) }
             )
             .frame(height: gridHeight)
 #if os(macOS)
@@ -340,6 +350,15 @@ struct ResultGridView: View {
         guard let selection else { return }
         ResultGridClipboard.copy(result: displayedResult, visibleColumns: visibleColumns, selection: selection, headers: headers)
     }
+
+    /// Copies the selection, or every loaded row when nothing is selected, in the given format.
+    private func copy(as format: ResultCopyFormat) {
+        guard !rowIndices.isEmpty, !visibleColumns.isEmpty else { return }
+        let range = selection ?? ResultGridSelection(anchor: .init(row: 0, column: 0),
+                                                     end: .init(row: rowIndices.count - 1, column: visibleColumns.count - 1))
+        let payload = ResultGridClipboard.payload(result: displayedResult, visibleColumns: visibleColumns, selection: range)
+        PortbaseClipboard.copy(ResultCopyFormatter.text(payload, format: format, engine: copyEngine, table: copyTableName))
+    }
 }
 
 #if canImport(UIKit)
@@ -360,6 +379,8 @@ private struct GridCollectionBridge: UIViewRepresentable {
     let onConfigureColumn: (Int) -> Void
     let onPinColumn: (Int) -> Void
     let onHideColumn: (Int) -> Void
+    var copyFormats: [ResultCopyFormat] = []
+    var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -568,6 +589,14 @@ private struct GridCollectionBridge: UIViewRepresentable {
                     },
                     UIAction(title: L10n.text("Extend cell selection"), image: UIImage(systemName: "rectangle.dashed")) { _ in self.parent.extendsSelection = true; self.select(indexPath) }
                 ]
+                if !self.parent.copyFormats.isEmpty {
+                    actions.append(UIMenu(title: L10n.text("Copy As"), image: UIImage(systemName: "doc.on.clipboard"), children: self.parent.copyFormats.map { format in
+                        UIAction(title: format.title, image: UIImage(systemName: format.systemImage)) { _ in
+                            if self.parent.selection?.contains(row: indexPath.section - 1, column: indexPath.item - 1) != true { self.parent.extendsSelection = false; self.select(indexPath) }
+                            self.parent.onCopyAs(format)
+                        }
+                    }))
+                }
                 if self.parent.onOpenRow != nil {
                     actions.append(UIAction(title: L10n.text("Open Row"), image: UIImage(systemName: "arrow.up.left.and.arrow.down.right")) { _ in self.parent.onOpenRow?(indexPath.section - 1) })
                 }

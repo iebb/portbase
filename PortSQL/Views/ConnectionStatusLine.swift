@@ -1,23 +1,30 @@
 import SwiftUI
 
+/// The connection's environment stripe plus access and security warnings above a workspace.
 struct ConnectionStatusLine: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
 
     var body: some View {
-        if let profile = workspace.selectedBookmark,
-           profile.isReadOnly || (!profile.engine.isLocal && profile.transportSecurityMode == .plaintext) {
-            HStack(spacing: 8) {
-                if profile.isReadOnly {
-                    PortbaseChip(title: L10n.text("Read-only"), systemImage: "lock.fill", tint: .secondary)
+        if let profile = workspace.selectedBookmark {
+            let unencrypted = !profile.engine.isLocal && profile.transportSecurityMode == .plaintext
+            VStack(spacing: 0) {
+                EnvironmentStripe(environment: profile.environment)
+                if profile.environment != .none || profile.isReadOnly || unencrypted {
+                    HStack(spacing: 8) {
+                        EnvironmentBadge(environment: profile.environment)
+                        if profile.isReadOnly {
+                            PortbaseChip(title: L10n.text("Read-only"), systemImage: "lock.fill", tint: .secondary)
+                        }
+                        if unencrypted {
+                            PortbaseChip(title: L10n.text("Unencrypted"), systemImage: "lock.open.fill", tint: .red, filled: true)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.bar)
                 }
-                if !profile.engine.isLocal && profile.transportSecurityMode == .plaintext {
-                    PortbaseChip(title: L10n.text("Unencrypted"), systemImage: "lock.open.fill", tint: .red, filled: true)
-                }
-                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(.bar)
         }
     }
 }

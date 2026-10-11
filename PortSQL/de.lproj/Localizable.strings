@@ -1140,3 +1140,16 @@
 "This connection string asks for an unencrypted connection. TLS stays required; choose Plaintext Only under Transport Security only if the server has no TLS." = "Diese Verbindungszeichenfolge verlangt eine unverschlüsselte Verbindung. TLS bleibt erforderlich; wählen Sie unter Transportsicherheit nur dann „Nur Klartext“, wenn der Server kein TLS bietet.";
 "This connection string is incomplete or malformed. Check the host, port, and encoding." = "Diese Verbindungszeichenfolge ist unvollständig oder fehlerhaft. Prüfen Sie Host, Port und Kodierung.";
 "This connection string names a CA certificate file. Import that certificate under Transport Security." = "Diese Verbindungszeichenfolge nennt eine CA-Zertifikatsdatei. Importieren Sie dieses Zertifikat unter Transportsicherheit.";
+"A labeled environment shows a colored stripe and badge wherever this connection is open." = "Eine gekennzeichnete Umgebung zeigt überall, wo diese Verbindung geöffnet ist, einen farbigen Streifen und ein Abzeichen.";
+"Copy All Rows As" = "Alle Zeilen kopieren als";
+"Copy As" = "Kopieren als";
+"Copy JSON" = "JSON kopieren";
+"Copy Selection As" = "Auswahl kopieren als";
+"Development" = "Entwicklung";
+"Environment" = "Umgebung";
+"Environment: %@" = "Umgebung: %@";
+"Production" = "Produktion";
+"SQL INSERT Statements" = "SQL-INSERT-Anweisungen";
+"Staging" = "Staging";
+"Tab-Separated" = "Tabulatorgetrennt";
+"Testing" = "Test";

@@ -59,7 +59,10 @@ struct HomeView: View {
                 HStack(spacing: 12) {
                     BookmarkAvatar(profile: profile, size: 40, cornerRadius: 10)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(profile.displayTitle).font(.headline).lineLimit(1)
+                        HStack(spacing: 6) {
+                            Text(profile.displayTitle).font(.headline).lineLimit(1)
+                            EnvironmentBadge(environment: profile.environment)
+                        }
                         Text(profile.endpointSummary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer(minLength: 8)

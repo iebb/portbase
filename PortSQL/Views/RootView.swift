@@ -1056,7 +1056,9 @@ struct ResultsCard: View {
                         workspace.followForeignKey(key, row: row)
                     }
                 }
-            }
+            },
+            copyEngine: workspace.selectedBookmark?.engine,
+            copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName
         )
     }
 
@@ -1710,6 +1712,14 @@ struct BookmarkEditorView: View {
                     }
                     }
                     Toggle("Read-only mode", isOn: $profile.isReadOnly)
+                }
+
+                Section {
+                    EnvironmentPicker(selection: $profile.environment)
+                } header: {
+                    Text("Environment")
+                } footer: {
+                    Text("A labeled environment shows a colored stripe and badge wherever this connection is open.")
                 }
 
                 if profile.engine.isLocal { SQLiteConnectionSection(profile: $profile) }

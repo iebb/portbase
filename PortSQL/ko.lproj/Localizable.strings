@@ -1140,3 +1140,16 @@
 "This connection string asks for an unencrypted connection. TLS stays required; choose Plaintext Only under Transport Security only if the server has no TLS." = "이 연결 문자열은 암호화되지 않은 연결을 요청합니다. TLS는 계속 필수이며, 서버에 TLS가 없을 때만 전송 보안에서 일반 텍스트만을 선택하세요.";
 "This connection string is incomplete or malformed. Check the host, port, and encoding." = "이 연결 문자열이 불완전하거나 형식이 잘못되었습니다. 호스트, 포트 및 인코딩을 확인하세요.";
 "This connection string names a CA certificate file. Import that certificate under Transport Security." = "이 연결 문자열은 CA 인증서 파일을 지정합니다. 전송 보안에서 해당 인증서를 가져오세요.";
+"A labeled environment shows a colored stripe and badge wherever this connection is open." = "환경을 지정하면 이 연결이 열린 곳마다 색상 띠와 배지가 표시됩니다.";
+"Copy All Rows As" = "모든 행을 다음 형식으로 복사";
+"Copy As" = "다음 형식으로 복사";
+"Copy JSON" = "JSON 복사";
+"Copy Selection As" = "선택 영역을 다음 형식으로 복사";
+"Development" = "개발";
+"Environment" = "환경";
+"Environment: %@" = "환경: %@";
+"Production" = "프로덕션";
+"SQL INSERT Statements" = "SQL INSERT 문";
+"Staging" = "스테이징";
+"Tab-Separated" = "탭으로 구분";
+"Testing" = "테스트";

@@ -30,6 +30,8 @@ struct GridCollectionBridge: NSViewRepresentable {
     let onConfigureColumn: (Int) -> Void
     let onPinColumn: (Int) -> Void
     let onHideColumn: (Int) -> Void
+    var copyFormats: [ResultCopyFormat] = []
+    var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
@@ -149,6 +151,18 @@ struct GridCollectionBridge: NSViewRepresentable {
             add("Inspect Cell", to: menu) { self.parent.onInspectCell(row, column) }
             add("Copy Selected Cells", to: menu) { self.copySelection() }
             add("Copy with Headers", to: menu) { self.copySelection(headers: true) }
+            if !parent.copyFormats.isEmpty {
+                let copyAs = NSMenuItem(title: L10n.text("Copy As"), action: nil, keyEquivalent: "")
+                let submenu = NSMenu()
+                for format in parent.copyFormats {
+                    let item = NSMenuItem(title: format.title, action: #selector(performAction(_:)), keyEquivalent: "")
+                    item.target = self; item.tag = actions.count
+                    actions.append { self.parent.onCopyAs(format) }
+                    submenu.addItem(item)
+                }
+                copyAs.submenu = submenu
+                menu.addItem(copyAs)
+            }
             if let onOpenRow = parent.onOpenRow { add("Open Row", to: menu) { onOpenRow(row) } }
             for action in parent.actionsForCell?(row, column) ?? [] { add(action.title, to: menu, action: action.perform) }
             menu.addItem(.separator())

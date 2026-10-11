@@ -1140,3 +1140,16 @@
 "This connection string asks for an unencrypted connection. TLS stays required; choose Plaintext Only under Transport Security only if the server has no TLS." = "Эта строка подключения запрашивает незашифрованное соединение. TLS остаётся обязательным; выбирайте «Только без шифрования» в разделе «Безопасность соединения», только если на сервере нет TLS.";
 "This connection string is incomplete or malformed. Check the host, port, and encoding." = "Строка подключения неполная или некорректная. Проверьте хост, порт и кодировку.";
 "This connection string names a CA certificate file. Import that certificate under Transport Security." = "Строка подключения указывает файл сертификата ЦС. Импортируйте этот сертификат в разделе «Безопасность соединения».";
+"A labeled environment shows a colored stripe and badge wherever this connection is open." = "Для помеченного окружения везде, где открыто это подключение, показываются цветная полоса и значок.";
+"Copy All Rows As" = "Скопировать все строки как";
+"Copy As" = "Скопировать как";
+"Copy JSON" = "Скопировать JSON";
+"Copy Selection As" = "Скопировать выделение как";
+"Development" = "Разработка";
+"Environment" = "Окружение";
+"Environment: %@" = "Окружение: %@";
+"Production" = "Продакшен";
+"SQL INSERT Statements" = "Инструкции SQL INSERT";
+"Staging" = "Предпродакшен";
+"Tab-Separated" = "С разделителями-табуляциями";
+"Testing" = "Тестирование";

@@ -37,22 +37,40 @@ struct MongoDocumentResults: View {
             }
             ForEach(Array(documents.enumerated()), id: \.offset) { index, document in
                 VStack(alignment: .leading, spacing: 8) {
-                    Button {
-                        selectedDocument = MongoDocumentSelection(index: index, json: document, context: context)
-                    } label: {
-                        HStack {
-                            Text(L10n.format("Document %d", index + 1))
-                            Spacer()
-                            Image(systemName: "arrow.up.left.and.arrow.down.right")
+                    HStack(spacing: 8) {
+                        if let identifier = MongoDocumentSummary.identifier(in: document) {
+                            Text(verbatim: "_id").font(.caption.monospaced()).foregroundStyle(.secondary)
+                            Text(verbatim: identifier)
+                                .font(.caption.monospaced().weight(.semibold))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .textSelection(.enabled)
+                        } else {
+                            Text(L10n.format("Document %d", index + 1)).font(.caption.weight(.semibold))
                         }
-                        .font(.caption.weight(.semibold))
-                        .frame(minHeight: PortbaseControlSize.minimumHeight)
+                        Spacer(minLength: 8)
+                        Button {
+                            PortbaseClipboard.copy(document)
+                        } label: {
+                            Image(systemName: "doc.on.doc").frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Copy JSON")
+                        Button {
+                            selectedDocument = MongoDocumentSelection(index: index, json: document, context: context)
+                        } label: {
+                            Image(systemName: "arrow.up.left.and.arrow.down.right").frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight)
+                        }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel(L10n.format("Document %d", index + 1))
+                        .accessibilityHint("Open full document")
                     }
-                    .accessibilityHint("Open full document")
                     MongoDocumentTree(json: document, preview: true)
                 }
-                .padding(.vertical, 8)
-                Divider()
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .portbaseCardSurface(radius: 12)
+                .padding(.bottom, 8)
             }
         }
         .sheet(item: $selectedDocument) { selection in
@@ -212,5 +230,28 @@ private struct MongoValueRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: field.key))
         .accessibilityValue(Text(verbatim: String(field.preview.prefix(500))))
+    }
+}
+
+enum MongoDocumentSummary {
+    /// The document's `_id`, decoded from Canonical Extended JSON wrappers such as `{"$oid": …}`.
+    static func identifier(in json: String) -> String? {
+        guard let data = json.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let value = object["_id"] else { return nil }
+        return describe(value)
+    }
+
+    private static func describe(_ value: Any) -> String? {
+        if let string = value as? String { return string }
+        if let number = value as? NSNumber { return number.stringValue }
+        if let wrapper = value as? [String: Any], wrapper.count == 1, let (key, inner) = wrapper.first, key.hasPrefix("$") {
+            if let string = inner as? String { return string }
+            if let nested = inner as? [String: Any], let date = nested["$numberLong"] as? String { return date }
+            return describe(inner)
+        }
+        guard JSONSerialization.isValidJSONObject(value),
+              let data = try? JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]) else { return nil }
+        return String(data: data, encoding: .utf8)
     }
 }

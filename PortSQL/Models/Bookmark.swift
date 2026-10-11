@@ -82,6 +82,34 @@ enum TransportSecurityMode: String, Codable, CaseIterable, Identifiable {
     var permitsPlaintext: Bool { self == .preferTLS || self == .plaintext }
 }
 
+/// A label that marks which deployment a connection reaches, shown wherever the connection is used.
+enum ConnectionEnvironment: String, Codable, CaseIterable, Identifiable {
+    case none, development, testing, staging, production
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .none: L10n.text("None")
+        case .development: L10n.text("Development")
+        case .testing: L10n.text("Testing")
+        case .staging: L10n.text("Staging")
+        case .production: L10n.text("Production")
+        }
+    }
+
+    /// Fixed colors, so sidebar vibrancy can't re-tint them.
+    var color: Color {
+        switch self {
+        case .none: .secondary
+        case .development: Color(red: 0.13, green: 0.63, blue: 0.42)
+        case .testing: Color(red: 0.18, green: 0.50, blue: 0.93)
+        case .staging: Color(red: 0.93, green: 0.55, blue: 0.16)
+        case .production: Color(red: 0.90, green: 0.25, blue: 0.24)
+        }
+    }
+}
+
 struct ConnectionProfile: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     var name: String
@@ -114,6 +142,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var sshPassphrase: String = ""
     var schemaCachingEnabled: Bool = true
     var schemaCacheDurationHours: Int = 24
+    var environment: ConnectionEnvironment = .none
     var createdAt: Date = .now
 
     func duplicate() -> ConnectionProfile {
@@ -213,6 +242,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         case sshPassphrase
         case schemaCachingEnabled
         case schemaCacheDurationHours
+        case environment
         case createdAt
     }
 
@@ -355,6 +385,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         sshPassphrase = try container.decodeIfPresent(String.self, forKey: .sshPassphrase) ?? ""
         schemaCachingEnabled = try container.decodeIfPresent(Bool.self, forKey: .schemaCachingEnabled) ?? true
         schemaCacheDurationHours = max(1, try container.decodeIfPresent(Int.self, forKey: .schemaCacheDurationHours) ?? 24)
+        // An unknown label from a newer version must not make the whole connection unreadable.
+        environment = (try? container.decodeIfPresent(ConnectionEnvironment.self, forKey: .environment)) ?? .none
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
     }
 
@@ -391,6 +423,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         try container.encode("", forKey: .sshPassphrase)
         try container.encode(schemaCachingEnabled, forKey: .schemaCachingEnabled)
         try container.encode(max(1, schemaCacheDurationHours), forKey: .schemaCacheDurationHours)
+        try container.encodeIfPresent(environment == .none ? nil : environment, forKey: .environment)
         try container.encode(createdAt, forKey: .createdAt)
     }
 }

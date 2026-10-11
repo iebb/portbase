@@ -1140,3 +1140,16 @@
 "This connection string asks for an unencrypted connection. TLS stays required; choose Plaintext Only under Transport Security only if the server has no TLS." = "This connection string asks for an unencrypted connection. TLS stays required; choose Plaintext Only under Transport Security only if the server has no TLS.";
 "This connection string is incomplete or malformed. Check the host, port, and encoding." = "This connection string is incomplete or malformed. Check the host, port, and encoding.";
 "This connection string names a CA certificate file. Import that certificate under Transport Security." = "This connection string names a CA certificate file. Import that certificate under Transport Security.";
+"A labeled environment shows a colored stripe and badge wherever this connection is open." = "A labeled environment shows a colored stripe and badge wherever this connection is open.";
+"Copy All Rows As" = "Copy All Rows As";
+"Copy As" = "Copy As";
+"Copy JSON" = "Copy JSON";
+"Copy Selection As" = "Copy Selection As";
+"Development" = "Development";
+"Environment" = "Environment";
+"Environment: %@" = "Environment: %@";
+"Production" = "Production";
+"SQL INSERT Statements" = "SQL INSERT Statements";
+"Staging" = "Staging";
+"Tab-Separated" = "Tab-Separated";
+"Testing" = "Testing";

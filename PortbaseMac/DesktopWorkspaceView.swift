@@ -166,6 +166,7 @@ struct DesktopWorkspaceView: View {
                         .accessibilityHidden(true)
                     BookmarkAvatar(profile: profile, size: 18, cornerRadius: 5)
                     Text(profile.displayTitle).lineLimit(1).font(.system(size: 13, weight: .medium))
+                    EnvironmentBadge(environment: profile.environment, compact: true)
                     DatabasePicker().labelsHidden()
                 }
                 .help(profile.endpointSummary)
@@ -239,17 +240,21 @@ struct DesktopWorkspaceView: View {
                                     BookmarkAvatar(profile: profile, size: 20, cornerRadius: 6)
                                     Text(profile.displayTitle).lineLimit(1)
                                         .fontWeight(workspace.selectedBookmarkID == profile.id ? .semibold : .regular)
+                                    if profile.environment != .none {
+                                        Circle().fill(profile.environment.color).frame(width: 7, height: 7)
+                                            .help(profile.environment.title)
+                                    }
                                     Spacer(minLength: 4)
                                     if profile.isReadOnly { Image(systemName: "lock.fill").font(.caption).foregroundStyle(.secondary) }
                                     if profile.transportSecurityMode == .plaintext && !profile.engine.isLocal {
-                                        Image(systemName: "lock.open.fill").foregroundStyle(.red).help(L10n.text("Unencrypted"))
+                                        Image(systemName: "lock.open.fill").foregroundStyle(Color(red: 0.90, green: 0.25, blue: 0.24)).help(L10n.text("Unencrypted"))
                                     }
                                     if workspace.selectedBookmarkID == profile.id, let error = workspace.schemaErrorMessage {
                                         let issue = ConnectionIssue.classify(error)
                                         Image(systemName: issue.isSecurityIssue ? "lock.trianglebadge.exclamationmark.fill" : "exclamationmark.triangle.fill")
-                                            .foregroundStyle(.orange).help(issue.title)
+                                            .foregroundStyle(Color(red: 0.96, green: 0.62, blue: 0.04)).help(issue.title)
                                     }
-                                    if workspace.selectedBookmarkID == profile.id { Circle().fill(Color.green).frame(width: 6, height: 6) }
+                                    if workspace.selectedBookmarkID == profile.id { Circle().fill(Color(red: 0.2, green: 0.78, blue: 0.35)).frame(width: 6, height: 6) }
                                 }.contentShape(Rectangle())
                             }.buttonStyle(.plain)
                             .foregroundStyle(workspace.selectedBookmarkID == profile.id ? PortSQLPalette.accent : .primary)
@@ -569,7 +574,9 @@ private struct DesktopResultsView: View {
                 return workspace.foreignKeys.filter { $0.columns.contains(workspace.result.columns[column].name) }.map { key in
                     ResultGridRowAction(title: L10n.format("Go to %@", key.referencedTable)) { workspace.followForeignKey(key, row: value) }
                 }
-            })
+            },
+            copyEngine: workspace.selectedBookmark?.engine,
+            copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName)
     }
 }
 
@@ -776,7 +783,7 @@ private struct SidebarConnectionIssueRow: View {
         Button { showsIssue = true } label: {
             HStack(spacing: 6) {
                 Image(systemName: issue.isSecurityIssue ? "lock.trianglebadge.exclamationmark.fill" : "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color(red: 0.96, green: 0.62, blue: 0.04))
                 Text(issue.title).lineLimit(1).truncationMode(.tail)
                 Spacer(minLength: 4)
                 Image(systemName: "info.circle").foregroundStyle(.secondary)

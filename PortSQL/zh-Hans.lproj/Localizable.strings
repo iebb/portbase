@@ -1140,3 +1140,16 @@
 "This connection string asks for an unencrypted connection. TLS stays required; choose Plaintext Only under Transport Security only if the server has no TLS." = "此连接字符串要求未加密的连接。TLS 仍为必需；仅当服务器没有 TLS 时，才在传输安全中选择“仅明文”。";
 "This connection string is incomplete or malformed. Check the host, port, and encoding." = "此连接字符串不完整或格式错误。请检查主机、端口和编码。";
 "This connection string names a CA certificate file. Import that certificate under Transport Security." = "此连接字符串指定了 CA 证书文件。请在传输安全中导入该证书。";
+"A labeled environment shows a colored stripe and badge wherever this connection is open." = "设置环境后，在此连接打开的地方都会显示彩色条和标记。";
+"Copy All Rows As" = "将所有行复制为";
+"Copy As" = "复制为";
+"Copy JSON" = "复制 JSON";
+"Copy Selection As" = "将所选内容复制为";
+"Development" = "开发";
+"Environment" = "环境";
+"Environment: %@" = "环境：%@";
+"Production" = "生产";
+"SQL INSERT Statements" = "SQL INSERT 语句";
+"Staging" = "预发布";
+"Tab-Separated" = "制表符分隔";
+"Testing" = "测试";

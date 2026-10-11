@@ -27,6 +27,7 @@
 		0E58660712FC1099DAC3ED2D /* ResultCellInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B9D14041642CE740791883 /* ResultCellInspector.swift */; };
 		0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */; };
 		0EFC8591E35F00DB2E186409 /* MongoQueryDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BFC06791ABF93966E200632 /* MongoQueryDraft.swift */; };
+		0F35D83D2F570175665AD499 /* ResultCopyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FBA23C69DADEC2B085A0E7 /* ResultCopyFormatter.swift */; };
 		0FC5AB682FC2F8E10CF8A5BE /* MongoConnectionOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858C33D538E82DE60542BD2C /* MongoConnectionOptions.swift */; };
 		0FD3C3B5901BC1DD3F758AFA /* WorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B89D239D48FE17AB83512E6 /* WorkspaceViewModel.swift */; };
 		103A5DBF510F3B425C54BE30 /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 191E7961BD5B29C00811F0EA /* NIOSSH */; };
@@ -87,6 +88,7 @@
 		3F4F270C8A071A7A0E2CD732 /* Crypto in Frameworks */ = {isa = PBXBuildFile; productRef = 2C1A17A86B43B1FD8FFDAA13 /* Crypto */; };
 		3F61C3333F9BF9AD20846B40 /* ClickHouseDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AFD3BD8AC9A13A7B595C68 /* ClickHouseDatabaseClient.swift */; };
 		3F8775515111911DB106E11A /* ElasticsearchDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266104AD5AF46E38E1A8CD0F /* ElasticsearchDatabaseClient.swift */; };
+		3FA469AD11C3D4EB794F641B /* ResultCopyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FBA23C69DADEC2B085A0E7 /* ResultCopyFormatter.swift */; };
 		3FEB745B5D87FE2A25F273BF /* DataTransferModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A5A8BD8B3776437D1D7D3C /* DataTransferModels.swift */; };
 		40AED5A673FB8612E91CB78A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C635AF9BA9BDBE927890DBA3 /* SettingsView.swift */; };
 		41C2D891989D6871B30DB1EA /* MongoQueryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15ABDD9D3363094B27F1C170 /* MongoQueryServiceTests.swift */; };
@@ -99,6 +101,7 @@
 		486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23331E5633F855E60F40421E /* VisualizationServiceTests.swift */; };
 		4974231030C743F5C928FC15 /* WorkspaceLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */; };
 		4BCB65540C496B30A9F91A12 /* DatabaseService+Redis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05652535CA38CA654159765 /* DatabaseService+Redis.swift */; };
+		4BD0748C743FB775694F6B44 /* CopyFormatsAndEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D6719856F1A43DE76F9253 /* CopyFormatsAndEnvironmentTests.swift */; };
 		4C234974BDE0F29A67D749F2 /* LocalizationKeychainAndCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B00FBD279062676E4B5484F /* LocalizationKeychainAndCatalogTests.swift */; };
 		4C438159BEDCBA5C8CEE0B36 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = C177CBD18B2443B5289FD915 /* NIOPosix */; };
 		4C93ACFF28EE282EFF604F5D /* SQLiteStatementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA70C64EDA6BB2FC2068BD8E /* SQLiteStatementService.swift */; };
@@ -193,6 +196,7 @@
 		96D448BE52D74DC81A9E700E /* ElasticsearchQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E631A350C0B3328E7171FF4E /* ElasticsearchQueryService.swift */; };
 		977D88BA24232D50370E0062 /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E43B7EE9DE024E2C885B4C /* Bookmark.swift */; };
 		97AFC55F0ED658B5831DA75E /* SQLStructureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EFF3B085748734815401FF /* SQLStructureService.swift */; };
+		98243B77E6974EFEEC60C584 /* CopyFormatsAndEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D6719856F1A43DE76F9253 /* CopyFormatsAndEnvironmentTests.swift */; };
 		9A4C2244264E44A75AD686FB /* SQLiteDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03DA5F64AAE6D4280F68B27 /* SQLiteDatabaseClient.swift */; };
 		9A90E47616093281B702D1BA /* RedisQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29DF17A5E18CD2E54079465 /* RedisQueryEditorCard.swift */; };
 		9C6ADE8AD6C1043ECF74A7D6 /* DataTransferModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A5A8BD8B3776437D1D7D3C /* DataTransferModels.swift */; };
@@ -436,6 +440,7 @@
 		B3946FBA138916EE9E5CB365 /* PortSQL-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "PortSQL-Bridging-Header.h"; sourceTree = "<group>"; };
 		B437AF4FAD02E804BCE4FBCA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.stringsdict"; sourceTree = "<group>"; };
 		B4BFA3F7222219E28B6D0948 /* WorkspaceCloudCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceCloudCollection.swift; sourceTree = "<group>"; };
+		B4FBA23C69DADEC2B085A0E7 /* ResultCopyFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultCopyFormatter.swift; sourceTree = "<group>"; };
 		B7867B3292D0801CEF08B739 /* MongoDatabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDatabaseClient.swift; sourceTree = "<group>"; };
 		B8B685BE103998684123BF20 /* ElasticsearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElasticsearchModels.swift; sourceTree = "<group>"; };
 		B996C268E818B31DBE9B19BB /* SchemaObjects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaObjects.swift; sourceTree = "<group>"; };
@@ -470,6 +475,7 @@
 		E58750B53D283A84AE142316 /* MongoConnectionURISection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoConnectionURISection.swift; sourceTree = "<group>"; };
 		E5EF3726F667E1FB0E249A5C /* VisualizationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationModels.swift; sourceTree = "<group>"; };
 		E631A350C0B3328E7171FF4E /* ElasticsearchQueryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElasticsearchQueryService.swift; sourceTree = "<group>"; };
+		E6D6719856F1A43DE76F9253 /* CopyFormatsAndEnvironmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyFormatsAndEnvironmentTests.swift; sourceTree = "<group>"; };
 		E8046BC1D007122EB7F0FA2E /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		E8C0B78E00C4985082E65410 /* QueryParameterService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParameterService.swift; sourceTree = "<group>"; };
 		E9F1931C56AE2F37BF716948 /* ConnectionStringImportSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStringImportSection.swift; sourceTree = "<group>"; };
@@ -630,6 +636,7 @@
 				C14B81968F6B961EC57B9332 /* RedisCommandService.swift */,
 				DBE5661E67BD7F142174871C /* RedisDatabaseClient.swift */,
 				D686DBEF679D564B9F556AC8 /* RedisRESPCodec.swift */,
+				B4FBA23C69DADEC2B085A0E7 /* ResultCopyFormatter.swift */,
 				FDEC7CD18B27601AF3A8FF44 /* ResultInsightsService.swift */,
 				77AD64E9FD53B446DBDE8C9F /* ResultInspectionService.swift */,
 				88816ECE5369279575107C83 /* SchemaCacheStore.swift */,
@@ -663,6 +670,7 @@
 			children = (
 				E54C3105572FED20DFE6A024 /* ConnectionImportAndIssueTests.swift */,
 				DFFCE96A9FFBC25F139FD31F /* ConsoleStorageAndSQLTests.swift */,
+				E6D6719856F1A43DE76F9253 /* CopyFormatsAndEnvironmentTests.swift */,
 				C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */,
 				382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */,
 				28B25BDE7E7A65B66500341C /* DataTransferServiceTests.swift */,
@@ -1059,6 +1067,7 @@
 				BA1CE97DE235220026E3AF25 /* RedisQueryEditorCard.swift in Sources */,
 				D9C07FDDCC78B515649FEA24 /* RedisRESPCodec.swift in Sources */,
 				0E58660712FC1099DAC3ED2D /* ResultCellInspector.swift in Sources */,
+				0F35D83D2F570175665AD499 /* ResultCopyFormatter.swift in Sources */,
 				32BB7250B995878DFFC92188 /* ResultGridView.swift in Sources */,
 				951EF16B96D362BC1F847A0F /* ResultInsightsService.swift in Sources */,
 				687E8A63196B55871E2969F0 /* ResultInsightsView.swift in Sources */,
@@ -1104,6 +1113,7 @@
 			files = (
 				09A54070D62D073F85DB2118 /* ConnectionImportAndIssueTests.swift in Sources */,
 				12215840CC69326999DA90B1 /* ConsoleStorageAndSQLTests.swift in Sources */,
+				4BD0748C743FB775694F6B44 /* CopyFormatsAndEnvironmentTests.swift in Sources */,
 				A768695EDF8DD4F4A4E1A2BA /* DataEditorValidationServiceTests.swift in Sources */,
 				2BAF2F652EADD801E65AE3A2 /* DataTransferServiceTests.swift in Sources */,
 				8A3821456C079FD236135759 /* DatabaseSafetyTests.swift in Sources */,
@@ -1132,6 +1142,7 @@
 			files = (
 				8F44E2EEFD024762B3AA93A4 /* ConnectionImportAndIssueTests.swift in Sources */,
 				6801E86699C4826804508E49 /* ConsoleStorageAndSQLTests.swift in Sources */,
+				98243B77E6974EFEEC60C584 /* CopyFormatsAndEnvironmentTests.swift in Sources */,
 				DAF8506C7D41B649E9D41F41 /* DataEditorValidationServiceTests.swift in Sources */,
 				3EEC5A8566F58DC8E51D4B00 /* DataTransferServiceTests.swift in Sources */,
 				70735FB732D8A9C8ED20C955 /* DatabaseSafetyTests.swift in Sources */,
@@ -1227,6 +1238,7 @@
 				9A90E47616093281B702D1BA /* RedisQueryEditorCard.swift in Sources */,
 				B949CFA9C1A1EA3AF1B4E8A9 /* RedisRESPCodec.swift in Sources */,
 				6A5EC5F68CD5A2EBBBC02D69 /* ResultCellInspector.swift in Sources */,
+				3FA469AD11C3D4EB794F641B /* ResultCopyFormatter.swift in Sources */,
 				F8D0E9D67CEF3CDCB36E5DA6 /* ResultGridView.swift in Sources */,
 				286594798B4902D9598AEF16 /* ResultInsightsService.swift in Sources */,
 				639AE4A9774ACBE852C3A46D /* ResultInsightsView.swift in Sources */,

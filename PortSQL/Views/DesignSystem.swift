@@ -416,6 +416,7 @@ struct ConnectionSecurityChips: View {
 
     var body: some View {
         HStack(spacing: 6) {
+            EnvironmentBadge(environment: profile.environment)
             if profile.isReadOnly {
                 PortbaseChip(title: L10n.text("Read-only"), systemImage: "lock.fill", tint: .secondary)
             }
@@ -446,5 +447,79 @@ extension ConnectionProfile {
         engine.isLocal
             ? "SQLite • " + (sqliteFileName.map { SQLiteFileStore.displayName(fileName: $0).replacingOccurrences(of: "_", with: " ") } ?? L10n.text("File unavailable"))
             : "\(engine.rawValue) • \(host):\(String(port))"
+    }
+}
+
+// MARK: - Environments
+
+/// A filled label such as PRODUCTION; nothing is shown for connections without an environment.
+struct EnvironmentBadge: View {
+    let environment: ConnectionEnvironment
+    var compact = false
+
+    var body: some View {
+        if environment != .none {
+            Text(environment.title.uppercased())
+                .font(.system(size: compact ? 9 : 10, weight: .bold))
+                .tracking(0.4)
+                .foregroundStyle(.white)
+                .padding(.horizontal, compact ? 5 : 7)
+                .padding(.vertical, compact ? 2 : 3)
+                .background(environment.color, in: Capsule())
+                .lineLimit(1)
+                .fixedSize()
+                .accessibilityLabel(L10n.format("Environment: %@", environment.title))
+        }
+    }
+}
+
+/// A thin colored rule across the top of a workspace connected to a labeled environment.
+struct EnvironmentStripe: View {
+    let environment: ConnectionEnvironment
+
+    var body: some View {
+        if environment != .none {
+            environment.color
+                .frame(height: 3)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+/// Environment choices as tappable capsules.
+struct EnvironmentPicker: View {
+    @Binding var selection: ConnectionEnvironment
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ConnectionEnvironment.allCases) { environment in
+                    let selected = selection == environment
+                    Button {
+                        selection = environment
+                    } label: {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(environment == .none ? Color.secondary.opacity(0.4) : environment.color)
+                                .frame(width: 8, height: 8)
+                            Text(environment.title).lineLimit(1)
+                        }
+                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .foregroundStyle(PortSQLPalette.ink)
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: PortbaseControlSize.minimumHeight)
+                        .background(selected ? (environment == .none ? PortSQLPalette.sunken : environment.color.opacity(0.15)) : Color.clear, in: Capsule())
+                        .overlay {
+                            Capsule().strokeBorder(selected ? (environment == .none ? PortSQLPalette.stroke : environment.color) : PortSQLPalette.stroke,
+                                                   lineWidth: selected ? 1.5 : 1)
+                        }
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+            .padding(.vertical, 2)
+        }
     }
 }
