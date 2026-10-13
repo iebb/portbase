@@ -73,10 +73,10 @@ enum EditorTheme: String, CaseIterable, Identifiable {
         switch self {
         case .portbase:
             colorScheme == .dark
-                ? EditorPalette(background: 0x0E1119, gutter: 0x121621, plain: 0xD8DEE9, keyword: 0x9D9BFF, string: 0xF5B971,
-                                number: 0x5EEAD4, comment: 0x6B7488, identifier: 0xE2E8F0, symbol: 0xF472B6, isDark: true)
-                : EditorPalette(background: 0xFAFBFD, gutter: 0xF1F3F8, plain: 0x1F2433, keyword: 0x4F46E5, string: 0xB45309,
-                                number: 0x0E8F6A, comment: 0x8A94A6, identifier: 0x1F2433, symbol: 0xC026D3, isDark: false)
+                ? EditorPalette(background: 0x0B1020, gutter: 0x0E1427, plain: 0xC9CEDB, keyword: 0x3FC48A, string: 0xF7C14D,
+                                number: 0x5AA8F8, comment: 0x5A5E73, identifier: 0xEDF1F2, symbol: 0xE0649F, isDark: true)
+                : EditorPalette(background: 0xFFFFFF, gutter: 0xF3F5F7, plain: 0x101525, keyword: 0x158A4E, string: 0xA86A12,
+                                number: 0x0B6BCB, comment: 0x8D91A5, identifier: 0x101525, symbol: 0xB8327C, isDark: false)
         case .midnight:
             EditorPalette(background: 0x0B1020, gutter: 0x0F1529, plain: 0xC9D1E5, keyword: 0x7AA2F7, string: 0x9ECE6A,
                           number: 0xFF9E64, comment: 0x565F89, identifier: 0xC0CAF5, symbol: 0xBB9AF7, isDark: true)

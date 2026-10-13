@@ -8,6 +8,10 @@ struct PortbaseMacApp: App {
     @StateObject private var consoles = ConsoleStore()
     @NSApplicationDelegateAdaptor(PortbaseAppDelegate.self) private var delegate
 
+    init() {
+        _ = PortbaseFonts.registration
+    }
+
     var body: some Scene {
         Window("Portbase", id: "workspace") {
             DesktopWorkspaceView()

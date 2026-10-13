@@ -80,7 +80,7 @@ struct AboutHeader: View {
 }
 
 struct AppearanceSettingsSection: View {
-    @AppStorage(PortbaseAccent.storageKey) private var accent = PortbaseAccent.indigo.rawValue
+    @AppStorage(PortbaseAccent.storageKey) private var accent = PortbaseAccent.jade.rawValue
     @AppStorage(PortbaseAppearance.storageKey) private var appearance = PortbaseAppearance.system.rawValue
 
     var body: some View {

@@ -1183,3 +1183,6 @@
 "Opens the connection form with these details" = "이 정보로 연결 양식을 엽니다";
 "Search or paste a connection string" = "검색하거나 연결 문자열 붙여넣기";
 "Shows only connections in this environment" = "이 환경의 연결만 표시합니다";
+"Choose a connection" = "연결 선택";
+"Pick a saved connection to browse its tables and run queries." = "저장된 연결을 선택해 테이블을 탐색하고 쿼리를 실행하세요.";
+"Jade" = "제이드";

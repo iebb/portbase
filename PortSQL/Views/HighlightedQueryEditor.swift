@@ -184,14 +184,14 @@ private final class QueryLineNumberGutter: UIView {
 enum SQLEditorTypography {
     static func queryFont(compatibleWith traits: UITraitCollection? = nil) -> UIFont {
         UIFontMetrics(forTextStyle: .body).scaledFont(
-            for: .monospacedSystemFont(ofSize: 16, weight: .regular),
+            for: PortbaseFonts.codeFont(TypeSize.code + 1),
             compatibleWith: traits
         )
     }
 
     static func clauseFont(compatibleWith traits: UITraitCollection? = nil) -> UIFont {
         UIFontMetrics(forTextStyle: .body).scaledFont(
-            for: .monospacedSystemFont(ofSize: 15, weight: .regular),
+            for: PortbaseFonts.codeFont(TypeSize.code),
             compatibleWith: traits
         )
     }

@@ -97,6 +97,32 @@ struct HomeView: View {
             }
             .padding(Spacing.l)
             .portbaseCardSurface()
+        } else if !bookmarks.bookmarks.isEmpty {
+            // Saved connections exist but none is active yet.
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("Choose a connection").font(.cardTitle)
+                Text("Pick a saved connection to browse its tables and run queries.")
+                    .font(.rowDetail)
+                    .foregroundStyle(.secondary)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: Spacing.s)], spacing: Spacing.s) {
+                    ForEach(bookmarks.bookmarks.prefix(6)) { profile in
+                        Button { workspace.selectBookmark(profile.id) } label: {
+                            HStack(spacing: Spacing.s) {
+                                BookmarkAvatar(profile: profile, size: Sizes.avatarSmall, cornerRadius: Radius.s)
+                                Text(profile.displayTitle).lineLimit(1)
+                                Spacer(minLength: 0)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.secondary)
+                        .foregroundStyle(PortSQLPalette.ink)
+                    }
+                }
+            }
+            .padding(Spacing.l)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .portbaseCardSurface()
         } else {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 Text("Connect your first database").font(.cardTitle)
@@ -269,6 +295,7 @@ struct HomeView: View {
                                 }
                             }
                             .padding(.horizontal, Spacing.l)
+                            .padding(.vertical, Spacing.xs)
                             .frame(minHeight: Sizes.row)
                             .contentShape(Rectangle())
                         }

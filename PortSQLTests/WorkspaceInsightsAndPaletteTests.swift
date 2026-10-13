@@ -155,9 +155,23 @@ final class WorkspaceInsightsAndPaletteTests: XCTestCase {
         defaults.set("unknown", forKey: EditorTheme.storageKey)
         defaults.set("unknown", forKey: PortbaseAccent.storageKey)
         XCTAssertEqual(EditorTheme.current, .portbase)
-        XCTAssertEqual(PortbaseAccent.current, .indigo)
+        XCTAssertEqual(PortbaseAccent.current, .jade)
         XCTAssertTrue(EditorTheme.midnight.palette(for: .light).isDark)
         XCTAssertFalse(EditorTheme.paper.palette(for: .dark).isDark)
         XCTAssertNotEqual(EditorTheme.portbase.palette(for: .light), EditorTheme.portbase.palette(for: .dark))
+    }
+
+    func testBundledFontsRegisterWithLicense() throws {
+        _ = PortbaseFonts.registration
+        for name in ["Inter-Regular", "Inter-Medium", "Inter-SemiBold", "Inter-Bold", "SourceCodePro-Regular", "SourceCodePro-Bold"] {
+#if canImport(UIKit)
+            XCTAssertNotNil(UIFont(name: name, size: 13), name)
+#else
+            XCTAssertNotNil(NSFont(name: name, size: 13), name)
+#endif
+        }
+        XCTAssertEqual(PortbaseFonts.codeFont(13).fontName, "SourceCodePro-Regular")
+        let license = try XCTUnwrap(Bundle.main.url(forResource: "OFL", withExtension: "txt"), "The font license ships with the app")
+        XCTAssertTrue(try String(contentsOf: license, encoding: .utf8).contains("SIL OPEN FONT LICENSE Version 1.1"))
     }
 }

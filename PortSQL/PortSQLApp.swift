@@ -8,6 +8,10 @@ struct PortSQLApp: App {
     @StateObject private var consoles = ConsoleStore()
     @Environment(\.scenePhase) private var scenePhase
 
+    init() {
+        PortbaseFonts.applyAppearance()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()

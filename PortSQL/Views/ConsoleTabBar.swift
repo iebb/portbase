@@ -96,11 +96,11 @@ struct ConsoleTabBar: View {
         }
         .frame(minHeight: Sizes.touchTarget)
         .background {
-            Capsule()
+            RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
                 .fill(selected ? PortSQLPalette.surface : Color.clear)
                 .shadow(color: selected ? Color.black.opacity(0.08) : .clear, radius: 4, x: 0, y: 1)
         }
-        .overlay { Capsule().strokeBorder(selected ? PortSQLPalette.stroke : .clear, lineWidth: 1) }
+        .overlay { RoundedRectangle(cornerRadius: Radius.button, style: .continuous).strokeBorder(selected ? PortSQLPalette.stroke : .clear, lineWidth: 1) }
         .contextMenu {
             Button("Rename", systemImage: "pencil") { title = console.title; renamingID = console.id }
             Button("Close", systemImage: "xmark") { close(console.id) }

@@ -1295,6 +1295,6 @@ private struct VisualizerMetaChip: View {
             .foregroundStyle(PortSQLPalette.accent)
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)
-            .background(PortSQLPalette.accent.opacity(0.10), in: Capsule())
+            .background(PortSQLPalette.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
     }
 }

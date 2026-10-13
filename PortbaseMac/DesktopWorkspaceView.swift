@@ -295,6 +295,7 @@ struct DesktopWorkspaceView: View {
                     }
                 }
             }.listStyle(.sidebar).font(.bodyText)
+            .scrollContentBackground(.hidden)
             Divider()
             HStack {
                 Menu {
@@ -306,6 +307,7 @@ struct DesktopWorkspaceView: View {
                 Button("New SQLite Database") { createsSQLite = true }.buttonStyle(.borderless).font(.captionText)
             }.padding(.horizontal, Spacing.s).frame(height: Sizes.tabStrip)
         }
+        .background(PortSQLPalette.sunken)
     }
 
     private func sidebarLink(_ title: LocalizedStringKey, systemImage: String, isSelected: Bool, action: @escaping () -> Void) -> some View {

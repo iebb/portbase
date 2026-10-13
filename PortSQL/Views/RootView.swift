@@ -9,19 +9,16 @@ enum PortSQLPalette {
     static var accentGradient: LinearGradient {
         LinearGradient(colors: [accent, accent], startPoint: .top, endPoint: .bottom)
     }
-    static let accentSoft = Color.adaptive(light: 0xEEF0FF, dark: 0x1E2133)
-#if canImport(UIKit)
-    static let ink = Color(uiColor: .label)
-#else
-    static let ink = Color.primary
-#endif
-    static let panel = Color.adaptive(light: 0xF1F3F8, dark: 0x1A1E29)
-    static let surface = Color.adaptive(light: 0xFFFFFF, dark: 0x151922)
-    static let tertiarySurface = Color.adaptive(light: 0xF7F8FB, dark: 0x1C212D)
-    static let sunken = Color.adaptive(light: 0xF3F5F9, dark: 0x0F131B)
-    static let stroke = Color.adaptive(light: 0x0F172A, dark: 0xFFFFFF, lightOpacity: 0.08, darkOpacity: 0.08)
-    static let canvasTop = Color.adaptive(light: 0xF4F5F9, dark: 0x0A0C12)
-    static let canvasAccent = Color.adaptive(light: 0xEBEEF5, dark: 0x11141C)
+    static var accentSoft: Color { accent.opacity(0.12) }
+    // A deep navy and slate palette in the style of modern host managers.
+    static let ink = Color.adaptive(light: 0x101525, dark: 0xEDF1F2)
+    static let panel = Color.adaptive(light: 0xF5F7F9, dark: 0x111729)
+    static let surface = Color.adaptive(light: 0xFFFFFF, dark: 0x161C30)
+    static let tertiarySurface = Color.adaptive(light: 0xF7F9FA, dark: 0x1B2238)
+    static let sunken = Color.adaptive(light: 0xEDF1F2, dark: 0x0C1223)
+    static let stroke = Color.adaptive(light: 0xDFE4E8, dark: 0x262D45)
+    static let canvasTop = Color.adaptive(light: 0xF2F4F6, dark: 0x0A0F1E)
+    static let canvasAccent = Color.adaptive(light: 0xE8ECEF, dark: 0x0E1426)
     static let shadow = Color.black.opacity(0.12)
 
     static func editorBackground(for colorScheme: ColorScheme) -> Color {
@@ -683,7 +680,7 @@ struct QueryEditorCard: View {
             .padding(.horizontal, Spacing.l)
             .frame(minHeight: Sizes.touchTarget)
             .background {
-                Capsule().fill(workspace.isRunning ? Color.red : PortSQLPalette.accent)
+                RoundedRectangle(cornerRadius: Radius.button, style: .continuous).fill(workspace.isRunning ? Color.red : PortSQLPalette.accent)
             }
             .opacity(runDisabled ? 0.45 : 1)
         }
@@ -1102,8 +1099,8 @@ struct ResultsCard: View {
             }
             .frame(minWidth: 116, minHeight: Sizes.touchTarget)
             .padding(.horizontal, Spacing.m)
-            .background(PortSQLPalette.sunken, in: Capsule())
-            .overlay { Capsule().strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: Radius.button, style: .continuous).strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
         }
         .buttonStyle(.plain)
     }
@@ -1193,7 +1190,7 @@ struct ResultsCard: View {
                                 .foregroundStyle(column.isNullable ? .secondary : PortSQLPalette.ink)
                                 .padding(.horizontal, Spacing.s)
                                 .padding(.vertical, Spacing.xxs)
-                                .background(Color.secondary.opacity(0.08), in: Capsule())
+                                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
 
                             Button {
                                 schemaColumnDraft = .edit(column, in: selectedTable)
@@ -2123,7 +2120,7 @@ struct DataEditorSheet: View {
                                                 .foregroundStyle(.white)
                                                 .padding(.horizontal, Spacing.s)
                                                 .padding(.vertical, Spacing.xxs)
-                                                .background(PortSQLPalette.accent, in: Capsule())
+                                                .background(PortSQLPalette.accent, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
                                         }
                                         Spacer()
                                         Text(L10n.format(
@@ -2476,7 +2473,7 @@ struct InlineSuggestionMenu: View {
                             }
                             .padding(.horizontal, Spacing.m)
                             .frame(minHeight: Sizes.control)
-                            .background(PortSQLPalette.sunken, in: Capsule())
+                            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(L10n.format("Insert %@", item.title))

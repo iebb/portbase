@@ -128,7 +128,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         view.autoresizingMask = [.width]
         view.backgroundColor = .textBackgroundColor
         view.textColor = .textColor
-        view.font = .monospacedSystemFont(ofSize: TypeSize.body, weight: .regular)
+        view.font = PortbaseFonts.codeFont(TypeSize.code)
         view.textContainerInset = NSSize(width: Spacing.m, height: Spacing.m)
         view.backgroundColor = palette.backgroundColor
         view.insertionPointColor = palette.caretColor
@@ -202,7 +202,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             guard lastText != view.string || lastScheme != parent.colorScheme || lastJSON != parent.isJSON || lastError != parent.errorRange || lastFontSize != parent.editorFontSize || lastPalette != palette else { return }
             lastText = view.string; lastScheme = parent.colorScheme; lastJSON = parent.isJSON; lastError = parent.errorRange; lastFontSize = parent.editorFontSize; lastPalette = palette
             let selection = view.selectedRange()
-            let font = NSFont.monospacedSystemFont(ofSize: max(10, min(24, parent.editorFontSize)), weight: .regular)
+            let font = PortbaseFonts.codeFont(max(10, min(24, parent.editorFontSize)))
             let base: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: palette.plainColor]
             storage.beginEditing()
             storage.setAttributes(base, range: NSRange(location: 0, length: storage.length))
@@ -235,7 +235,7 @@ private final class QueryLineGutter: NSView {
         guard let view = textView, let manager = view.layoutManager, let container = view.textContainer else { return }
         manager.ensureLayout(for: container)
         let offset = view.enclosingScrollView?.contentView.bounds.minY ?? 0
-        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: TypeSize.caption, weight: .regular), .foregroundColor: palette?.gutterTextColor ?? NSColor.secondaryLabelColor]
+        let attributes: [NSAttributedString.Key: Any] = [.font: PortbaseFonts.codeFont(TypeSize.caption), .foregroundColor: palette?.gutterTextColor ?? NSColor.secondaryLabelColor]
         for (line, start) in SQLEditingService.lineStarts(in: view.string).enumerated() {
             let frame: NSRect
             if manager.numberOfGlyphs == 0 || start >= view.string.utf16.count { frame = manager.extraLineFragmentRect }
@@ -272,7 +272,7 @@ struct NativeReadOnlyText: NSViewRepresentable {
         view.isVerticallyResizable = true
         view.textContainer?.containerSize = NSSize(width: 600, height: CGFloat.greatestFiniteMagnitude)
         view.textContainer?.widthTracksTextView = true
-        view.font = .monospacedSystemFont(ofSize: TypeSize.body, weight: .regular)
+        view.font = PortbaseFonts.codeFont(TypeSize.code)
         view.usesFindPanel = true
         view.textContainerInset = NSSize(width: Spacing.s, height: Spacing.s)
         view.autoresizingMask = [.width]

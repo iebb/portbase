@@ -1183,3 +1183,6 @@
 "Opens the connection form with these details" = "Открывает форму подключения с этими данными";
 "Search or paste a connection string" = "Поиск или вставка строки подключения";
 "Shows only connections in this environment" = "Показывает только подключения этого окружения";
+"Choose a connection" = "Выберите подключение";
+"Pick a saved connection to browse its tables and run queries." = "Выберите сохранённое подключение, чтобы просматривать таблицы и выполнять запросы.";
+"Jade" = "Нефрит";

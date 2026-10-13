@@ -1183,3 +1183,6 @@
 "Opens the connection form with these details" = "これらの情報で接続フォームを開きます";
 "Search or paste a connection string" = "検索、または接続文字列を貼り付け";
 "Shows only connections in this environment" = "この環境の接続だけを表示します";
+"Choose a connection" = "接続を選択";
+"Pick a saved connection to browse its tables and run queries." = "保存済みの接続を選ぶと、テーブルの閲覧やクエリの実行ができます。";
+"Jade" = "ジェイド";

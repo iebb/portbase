@@ -1183,3 +1183,6 @@
 "Opens the connection form with these details" = "使用这些信息打开连接表单";
 "Search or paste a connection string" = "搜索或粘贴连接字符串";
 "Shows only connections in this environment" = "仅显示此环境中的连接";
+"Choose a connection" = "选择连接";
+"Pick a saved connection to browse its tables and run queries." = "选择一个已保存的连接以浏览其表并运行查询。";
+"Jade" = "翡翠绿";

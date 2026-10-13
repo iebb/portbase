@@ -1183,3 +1183,6 @@
 "Opens the connection form with these details" = "Opens the connection form with these details";
 "Search or paste a connection string" = "Search or paste a connection string";
 "Shows only connections in this environment" = "Shows only connections in this environment";
+"Choose a connection" = "Choose a connection";
+"Pick a saved connection to browse its tables and run queries." = "Pick a saved connection to browse its tables and run queries.";
+"Jade" = "Jade";

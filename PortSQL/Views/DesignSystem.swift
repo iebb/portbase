@@ -1,3 +1,4 @@
+import CoreText
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
@@ -8,13 +9,14 @@ import AppKit
 // MARK: - Preferences
 
 enum PortbaseAccent: String, CaseIterable, Identifiable {
-    case indigo, ocean, emerald, sunset, rose, graphite
+    case jade, indigo, ocean, emerald, sunset, rose, graphite
 
     static let storageKey = "Portbase.accent"
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .jade: L10n.text("Jade")
         case .indigo: L10n.text("Indigo")
         case .ocean: L10n.text("Ocean")
         case .emerald: L10n.text("Emerald")
@@ -26,6 +28,8 @@ enum PortbaseAccent: String, CaseIterable, Identifiable {
 
     var color: Color {
         switch self {
+        // A deep jade that keeps white button labels readable in both appearances.
+        case .jade: Color.adaptive(light: 0x158A4E, dark: 0x199655)
         case .indigo: Color.adaptive(light: 0x4F46E5, dark: 0x6366F1)
         case .ocean: Color.adaptive(light: 0x0A6CD6, dark: 0x2D7FE0)
         case .emerald: Color.adaptive(light: 0x0E8F6A, dark: 0x109A70)
@@ -37,6 +41,7 @@ enum PortbaseAccent: String, CaseIterable, Identifiable {
 
     var gradient: [Color] {
         switch self {
+        case .jade: [Color(hex: 0x21B568), Color(hex: 0x0F6338)]
         case .indigo: [Color(hex: 0x6366F1), Color(hex: 0x8B5CF6)]
         case .ocean: [Color(hex: 0x0EA5E9), Color(hex: 0x2563EB)]
         case .emerald: [Color(hex: 0x10B981), Color(hex: 0x0D9488)]
@@ -47,7 +52,7 @@ enum PortbaseAccent: String, CaseIterable, Identifiable {
     }
 
     static var current: PortbaseAccent {
-        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseAccent.init(rawValue:)) ?? .indigo
+        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseAccent.init(rawValue:)) ?? .jade
     }
 }
 
@@ -84,12 +89,15 @@ enum PortbaseAppearance: String, CaseIterable, Identifiable {
 
 /// Applies the person's appearance and accent choices to a whole scene.
 struct PortbaseThemeModifier: ViewModifier {
-    @AppStorage(PortbaseAccent.storageKey) private var accent = PortbaseAccent.indigo.rawValue
+    @AppStorage(PortbaseAccent.storageKey) private var accent = PortbaseAccent.jade.rawValue
     @AppStorage(PortbaseAppearance.storageKey) private var appearance = PortbaseAppearance.system.rawValue
 
     func body(content: Content) -> some View {
-        let accentChoice = PortbaseAccent(rawValue: accent) ?? .indigo
+        let accentChoice = PortbaseAccent(rawValue: accent) ?? .jade
         content
+            // Inter for all text that doesn't pick a role, and squared-off buttons instead of capsules.
+            .font(.bodyText)
+            .buttonBorderShape(.roundedRectangle(radius: Radius.button))
             // Palette tokens read the stored accent, so a new identity redraws views that cached it.
             .id(accentChoice)
             .tint(accentChoice.color)
@@ -215,19 +223,21 @@ enum Spacing {
 /// Corner radii, from small badges up to sheets and hero tiles.
 enum Radius {
 #if os(macOS)
-    static let xs: CGFloat = 4
-    static let s: CGFloat = 6
-    static let chip: CGFloat = 6
-    static let control: CGFloat = 8
-    static let card: CGFloat = 12
-    static let hero: CGFloat = 18
+    static let xs: CGFloat = 3
+    static let s: CGFloat = 5
+    static let chip: CGFloat = 4
+    static let button: CGFloat = 6
+    static let control: CGFloat = 6
+    static let card: CGFloat = 10
+    static let hero: CGFloat = 14
 #else
     static let xs: CGFloat = 4
     static let s: CGFloat = 6
-    static let chip: CGFloat = 8
-    static let control: CGFloat = 12
-    static let card: CGFloat = 16
-    static let hero: CGFloat = 22
+    static let chip: CGFloat = 5
+    static let button: CGFloat = 8
+    static let control: CGFloat = 8
+    static let card: CGFloat = 12
+    static let hero: CGFloat = 16
 #endif
 }
 
@@ -294,62 +304,131 @@ enum Sizes {
     static let readableWidth: CGFloat = 440
 }
 
-#if os(macOS)
-/// Point sizes behind the Mac typography roles, shared with AppKit views such as the result grid
-/// and query editor so native and SwiftUI text match.
+/// Point sizes behind the typography roles, shared with UIKit and AppKit views such as the result
+/// grids and query editors so native and SwiftUI text match. iOS sizes scale with Dynamic Type.
 enum TypeSize {
+#if os(macOS)
     static let display: CGFloat = 26
     static let title: CGFloat = 20
     static let section: CGFloat = 15
+    static let heading: CGFloat = 13
     static let body: CGFloat = 13
+    static let row: CGFloat = 13
     static let detail: CGFloat = 12
+    static let footnote: CGFloat = 12
     static let caption: CGFloat = 11
     static let micro: CGFloat = 10
-}
+    static let code: CGFloat = 13
+#else
+    static let display: CGFloat = 30
+    static let title: CGFloat = 22
+    static let section: CGFloat = 18
+    static let heading: CGFloat = 16
+    static let body: CGFloat = 16
+    static let row: CGFloat = 15
+    static let detail: CGFloat = 14
+    static let footnote: CGFloat = 13
+    static let caption: CGFloat = 12
+    static let micro: CGFloat = 11
+    static let code: CGFloat = 15
 #endif
+}
 
-/// Typography roles. iOS uses Dynamic Type text styles; the Mac uses explicit point sizes so
-/// shared views read at desktop sizes instead of the Mac's smaller text-style defaults.
+/// The bundled typefaces: Inter for the interface and Source Code Pro for SQL, JSON, and values.
+/// Both are SIL Open Font License fonts shipped unmodified in `PortSQL/Fonts` (see `OFL.txt`).
+enum PortbaseFonts {
+    static let interface = "Inter"
+    static let code = "Source Code Pro"
+
+    private final class BundleToken {}
+
+    /// Registers the bundled faces for this process once; every font helper touches it first.
+    static let registration: Void = {
+        let bundle = Bundle(for: BundleToken.self)
+        let files = [("Inter-Regular", "otf"), ("Inter-Medium", "otf"), ("Inter-SemiBold", "otf"), ("Inter-Bold", "otf"),
+                     ("SourceCodePro-Regular", "ttf"), ("SourceCodePro-Bold", "ttf")]
+        let urls = files.compactMap { bundle.url(forResource: $0.0, withExtension: $0.1) }
+        CTFontManagerRegisterFontURLs(urls as CFArray, .process, true, nil)
+    }()
+
+    /// An interface font that scales with Dynamic Type relative to `style` on iOS.
+    static func ui(_ size: CGFloat, _ weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
+        _ = registration
+        return Font.custom(interface, size: size, relativeTo: style).weight(weight)
+    }
+
+    /// A monospaced font for code and values.
+    static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
+        _ = registration
+        return Font.custom(code, size: size, relativeTo: style).weight(weight)
+    }
+
+    private static func postScriptName(code isCode: Bool, bold: Bool, weight: CGFloat) -> String {
+        if isCode { return bold ? "SourceCodePro-Bold" : "SourceCodePro-Regular" }
+        if bold || weight >= 0.4 { return "Inter-Bold" }
+        if weight >= 0.3 { return "Inter-SemiBold" }
+        if weight >= 0.2 { return "Inter-Medium" }
+        return "Inter-Regular"
+    }
+
+#if canImport(UIKit)
+    static func uiFont(_ size: CGFloat, weight: UIFont.Weight = .regular, textStyle: UIFont.TextStyle? = nil) -> UIFont {
+        _ = registration
+        let font = UIFont(name: postScriptName(code: false, bold: false, weight: weight.rawValue), size: size)
+            ?? .systemFont(ofSize: size, weight: weight)
+        return textStyle.map { UIFontMetrics(forTextStyle: $0).scaledFont(for: font) } ?? font
+    }
+
+    static func codeFont(_ size: CGFloat, bold: Bool = false, textStyle: UIFont.TextStyle? = nil) -> UIFont {
+        _ = registration
+        let font = UIFont(name: postScriptName(code: true, bold: bold, weight: 0), size: size)
+            ?? .monospacedSystemFont(ofSize: size, weight: bold ? .bold : .regular)
+        return textStyle.map { UIFontMetrics(forTextStyle: $0).scaledFont(for: font) } ?? font
+    }
+
+    /// Applies the interface font to navigation bars and segmented controls, which UIKit draws.
+    @MainActor static func applyAppearance() {
+        let navigation = UINavigationBar.appearance()
+        navigation.largeTitleTextAttributes = [.font: uiFont(TypeSize.display, weight: .bold, textStyle: .largeTitle)]
+        navigation.titleTextAttributes = [.font: uiFont(17, weight: .semibold, textStyle: .headline)]
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: uiFont(TypeSize.detail, weight: .medium, textStyle: .subheadline)], for: .normal)
+        UISegmentedControl.appearance().setTitleTextAttributes([.font: uiFont(TypeSize.detail, weight: .semibold, textStyle: .subheadline)], for: .selected)
+    }
+#else
+    static func nsFont(_ size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
+        _ = registration
+        return NSFont(name: postScriptName(code: false, bold: false, weight: weight.rawValue), size: size)
+            ?? .systemFont(ofSize: size, weight: weight)
+    }
+
+    static func codeFont(_ size: CGFloat, bold: Bool = false) -> NSFont {
+        _ = registration
+        return NSFont(name: postScriptName(code: true, bold: bold, weight: 0), size: size)
+            ?? .monospacedSystemFont(ofSize: size, weight: bold ? .bold : .regular)
+    }
+#endif
+}
+
+/// Typography roles, set in Inter with Source Code Pro for code. iOS sizes scale with Dynamic Type.
 extension Font {
-#if os(macOS)
-    static let displayTitle = Font.system(size: TypeSize.display, weight: .bold)
-    static let pageTitle = Font.system(size: TypeSize.title, weight: .bold)
-    static let sectionTitle = Font.system(size: TypeSize.section, weight: .semibold)
-    static let cardTitle = Font.system(size: TypeSize.body, weight: .semibold)
-    static let bodyText = Font.system(size: TypeSize.body)
-    static let rowTitle = Font.system(size: TypeSize.body, weight: .medium)
-    static let rowDetail = Font.system(size: TypeSize.detail)
-    static let footnoteText = Font.system(size: TypeSize.detail)
-    static let captionText = Font.system(size: TypeSize.caption)
-    static let captionStrong = Font.system(size: TypeSize.caption, weight: .semibold)
-    static let microText = Font.system(size: TypeSize.micro)
-    static let badgeText = Font.system(size: TypeSize.micro, weight: .semibold)
-    static let codeText = Font.system(size: TypeSize.body, design: .monospaced)
-    static let codeDetail = Font.system(size: TypeSize.detail, design: .monospaced)
-    static let codeCaption = Font.system(size: TypeSize.caption, design: .monospaced)
-    static let metricValue = Font.system(size: TypeSize.title, weight: .semibold).monospacedDigit()
+    static let displayTitle = PortbaseFonts.ui(TypeSize.display, .bold, relativeTo: .largeTitle)
+    static let pageTitle = PortbaseFonts.ui(TypeSize.title, .bold, relativeTo: .title2)
+    static let sectionTitle = PortbaseFonts.ui(TypeSize.section, .semibold, relativeTo: .title3)
+    static let cardTitle = PortbaseFonts.ui(TypeSize.heading, .semibold, relativeTo: .headline)
+    static let bodyText = PortbaseFonts.ui(TypeSize.body, relativeTo: .body)
+    static let rowTitle = PortbaseFonts.ui(TypeSize.row, .medium, relativeTo: .subheadline)
+    static let rowDetail = PortbaseFonts.ui(TypeSize.detail, relativeTo: .subheadline)
+    static let footnoteText = PortbaseFonts.ui(TypeSize.footnote, relativeTo: .footnote)
+    static let captionText = PortbaseFonts.ui(TypeSize.caption, relativeTo: .caption)
+    static let captionStrong = PortbaseFonts.ui(TypeSize.caption, .semibold, relativeTo: .caption)
+    static let microText = PortbaseFonts.ui(TypeSize.micro, relativeTo: .caption2)
+    static let badgeText = PortbaseFonts.ui(TypeSize.micro, .semibold, relativeTo: .caption2)
+    static let codeText = PortbaseFonts.mono(TypeSize.code, relativeTo: .body)
+    static let codeDetail = PortbaseFonts.mono(TypeSize.detail, relativeTo: .callout)
+    static let codeCaption = PortbaseFonts.mono(TypeSize.caption, relativeTo: .caption)
+    static let metricValue = PortbaseFonts.ui(TypeSize.title, .semibold, relativeTo: .title3).monospacedDigit()
     static let toolSymbol = Font.system(size: TypeSize.body, weight: .semibold)
     static let tileSymbol = Font.system(size: TypeSize.section, weight: .semibold)
-#else
-    static let displayTitle = Font.largeTitle.weight(.bold)
-    static let pageTitle = Font.title2.weight(.bold)
-    static let sectionTitle = Font.title3.weight(.semibold)
-    static let cardTitle = Font.headline
-    static let bodyText = Font.body
-    static let rowTitle = Font.subheadline.weight(.semibold)
-    static let rowDetail = Font.subheadline
-    static let footnoteText = Font.footnote
-    static let captionText = Font.caption
-    static let captionStrong = Font.caption.weight(.semibold)
-    static let microText = Font.caption2
-    static let badgeText = Font.caption2.weight(.semibold)
-    static let codeText = Font.system(.body, design: .monospaced)
-    static let codeDetail = Font.system(.callout, design: .monospaced)
-    static let codeCaption = Font.system(.caption, design: .monospaced)
-    static let metricValue = Font.title3.weight(.semibold).monospacedDigit()
-    static let toolSymbol = Font.system(size: 16, weight: .semibold)
-    static let tileSymbol = Font.system(size: 17, weight: .semibold)
-#endif
     /// Symbols in empty states and onboarding.
     static let emptyStateSymbol = Font.system(size: Sizes.emptyStateSymbol, weight: .regular)
 }
@@ -482,9 +561,10 @@ struct PortbaseChip: View {
         }
         .font(.badgeText)
         .foregroundStyle(filled ? .white : tint)
-        .padding(.horizontal, Spacing.s)
-        .padding(.vertical, Spacing.xxs)
-        .background(filled ? AnyShapeStyle(tint) : AnyShapeStyle(tint.opacity(0.12)), in: Capsule())
+        .padding(.horizontal, Spacing.xs)
+        .padding(.vertical, Spacing.xxxs)
+        .background(filled ? AnyShapeStyle(tint) : AnyShapeStyle(tint.opacity(0.12)),
+                    in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -690,7 +770,7 @@ struct EnvironmentBadge: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, compact ? Spacing.xxs : Spacing.xs)
                 .padding(.vertical, Spacing.xxxs)
-                .background(environment.color, in: Capsule())
+                .background(environment.color, in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
                 .lineLimit(1)
                 .fixedSize()
                 .accessibilityLabel(L10n.format("Environment: %@", environment.title))
@@ -733,12 +813,12 @@ struct EnvironmentPicker: View {
                         .foregroundStyle(PortSQLPalette.ink)
                         .padding(.horizontal, Spacing.m)
                         .frame(minHeight: Sizes.control)
-                        .background(selected ? (environment == .none ? PortSQLPalette.sunken : environment.color.opacity(0.15)) : Color.clear, in: Capsule())
+                        .background(selected ? (environment == .none ? PortSQLPalette.sunken : environment.color.opacity(0.15)) : Color.clear, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
                         .overlay {
-                            Capsule().strokeBorder(selected ? (environment == .none ? PortSQLPalette.stroke : environment.color) : PortSQLPalette.stroke,
+                            RoundedRectangle(cornerRadius: Radius.button, style: .continuous).strokeBorder(selected ? (environment == .none ? PortSQLPalette.stroke : environment.color) : PortSQLPalette.stroke,
                                                    lineWidth: selected ? 1.5 : 1)
                         }
-                        .contentShape(Capsule())
+                        .contentShape(RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)

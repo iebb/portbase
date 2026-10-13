@@ -12,6 +12,7 @@
 		053D698A8552BAF485C033C1 /* HighlightedQueryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */; };
 		0558F6095717ECAA043D4B6F /* EditorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9031C5697CDA58F9C4079CA2 /* EditorTheme.swift */; };
 		057778E761818A7F183A6A89 /* SQLAssistService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */; };
+		058EAE07A623C0BEBD6B6C96 /* Inter-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */; };
 		06C4360B84C706A6554D7EAF /* MongoExtendedJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F929B764AFC3E50D32F5F4 /* MongoExtendedJSON.swift */; };
 		06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */; };
 		075363B746098275FBB5E230 /* MongoClient in Frameworks */ = {isa = PBXBuildFile; productRef = 37B8BCD7DB646F11A43DABAC /* MongoClient */; };
@@ -26,6 +27,7 @@
 		0E4CEB096CE0332F952E2B13 /* SSHTunnelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7815F00324F38C695376075 /* SSHTunnelService.swift */; };
 		0E58660712FC1099DAC3ED2D /* ResultCellInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B9D14041642CE740791883 /* ResultCellInspector.swift */; };
 		0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */; };
+		0EF2E1ED059DBE01EA02851A /* Inter-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */; };
 		0EFC8591E35F00DB2E186409 /* MongoQueryDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BFC06791ABF93966E200632 /* MongoQueryDraft.swift */; };
 		0F35D83D2F570175665AD499 /* ResultCopyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FBA23C69DADEC2B085A0E7 /* ResultCopyFormatter.swift */; };
 		0FC5AB682FC2F8E10CF8A5BE /* MongoConnectionOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858C33D538E82DE60542BD2C /* MongoConnectionOptions.swift */; };
@@ -55,6 +57,7 @@
 		2288B08E6C240BD0E2EE5E53 /* PortbaseMacApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE698233146F21C40BC822EE /* PortbaseMacApp.swift */; };
 		22A06DB93DF8644C3D8CCF05 /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */; };
 		24B7003032A68E84B7DD8EB0 /* LocalSQLiteDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B36875515CEA46E2FF225D5 /* LocalSQLiteDatabase.swift */; };
+		25212293DF8226537063D357 /* SourceCodePro-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 09A3626DFFC9234B75DB5CE7 /* SourceCodePro-Regular.ttf */; };
 		25F1F84D1130640DF8491AFC /* MongoQueryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15ABDD9D3363094B27F1C170 /* MongoQueryServiceTests.swift */; };
 		262E5E13E651B443C38AC79F /* SQLiteSchemaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31CB1110D1A265C5D04A9F6F /* SQLiteSchemaService.swift */; };
 		268E39982C942B9F03808B96 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF537FA01FB9472E0C3A3149 /* RootView.swift */; };
@@ -63,6 +66,7 @@
 		296142216637F383C9BFA2B2 /* ConnectionStringImportSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F1931C56AE2F37BF716948 /* ConnectionStringImportSection.swift */; };
 		2BAF2F652EADD801E65AE3A2 /* DataTransferServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28B25BDE7E7A65B66500341C /* DataTransferServiceTests.swift */; };
 		2BDBBC418922EAF0423FE817 /* MongoIndexService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BA3BA56679DF34258707B8 /* MongoIndexService.swift */; };
+		2C584CC38B6EB5A2D76240F1 /* SourceCodePro-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */; };
 		2CE062D3E204F888293B4F0A /* ResultInspectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AD64E9FD53B446DBDE8C9F /* ResultInspectionService.swift */; };
 		2D114BC1B6B8959F8D42831C /* QueryParameterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C0B78E00C4985082E65410 /* QueryParameterService.swift */; };
 		2DE3A2F6FFF1DBB0B49E3B23 /* SSHTunnelServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */; };
@@ -79,7 +83,9 @@
 		352BE4DBFFFAD88F18CF88A6 /* SQLQueryDiagnostic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785CBF772127810438B159B0 /* SQLQueryDiagnostic.swift */; };
 		35B3DD117ACDFB9225DAE912 /* NativeQueryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E16F7D18FC41671E52E3C4 /* NativeQueryEditor.swift */; };
 		3853916D35A952BEB34F3986 /* ElasticsearchExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C56566958B819CACCAFF882 /* ElasticsearchExplorerView.swift */; };
+		39230DF30593C803A07C49AD /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = C325888189767A996734E33C /* OFL.txt */; };
 		395FE4D4FD140F35542C5D3C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C635AF9BA9BDBE927890DBA3 /* SettingsView.swift */; };
+		3A22B0DD842C32906E3354D8 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = C325888189767A996734E33C /* OFL.txt */; };
 		3B1E6D70358235E6CB447D26 /* PostgresNIO in Frameworks */ = {isa = PBXBuildFile; productRef = B78B3814380B85F792DC1671 /* PostgresNIO */; };
 		3BC432B4A551638A44DB271A /* AdaptiveWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3D1D9A7E8AFEDFE1F4E1A9 /* AdaptiveWorkspaceView.swift */; };
 		3BCF2E364E32BF071BA790F7 /* ConsoleTransactionControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65700D32E188A7B752B0F224 /* ConsoleTransactionControls.swift */; };
@@ -94,6 +100,7 @@
 		3FEB745B5D87FE2A25F273BF /* DataTransferModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A5A8BD8B3776437D1D7D3C /* DataTransferModels.swift */; };
 		40AED5A673FB8612E91CB78A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C635AF9BA9BDBE927890DBA3 /* SettingsView.swift */; };
 		41C2D891989D6871B30DB1EA /* MongoQueryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15ABDD9D3363094B27F1C170 /* MongoQueryServiceTests.swift */; };
+		41F0AAC6DBB518B683BABF8F /* Inter-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 85933FC85A65CAEAEEE98DA9 /* Inter-Medium.otf */; };
 		42EAAE0D5069CE2560FF2682 /* NIOHTTP1 in Frameworks */ = {isa = PBXBuildFile; productRef = 2FC67EFC011579A8EA155022 /* NIOHTTP1 */; };
 		435A8187B9FDD4D1822A15FC /* SchemaCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88816ECE5369279575107C83 /* SchemaCacheStore.swift */; };
 		437BA04B864EB17A28149E47 /* QueryParameterAndExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */; };
@@ -101,6 +108,7 @@
 		45E5890A451EF53BDB4FD33A /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */; };
 		4854FCCA39674D68F3AF2C46 /* SQLTemplateMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200D0F941E7FC63F89876E24 /* SQLTemplateMenu.swift */; };
 		486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23331E5633F855E60F40421E /* VisualizationServiceTests.swift */; };
+		4940EBB3BE4C24F23B1E0271 /* Inter-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 85933FC85A65CAEAEEE98DA9 /* Inter-Medium.otf */; };
 		4974231030C743F5C928FC15 /* WorkspaceLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */; };
 		4BCB65540C496B30A9F91A12 /* DatabaseService+Redis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05652535CA38CA654159765 /* DatabaseService+Redis.swift */; };
 		4BD0748C743FB775694F6B44 /* CopyFormatsAndEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D6719856F1A43DE76F9253 /* CopyFormatsAndEnvironmentTests.swift */; };
@@ -122,9 +130,11 @@
 		57C5D79304109F187CB0C26B /* SQLTemplateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51D052A6EDBBBEC17FF22ED /* SQLTemplateService.swift */; };
 		587D9D01F4F76251218B8D26 /* ClickHouseQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1A047C32455B83058889ED /* ClickHouseQueryService.swift */; };
 		5AB6715D4CF79CA58B98807A /* Charts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E08A80F5F58CE8188BDE55E9 /* Charts.framework */; };
+		5BB8B208C7B4A8423F35625C /* SourceCodePro-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 09A3626DFFC9234B75DB5CE7 /* SourceCodePro-Regular.ttf */; };
 		5D250C7C5B2E989663876022 /* WorkspaceCloudCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4BFA3F7222219E28B6D0948 /* WorkspaceCloudCollection.swift */; };
 		5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */; };
 		5DFD83197F26CB1547FADF96 /* PinnedTableStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE53A06B4D778F2F9E510D1 /* PinnedTableStore.swift */; };
+		5E6FC78CA27FA897CAA23D90 /* Inter-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */; };
 		5F5D98518B3A39E8FF25DD17 /* SQLTemplateMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200D0F941E7FC63F89876E24 /* SQLTemplateMenu.swift */; };
 		5FB7959CC556731B964F0E85 /* KeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B76B397227691B0CA018DCD /* KeychainService.swift */; };
 		5FDE69769317765FB13A4B38 /* ConnectionStringImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11E6627B6B2F98831708D52 /* ConnectionStringImporter.swift */; };
@@ -242,6 +252,7 @@
 		BAF1A917DE7EFEBD71C31664 /* BookmarkIconCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */; };
 		BBB3948B8C7BE6FB57C53369 /* DataTransferCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D4EFAF42F531F9539F6EDA /* DataTransferCodec.swift */; };
 		BBBCE3578E3F464E6393549B /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 390FD0E554A554B968FD2C83 /* NIOSSH */; };
+		BCC9280BDFAFD6133502D5A6 /* Inter-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */; };
 		BDBA77BFC29C23310DE87955 /* QueryPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */; };
 		BED11A309EFB0DE37F25D657 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */; };
 		BF914C434AA65586E8D62F69 /* MongoDocumentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2958FC4E2B745E93C90C45B /* MongoDocumentEditor.swift */; };
@@ -271,8 +282,10 @@
 		D973259D5B46C6C16518A235 /* ResultGridChartTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251D87D88DCD9B94086CB2C2 /* ResultGridChartTests.swift */; };
 		D9C07FDDCC78B515649FEA24 /* RedisRESPCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D686DBEF679D564B9F556AC8 /* RedisRESPCodec.swift */; };
 		DAF8506C7D41B649E9D41F41 /* DataEditorValidationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */; };
+		DB5981430670D84FC1DBCABD /* SourceCodePro-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */; };
 		DD5A273EE0B38B3EC02E2AB5 /* ConnectionStatusLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145631CFEE09178B998BFDC6 /* ConnectionStatusLine.swift */; };
 		DFF4D0AF8BE6FAE1C9BECCDC /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4D175FE93FD2599448CFCC29 /* InfoPlist.strings */; };
+		E05683D0AA165854FCEAFFED /* Inter-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */; };
 		E149852F4935AD7D5D8CF004 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = 8157E6741A0563EC852697C9 /* Localizable.stringsdict */; };
 		E181DB43C5082EDF08E82ACA /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 4A15F76C29C24204DA7CF27F /* AppIcon.icon */; };
 		E20317BF190E70DEC1FFEDF0 /* PlatformSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF60A3CC28A1715A9CEB85 /* PlatformSupport.swift */; };
@@ -311,6 +324,7 @@
 		FB0FE49BD48960B2516A5933 /* RedisModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A887225E2DFA64C5FF390AD9 /* RedisModels.swift */; };
 		FB86C00623F934C24861C780 /* SQLiteConnectionSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D099F14C26E51D6333F2A1 /* SQLiteConnectionSection.swift */; };
 		FCCD7A2C653B30FFFFE39383 /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E43B7EE9DE024E2C885B4C /* Bookmark.swift */; };
+		FD25D4E5069B4FCF01F5AACB /* Inter-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */; };
 		FD71A9BE44BD55F69553FE3D /* ClickHouseQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1A047C32455B83058889ED /* ClickHouseQueryService.swift */; };
 		FDA4F18C3290D9B3B6F6B017 /* ElasticsearchExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C56566958B819CACCAFF882 /* ElasticsearchExplorerView.swift */; };
 		FEF32D0898A63764D9A1E596 /* WorkspaceCloudSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 660C54E07DFDB131EF53BD67 /* WorkspaceCloudSyncTests.swift */; };
@@ -338,6 +352,7 @@
 		06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		0717CE81BCB40CF0EE63576C /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		08DF46A0971483C6B75CF9B1 /* MongoDNSResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDNSResolver.swift; sourceTree = "<group>"; };
+		09A3626DFFC9234B75DB5CE7 /* SourceCodePro-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Regular.ttf"; sourceTree = "<group>"; };
 		09EFF3B085748734815401FF /* SQLStructureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLStructureService.swift; sourceTree = "<group>"; };
 		1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceLibraryStore.swift; sourceTree = "<group>"; };
 		1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLAssistService.swift; sourceTree = "<group>"; };
@@ -365,6 +380,7 @@
 		28B25BDE7E7A65B66500341C /* DataTransferServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataTransferServiceTests.swift; sourceTree = "<group>"; };
 		28BA0C08CE22B10DAB99618D /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		28C27A4427703F412FD07644 /* ConsoleTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleTabBar.swift; sourceTree = "<group>"; };
+		2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.otf"; sourceTree = "<group>"; };
 		30481C95CB3C97725483486C /* SQLiteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteModels.swift; sourceTree = "<group>"; };
 		31CB1110D1A265C5D04A9F6F /* SQLiteSchemaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteSchemaService.swift; sourceTree = "<group>"; };
 		325B57CEA6AB5C9B70261FEC /* ScriptFilesButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptFilesButton.swift; sourceTree = "<group>"; };
@@ -397,6 +413,7 @@
 		51E43B7EE9DE024E2C885B4C /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
 		52B935258BC11A1A55ACB262 /* HTTPDatabaseClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPDatabaseClientTests.swift; sourceTree = "<group>"; };
 		52D16A9DA7C565C1D6AF7543 /* MongoQueryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoQueryService.swift; sourceTree = "<group>"; };
+		53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Bold.ttf"; sourceTree = "<group>"; };
 		54F23C155D372F3D840FDAF2 /* NativeResultGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeResultGrid.swift; sourceTree = "<group>"; };
 		58AA186630912BC4C2DAEF21 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = de; path = de.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		599F11E40142982E8FF89E30 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -404,6 +421,7 @@
 		5B7D28EEF20C9F34421DD9E6 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		5C1A047C32455B83058889ED /* ClickHouseQueryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickHouseQueryService.swift; sourceTree = "<group>"; };
 		5EE40D207E6E6845C6EAA5C7 /* SQLiteBridge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = SQLiteBridge.c; sourceTree = "<group>"; };
+		619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.otf"; sourceTree = "<group>"; };
 		63C52CE99FBA2ED6D018425D /* MongoQueryEditorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoQueryEditorCard.swift; sourceTree = "<group>"; };
 		63C65E79C336A0F709FD048F /* QueryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryModels.swift; sourceTree = "<group>"; };
 		65700D32E188A7B752B0F224 /* ConsoleTransactionControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleTransactionControls.swift; sourceTree = "<group>"; };
@@ -415,6 +433,7 @@
 		69C2A6265712AA4B565B1EE2 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "pt-BR"; path = "pt-BR.lproj/Localizable.stringsdict"; sourceTree = "<group>"; };
 		6B6DDF5B5000E1B223BE00A6 /* PortSQLRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PortSQLRelease.entitlements; sourceTree = "<group>"; };
 		6BFC06791ABF93966E200632 /* MongoQueryDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoQueryDraft.swift; sourceTree = "<group>"; };
+		6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.otf"; sourceTree = "<group>"; };
 		6E9A7C5E143A8778D2CB27A8 /* ResultGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultGridView.swift; sourceTree = "<group>"; };
 		6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkIconCatalog.swift; sourceTree = "<group>"; };
 		77AD64E9FD53B446DBDE8C9F /* ResultInspectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultInspectionService.swift; sourceTree = "<group>"; };
@@ -427,6 +446,7 @@
 		8463A17B78D6D423C713CA8B /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		84B9D14041642CE740791883 /* ResultCellInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultCellInspector.swift; sourceTree = "<group>"; };
 		858C33D538E82DE60542BD2C /* MongoConnectionOptions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoConnectionOptions.swift; sourceTree = "<group>"; };
+		85933FC85A65CAEAEEE98DA9 /* Inter-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.otf"; sourceTree = "<group>"; };
 		85AC296A2B11CE78022CF31E /* InteractiveChartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveChartView.swift; sourceTree = "<group>"; };
 		85FF698B692E31F5D83E3B42 /* WorkspaceToolsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceToolsTests.swift; sourceTree = "<group>"; };
 		87A5A8BD8B3776437D1D7D3C /* DataTransferModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataTransferModels.swift; sourceTree = "<group>"; };
@@ -469,6 +489,7 @@
 		C14B81968F6B961EC57B9332 /* RedisCommandService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisCommandService.swift; sourceTree = "<group>"; };
 		C2958FC4E2B745E93C90C45B /* MongoDocumentEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDocumentEditor.swift; sourceTree = "<group>"; };
 		C2F929B764AFC3E50D32F5F4 /* MongoExtendedJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoExtendedJSON.swift; sourceTree = "<group>"; };
+		C325888189767A996734E33C /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		C635AF9BA9BDBE927890DBA3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParameterAndExportServiceTests.swift; sourceTree = "<group>"; };
 		CA37ABF0B4F735A4AE66464B /* DatabaseService+DataTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DatabaseService+DataTransfer.swift"; sourceTree = "<group>"; };
@@ -686,6 +707,20 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		885B9E63B36C1704897979BC /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */,
+				85933FC85A65CAEAEEE98DA9 /* Inter-Medium.otf */,
+				2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */,
+				6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */,
+				C325888189767A996734E33C /* OFL.txt */,
+				53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */,
+				09A3626DFFC9234B75DB5CE7 /* SourceCodePro-Regular.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
 		A84D63913109DEB2E04972AF /* PortSQLTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -748,6 +783,7 @@
 				F63EEF824843AF5CD2D74DDA /* PortSQL.entitlements */,
 				AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */,
 				6B6DDF5B5000E1B223BE00A6 /* PortSQLRelease.entitlements */,
+				885B9E63B36C1704897979BC /* Fonts */,
 				4D175FE93FD2599448CFCC29 /* InfoPlist.strings */,
 				3551CC4B723F6996D66380F9 /* Localizable.strings */,
 				8157E6741A0563EC852697C9 /* Localizable.stringsdict */,
@@ -994,8 +1030,15 @@
 			files = (
 				F2B9AC336783FD7D30AF8A71 /* AppIcon.icon in Resources */,
 				DFF4D0AF8BE6FAE1C9BECCDC /* InfoPlist.strings in Resources */,
+				BCC9280BDFAFD6133502D5A6 /* Inter-Bold.otf in Resources */,
+				4940EBB3BE4C24F23B1E0271 /* Inter-Medium.otf in Resources */,
+				FD25D4E5069B4FCF01F5AACB /* Inter-Regular.otf in Resources */,
+				E05683D0AA165854FCEAFFED /* Inter-SemiBold.otf in Resources */,
 				AFDFC103EF825ACA2F285D0E /* Localizable.strings in Resources */,
 				4FBB1F9EDEB3E3B3B3425038 /* Localizable.stringsdict in Resources */,
+				3A22B0DD842C32906E3354D8 /* OFL.txt in Resources */,
+				2C584CC38B6EB5A2D76240F1 /* SourceCodePro-Bold.ttf in Resources */,
+				25212293DF8226537063D357 /* SourceCodePro-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1005,8 +1048,15 @@
 			files = (
 				E181DB43C5082EDF08E82ACA /* AppIcon.icon in Resources */,
 				7889D85E8399B28CC34F0798 /* InfoPlist.strings in Resources */,
+				058EAE07A623C0BEBD6B6C96 /* Inter-Bold.otf in Resources */,
+				41F0AAC6DBB518B683BABF8F /* Inter-Medium.otf in Resources */,
+				5E6FC78CA27FA897CAA23D90 /* Inter-Regular.otf in Resources */,
+				0EF2E1ED059DBE01EA02851A /* Inter-SemiBold.otf in Resources */,
 				9FE87FB0FC18B06B9AB6B580 /* Localizable.strings in Resources */,
 				E149852F4935AD7D5D8CF004 /* Localizable.stringsdict in Resources */,
+				39230DF30593C803A07C49AD /* OFL.txt in Resources */,
+				DB5981430670D84FC1DBCABD /* SourceCodePro-Bold.ttf in Resources */,
+				5BB8B208C7B4A8423F35625C /* SourceCodePro-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

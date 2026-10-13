@@ -149,7 +149,7 @@ struct ExplorerWorkspaceView: View {
                         .font(.microText.monospacedDigit().weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, Spacing.xs).padding(.vertical, Spacing.xxxs)
-                        .background(PortSQLPalette.sunken, in: Capsule())
+                        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
                         .accessibilityLabel(L10n.plural("row_count", count: estimate))
                 }
             }

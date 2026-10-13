@@ -41,7 +41,7 @@ struct ExplorerView: View {
                                     }
                                     .buttonStyle(.plain)
                                     .foregroundStyle(.white)
-                                    .background(PortSQLPalette.accent, in: Capsule())
+                                    .background(PortSQLPalette.accent, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
                                     .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
                                     .accessibilityLabel("Run table browse query")
                                     .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
@@ -590,9 +590,9 @@ struct ExplorerView: View {
             .foregroundStyle(PortSQLPalette.ink)
             .padding(.horizontal, Spacing.s)
             .padding(.vertical, Spacing.xxs)
-            .background(PortSQLPalette.surface, in: Capsule())
+            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
             .overlay {
-                Capsule()
+                RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
                     .stroke(PortSQLPalette.stroke, lineWidth: 1)
             }
     }
@@ -650,8 +650,8 @@ struct LibrarySheetView: View {
                 .foregroundStyle(selected ? .white : PortSQLPalette.ink)
                 .padding(.horizontal, Spacing.m)
                 .frame(minHeight: Sizes.control)
-                .background(selected ? AnyShapeStyle(PortSQLPalette.accentGradient) : AnyShapeStyle(PortSQLPalette.surface), in: Capsule())
-                .overlay { Capsule().strokeBorder(selected ? Color.clear : PortSQLPalette.stroke, lineWidth: 1) }
+                .background(selected ? AnyShapeStyle(PortSQLPalette.accentGradient) : AnyShapeStyle(PortSQLPalette.surface), in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: Radius.button, style: .continuous).strokeBorder(selected ? Color.clear : PortSQLPalette.stroke, lineWidth: 1) }
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? .isSelected : [])

@@ -85,7 +85,7 @@ private struct CellValueTextView: UIViewRepresentable {
         view.isEditable = false
         view.isSelectable = true
         view.isFindInteractionEnabled = true
-        view.font = .monospacedSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .body).pointSize, weight: .regular)
+        view.font = PortbaseFonts.codeFont(TypeSize.code, textStyle: .body)
         view.adjustsFontForContentSizeCategory = true
         view.backgroundColor = .secondarySystemBackground
         view.textContainerInset = UIEdgeInsets(top: Spacing.m, left: Spacing.s, bottom: Spacing.m, right: Spacing.s)
