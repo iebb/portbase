@@ -36,7 +36,13 @@ upload. No GitHub Actions signing bundle or App Store Connect key is needed.
 ## Service configuration
 
 Use the existing Portbase app record (`6762447018`) and repository
-`kitta-co/portsql`, with `PortSQL.xcodeproj` as the container:
+`iebb/portbase`, with `PortSQL.xcodeproj` as the container. The repository was
+transferred from `kitta-co/portsql` on 2026-10-14; GitHub redirects the old URL,
+but Xcode Cloud reaches the repository through the Xcode Cloud GitHub app, which
+must have access to `iebb/portbase` (the `iebb` installation uses selected
+repositories, unlike the `kitta-co` organization's all-repositories installation).
+A workflow's repository can't be changed through the App Store Connect API, so a
+repository move is completed in Xcode or App Store Connect:
 
 1. Enable a branch-change start condition for exactly `master`.
 2. Select release Xcode 27 and a compatible macOS environment.
