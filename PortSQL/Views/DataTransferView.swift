@@ -77,7 +77,7 @@ private struct DataTransferSheet: View {
                             ProgressView(value: Double(progress.completed), total: Double(total)) { Text(progress.label) }
                         } else { ProgressView(progress.label) }
                         Button("Cancel", role: .cancel) { model.cancel() }
-                            .frame(minHeight: PortbaseControlSize.minimumHeight)
+                            .frame(minHeight: Sizes.control)
                     }
                 }
                 if let error = model.errorMessage {
@@ -127,7 +127,7 @@ private struct DataTransferSheet: View {
                     .disabled(model.isWorking)
                     .onChange(of: model.hasHeader) { _, _ in model.rereadFile() }
                 Text("Unquoted NULL is null; \\M is a missing field. Quote these values to import their text.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnoteText).foregroundStyle(.secondary)
             }
             if let source = model.source { Text(L10n.plural("row_count", count: source.rowCount)).foregroundStyle(.secondary) }
         }
@@ -135,8 +135,8 @@ private struct DataTransferSheet: View {
         if model.source != nil {
             Section("Column Mapping") {
                 ForEach($model.mappings) { $mapping in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(mapping.sourceName).font(.system(.subheadline, design: .monospaced))
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
+                        Text(mapping.sourceName).font(.codeDetail)
                         HStack {
                             if model.presentation.profile.engine == .mongodb {
                                 TextField("Destination field", text: $mapping.targetName)
@@ -153,28 +153,28 @@ private struct DataTransferSheet: View {
                                 ForEach(DataImportValueType.allCases) { Text($0.title).tag($0) }
                             }.labelsHidden()
                         }
-                    }.frame(minHeight: PortbaseControlSize.minimumHeight)
+                    }.frame(minHeight: Sizes.control)
                 }
             }.disabled(model.isWorking)
             Section("Preview") {
                 ScrollView(.horizontal) {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         ForEach(Array((model.source?.preview ?? []).enumerated()), id: \.offset) { index, row in
                             Text(model.preview(row: row, number: index + 1))
-                                .font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                                .font(.codeCaption).textSelection(.enabled)
                         }
-                    }.padding(.vertical, 4)
+                    }.padding(.vertical, Spacing.xxs)
                 }.frame(maxHeight: 220)
             }
             Section("Statement") {
-                Text(model.statementPreview).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                Text(model.statementPreview).font(.codeCaption).textSelection(.enabled)
                 Text(model.presentation.profile.engine == .mongodb
                      ? L10n.text("MongoDB commits each batch. Cancelled or failed imports can leave inserted documents.")
                      : L10n.text("SQL imports use one transaction. An error before commit rolls back the file."))
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnoteText).foregroundStyle(.secondary)
                 Button("Import Data", role: .destructive) { confirmsImport = true }
                     .disabled(!model.canImport || model.isWorking || model.result != nil)
-                    .frame(minHeight: PortbaseControlSize.minimumHeight)
+                    .frame(minHeight: Sizes.control)
             }
         }
     }
@@ -207,7 +207,7 @@ private struct DataTransferSheet: View {
             }.disabled(model.isWorking)
             if model.presentation.profile.engine == .mongodb, model.exportFormat == .csv {
                 Text("MongoDB CSV fields use Extended JSON to preserve BSON types.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnoteText).foregroundStyle(.secondary)
             }
             Stepper(L10n.format("Timeout: %d s", model.timeoutSeconds), value: $model.timeoutSeconds, in: 1...300, step: 5)
                 .disabled(model.isWorking)
@@ -215,16 +215,16 @@ private struct DataTransferSheet: View {
         if !model.exportsQuery { destinationSection }
         Section("Statement") {
             if let query = model.exportQuery {
-                Text(query.sql).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                Text(query.sql).font(.codeCaption).textSelection(.enabled)
                 if !query.values.isEmpty {
                     Text(query.values.enumerated().map { "\($0.offset + 1): \($0.element.previewLiteral)" }.joined(separator: "\n"))
-                        .font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                        .font(.codeCaption).textSelection(.enabled)
                 }
             } else { Text("Select a query or table to export.").foregroundStyle(.secondary) }
-            if model.exportsQuery { Text("Explicit LIMIT and filters are preserved.").font(.footnote).foregroundStyle(.secondary) }
+            if model.exportsQuery { Text("Explicit LIMIT and filters are preserved.").font(.footnoteText).foregroundStyle(.secondary) }
             Button("Export All Rows") { model.runExport() }
                 .disabled(model.exportQuery == nil || model.isWorking)
-                .frame(minHeight: PortbaseControlSize.minimumHeight)
+                .frame(minHeight: Sizes.control)
         }
     }
 }

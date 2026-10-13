@@ -18,19 +18,19 @@ struct SQLiteConnectionSection: View {
                 } else { Text("No file selected").foregroundStyle(.secondary) }
             }
             Button("Import SQLite File…", systemImage: "square.and.arrow.down") { importing = true }
-                .frame(minHeight: 44).disabled(task != nil)
+                .frame(minHeight: Sizes.touchTarget).disabled(task != nil)
             Button("Create SQLite Database…", systemImage: "plus") { databaseName = ""; creating = true }
-                .frame(minHeight: 44).disabled(task != nil)
+                .frame(minHeight: Sizes.touchTarget).disabled(task != nil)
             Button("Manage Local Files…", systemImage: "folder") { managing = true }
-                .frame(minHeight: 44).disabled(task != nil)
+                .frame(minHeight: Sizes.touchTarget).disabled(task != nil)
             if task != nil {
                 HStack {
                     ProgressView()
                     Spacer()
-                    Button("Cancel") { task?.cancel() }.frame(minWidth: 44, minHeight: 44)
+                    Button("Cancel") { task?.cancel() }.frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                 }
             }
-            if let error { Text(error).foregroundStyle(.red).font(.footnote).textSelection(.enabled) }
+            if let error { Text(error).foregroundStyle(.red).font(.footnoteText).textSelection(.enabled) }
         } header: { Text("SQLite Database") }
         footer: { Text("Database files stay on this device. Deleting a bookmark keeps its file.") }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.data], allowsMultipleSelection: false) { result in
@@ -88,14 +88,14 @@ private struct SQLiteLocalFilesView: View {
                         dismiss()
                     } label: {
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
+                            VStack(alignment: .leading, spacing: Spacing.xxs) {
                                 Text(verbatim: file.displayName).foregroundStyle(.primary)
                                 Text(verbatim: ByteCountFormatter.string(fromByteCount: file.byteCount, countStyle: .file))
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .font(.captionText).foregroundStyle(.secondary)
                             }
                             Spacer()
                             if file.fileName == profile.sqliteFileName { Image(systemName: "checkmark").accessibilityLabel("Selected") }
-                        }.frame(minHeight: 44)
+                        }.frame(minHeight: Sizes.touchTarget)
                     }
                     .swipeActions { Button("Delete", role: .destructive) { deleting = file } }
                 }

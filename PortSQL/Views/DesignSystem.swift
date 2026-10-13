@@ -166,19 +166,190 @@ extension DatabaseEngine {
     var tint: Color { brandColors[1] }
 }
 
-// MARK: - Layout tokens
+// MARK: - Design tokens
+//
+// Every padding, gap, corner radius, control size, and font in the interface comes from these
+// tokens so iPhone, iPad, and Mac screens share one rhythm. Values sit on a 4-point grid (with 2
+// and 6 for tight inline gaps); the Mac uses slightly tighter radii and explicit point sizes,
+// while iOS keeps Dynamic Type text styles.
 
-enum PortbaseMetrics {
-    static let cardRadius: CGFloat = 16
-    static let controlRadius: CGFloat = 12
-    static let chipRadius: CGFloat = 8
+/// The spacing scale used for stack gaps and padding.
+enum Spacing {
+    /// 2 pt — between stacked lines of one label.
+    static let xxxs: CGFloat = 2
+    /// 4 pt — icon-to-text inside chips and badges.
+    static let xxs: CGFloat = 4
+    /// 6 pt — tight inline groups.
+    static let xs: CGFloat = 6
+    /// 8 pt — default gap between related items.
+    static let s: CGFloat = 8
+    /// 12 pt — gap between rows and controls in a group.
+    static let m: CGFloat = 12
+    /// 16 pt — card padding and gap between cards.
+    static let l: CGFloat = 16
+    /// 20 pt — gap between page sections.
+    static let xl: CGFloat = 20
+    /// 24 pt — generous section and empty-state spacing.
+    static let xxl: CGFloat = 24
+    /// 32 pt — hero and onboarding spacing.
+    static let xxxl: CGFloat = 32
+
+    /// Inner padding of cards and panels.
+    static let card: CGFloat = l
+    /// Margin between a page's content and the window or screen edge.
+    static let page: CGFloat = l
+    /// Horizontal padding inside list and sidebar rows.
+    static let rowHorizontal: CGFloat = m
+    /// Vertical padding inside list and sidebar rows.
 #if os(macOS)
-    static let cardPadding: CGFloat = 14
-    static let toolSize: CGFloat = 30
+    static let rowVertical: CGFloat = xs
 #else
-    static let cardPadding: CGFloat = 16
-    static let toolSize: CGFloat = 44
+    static let rowVertical: CGFloat = s
 #endif
+    /// Horizontal padding inside chips and badges.
+    static let chipHorizontal: CGFloat = s
+    /// Vertical padding inside chips and badges.
+    static let chipVertical: CGFloat = xxs
+}
+
+/// Corner radii, from small badges up to sheets and hero tiles.
+enum Radius {
+#if os(macOS)
+    static let xs: CGFloat = 4
+    static let s: CGFloat = 6
+    static let chip: CGFloat = 6
+    static let control: CGFloat = 8
+    static let card: CGFloat = 12
+    static let hero: CGFloat = 18
+#else
+    static let xs: CGFloat = 4
+    static let s: CGFloat = 6
+    static let chip: CGFloat = 8
+    static let control: CGFloat = 12
+    static let card: CGFloat = 16
+    static let hero: CGFloat = 22
+#endif
+}
+
+/// Fixed sizes for controls, icons, and bars.
+enum Sizes {
+#if os(macOS)
+    /// Square tool buttons.
+    static let tool: CGFloat = 30
+    /// Minimum height of buttons, pickers, and tappable rows.
+    static let control: CGFloat = 28
+    /// Primary bars at the top of a destination.
+    static let bar: CGFloat = 44
+    /// Editor and result toolbars.
+    static let toolbar: CGFloat = 40
+    /// Console tab strips.
+    static let tabStrip: CGFloat = 36
+    /// Status lines, filter rows, and segmented pills.
+    static let statusBar: CGFloat = 30
+    /// List rows with an avatar or icon tile.
+    static let row: CGFloat = 40
+    /// Avatars in sidebars and menus.
+    static let avatarSmall: CGFloat = 20
+    /// Content height of bordered and prominent buttons.
+    static let buttonContent: CGFloat = 24
+    /// Fixed-width column for leading symbols so row text lines up.
+    static let symbolColumn: CGFloat = 16
+#else
+    static let tool: CGFloat = 44
+    static let control: CGFloat = 44
+    static let bar: CGFloat = 52
+    static let toolbar: CGFloat = 44
+    static let tabStrip: CGFloat = 36
+    static let statusBar: CGFloat = 36
+    static let row: CGFloat = 52
+    static let avatarSmall: CGFloat = 24
+    static let buttonContent: CGFloat = 32
+    static let symbolColumn: CGFloat = 22
+#endif
+    /// Small symbol badges beside text, such as insight and object-type markers.
+    static let iconBadge: CGFloat = 20
+    /// Avatars in lists.
+    static let avatar: CGFloat = 32
+    /// Avatars in connection headers.
+    static let avatarLarge: CGFloat = 40
+    /// Avatars in editor headers.
+    static let avatarHero: CGFloat = 48
+    /// Minimum interactive target on touch screens.
+    static let touchTarget: CGFloat = 44
+    /// Leading icon tiles in rows (connections, files, saved queries).
+    static let iconTile: CGFloat = 36
+    /// Small icon tiles in compact rows.
+    static let iconTileSmall: CGFloat = 28
+    /// Large icon tiles in headers.
+    static let iconTileLarge: CGFloat = 44
+    /// Line-number gutter of the query editor.
+    static let editorGutter: CGFloat = 44
+    /// Status and environment dots.
+    static let dot: CGFloat = 8
+    /// Symbols in empty states.
+    static let emptyStateSymbol: CGFloat = 32
+    /// Readable width for forms, empty states, and prose.
+    static let readableWidth: CGFloat = 440
+}
+
+#if os(macOS)
+/// Point sizes behind the Mac typography roles, shared with AppKit views such as the result grid
+/// and query editor so native and SwiftUI text match.
+enum TypeSize {
+    static let display: CGFloat = 26
+    static let title: CGFloat = 20
+    static let section: CGFloat = 15
+    static let body: CGFloat = 13
+    static let detail: CGFloat = 12
+    static let caption: CGFloat = 11
+    static let micro: CGFloat = 10
+}
+#endif
+
+/// Typography roles. iOS uses Dynamic Type text styles; the Mac uses explicit point sizes so
+/// shared views read at desktop sizes instead of the Mac's smaller text-style defaults.
+extension Font {
+#if os(macOS)
+    static let displayTitle = Font.system(size: TypeSize.display, weight: .bold)
+    static let pageTitle = Font.system(size: TypeSize.title, weight: .bold)
+    static let sectionTitle = Font.system(size: TypeSize.section, weight: .semibold)
+    static let cardTitle = Font.system(size: TypeSize.body, weight: .semibold)
+    static let bodyText = Font.system(size: TypeSize.body)
+    static let rowTitle = Font.system(size: TypeSize.body, weight: .medium)
+    static let rowDetail = Font.system(size: TypeSize.detail)
+    static let footnoteText = Font.system(size: TypeSize.detail)
+    static let captionText = Font.system(size: TypeSize.caption)
+    static let captionStrong = Font.system(size: TypeSize.caption, weight: .semibold)
+    static let microText = Font.system(size: TypeSize.micro)
+    static let badgeText = Font.system(size: TypeSize.micro, weight: .semibold)
+    static let codeText = Font.system(size: TypeSize.body, design: .monospaced)
+    static let codeDetail = Font.system(size: TypeSize.detail, design: .monospaced)
+    static let codeCaption = Font.system(size: TypeSize.caption, design: .monospaced)
+    static let metricValue = Font.system(size: TypeSize.title, weight: .semibold).monospacedDigit()
+    static let toolSymbol = Font.system(size: TypeSize.body, weight: .semibold)
+    static let tileSymbol = Font.system(size: TypeSize.section, weight: .semibold)
+#else
+    static let displayTitle = Font.largeTitle.weight(.bold)
+    static let pageTitle = Font.title2.weight(.bold)
+    static let sectionTitle = Font.title3.weight(.semibold)
+    static let cardTitle = Font.headline
+    static let bodyText = Font.body
+    static let rowTitle = Font.subheadline.weight(.semibold)
+    static let rowDetail = Font.subheadline
+    static let footnoteText = Font.footnote
+    static let captionText = Font.caption
+    static let captionStrong = Font.caption.weight(.semibold)
+    static let microText = Font.caption2
+    static let badgeText = Font.caption2.weight(.semibold)
+    static let codeText = Font.system(.body, design: .monospaced)
+    static let codeDetail = Font.system(.callout, design: .monospaced)
+    static let codeCaption = Font.system(.caption, design: .monospaced)
+    static let metricValue = Font.title3.weight(.semibold).monospacedDigit()
+    static let toolSymbol = Font.system(size: 16, weight: .semibold)
+    static let tileSymbol = Font.system(size: 17, weight: .semibold)
+#endif
+    /// Symbols in empty states and onboarding.
+    static let emptyStateSymbol = Font.system(size: Sizes.emptyStateSymbol, weight: .regular)
 }
 
 // MARK: - Surfaces
@@ -193,7 +364,7 @@ extension View {
         }
     }
 
-    func portbaseCardSurface(radius: CGFloat = PortbaseMetrics.cardRadius) -> some View {
+    func portbaseCardSurface(radius: CGFloat = Radius.card) -> some View {
         modifier(PortbaseCardSurface(radius: radius))
     }
 }
@@ -206,6 +377,56 @@ private struct PortbaseCardSurface: ViewModifier {
         content
             .background(PortSQLPalette.surface, in: shape)
             .overlay { shape.strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+    }
+}
+
+extension View {
+    /// The sunken track behind segmented destinations and pills.
+    func portbaseSegmentTrack() -> some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
+        return padding(Spacing.xxs)
+            .background(PortSQLPalette.sunken, in: shape)
+            .overlay { shape.strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+    }
+
+    /// The raised surface behind the selected segment or console tab.
+    func portbaseSelectedSegment<S: Shape>(_ isSelected: Bool, in shape: S) -> some View {
+        background {
+            if isSelected {
+                shape.fill(PortSQLPalette.surface)
+                    .shadow(color: .black.opacity(0.08), radius: 2, x: 0, y: 1)
+                    .overlay { shape.stroke(PortSQLPalette.stroke, lineWidth: 0.5) }
+            }
+        }
+    }
+
+    func portbaseSelectedSegment(_ isSelected: Bool) -> some View {
+        portbaseSelectedSegment(isSelected, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+    }
+
+    /// A horizontal bar (toolbar, status line, filter row) on the panel background.
+    func portbaseBar(_ height: CGFloat = Sizes.toolbar) -> some View {
+        padding(.horizontal, Spacing.m)
+            .frame(height: height)
+            .background(PortSQLPalette.panel)
+    }
+
+    /// The inset background of search and filter fields.
+    func portbaseFieldChrome() -> some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.s, style: .continuous)
+        return padding(.horizontal, Spacing.s)
+            .frame(minHeight: Sizes.statusBar)
+            .background(PortSQLPalette.sunken, in: shape)
+            .overlay { shape.strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+    }
+}
+
+/// A divider inset to line up with row text that follows a leading icon or avatar.
+struct PortbaseRowDivider: View {
+    var leadingIcon: CGFloat = 0
+
+    var body: some View {
+        Divider().padding(.leading, Spacing.card + (leadingIcon > 0 ? leadingIcon + Spacing.m : 0))
     }
 }
 
@@ -226,15 +447,15 @@ struct ToolIconChrome: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .font(.system(size: PortbaseMetrics.toolSize > 30 ? 16 : 12, weight: .semibold))
+            .font(.toolSymbol)
             .foregroundStyle(isProminent ? AnyShapeStyle(.white) : AnyShapeStyle(isEnabled ? (tint ?? PortSQLPalette.ink) : Color.secondary.opacity(0.5)))
-            .frame(width: PortbaseMetrics.toolSize, height: PortbaseMetrics.toolSize)
+            .frame(width: Sizes.tool, height: Sizes.tool)
             .background {
-                RoundedRectangle(cornerRadius: PortbaseMetrics.controlRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                     .fill(isProminent ? AnyShapeStyle(PortSQLPalette.accent) : AnyShapeStyle(PortSQLPalette.sunken))
             }
             .overlay {
-                RoundedRectangle(cornerRadius: PortbaseMetrics.controlRadius, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                     .strokeBorder(isProminent ? Color.clear : PortSQLPalette.stroke, lineWidth: 1)
             }
             .contentShape(Rectangle())
@@ -253,14 +474,14 @@ struct PortbaseChip: View {
     var filled = false
 
     var body: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: Spacing.xxs) {
             if let systemImage { Image(systemName: systemImage).imageScale(.small) }
             Text(title).lineLimit(1)
         }
-        .font(.caption2.weight(.semibold))
+        .font(.badgeText)
         .foregroundStyle(filled ? .white : tint)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, Spacing.s)
+        .padding(.vertical, Spacing.xxs)
         .background(filled ? AnyShapeStyle(tint) : AnyShapeStyle(tint.opacity(0.12)), in: Capsule())
         .accessibilityElement(children: .combine)
     }
@@ -273,17 +494,19 @@ struct PortbaseSectionHeading<Trailing: View>: View {
     @ViewBuilder var trailing: Trailing
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
             if let systemImage {
                 Image(systemName: systemImage).foregroundStyle(PortSQLPalette.accent)
             }
             Text(title)
-                .font(.headline)
+                .font(.cardTitle)
                 .foregroundStyle(PortSQLPalette.ink)
                 .accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 8)
+            Spacer(minLength: Spacing.s)
             trailing
         }
+        // A fixed height keeps headings in neighbouring columns aligned whether or not they carry a button.
+        .frame(minHeight: Sizes.control)
     }
 }
 
@@ -302,26 +525,26 @@ struct PortbaseMetricTile: View {
     var footnote: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             Image(systemName: systemImage)
-                .font(.subheadline)
+                .font(.rowDetail)
                 .foregroundStyle(tint)
                 .accessibilityHidden(true)
             Text(value)
-                .font(.title3.weight(.semibold).monospacedDigit())
+                .font(.metricValue)
                 .foregroundStyle(PortSQLPalette.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary).lineLimit(1)
+            VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                Text(title).font(.captionStrong).foregroundStyle(.secondary).lineLimit(1)
                 // Reserve the footnote line so tiles in a grid keep equal heights.
-                Text(footnote ?? " ").font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+                Text(footnote ?? " ").font(.microText).foregroundStyle(.tertiary).lineLimit(1)
                     .accessibilityHidden(footnote == nil)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .portbaseCardSurface(radius: 12)
+        .padding(Spacing.m)
+        .portbaseCardSurface(radius: Radius.control)
         .accessibilityElement(children: .combine)
     }
 }
@@ -354,31 +577,31 @@ struct PortbaseEmptyState: View {
     var secondaryAction: (() -> Void)?
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: Spacing.l) {
             Image(systemName: systemImage)
-                .font(.system(size: 32))
+                .font(.emptyStateSymbol)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            VStack(spacing: 6) {
-                Text(title).font(.headline).multilineTextAlignment(.center)
-                Text(message).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            VStack(spacing: Spacing.xs) {
+                Text(title).font(.cardTitle).multilineTextAlignment(.center)
+                Text(message).font(.rowDetail).foregroundStyle(.secondary).multilineTextAlignment(.center)
             }
             if let actionTitle, let action {
                 Button(action: action) {
-                    Text(actionTitle).lineLimit(1).padding(.horizontal, 8).frame(minHeight: 32)
+                    Text(actionTitle).lineLimit(1).padding(.horizontal, Spacing.s).frame(minHeight: Sizes.buttonContent)
                 }
                 .buttonStyle(.borderedProminent)
-                .padding(.top, 4)
+                .padding(.top, Spacing.xxs)
             }
             if let secondaryTitle, let secondaryAction {
                 Button(action: secondaryAction) {
-                    Text(secondaryTitle).lineLimit(1).padding(.horizontal, 8).frame(minHeight: 32)
+                    Text(secondaryTitle).lineLimit(1).padding(.horizontal, Spacing.s).frame(minHeight: Sizes.buttonContent)
                 }
                 .buttonStyle(.bordered)
             }
         }
-        .frame(maxWidth: 420)
-        .padding(24)
+        .frame(maxWidth: Sizes.readableWidth)
+        .padding(Spacing.xxl)
         .frame(maxWidth: .infinity)
     }
 }
@@ -415,7 +638,7 @@ struct ConnectionSecurityChips: View {
     let profile: ConnectionProfile
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Spacing.xs) {
             EnvironmentBadge(environment: profile.environment)
             if profile.isReadOnly {
                 PortbaseChip(title: L10n.text("Read-only"), systemImage: "lock.fill", tint: .secondary)
@@ -460,11 +683,11 @@ struct EnvironmentBadge: View {
     var body: some View {
         if environment != .none {
             Text(environment.title.uppercased())
-                .font(.system(size: compact ? 9 : 10, weight: .bold))
+                .font(.badgeText)
                 .tracking(0.4)
                 .foregroundStyle(.white)
-                .padding(.horizontal, compact ? 5 : 7)
-                .padding(.vertical, compact ? 2 : 3)
+                .padding(.horizontal, compact ? Spacing.xxs : Spacing.xs)
+                .padding(.vertical, Spacing.xxxs)
                 .background(environment.color, in: Capsule())
                 .lineLimit(1)
                 .fixedSize()
@@ -492,22 +715,22 @@ struct EnvironmentPicker: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.s) {
                 ForEach(ConnectionEnvironment.allCases) { environment in
                     let selected = selection == environment
                     Button {
                         selection = environment
                     } label: {
-                        HStack(spacing: 6) {
+                        HStack(spacing: Spacing.xs) {
                             Circle()
                                 .fill(environment == .none ? Color.secondary.opacity(0.4) : environment.color)
-                                .frame(width: 8, height: 8)
+                                .frame(width: Sizes.dot, height: Sizes.dot)
                             Text(environment.title).lineLimit(1)
                         }
-                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .font(.rowDetail.weight(selected ? .semibold : .regular))
                         .foregroundStyle(PortSQLPalette.ink)
-                        .padding(.horizontal, 12)
-                        .frame(minHeight: PortbaseControlSize.minimumHeight)
+                        .padding(.horizontal, Spacing.m)
+                        .frame(minHeight: Sizes.control)
                         .background(selected ? (environment == .none ? PortSQLPalette.sunken : environment.color.opacity(0.15)) : Color.clear, in: Capsule())
                         .overlay {
                             Capsule().strokeBorder(selected ? (environment == .none ? PortSQLPalette.stroke : environment.color) : PortSQLPalette.stroke,
@@ -519,7 +742,7 @@ struct EnvironmentPicker: View {
                     .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
                 }
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, Spacing.xxxs)
         }
     }
 }

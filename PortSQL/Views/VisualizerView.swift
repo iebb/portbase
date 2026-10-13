@@ -8,20 +8,20 @@ struct VisualizerView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: Spacing.xl) {
                 if libraryStore.visualizations.isEmpty {
                     PortbaseEmptyState(
                         title: L10n.text("No saved charts yet"),
                         message: L10n.text("Run a query with numeric columns, then choose the chart button in Results to design and save a chart."),
                         systemImage: "chart.bar.xaxis"
                     )
-                    .padding(.top, 60)
+                    .padding(.top, Spacing.xxxl * 2)
                 } else {
                     PortbaseSectionHeading(title: L10n.text("Saved Charts"), systemImage: "chart.bar.xaxis") {
                         Text(L10n.format("Saved: %d", libraryStore.visualizations.count))
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.captionText).foregroundStyle(.secondary)
                     }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 380), spacing: 16, alignment: .top)], spacing: 16) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 380), spacing: Spacing.l, alignment: .top)], spacing: Spacing.l) {
                         ForEach(libraryStore.visualizations) { preset in
                             VisualizationPresetCard(
                                 preset: preset,
@@ -32,8 +32,8 @@ struct VisualizerView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 18)
+            .padding(.horizontal, Spacing.l)
+            .padding(.vertical, Spacing.l)
         }
         .background(PortbaseBackdrop().ignoresSafeArea())
         .navigationTitle("Charts")
@@ -114,9 +114,9 @@ struct VisualizerComposerSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: Spacing.xl) {
                     PanelCard {
-                        VStack(alignment: .leading, spacing: 14) {
+                        VStack(alignment: .leading, spacing: Spacing.l) {
                             SectionHeader(title: "Add to Visualizer")
 
                             LabeledVisualizerTextField(
@@ -131,10 +131,10 @@ struct VisualizerComposerSheet: View {
                                 text: $draft.chartTitle
                             )
 
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack(alignment: .center, spacing: 10) {
+                            VStack(alignment: .leading, spacing: Spacing.m) {
+                                HStack(alignment: .center, spacing: Spacing.s) {
                                     Text("Query")
-                                        .font(.subheadline.weight(.semibold))
+                                        .font(.rowTitle)
                                         .foregroundStyle(PortSQLPalette.ink)
                                     Spacer()
                                     if previewBookmark?.engine.isRelational != false {
@@ -152,7 +152,7 @@ struct VisualizerComposerSheet: View {
                                         .disabled(queryBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                                     } label: {
                                         Label("Clean Up", systemImage: "line.3.horizontal.decrease.circle")
-                                            .font(.caption.weight(.semibold))
+                                            .font(.captionStrong)
                                             .foregroundStyle(PortSQLPalette.ink)
                                     }
 
@@ -186,24 +186,24 @@ struct VisualizerComposerSheet: View {
 
                                     if queryBinding.wrappedValue.isEmpty {
                                         Text(verbatim: previewBookmark?.engine.queryPlaceholder ?? "SELECT …")
-                                            .font(.system(.body, design: .monospaced))
+                                            .font(.codeText)
                                             .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
-                                            .padding(.horizontal, 16)
-                                            .padding(.vertical, 18)
+                                            .padding(.horizontal, Spacing.l)
+                                            .padding(.vertical, Spacing.l)
                                             .allowsHitTesting(false)
                                     }
                                 }
                                 .background(
-                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    RoundedRectangle(cornerRadius: Radius.hero, style: .continuous)
                                         .fill(PortSQLPalette.editorBackground(for: colorScheme))
                                 )
                                 .overlay {
-                                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                                    RoundedRectangle(cornerRadius: Radius.hero, style: .continuous)
                                         .stroke(PortSQLPalette.editorBorder(for: colorScheme), lineWidth: 1)
                                 }
                             }
 
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                 VisualizationControlMenu(
                                     title: "Chart",
                                     value: draft.chartType.title,
@@ -222,12 +222,12 @@ struct VisualizerComposerSheet: View {
                                 }
                             }
 
-                            VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: Spacing.m) {
                                 Text("X Axis")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.rowTitle)
                                     .foregroundStyle(PortSQLPalette.ink)
 
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                     VisualizationControlMenu(
                                         title: "Field",
                                         value: draft.xField,
@@ -266,14 +266,14 @@ struct VisualizerComposerSheet: View {
                                     text: $draft.xAxisTitle
                                 )
                             }
-                            .padding(.top, 2)
+                            .padding(.top, Spacing.xxxs)
 
-                            VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: Spacing.m) {
                                 Text("Y Axis")
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.rowTitle)
                                     .foregroundStyle(PortSQLPalette.ink)
 
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                     VisualizationControlMenu(
                                         title: "Field",
                                         value: selectedYFieldsSummary,
@@ -301,7 +301,7 @@ struct VisualizerComposerSheet: View {
 
                                 if draft.resolvedYFields.count > 1 {
                                     Label("Multiple metrics stack for bar and area charts.", systemImage: "square.stack.3d.up")
-                                        .font(.caption)
+                                        .font(.captionText)
                                         .foregroundStyle(.secondary)
                                 }
 
@@ -311,9 +311,9 @@ struct VisualizerComposerSheet: View {
                                     text: $draft.yAxisTitle
                                 )
                             }
-                            .padding(.top, 2)
+                            .padding(.top, Spacing.xxxs)
 
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                 VisualizationControlMenu(
                                     title: "Group",
                                     value: draft.groupField ?? "None",
@@ -348,7 +348,7 @@ struct VisualizerComposerSheet: View {
                     }
 
                     PanelCard {
-                        VStack(alignment: .leading, spacing: 14) {
+                        VStack(alignment: .leading, spacing: Spacing.l) {
                             SectionHeader(
                                 title: draft.chartTitle.isEmpty ? "Preview" : draft.chartTitle,
                                 subtitle: previewSubtitle
@@ -377,7 +377,7 @@ struct VisualizerComposerSheet: View {
 
                     if isStoredPreset {
                         PanelCard {
-                            VStack(alignment: .leading, spacing: 12) {
+                            VStack(alignment: .leading, spacing: Spacing.m) {
                                 Button(role: .destructive) {
                                     isConfirmingDelete = true
                                 } label: {
@@ -390,8 +390,8 @@ struct VisualizerComposerSheet: View {
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 18)
+                .padding(.horizontal, Spacing.l)
+                .padding(.vertical, Spacing.l)
             }
             .background(WorkbenchBackground().ignoresSafeArea())
             .navigationTitle("Chart Config")
@@ -587,22 +587,22 @@ private struct VisualizationPresetCard: View {
 
     var body: some View {
         PanelCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                HStack(alignment: .top, spacing: Spacing.m) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(preset.title)
-                            .font(.headline.weight(.bold))
+                            .font(.cardTitle.weight(.bold))
                         Text([
                             preset.chartType.title,
                             preset.connectionName,
                             preset.databaseName,
                             preset.sourceTableReference
                         ].compactMap { $0 }.joined(separator: " • "))
-                        .font(.caption)
+                        .font(.captionText)
                         .foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         Button {
                             Task {
                                 await runPreset()
@@ -632,7 +632,7 @@ private struct VisualizationPresetCard: View {
                 }
 
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         VisualizerMetaChip(text: "X \(preset.xField)")
                         VisualizerMetaChip(text: "Y \(preset.yFieldsSummary)")
                         if preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
@@ -706,19 +706,19 @@ private struct VisualizationPresetCard: View {
         actionTitle: String,
         action: @escaping () -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             Label(title, systemImage: "chart.bar.xaxis")
-                .font(.subheadline.weight(.semibold))
+                .font(.rowTitle)
             Text(message)
-                .font(.footnote)
+                .font(.footnoteText)
                 .foregroundStyle(.secondary)
             Button(actionTitle, action: action)
                 .buttonStyle(.bordered)
-                .frame(minHeight: 44)
+                .frame(minHeight: Sizes.touchTarget)
         }
-        .padding(14)
+        .padding(Spacing.l)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
     }
 
     private func runPreset() async {
@@ -828,7 +828,7 @@ struct VisualizationChartPlot: View {
             .annotation(position: .overlay) {
                 if let annotation = annotationText(for: point), shouldAnnotate {
                     Text(annotation)
-                        .font(.caption2.weight(.semibold))
+                        .font(.badgeText)
                         .foregroundStyle(.white)
                 }
             }
@@ -1224,7 +1224,7 @@ struct VisualizationChartPlot: View {
     @ViewBuilder
     private func compactAnnotation(_ text: String) -> some View {
         Text(text)
-            .font(.caption2.weight(.semibold))
+            .font(.badgeText)
             .foregroundStyle(PortSQLPalette.ink)
             .lineLimit(1)
     }
@@ -1236,18 +1236,18 @@ private struct LabeledVisualizerTextField: View {
     @Binding var text: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             Text(label)
-                .font(.caption.weight(.semibold))
+                .font(.captionStrong)
                 .foregroundStyle(.secondary)
 
             TextField(placeholder, text: $text)
                 .portbaseTextCapitalization(.words)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.horizontal, Spacing.l)
+                .padding(.vertical, Spacing.m)
+                .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .stroke(PortSQLPalette.stroke, lineWidth: 1)
                 }
         }
@@ -1264,21 +1264,21 @@ private struct VisualizationControlMenu<Content: View>: View {
         Menu {
             content()
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Label(title, systemImage: systemImage)
-                    .font(.caption.weight(.semibold))
+                    .font(.captionStrong)
                     .foregroundStyle(.secondary)
                 Text(value.isEmpty ? "Select" : value)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.rowTitle)
                     .foregroundStyle(PortSQLPalette.ink)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .padding(.horizontal, Spacing.l)
+            .padding(.vertical, Spacing.m)
+            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .stroke(PortSQLPalette.stroke, lineWidth: 1)
             }
         }
@@ -1291,10 +1291,10 @@ private struct VisualizerMetaChip: View {
 
     var body: some View {
         Text(text)
-            .font(.caption.weight(.semibold))
+            .font(.captionStrong)
             .foregroundStyle(PortSQLPalette.accent)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xs)
             .background(PortSQLPalette.accent.opacity(0.10), in: Capsule())
     }
 }

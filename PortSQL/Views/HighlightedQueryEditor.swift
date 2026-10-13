@@ -16,7 +16,7 @@ private final class QueryTextView: UITextView {
         super.layoutSubviews()
         if gutter.superview == nil { addSubview(gutter) }
         gutter.isHidden = !showsLineNumbers
-        gutter.frame = CGRect(x: contentOffset.x, y: contentOffset.y, width: 44, height: bounds.height)
+        gutter.frame = CGRect(x: contentOffset.x, y: contentOffset.y, width: Sizes.editorGutter, height: bounds.height)
         refreshLineNumbers()
         bringSubviewToFront(gutter)
     }
@@ -230,7 +230,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         textView.keyboardDismissMode = .interactive
         textView.font = Self.font
         textView.adjustsFontForContentSizeCategory = true
-        textView.textContainerInset = UIEdgeInsets(top: 18, left: fitsContent ? 16 : 52, bottom: 18, right: 16)
+        textView.textContainerInset = UIEdgeInsets(top: Spacing.l, left: fitsContent ? Spacing.l : Sizes.editorGutter + Spacing.s, bottom: Spacing.l, right: Spacing.l)
         textView.textContainer.lineFragmentPadding = 0
         context.coordinator.palette = palette
         textView.palette = palette

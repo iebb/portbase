@@ -65,7 +65,7 @@ struct GridCollectionBridge: NSViewRepresentable {
                 column.title = result.columns[index].name
                 column.minWidth = 64; column.maxWidth = 800
                 column.width = configuration.widths[index].map { CGFloat($0) } ?? Self.naturalWidth(result: result, column: index)
-                column.headerCell.font = .systemFont(ofSize: 12, weight: .medium)
+                column.headerCell.font = .systemFont(ofSize: TypeSize.detail, weight: .medium)
                 table.addTableColumn(column)
             }
         }
@@ -84,10 +84,10 @@ struct GridCollectionBridge: NSViewRepresentable {
                 header.append(NSAttributedString(string: " "))
             }
             header.append(NSAttributedString(string: name + arrow,
-                                             attributes: [.font: NSFont.systemFont(ofSize: 12, weight: .semibold), .foregroundColor: NSColor.labelColor]))
+                                             attributes: [.font: NSFont.systemFont(ofSize: TypeSize.detail, weight: .semibold), .foregroundColor: NSColor.labelColor]))
             if !type.isEmpty {
                 header.append(NSAttributedString(string: "  " + type.lowercased(),
-                                                 attributes: [.font: NSFont.systemFont(ofSize: 10), .foregroundColor: NSColor.tertiaryLabelColor]))
+                                                 attributes: [.font: NSFont.systemFont(ofSize: TypeSize.micro), .foregroundColor: NSColor.tertiaryLabelColor]))
             }
             column.headerCell.attributedStringValue = header
             column.headerToolTip = primaryKeys.contains(name) ? L10n.text("Primary key") + " · " + type : type
@@ -96,7 +96,7 @@ struct GridCollectionBridge: NSViewRepresentable {
     }
     static func naturalWidth(result: QueryResultTable, column: Int) -> CGFloat {
         guard result.columns.indices.contains(column) else { return 160 }
-        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        let font = NSFont.monospacedSystemFont(ofSize: TypeSize.detail, weight: .regular)
         let values = [result.columns[column].name] + result.rows.prefix(40).map { row in row.cells.indices.contains(column) ? String(row.cells[column].displayValue.prefix(100)) : "NULL" }
         return min(320, max(100, values.map { ($0 as NSString).size(withAttributes: [.font:font]).width + 24 }.max() ?? 160))
     }
@@ -112,7 +112,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             let value = parent.result.rows[row].cells.indices.contains(index) ? parent.result.rows[row].cells[index] : .null
             let container = (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTableCellView) ?? Self.makeCell(identifier)
             guard let field = container.textField else { return container }
-            field.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
+            field.font = .monospacedSystemFont(ofSize: TypeSize.body, weight: .regular)
             field.stringValue = value.isNull ? "NULL" : value.displayValue.isEmpty ? "\"\"" : value.displayValue
             field.lineBreakMode = .byTruncatingTail
             field.textColor = value.isNull ? .tertiaryLabelColor : .labelColor

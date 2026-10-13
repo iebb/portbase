@@ -20,15 +20,15 @@ struct HomeView: View {
             let wide = proxy.size.width >= 760
             ScrollView {
                 // Each section is type-erased so the page's view type stays small to lay out.
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: Spacing.xxl) {
                     AnyView(connectionCard)
                     AnyView(quickActions)
                     if wide {
-                        HStack(alignment: .top, spacing: 20) {
+                        HStack(alignment: .top, spacing: Spacing.xl) {
                             AnyView(recentSection).frame(maxWidth: .infinity)
                             AnyView(activitySection(activity)).frame(maxWidth: .infinity)
                         }
-                        HStack(alignment: .top, spacing: 20) {
+                        HStack(alignment: .top, spacing: Spacing.xl) {
                             AnyView(connectionsSection).frame(maxWidth: .infinity)
                             AnyView(savedSection).frame(maxWidth: .infinity)
                         }
@@ -39,8 +39,8 @@ struct HomeView: View {
                         AnyView(savedSection)
                     }
                 }
-                .padding(.horizontal, wide ? 28 : 16)
-                .padding(.vertical, 16)
+                .padding(.horizontal, wide ? Spacing.xxl : Spacing.page)
+                .padding(.vertical, Spacing.l)
                 .frame(maxWidth: 1100)
                 .frame(maxWidth: .infinity)
             }
@@ -55,27 +55,27 @@ struct HomeView: View {
     @ViewBuilder private var connectionCard: some View {
         if let profile = workspace.selectedBookmark {
             let healthy = workspace.errorMessage == nil && workspace.schemaErrorMessage == nil
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    BookmarkAvatar(profile: profile, size: 40, cornerRadius: 10)
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(profile.displayTitle).font(.headline).lineLimit(1)
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                HStack(spacing: Spacing.m) {
+                    BookmarkAvatar(profile: profile, size: Sizes.avatarLarge, cornerRadius: Radius.chip)
+                    VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                        HStack(spacing: Spacing.xs) {
+                            Text(profile.displayTitle).font(.cardTitle).lineLimit(1)
                             EnvironmentBadge(environment: profile.environment)
                         }
-                        Text(profile.endpointSummary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        Text(profile.endpointSummary).font(.captionText).foregroundStyle(.secondary).lineLimit(1)
                     }
-                    Spacer(minLength: 8)
+                    Spacer(minLength: Spacing.s)
                     Circle()
                         .fill(healthy ? Color.green : Color.orange)
-                        .frame(width: 8, height: 8)
+                        .frame(width: Sizes.dot, height: Sizes.dot)
                         .accessibilityLabel(healthy ? L10n.text("Active connection") : L10n.text("Needs attention"))
                 }
 
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.m) {
                     DatabasePicker()
                     if !workspace.schemaCatalog.isEmpty {
-                        Text(tableCountLabel).font(.subheadline).foregroundStyle(.secondary).lineLimit(1)
+                        Text(tableCountLabel).font(.rowDetail).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer(minLength: 0)
                 }
@@ -84,34 +84,34 @@ struct HomeView: View {
                     ConnectionIssueBanner(message: error, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
                 }
 
-                HStack(spacing: 10) {
+                HStack(spacing: Spacing.s) {
                     Button { onNavigate(.console) } label: {
-                        Label("Open Console", systemImage: "terminal").frame(maxWidth: .infinity, minHeight: 32)
+                        Label("Open Console", systemImage: "terminal").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                     }
                     .buttonStyle(.borderedProminent)
                     Button { onNavigate(.explorer) } label: {
-                        Label("Browse Data", systemImage: "tablecells").frame(maxWidth: .infinity, minHeight: 32)
+                        Label("Browse Data", systemImage: "tablecells").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                     }
                     .buttonStyle(.bordered)
                 }
             }
-            .padding(16)
-            .portbaseCardSurface(radius: 16)
+            .padding(Spacing.l)
+            .portbaseCardSurface()
         } else {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Connect your first database").font(.headline)
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("Connect your first database").font(.cardTitle)
                 Text("Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch.")
-                    .font(.subheadline)
+                    .font(.rowDetail)
                     .foregroundStyle(.secondary)
                 // Side by side when both titles fit on one line; otherwise stacked at full width.
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) { onboardingButtons }
-                    VStack(spacing: 10) { onboardingButtons }
+                    HStack(spacing: Spacing.s) { onboardingButtons }
+                    VStack(spacing: Spacing.m) { onboardingButtons }
                 }
             }
-            .padding(16)
+            .padding(Spacing.l)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .portbaseCardSurface(radius: 16)
+            .portbaseCardSurface()
         }
     }
 
@@ -120,14 +120,14 @@ struct HomeView: View {
             Label("Add Connection", systemImage: "plus")
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-                .frame(maxWidth: .infinity, minHeight: 32)
+                .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
         }
         .buttonStyle(.borderedProminent)
         Button { createsSQLite = true } label: {
             Label("New SQLite Database", systemImage: "internaldrive")
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
-                .frame(maxWidth: .infinity, minHeight: 32)
+                .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
         }
         .buttonStyle(.bordered)
     }
@@ -142,8 +142,8 @@ struct HomeView: View {
 
     private var quickActions: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 10) { quickActionButtons }
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+            HStack(spacing: Spacing.s) { quickActionButtons }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: Spacing.s), GridItem(.flexible(), spacing: Spacing.s)], spacing: Spacing.s) {
                 quickActionButtons
             }
         }
@@ -159,13 +159,13 @@ struct HomeView: View {
     // MARK: Recent queries
 
     private var recentSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             PortbaseSectionHeading(title: L10n.text("Recent Queries")) {
                 if !library.history.isEmpty {
                     Button("Show All") { onNavigate(.library) }
                         .buttonStyle(.borderless)
-                        .font(.subheadline)
-                        .frame(minHeight: PortbaseControlSize.minimumHeight)
+                        .font(.rowDetail)
+                        .frame(minHeight: Sizes.control)
                 }
             }
             VStack(spacing: 0) {
@@ -173,7 +173,7 @@ struct HomeView: View {
                     placeholder("Queries you run appear here. Loading one never runs it.")
                 } else {
                     ForEach(Array(library.history.prefix(5).enumerated()), id: \.element.id) { index, entry in
-                        if index > 0 { Divider().padding(.leading, 40) }
+                        if index > 0 { PortbaseRowDivider(leadingIcon: Sizes.symbolColumn) }
                         Button {
                             if workspace.apply(history: entry) { onNavigate(.console) }
                         } label: {
@@ -184,18 +184,18 @@ struct HomeView: View {
                     }
                 }
             }
-            .portbaseCardSurface(radius: 16)
+            .portbaseCardSurface()
         }
     }
 
     // MARK: Activity
 
     private func activitySection(_ activity: WorkspaceActivity) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             PortbaseSectionHeading(title: L10n.text("Activity")) {
-                Text("Last 14 days").font(.caption).foregroundStyle(.secondary)
+                Text("Last 14 days").font(.captionText).foregroundStyle(.secondary)
             }
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
                 HStack(spacing: 0) {
                     stat(L10n.text("Queries run"), activity.executionCount.formatted())
                     stat(L10n.text("Success rate"), activity.successRate.map { $0.formatted(.percent.precision(.fractionLength(0))) } ?? "—")
@@ -222,15 +222,15 @@ struct HomeView: View {
                     .accessibilityLabel("Queries per day")
                 }
             }
-            .padding(14)
-            .portbaseCardSurface(radius: 16)
+            .padding(Spacing.l)
+            .portbaseCardSurface()
         }
     }
 
     private func stat(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.title3.weight(.semibold).monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
-            Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+        VStack(alignment: .leading, spacing: Spacing.xxxs) {
+            Text(value).font(.metricValue).lineLimit(1).minimumScaleFactor(0.7)
+            Text(title).font(.captionText).foregroundStyle(.secondary).lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
@@ -239,11 +239,11 @@ struct HomeView: View {
     // MARK: Connections
 
     private var connectionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             PortbaseSectionHeading(title: L10n.text("Connections")) {
                 Button { workspace.createBookmark() } label: {
                     Image(systemName: "plus")
-                        .frame(width: PortbaseControlSize.minimumHeight, height: PortbaseControlSize.minimumHeight)
+                        .frame(width: Sizes.control, height: Sizes.control)
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel("Add Connection")
@@ -253,23 +253,23 @@ struct HomeView: View {
                     placeholder("No servers saved")
                 } else {
                     ForEach(Array(bookmarks.bookmarks.prefix(6).enumerated()), id: \.element.id) { index, profile in
-                        if index > 0 { Divider().padding(.leading, 56) }
+                        if index > 0 { PortbaseRowDivider(leadingIcon: Sizes.avatar) }
                         Button {
                             if workspace.selectedBookmarkID != profile.id { workspace.selectBookmark(profile.id) }
                         } label: {
-                            HStack(spacing: 12) {
-                                BookmarkAvatar(profile: profile, size: 30, cornerRadius: 8)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(profile.displayTitle).font(.subheadline).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
-                                    Text(profile.endpointSummary).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            HStack(spacing: Spacing.m) {
+                                BookmarkAvatar(profile: profile, size: Sizes.avatar, cornerRadius: Radius.chip)
+                                VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                                    Text(profile.displayTitle).font(.rowDetail).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                                    Text(profile.endpointSummary).font(.captionText).foregroundStyle(.secondary).lineLimit(1)
                                 }
-                                Spacer(minLength: 8)
+                                Spacer(minLength: Spacing.s)
                                 if workspace.selectedBookmarkID == profile.id {
-                                    Image(systemName: "checkmark").font(.subheadline.weight(.semibold)).foregroundStyle(PortSQLPalette.accent)
+                                    Image(systemName: "checkmark").font(.rowTitle).foregroundStyle(PortSQLPalette.accent)
                                 }
                             }
-                            .padding(.horizontal, 14)
-                            .frame(minHeight: 52)
+                            .padding(.horizontal, Spacing.l)
+                            .frame(minHeight: Sizes.row)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -278,36 +278,36 @@ struct HomeView: View {
                     if bookmarks.bookmarks.count > 6 {
                         Divider()
                         Button("Show All") { onNavigate(.servers) }
-                            .font(.subheadline)
-                            .frame(maxWidth: .infinity, minHeight: PortbaseControlSize.minimumHeight)
+                            .font(.rowDetail)
+                            .frame(maxWidth: .infinity, minHeight: Sizes.control)
                     }
                 }
             }
-            .portbaseCardSurface(radius: 16)
+            .portbaseCardSurface()
         }
     }
 
     // MARK: Saved queries
 
     private var savedSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             PortbaseSectionHeading(title: L10n.text("Saved Queries"))
             VStack(spacing: 0) {
                 if library.snippets.isEmpty {
                     placeholder("Save a query from the console to keep it one tap away.")
                 } else {
                     ForEach(Array(library.snippets.prefix(5).enumerated()), id: \.element.id) { index, snippet in
-                        if index > 0 { Divider().padding(.leading, 14) }
+                        if index > 0 { Divider().padding(.leading, Spacing.l) }
                         Button {
                             if workspace.apply(snippet: snippet) { onNavigate(.console) }
                         } label: {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(snippet.title).font(.subheadline).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                Text(snippet.title).font(.rowDetail).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                                 Text(snippet.sql.replacingOccurrences(of: "\n", with: " "))
-                                    .font(.caption.monospaced()).foregroundStyle(.secondary).lineLimit(1)
+                                    .font(.codeCaption).foregroundStyle(.secondary).lineLimit(1)
                             }
-                            .padding(.horizontal, 14)
-                            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                            .padding(.horizontal, Spacing.l)
+                            .frame(maxWidth: .infinity, minHeight: Sizes.row, alignment: .leading)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -315,16 +315,16 @@ struct HomeView: View {
                     }
                 }
             }
-            .portbaseCardSurface(radius: 16)
+            .portbaseCardSurface()
         }
     }
 
     private func placeholder(_ text: LocalizedStringKey) -> some View {
         Text(text)
-            .font(.subheadline)
+            .font(.rowDetail)
             .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, minHeight: 64)
-            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: Sizes.row + Spacing.m)
+            .padding(.horizontal, Spacing.l)
     }
 }
 
@@ -332,20 +332,20 @@ struct RecentQueryRow: View {
     let entry: QueryHistoryEntry
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: symbol)
-                .font(.caption.weight(.bold))
+                .font(.captionStrong)
                 .foregroundStyle(tint)
-                .frame(width: 16, height: 18)
+                .frame(width: Sizes.symbolColumn)
                 .accessibilityLabel((entry.outcome ?? .succeeded).title)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(entry.title).font(.subheadline).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
-                    Spacer(minLength: 8)
+                    Text(entry.title).font(.rowDetail).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                    Spacer(minLength: Spacing.s)
                     Text(entry.executedAt, format: .relative(presentation: .named))
-                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        .font(.microText).foregroundStyle(.secondary).lineLimit(1)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     Text([entry.connectionName, entry.database].compactMap { $0 }.joined(separator: " · "))
                         .lineLimit(1)
                     if let duration = entry.duration {
@@ -353,13 +353,13 @@ struct RecentQueryRow: View {
                         Text(WorkspaceActivityService.durationLabel(duration)).monospacedDigit()
                     }
                 }
-                .font(.caption)
+                .font(.captionText)
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .frame(minHeight: 52)
+        .padding(.horizontal, Spacing.l)
+        .padding(.vertical, Spacing.s)
+        .frame(minHeight: Sizes.row)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
@@ -388,15 +388,15 @@ private struct QuickAction: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.s) {
                 Image(systemName: systemImage).foregroundStyle(PortSQLPalette.accent)
                 Text(title).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .font(.subheadline)
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, minHeight: PortbaseControlSize.minimumHeight + 4)
-            .portbaseCardSurface(radius: 12)
+            .font(.rowDetail)
+            .padding(.horizontal, Spacing.l)
+            .frame(maxWidth: .infinity, minHeight: Sizes.control + 4)
+            .portbaseCardSurface(radius: Radius.control)
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableButtonStyle())
@@ -415,7 +415,7 @@ struct DatabasePicker: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: Spacing.xs) {
             if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
             Picker(selection: Binding(
                 get: { workspace.activeDatabaseName ?? "" },

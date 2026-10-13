@@ -13,7 +13,7 @@ struct ElasticsearchQueryEditorCard: View {
     @State private var validationMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
             HStack {
             Picker("Query", selection: $rawCommand) {
                 Text("Request").tag(false)
@@ -25,21 +25,21 @@ struct ElasticsearchQueryEditorCard: View {
             if rawCommand { QueryEditorCard() }
             else {
                 PanelCard {
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: Spacing.m) {
                         ViewThatFits(in: .horizontal) {
                             HStack { methodPicker; pathField }
                             VStack(alignment: .leading) { methodPicker; pathField }
                         }
                         actions
                         if method != "DELETE" {
-                            Text("Request Body").font(.subheadline.weight(.semibold))
+                            Text("Request Body").font(.rowTitle)
                             HighlightedQueryEditor(text: $requestBody, cursorOffset: $cursorOffset, selectionLength: $selectionLength,
                                 colorScheme: colorScheme, isJSON: true, fitsContent: true)
                                 .frame(minHeight: 200)
                                 .accessibilityLabel("Request Body")
                         }
                         if let validationMessage {
-                            Text(validationMessage).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+                            Text(validationMessage).font(.captionText).foregroundStyle(.red).textSelection(.enabled)
                         }
                     }
                 }
@@ -56,35 +56,35 @@ struct ElasticsearchQueryEditorCard: View {
         Picker("HTTP Method", selection: $method) {
             ForEach(["GET", "POST", "PUT", "DELETE"], id: \.self) { Text(verbatim: $0).tag($0) }
         }
-        .frame(minHeight: 44).fixedSize(horizontal: true, vertical: false)
+        .frame(minHeight: Sizes.touchTarget).fixedSize(horizontal: true, vertical: false)
     }
 
     private var pathField: some View {
         TextField("Request Path", text: $path)
-            .font(.system(.body, design: .monospaced))
+            .font(.codeText)
             .portbaseTextCapitalization(.never).autocorrectionDisabled()
-            .frame(minHeight: 44).accessibilityLabel("Request Path")
+            .frame(minHeight: Sizes.touchTarget).accessibilityLabel("Request Path")
     }
 
     private var actions: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
+            HStack(spacing: Spacing.xxs) {
                 Button {
                     if workspace.isRunning { workspace.cancelQuery() }
                     else if validate() { workspace.runQuery() }
                 } label: {
                     Label(workspace.isRunning ? L10n.text("Cancel Query") : L10n.text("Run Query"),
                         systemImage: workspace.isRunning ? "stop.fill" : "play.fill")
-                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                        .labelStyle(.iconOnly).frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                 }
                 .buttonStyle(.borderedProminent).keyboardShortcut(.return, modifiers: .command)
                 .disabled(!workspace.isRunning && workspace.selectedBookmark == nil)
                 Button {
                     guard let body = try? HTTPJSONValue.parse(requestBody) else { validationMessage = L10n.text("Invalid JSON"); return }
                     requestBody = body.json(pretty: true)
-                } label: { Label("Format", systemImage: "text.alignleft").labelStyle(.iconOnly).frame(width: 44, height: 44) }
+                } label: { Label("Format", systemImage: "text.alignleft").labelStyle(.iconOnly).frame(width: Sizes.touchTarget, height: Sizes.touchTarget) }
                 Button { if validate() { workspace.saveSnippet() } } label: {
-                    Label("SAVE", systemImage: "bookmark").labelStyle(.iconOnly).frame(width: 44, height: 44)
+                    Label("SAVE", systemImage: "bookmark").labelStyle(.iconOnly).frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                 }
                 Menu {
                     Button("Search") { workspace.queryText = ElasticsearchQueryService.browse(index: selectedIndex, limit: 100, offset: 0) }
@@ -95,11 +95,11 @@ struct ElasticsearchQueryEditorCard: View {
                             "size": .number("0"), "aggs": .object(["values": .object(["terms": .object(["field": .string(field), "size": .number("100")])])])
                         ]), isReadOnly: true).preview
                     }
-                } label: { Label("Query Templates", systemImage: "text.badge.plus").labelStyle(.iconOnly).frame(width: 44, height: 44) }
+                } label: { Label("Query Templates", systemImage: "text.badge.plus").labelStyle(.iconOnly).frame(width: Sizes.touchTarget, height: Sizes.touchTarget) }
                 Menu {
                     if let url = workspace.exportResultURL(format: .json) { ShareLink("JSON", item: url) }
                     if let url = workspace.exportResultURL(format: .csv) { ShareLink("CSV", item: url) }
-                } label: { Label("EXPORT", systemImage: "square.and.arrow.up").labelStyle(.iconOnly).frame(width: 44, height: 44) }
+                } label: { Label("EXPORT", systemImage: "square.and.arrow.up").labelStyle(.iconOnly).frame(width: Sizes.touchTarget, height: Sizes.touchTarget) }
                 .disabled(workspace.result.columns.isEmpty && workspace.result.documents == nil)
             }
         }

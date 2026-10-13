@@ -65,7 +65,7 @@ struct RootView: View {
                             ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
                                 searchButton
                                 Button { navigate(.settings) } label: {
-                                    Image(systemName: "gearshape").frame(width: 44, height: 44)
+                                    Image(systemName: "gearshape").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                                 }
                                 .accessibilityLabel("Settings")
                             }
@@ -116,9 +116,9 @@ struct RootView: View {
         .safeAreaInset(edge: .bottom) {
             if let error = library.storageError ?? consoles.storageError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
-                    .font(.footnote)
+                    .font(.footnoteText)
                     .foregroundStyle(.red)
-                    .padding(10)
+                    .padding(Spacing.m)
                     .frame(maxWidth: .infinity)
                     .background(.bar)
             }
@@ -166,7 +166,7 @@ struct RootView: View {
 
     private var searchButton: some View {
         Button { showsPalette = true } label: {
-            Image(systemName: "magnifyingglass").frame(width: 44, height: 44)
+            Image(systemName: "magnifyingglass").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
         }
         .accessibilityLabel("Search")
         .accessibilityHint("Find actions, tables, and saved queries")
@@ -229,7 +229,7 @@ struct QueryLibraryButton: View {
     @State private var presented = false
     var body: some View {
         Button { presented = true } label: {
-            Image(systemName: "line.3.horizontal.decrease.circle").frame(width: 44, height: 44)
+            Image(systemName: "line.3.horizontal.decrease.circle").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
         }
         .accessibilityLabel("Open query library")
         .sheet(isPresented: $presented) { LibrarySheetView() }
@@ -291,11 +291,11 @@ struct ConnectionSwitcherButton: View {
                     workspace.createBookmark()
                 } label: {
                     Image(systemName: toolbarMode ? "plus.circle.fill" : "plus")
-                        .font(.system(size: toolbarMode ? 18 : 16, weight: .bold))
+                        .font(.tileSymbol)
                         .foregroundStyle(toolbarMode ? PortSQLPalette.accent : .white)
-                        .frame(width: 44, height: 44)
+                        .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                         .background(toolbarMode ? Color.clear : Color.white.opacity(0.14),
-                                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Add database connection")
@@ -307,14 +307,14 @@ struct ConnectionSwitcherButton: View {
                                 workspace.selectBookmark(bookmark.id)
                             } label: {
                                 Label {
-                                    VStack(alignment: .leading, spacing: 2) {
+                                    VStack(alignment: .leading, spacing: Spacing.xxxs) {
                                         Text(bookmark.name.isEmpty ? bookmark.host : bookmark.name)
                                         Text(bookmark.engine.isLocal ? "SQLite • " + (bookmark.sqliteFileName ?? L10n.text("File unavailable")) : "\(bookmark.engine.rawValue) • \(bookmark.host):\(String(bookmark.port))")
-                                            .font(.caption2)
+                                            .font(.microText)
                                     }
                                 } icon: {
-                                    HStack(spacing: 6) {
-                                        BookmarkAvatar(profile: bookmark, size: 22, cornerRadius: 7)
+                                    HStack(spacing: Spacing.xs) {
+                                        BookmarkAvatar(profile: bookmark, size: Sizes.avatarSmall, cornerRadius: Radius.s)
                                         if workspace.selectedBookmarkID == bookmark.id {
                                             Image(systemName: "checkmark")
                                         }
@@ -330,24 +330,24 @@ struct ConnectionSwitcherButton: View {
                         Label("New Connection", systemImage: "plus.circle")
                     }
                 } label: {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         if let bookmark = workspace.selectedBookmark {
-                            BookmarkAvatar(profile: bookmark, size: 24, cornerRadius: 8)
+                            BookmarkAvatar(profile: bookmark, size: Sizes.avatarSmall, cornerRadius: Radius.chip)
                         } else {
                             Image(systemName: "server.rack")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.toolSymbol)
                                 .foregroundStyle(.white)
                         }
 
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.captionStrong)
                             .foregroundStyle(toolbarMode ? PortSQLPalette.ink.opacity(0.65) : .white.opacity(0.85))
                     }
-                    .padding(.horizontal, toolbarMode ? 0 : 12)
-                    .padding(.vertical, toolbarMode ? 0 : 10)
+                    .padding(.horizontal, toolbarMode ? 0 : Spacing.m)
+                    .padding(.vertical, toolbarMode ? 0 : Spacing.s)
                     .background(toolbarMode ? Color.clear : Color.white.opacity(0.14),
-                                in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .frame(minWidth: 44, minHeight: 44)
+                                in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                    .frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                 }
                 .accessibilityLabel("Choose database connection")
                 .accessibilityValue(workspace.selectedBookmark.map { $0.name.isEmpty ? $0.host : $0.name } ?? "No connection selected")
@@ -381,19 +381,19 @@ struct DatabaseSwitcherButton: View {
                     }
                 }
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     if workspace.isLoadingSchema {
                         ProgressView()
                             .controlSize(.small)
                     }
                     Text(workspace.activeDatabaseName ?? "DB")
-                        .font(.caption.weight(.semibold))
+                        .font(.captionStrong)
                         .lineLimit(1)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.captionStrong)
                 }
                 .foregroundStyle(PortSQLPalette.ink)
-                .frame(minHeight: 44)
+                .frame(minHeight: Sizes.touchTarget)
             }
             .disabled(workspace.availableDatabases.isEmpty || workspace.isLoadingSchema)
         }
@@ -409,8 +409,8 @@ struct SchemaRefreshButton: View {
                 workspace.refreshSchemaCatalog()
             } label: {
                 Image(systemName: workspace.isLoadingSchema ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
-                    .font(.system(size: 13, weight: .bold))
-                    .frame(width: 44, height: 44)
+                    .font(.toolSymbol)
+                    .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
             }
             .buttonStyle(.plain)
             .foregroundStyle(workspace.isLoadingSchema ? .secondary : PortSQLPalette.accent)
@@ -431,13 +431,13 @@ struct QueryEditorCard: View {
 
     var body: some View {
         PanelCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                HStack(alignment: .center, spacing: Spacing.m) {
                     if let bookmark = workspace.selectedBookmark {
-                        BookmarkAvatar(profile: bookmark, size: 36, cornerRadius: 10)
+                        BookmarkAvatar(profile: bookmark, size: Sizes.avatarLarge, cornerRadius: Radius.chip)
                     }
                     SectionHeader(title: L10n.text("Query"), subtitle: querySubtitle)
-                    Spacer(minLength: 12)
+                    Spacer(minLength: Spacing.m)
                     Button {
                         isShowingLibrarySheet = true
                     } label: {
@@ -471,7 +471,7 @@ struct QueryEditorCard: View {
                             Button("Delete documents") { workspace.useMongoTemplate("delete") }
                         }
                     } label: {
-                        Label("Query templates", systemImage: "curlybraces").frame(minHeight: 44)
+                        Label("Query templates", systemImage: "curlybraces").frame(minHeight: Sizes.touchTarget)
                     }
                     .disabled(workspace.selectedExplorerTable == nil)
                 }
@@ -498,16 +498,16 @@ struct QueryEditorCard: View {
             workspace.createBookmark()
         } label: {
             Label("Add Connection", systemImage: "plus")
-                .frame(maxWidth: .infinity, minHeight: 32)
+                .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
         }
         .buttonStyle(.borderedProminent)
     }
 
     private var actionSection: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.s) {
             runButton
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     if workspace.isSQLDatabase {
                         actionButton("Run All", systemImage: "play.rectangle", disabled: workspace.isRunning || workspace.selectedBookmark == nil) {
                             workspace.runQuery(entireBuffer: true)
@@ -536,16 +536,16 @@ struct QueryEditorCard: View {
                         }
                     }
                 }
-                .padding(.vertical, 1)
+                .padding(.vertical, Spacing.xxxs)
             }
             .scrollClipDisabled()
         }
     }
 
     private var statusLine: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Spacing.s) {
             Text(workspace.editorPositionLabel)
-                .font(.caption.monospaced())
+                .font(.codeCaption)
                 .foregroundStyle(.secondary)
             if workspace.hasQuerySelection {
                 PortbaseChip(title: L10n.text("Selection"), systemImage: "selection.pin.in.out", tint: PortSQLPalette.accent)
@@ -592,21 +592,21 @@ struct QueryEditorCard: View {
 
             if workspace.queryText.isEmpty {
                 Text(verbatim: workspace.editorPlaceholder)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.codeText)
                     .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
-                    .padding(.leading, 52)
-                    .padding(.trailing, 16)
-                    .padding(.vertical, 18)
+                    .padding(.leading, Sizes.editorGutter + Spacing.s)
+                    .padding(.trailing, Spacing.l)
+                    .padding(.vertical, Spacing.l)
                     .allowsHitTesting(false)
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .fill(editorBackgroundColor)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .strokeBorder(workspace.queryErrorRange == nil ? editorBorderColor : Color.red.opacity(0.5), lineWidth: 1)
         }
     }
@@ -669,7 +669,7 @@ struct QueryEditorCard: View {
             if workspace.isRunning { workspace.cancelQuery() }
             else { workspace.runQuery() }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: Spacing.s) {
                 if workspace.isRunning {
                     ProgressView().controlSize(.small).tint(.white)
                     Text("Stop")
@@ -678,10 +678,10 @@ struct QueryEditorCard: View {
                     Text(workspace.hasQuerySelection ? L10n.text("Run Selection") : L10n.text("Run"))
                 }
             }
-            .font(.subheadline.weight(.bold))
+            .font(.rowDetail.weight(.bold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 16)
-            .frame(minHeight: 44)
+            .padding(.horizontal, Spacing.l)
+            .frame(minHeight: Sizes.touchTarget)
             .background {
                 Capsule().fill(workspace.isRunning ? Color.red : PortSQLPalette.accent)
             }
@@ -750,23 +750,23 @@ private struct ExpandedQueryEditorSheet: View {
 
                     if workspace.queryText.isEmpty {
                         Text(verbatim: workspace.editorPlaceholder)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.codeText)
                             .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
-                            .padding(.leading, 52)
-                            .padding(.trailing, 16)
-                            .padding(.vertical, 18)
+                            .padding(.leading, Sizes.editorGutter + Spacing.s)
+                            .padding(.trailing, Spacing.l)
+                            .padding(.vertical, Spacing.l)
                             .allowsHitTesting(false)
                     }
                 }
                 .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.s, style: .continuous)
                         .fill(PortSQLPalette.editorBackground(for: colorScheme))
                 )
                 .overlay {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.s, style: .continuous)
                         .stroke(PortSQLPalette.editorBorder(for: colorScheme), lineWidth: 1)
                 }
-                .padding(16)
+                .padding(Spacing.l)
             }
             .navigationTitle(workspace.usesJSONEditor ? L10n.text("JSON Editor") : workspace.isSQLDatabase ? L10n.text("SQL Editor") : L10n.text("Command Editor"))
             .safeAreaInset(edge: .top, spacing: 0) { ConnectionStatusLine() }
@@ -815,20 +815,20 @@ struct ResultsCard: View {
 
     var body: some View {
         PanelCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                HStack(alignment: .center, spacing: Spacing.m) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text("Results")
-                            .font(.title3.weight(.bold))
+                            .font(.sectionTitle)
                             .accessibilityAddTraits(.isHeader)
                         if let resultsMetadataSubtitle {
                             Text(resultsMetadataSubtitle)
-                                .font(.caption)
+                                .font(.captionText)
                                 .foregroundStyle(.secondary)
                         }
                     }
                     Spacer(minLength: 0)
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         if workspace.isDocumentDatabase { MongoInsertDocumentButton() }
                         if canCreateVisualization {
                             visualizerButton
@@ -850,7 +850,7 @@ struct ResultsCard: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .frame(minHeight: 44)
+                    .frame(minHeight: Sizes.touchTarget)
                 }
 
                 if workspace.result.documents != nil {
@@ -884,37 +884,37 @@ struct ResultsCard: View {
 
                 if workspace.result.documents != nil || workspace.result.affectedRowCount != nil || workspace.result.isTruncated == true {
                     Text(workspace.result.executionSummary)
-                        .font(.caption)
+                        .font(.captionText)
                         .foregroundStyle(workspace.result.isTruncated == true ? .orange : .secondary)
                         .textSelection(.enabled)
                 }
 
                 if let sql = workspace.result.generatedMutation {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         Label("Generated mutation", systemImage: "pencil.and.list.clipboard")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.rowTitle)
                             .foregroundStyle(.orange)
                         Text(sql)
-                            .font(.system(.footnote, design: .monospaced))
+                            .font(.codeCaption)
                             .textSelection(.enabled)
                     }
-                    .padding(14)
+                    .padding(Spacing.l)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 }
 
                 if !workspace.isRunning && workspace.selectedBookmark?.isReadOnly != true && workspace.canInsertIntoCurrentTable {
                     Button {
                         workspace.prepareInsert()
                     } label: {
-                        Label("Insert row", systemImage: "plus").frame(minHeight: 32)
+                        Label("Insert row", systemImage: "plus").frame(minHeight: Sizes.buttonContent)
                     }
                     .buttonStyle(.bordered)
                     .accessibilityLabel("Insert row")
                 }
 
                 if !workspace.isRunning && workspace.isShowingExplorerResult {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         Button {
                             workspace.goToPreviousExplorerPage()
                         } label: {
@@ -949,11 +949,11 @@ struct ResultsCard: View {
                         message: "Fetching rows for the current request."
                     )
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
+                    .padding(.vertical, Spacing.l)
                 } else if workspace.result.documents != nil && mongoResultView == "chart" {
                     if canCreateVisualization {
                         VisualizationChartPreview(preset: resultChartPreset, result: workspace.result, compact: false)
-                        Button("Configure Chart") { composerPreset = resultChartPreset }.frame(minHeight: 44)
+                        Button("Configure Chart") { composerPreset = resultChartPreset }.frame(minHeight: Sizes.touchTarget)
                     } else {
                         Text("Run a query with numeric fields to create a chart.").foregroundStyle(.secondary)
                     }
@@ -1019,7 +1019,7 @@ struct ResultsCard: View {
 
     private var resultChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+            HStack(spacing: Spacing.xs) {
                 if let documents = workspace.result.documents {
                     PortbaseChip(title: L10n.format("Documents: %d", documents.count), systemImage: "doc.on.doc", tint: PortSQLPalette.accent)
                 } else {
@@ -1092,16 +1092,16 @@ struct ResultsCard: View {
                 }
             }
         } label: {
-            VStack(spacing: 1) {
+            VStack(spacing: Spacing.xxxs) {
                 Text(workspace.explorerPageLabel)
-                    .font(.caption.weight(.semibold))
+                    .font(.captionStrong)
                     .foregroundStyle(PortSQLPalette.ink)
                 Text(workspace.explorerResultRangeLabel)
-                    .font(.caption2.weight(.medium))
+                    .font(.microText.weight(.medium))
                     .foregroundStyle(.secondary)
             }
-            .frame(minWidth: 116, minHeight: 44)
-            .padding(.horizontal, 12)
+            .frame(minWidth: 116, minHeight: Sizes.touchTarget)
+            .padding(.horizontal, Spacing.m)
             .background(PortSQLPalette.sunken, in: Capsule())
             .overlay { Capsule().strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
         }
@@ -1170,45 +1170,45 @@ struct ResultsCard: View {
             Group {
                 if let selectedTable = workspace.selectedExplorerTable {
                     List(selectedTable.columns) { column in
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: Spacing.m) {
+                            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                                HStack(spacing: Spacing.xs) {
                                     Text(column.name)
-                                        .font(.body.weight(.semibold))
+                                        .font(.bodyText.weight(.semibold))
                                     if column.isPrimaryKey {
                                         Image(systemName: "key.fill")
-                                            .font(.caption.weight(.bold))
+                                            .font(.captionStrong)
                                             .foregroundStyle(PortSQLPalette.accent)
                                     }
                                 }
                                 Text(column.type)
-                                    .font(.caption)
+                                    .font(.captionText)
                                     .foregroundStyle(.secondary)
                             }
 
                             Spacer()
 
                             Text(column.isNullable ? "NULL" : "NOT NULL")
-                                .font(.caption2.weight(.semibold))
+                                .font(.badgeText)
                                 .foregroundStyle(column.isNullable ? .secondary : PortSQLPalette.ink)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 5)
+                                .padding(.horizontal, Spacing.s)
+                                .padding(.vertical, Spacing.xxs)
                                 .background(Color.secondary.opacity(0.08), in: Capsule())
 
                             Button {
                                 schemaColumnDraft = .edit(column, in: selectedTable)
                             } label: {
                                 Image(systemName: "pencil")
-                                    .font(.caption.weight(.semibold))
+                                    .font(.captionStrong)
                                     .foregroundStyle(PortSQLPalette.accent)
-                                    .frame(width: 44, height: 44)
+                                    .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                                     .background(Color.secondary.opacity(0.08), in: Circle())
                             }
                             .buttonStyle(.plain)
                             .disabled(workspace.selectedBookmark?.isReadOnly == true || workspace.selectedBookmark?.engine.supportsSchemaEditing != true)
                             .accessibilityLabel("Edit column \(column.name)")
                         }
-                        .padding(.vertical, 2)
+                        .padding(.vertical, Spacing.xxxs)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 pendingSchemaColumnDeletion = SchemaColumnDeletionTarget(table: selectedTable, column: column)
@@ -1270,21 +1270,21 @@ private struct SchemaColumnEditorSheet: View {
         NavigationStack {
             List {
                 Section {
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(draft.table.displayName)
-                            .font(.subheadline.weight(.semibold))
+                            .font(.rowTitle)
                             .foregroundStyle(PortSQLPalette.ink)
                         if let originalName = draft.originalName, draft.mode == .edit {
                             Text(L10n.format("Editing `%@`", originalName))
-                                .font(.caption)
+                                .font(.captionText)
                                 .foregroundStyle(.secondary)
                         } else {
                             Text("Add a new column to the live table schema.")
-                                .font(.caption)
+                                .font(.captionText)
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, Spacing.xxs)
                 }
 
                 Section("Column") {
@@ -1301,18 +1301,18 @@ private struct SchemaColumnEditorSheet: View {
 
                 Section {
                     Text("Examples: `VARCHAR(255)`, `INT`, `TIMESTAMP`, `DECIMAL(10,2)`.")
-                        .font(.caption)
+                        .font(.captionText)
                         .foregroundStyle(.secondary)
                 }
 
                 Section("SQL Preview") {
                     if let plan = try? currentPlan() {
                         Text(plan.previewSQL)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.codeCaption)
                             .textSelection(.enabled)
                     } else {
                         Text("Enter a supported column definition to preview the exact schema change.")
-                            .font(.caption)
+                            .font(.captionText)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -1435,7 +1435,7 @@ struct BookmarksView: View {
 
             Section("Sync") {
                 Label("Server settings sync through iCloud. Passwords stay in this device’s Keychain.", systemImage: "icloud")
-                    .font(.footnote)
+                    .font(.footnoteText)
                     .foregroundStyle(.secondary)
             }
         }
@@ -1453,7 +1453,7 @@ struct BookmarksView: View {
                 Button("Reset Filters") { engineFilter = nil; onlyReadOnly = false; search = "" }
             } label: {
                 Image(systemName: engineFilter != nil || onlyReadOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                    .frame(width: 44, height: 44)
+                    .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
             }
             .accessibilityLabel("Filter servers")
             Button {
@@ -1479,19 +1479,19 @@ struct BookmarksView: View {
     }
 
     private var serverSummary: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.s) {
             PortbaseMetricTile(title: L10n.text("Connections"), value: bookmarks.bookmarks.count.formatted(), systemImage: "server.rack", tint: Color(hex: 0x6366F1))
             PortbaseMetricTile(title: L10n.text("Engines"), value: Set(bookmarks.bookmarks.map(\.engine)).count.formatted(), systemImage: "cylinder.split.1x2.fill", tint: Color(hex: 0x0EA5E9))
             PortbaseMetricTile(title: L10n.text("Encrypted"), value: bookmarks.bookmarks.filter { $0.engine.isLocal || $0.transportSecurityMode == .systemCA || $0.transportSecurityMode == .privateCA }.count.formatted(),
                                systemImage: "lock.shield.fill", tint: Color(hex: 0x10B981))
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xxs)
     }
 
     private func serverRow(_ bookmark: ConnectionProfile) -> some View {
         let isActive = workspace.selectedBookmarkID == bookmark.id
-        return HStack(spacing: 14) {
-            BookmarkAvatar(profile: bookmark, size: 48, cornerRadius: 14)
+        return HStack(spacing: Spacing.m) {
+            BookmarkAvatar(profile: bookmark, size: Sizes.avatarHero, cornerRadius: Radius.card)
                 .overlay(alignment: .bottomTrailing) {
                     if isActive {
                         Circle().fill(Color.green)
@@ -1501,21 +1501,21 @@ struct BookmarksView: View {
                     }
                 }
 
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                HStack(spacing: Spacing.xs) {
                     Text(bookmark.displayTitle)
-                        .font(.body.weight(.semibold))
+                        .font(.bodyText.weight(.semibold))
                         .lineLimit(1)
                     if isActive {
                         PortbaseChip(title: L10n.text("Active"), tint: .green)
                     }
                 }
                 Text(bookmark.endpointSummary)
-                    .font(.caption)
+                    .font(.captionText)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.xs) {
                         ConnectionSecurityChips(profile: bookmark)
                         PortbaseChip(title: bookmark.schemaCachingEnabled ? L10n.format("Cache %@", bookmark.schemaCacheDurationLabel) : L10n.text("Table list caching off"),
                                      systemImage: "clock.arrow.2.circlepath", tint: .secondary)
@@ -1523,7 +1523,7 @@ struct BookmarksView: View {
                 }
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: Spacing.xxs)
 
             Button {
                 workspace.selectedProfileForEdit = bookmark
@@ -1533,7 +1533,7 @@ struct BookmarksView: View {
             .buttonStyle(.plain)
             .accessibilityLabel(L10n.format("Edit %@", bookmark.displayTitle))
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, Spacing.xs)
         .contentShape(Rectangle())
         .onTapGesture { workspace.selectBookmark(bookmark.id) }
         .accessibilityElement(children: .combine)
@@ -1702,9 +1702,9 @@ struct BookmarkEditorView: View {
                         HStack {
                             Text("Icon")
                             Spacer()
-                            BookmarkAvatar(profile: profile, size: 32, cornerRadius: 10)
+                            BookmarkAvatar(profile: profile, size: Sizes.avatar, cornerRadius: Radius.chip)
                             Text(profile.resolvedIconName ?? profile.initials)
-                                .font(.caption)
+                                .font(.captionText)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -1761,7 +1761,7 @@ struct BookmarkEditorView: View {
                     transportSecurityDetails
                     if !profile.engine.canNegotiateTLS && profile.transportSecurityMode == .preferTLS {
                         Text("This engine requires TLS in Prefer TLS mode because its protocol cannot safely negotiate a plaintext fallback.")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.captionText).foregroundStyle(.secondary)
                     }
                 }
 
@@ -1785,11 +1785,11 @@ struct BookmarkEditorView: View {
                             .autocorrectionDisabled()
                         SecureField("SSH Password", text: $profile.sshPassword)
                         TextField("Private Key", text: $profile.sshPrivateKey, axis: .vertical)
-                            .font(.system(.caption, design: .monospaced))
+                            .font(.codeCaption)
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
                         Text("SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported.")
-                            .font(.caption)
+                            .font(.captionText)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -1807,11 +1807,11 @@ struct BookmarkEditorView: View {
                         )
 
                         Text("Table and column metadata is reused until this duration expires. The refresh button bypasses the cache.")
-                            .font(.caption)
+                            .font(.captionText)
                             .foregroundStyle(.secondary)
                     } else {
                         Text("When caching is off, Portbase always reloads table lists from the database and hides manual refresh controls.")
-                            .font(.caption)
+                            .font(.captionText)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -1826,7 +1826,7 @@ struct BookmarkEditorView: View {
                     SecureField("Password", text: $profile.password)
 #if !os(macOS)
                     Text("Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data.")
-                        .font(.caption)
+                        .font(.captionText)
                         .foregroundStyle(.secondary)
 #endif
                 }
@@ -1836,12 +1836,12 @@ struct BookmarkEditorView: View {
                     Button {
                         runConnectionTest()
                     } label: {
-                        HStack(spacing: 8) {
+                        HStack(spacing: Spacing.s) {
                             if testTask != nil { ProgressView().controlSize(.small) }
                             else { Image(systemName: "bolt.horizontal.circle") }
                             Text(testTask != nil ? L10n.text("Testing…") : L10n.text("Test Connection"))
                         }
-                        .frame(minHeight: PortbaseControlSize.minimumHeight)
+                        .frame(minHeight: Sizes.control)
                     }
                     .disabled(!canSave || testTask != nil)
                     switch testResult {
@@ -1850,7 +1850,7 @@ struct BookmarkEditorView: View {
                             .foregroundStyle(.green)
                     case .failure(let error):
                         ConnectionIssueBanner(message: DatabaseErrorFormatter.message(for: error))
-                            .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                            .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.s, bottom: Spacing.s, trailing: Spacing.s))
                     case nil:
                         EmptyView()
                     }
@@ -1936,16 +1936,16 @@ struct BookmarkEditorView: View {
         case .systemCA:
 #if !os(macOS)
             Label("Recommended secure default", systemImage: "checkmark.shield.fill")
-                .font(.subheadline.weight(.semibold))
+                .font(.rowTitle)
                 .foregroundStyle(.green)
 #endif
             Text("Encrypts the connection and verifies the server certificate using trusted system certificate authorities.")
-                .font(.caption)
+                .font(.captionText)
                 .foregroundStyle(.secondary)
 
         case .privateCA:
             Text("TLS remains required. The private CA is added to the trusted system certificate authorities.")
-                .font(.caption)
+                .font(.captionText)
                 .foregroundStyle(.secondary)
 
             TextField(
@@ -1954,7 +1954,7 @@ struct BookmarkEditorView: View {
                 axis: .vertical
             )
             .lineLimit(6...12)
-            .font(.system(.caption, design: .monospaced))
+            .font(.codeCaption)
             .portbaseTextCapitalization(.never)
             .autocorrectionDisabled()
             .accessibilityLabel("Private CA Certificate")
@@ -1990,7 +1990,7 @@ struct BookmarkEditorView: View {
                 )
             } else if TransportSecurityEditorState.isValidPrivateCACertificate(profile.privateCACertificate) {
                 Label("Certificate ready", systemImage: "checkmark.shield.fill")
-                    .font(.caption.weight(.semibold))
+                    .font(.captionStrong)
                     .foregroundStyle(.green)
             } else if profile.privateCACertificate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 StatusBanner(
@@ -2010,7 +2010,7 @@ struct BookmarkEditorView: View {
                 "Private CA certificates are stored in this device’s Keychain and do not sync through iCloud.",
                 systemImage: "iphone.and.arrow.forward"
             )
-            .font(.caption)
+            .font(.captionText)
             .foregroundStyle(.secondary)
 
         case .preferTLS:
@@ -2035,27 +2035,27 @@ private struct EngineChooser: View {
     @Binding var selection: DatabaseEngine
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 10)], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: Spacing.s)], spacing: Spacing.s) {
             ForEach(DatabaseEngine.allCases) { engine in
                 let selected = selection == engine
                 Button { withAnimation(.easeOut(duration: 0.15)) { selection = engine } } label: {
-                    VStack(spacing: 6) {
+                    VStack(spacing: Spacing.xs) {
                         Image(systemName: engine.symbolName)
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.tileSymbol)
                             .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(width: Sizes.avatarLarge, height: Sizes.avatarLarge)
                             .background(LinearGradient(colors: engine.brandColors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                                        in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                        in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                         Text(engine.rawValue)
-                            .font(.caption2.weight(selected ? .bold : .medium))
+                            .font(.microText.weight(selected ? .bold : .medium))
                             .foregroundStyle(selected ? PortSQLPalette.ink : .secondary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.75)
                     }
                     .frame(maxWidth: .infinity, minHeight: 76)
-                    .background(selected ? PortSQLPalette.accent.opacity(0.10) : Color.clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .background(selected ? PortSQLPalette.accent.opacity(0.10) : Color.clear, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                             .strokeBorder(selected ? PortSQLPalette.accent : PortSQLPalette.stroke, lineWidth: selected ? 2 : 1)
                     }
                     .contentShape(Rectangle())
@@ -2065,7 +2065,7 @@ private struct EngineChooser: View {
                 .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, Spacing.xxs)
     }
 }
 
@@ -2075,36 +2075,36 @@ private struct BookmarkIconPicker: View {
     @State private var searchText = ""
 
     private let columns = [
-        GridItem(.adaptive(minimum: 68, maximum: 92), spacing: 14)
+        GridItem(.adaptive(minimum: 68, maximum: 92), spacing: Spacing.m)
     ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.xl) {
+                    HStack(spacing: Spacing.m) {
                         Label("Search", systemImage: "magnifyingglass")
-                            .font(.subheadline.weight(.semibold))
+                            .font(.rowTitle)
                             .foregroundStyle(.secondary)
                         TextField("server, chart, folder", text: $searchText)
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .padding(.horizontal, Spacing.l)
+                    .padding(.vertical, Spacing.m)
+                    .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                     .overlay {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                             .stroke(PortSQLPalette.stroke, lineWidth: 1)
                     }
 
-                    LazyVGrid(columns: columns, spacing: 14) {
+                    LazyVGrid(columns: columns, spacing: Spacing.l) {
                         ForEach(filteredIcons, id: \.self) { iconName in
                             Button {
                                 profile.iconName = iconName
                             } label: {
-                                VStack(spacing: 8) {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                VStack(spacing: Spacing.s) {
+                                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                                         .fill(
                                             iconName == profile.resolvedIconName
                                                 ? AnyShapeStyle(profile.engine.gradient)
@@ -2113,16 +2113,16 @@ private struct BookmarkIconPicker: View {
                                         .frame(height: 68)
                                         .overlay {
                                             Image(systemName: iconName)
-                                                .font(.title2.weight(.semibold))
+                                                .font(.pageTitle)
                                                 .foregroundStyle(iconName == profile.resolvedIconName ? .white : PortSQLPalette.ink)
                                         }
                                         .overlay {
-                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                                                 .stroke(iconName == profile.resolvedIconName ? Color.clear : PortSQLPalette.stroke, lineWidth: 1)
                                         }
 
                                     Text(iconName)
-                                        .font(.caption2)
+                                        .font(.microText)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(2)
                                         .multilineTextAlignment(.center)
@@ -2132,8 +2132,8 @@ private struct BookmarkIconPicker: View {
                         }
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 18)
+                .padding(.horizontal, Spacing.m)
+                .padding(.vertical, Spacing.l)
             }
             .background(WorkbenchBackground().ignoresSafeArea())
             .navigationTitle("Choose Icon")
@@ -2172,7 +2172,7 @@ struct QueryParameterSheet: View {
             Form {
                 Section("Parameters") {
                     ForEach(draft.names, id: \.self) { name in
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: Spacing.s) {
                             TextField(name, text: Binding(
                                 get: { draft.values[name] ?? "" },
                                 set: { draft.values[name] = $0 }
@@ -2206,7 +2206,7 @@ struct QueryParameterSheet: View {
                         nullParameters: draft.nullParameters,
                         engine: workspace.selectedBookmark?.engine ?? .postgresql
                     ))
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.codeCaption)
                         .textSelection(.enabled)
                 }
             }
@@ -2242,27 +2242,27 @@ struct DataEditorSheet: View {
                 if let binding = Binding($workspace.dataEditorDraft) {
                     Form {
                         Section {
-                            VStack(alignment: .leading, spacing: 6) {
+                            VStack(alignment: .leading, spacing: Spacing.xs) {
                                 Text(binding.wrappedValue.table.displayName)
-                                    .font(.headline)
+                                    .font(.cardTitle)
                                 Text(editorSubtitle(for: binding.wrappedValue.mode))
-                                    .font(.footnote)
+                                    .font(.footnoteText)
                                     .foregroundStyle(.secondary)
                             }
                         }
 
                         Section("Columns") {
                             ForEach(binding.fields) { fieldBinding in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack(spacing: 8) {
+                                VStack(alignment: .leading, spacing: Spacing.xs) {
+                                    HStack(spacing: Spacing.s) {
                                         Text(fieldBinding.wrappedValue.column.name)
-                                            .font(.subheadline.weight(.semibold))
+                                            .font(.rowTitle)
                                         if fieldBinding.wrappedValue.column.isPrimaryKey {
                                             Text("PK")
-                                                .font(.caption.weight(.semibold))
+                                                .font(.captionStrong)
                                                 .foregroundStyle(.white)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
+                                                .padding(.horizontal, Spacing.s)
+                                                .padding(.vertical, Spacing.xxs)
                                                 .background(PortSQLPalette.accent, in: Capsule())
                                         }
                                         Spacer()
@@ -2271,7 +2271,7 @@ struct DataEditorSheet: View {
                                             fieldBinding.wrappedValue.column.type,
                                             L10n.text(fieldBinding.wrappedValue.column.isNullable ? "nullable" : "required")
                                         ))
-                                            .font(.caption)
+                                            .font(.captionText)
                                             .foregroundStyle(.secondary)
                                     }
 
@@ -2285,11 +2285,11 @@ struct DataEditorSheet: View {
 
                                     if let validationMessage = workspace.dataEditorValidation[fieldBinding.wrappedValue.id] {
                                         Text(validationMessage)
-                                            .font(.caption)
+                                            .font(.captionText)
                                             .foregroundStyle(.red)
                                     }
                                 }
-                                .padding(.vertical, 4)
+                                .padding(.vertical, Spacing.xxs)
                             }
                         }
 
@@ -2344,7 +2344,7 @@ struct DataEditorSheet: View {
     private func fieldValueEditor(_ fieldBinding: Binding<DataEditorField>) -> some View {
         if fieldBinding.wrappedValue.isNull {
             Text("NULL")
-                .font(.system(.body, design: .monospaced))
+                .font(.codeText)
                 .foregroundStyle(.secondary)
                 .italic()
         } else if DataEditorValidationService.isJSONColumn(fieldBinding.wrappedValue.column) {
@@ -2361,11 +2361,11 @@ struct DataEditorSheet: View {
             )
             .portbaseTextCapitalization(.never)
             .autocorrectionDisabled()
-            .font(.system(.body, design: .monospaced))
+            .font(.codeText)
             .portbaseKeyboardType(DataEditorValidationService.keyboardType(for: fieldBinding.wrappedValue.column))
         } else {
             Text(fieldBinding.wrappedValue.value.isEmpty ? "\"\"" : fieldBinding.wrappedValue.value)
-                .font(.system(.body, design: .monospaced))
+                .font(.codeText)
                 .foregroundStyle(.secondary)
         }
     }
@@ -2397,11 +2397,11 @@ private struct JSONFieldEditor: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
             if isEditable {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     Label(isValidJSON ? "JSON" : "Invalid JSON", systemImage: isValidJSON ? "curlybraces" : "exclamationmark.triangle.fill")
-                        .font(.caption.weight(.semibold))
+                        .font(.captionStrong)
                         .foregroundStyle(isValidJSON ? Color.secondary : Color.red)
 
                     Spacer()
@@ -2409,52 +2409,52 @@ private struct JSONFieldEditor: View {
                     Button("Format") {
                         applyJSONFormatting(prettyPrinted: true)
                     }
-                    .font(.caption.weight(.semibold))
+                    .font(.captionStrong)
                     .disabled(!canFormatJSON)
 
                     Button("Minify") {
                         applyJSONFormatting(prettyPrinted: false)
                     }
-                    .font(.caption.weight(.semibold))
+                    .font(.captionStrong)
                     .disabled(!canFormatJSON)
                 }
 
                 ZStack(alignment: .topLeading) {
                     if value.isEmpty {
                         Text(placeholder)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.codeText)
                             .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, Spacing.s)
+                            .padding(.vertical, Spacing.s)
                             .allowsHitTesting(false)
                     }
 
                     TextEditor(text: $value)
                         .portbaseTextCapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.system(.body, design: .monospaced))
+                        .font(.codeText)
                         .frame(minHeight: 140)
                         .scrollContentBackground(.hidden)
-                        .padding(4)
+                        .padding(Spacing.xxs)
                 }
-                .background(PortSQLPalette.editorBackground(for: colorScheme), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .background(PortSQLPalette.editorBackground(for: colorScheme), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .stroke(isValidJSON ? PortSQLPalette.editorBorder(for: colorScheme) : Color.red.opacity(0.55), lineWidth: 1)
                 }
             } else {
                 ScrollView {
                     Text(value.isEmpty ? "NULL" : value)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.codeText)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                 }
                 .frame(minHeight: 72, maxHeight: 180)
-                .padding(10)
-                .background(PortSQLPalette.editorBackground(for: colorScheme), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .padding(Spacing.m)
+                .background(PortSQLPalette.editorBackground(for: colorScheme), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                         .stroke(PortSQLPalette.editorBorder(for: colorScheme), lineWidth: 1)
                 }
             }
@@ -2478,14 +2478,14 @@ struct SectionHeader: View {
     var subtitle: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             Text(title)
-                .font(.title3.weight(.bold))
+                .font(.sectionTitle)
                 .foregroundStyle(PortSQLPalette.ink)
                 .accessibilityAddTraits(.isHeader)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.footnote)
+                    .font(.footnoteText)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
@@ -2501,7 +2501,7 @@ struct PanelCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(PortbaseMetrics.cardPadding)
+        .padding(Spacing.card)
         .portbaseCardSurface()
     }
 }
@@ -2511,27 +2511,27 @@ struct LoadingStateView: View {
     let message: String
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: Spacing.m) {
             ProgressView()
                 .controlSize(.regular)
                 .tint(PortSQLPalette.accent)
-                .frame(width: 36, height: 36)
+                .frame(width: Sizes.iconTile, height: Sizes.iconTile)
                 .background(PortSQLPalette.accent.opacity(0.12), in: Circle())
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.rowTitle)
                     .foregroundStyle(PortSQLPalette.ink)
                 Text(message)
-                    .font(.caption)
+                    .font(.captionText)
                     .foregroundStyle(.secondary)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(Spacing.l)
+        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .strokeBorder(PortSQLPalette.stroke, lineWidth: 1)
         }
     }
@@ -2555,32 +2555,32 @@ struct StatusBanner: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: symbol)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.tileSymbol)
                 .foregroundStyle(tint)
-                .padding(.top, 1)
+                .padding(.top, Spacing.xxxs)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.rowTitle)
                     .foregroundStyle(titleColor)
                 Text(message)
-                    .font(.caption)
+                    .font(.captionText)
                     .foregroundStyle(messageColor)
                     .textSelection(.enabled)
             }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background((backgroundColor ?? tint.opacity(0.10)), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(Spacing.l)
+        .background((backgroundColor ?? tint.opacity(0.10)), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .overlay(alignment: .leading) {
-            UnevenRoundedRectangle(topLeadingRadius: 14, bottomLeadingRadius: 14, style: .continuous)
+            UnevenRoundedRectangle(topLeadingRadius: Radius.card, bottomLeadingRadius: Radius.card, style: .continuous)
                 .fill(tint)
                 .frame(width: 4)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
         .accessibilityElement(children: .combine)
     }
 }
@@ -2595,27 +2595,27 @@ struct InlineSuggestionMenu: View {
     let onSelect: (InlineSuggestionItem) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     ForEach(Array(suggestions.enumerated()), id: \.offset) { _, item in
                         Button {
                             onSelect(item)
                         } label: {
-                            HStack(spacing: 6) {
+                            HStack(spacing: Spacing.xs) {
                                 Text(item.title)
-                                    .font(.system(.footnote, design: .monospaced))
+                                    .font(.codeCaption)
                                     .foregroundStyle(PortSQLPalette.ink)
                                     .lineLimit(1)
                                 if let subtitle = item.subtitle, !subtitle.isEmpty {
                                     Text(subtitle)
-                                        .font(.caption)
+                                        .font(.captionText)
                                         .foregroundStyle(.secondary)
                                         .lineLimit(1)
                                 }
                             }
-                            .padding(.horizontal, 12)
-                            .frame(minHeight: PortbaseControlSize.minimumHeight)
+                            .padding(.horizontal, Spacing.m)
+                            .frame(minHeight: Sizes.control)
                             .background(PortSQLPalette.sunken, in: Capsule())
                         }
                         .buttonStyle(.plain)

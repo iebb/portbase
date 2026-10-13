@@ -112,18 +112,18 @@ struct EditorThemePreview: View {
 
     var body: some View {
         let palette = theme.palette(for: colorScheme)
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             line([("SELECT", palette.keyword), (" name, ", palette.identifier), ("count", palette.keyword), ("(*)", palette.symbol)])
             line([("FROM", palette.keyword), (" orders", palette.identifier)])
             line([("WHERE", palette.keyword), (" total ", palette.identifier), (">=", palette.symbol), (" 50", palette.number)])
             line([("-- ", palette.comment), ("'", palette.string), ("paid", palette.string), ("'", palette.string)])
         }
-        .font(.system(size: 11, design: .monospaced))
-        .padding(10)
+        .font(.codeCaption)
+        .padding(Spacing.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(hex: palette.background), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color(hex: palette.background), in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                 .strokeBorder(isSelected ? PortSQLPalette.accent : PortSQLPalette.stroke, lineWidth: isSelected ? 2 : 1)
         }
         .accessibilityHidden(true)

@@ -22,14 +22,14 @@ struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
 #endif
             let columns = WorkspaceLayout.usesColumns(width: geometry.size.width, height: geometry.size.height,
                 regularWidth: regularWidth, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
-            let layout = columns ? AnyLayout(HStackLayout(alignment: .top, spacing: 16))
-                                 : AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+            let layout = columns ? AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.l))
+                                 : AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.l))
             ScrollView {
                 layout {
                     leading.frame(maxWidth: .infinity, alignment: .topLeading)
                     trailing.frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                .padding(16)
+                .padding(Spacing.l)
                 .frame(width: geometry.size.width, alignment: .topLeading)
             }
             .scrollDismissesKeyboard(.interactively)
@@ -53,17 +53,17 @@ struct ExplorerWorkspaceView: View {
             List {
               if let profile = workspace.selectedBookmark {
                 Section {
-                    HStack(spacing: 12) {
-                        BookmarkAvatar(profile: profile, size: 40, cornerRadius: 12)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(profile.displayTitle).font(.subheadline.weight(.semibold)).lineLimit(1)
+                    HStack(spacing: Spacing.m) {
+                        BookmarkAvatar(profile: profile, size: Sizes.avatarLarge, cornerRadius: Radius.control)
+                        VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                            Text(profile.displayTitle).font(.rowTitle).lineLimit(1)
                             Text(workspace.activeDatabaseName ?? profile.engine.rawValue)
-                                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                .font(.captionText).foregroundStyle(.secondary).lineLimit(1)
                         }
                         Spacer(minLength: 0)
                         if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, Spacing.xxs)
                     .accessibilityElement(children: .combine)
                 }
               }
@@ -126,34 +126,34 @@ struct ExplorerWorkspaceView: View {
             workspace.selectExplorerTable(table)
             preferredColumn = .detail
         } label: {
-            HStack(spacing: 10) {
+            HStack(spacing: Spacing.s) {
                 Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc.fill" : (table.objectKind?.symbol ?? "tablecells"))
-                    .font(.subheadline)
+                    .font(.rowDetail)
                     .foregroundStyle(selected ? PortSQLPalette.accent : .secondary)
-                    .frame(width: 22)
-                VStack(alignment: .leading, spacing: 1) {
+                    .frame(width: Sizes.symbolColumn)
+                VStack(alignment: .leading, spacing: Spacing.xxxs) {
                     Text(table.name)
-                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .font(.rowDetail.weight(selected ? .semibold : .regular))
                         .foregroundStyle(PortSQLPalette.ink)
                         .lineLimit(1)
                     let details = [table.schemaName.isEmpty ? nil : table.schemaName,
                                    table.columns.isEmpty ? nil : L10n.plural("column_count_short", count: table.columns.count)].compactMap { $0 }
                     if !details.isEmpty {
                         Text(details.joined(separator: " · "))
-                            .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                            .font(.microText).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
-                Spacer(minLength: 4)
+                Spacer(minLength: Spacing.xxs)
                 if let estimate = table.rowCountEstimate {
                     Text(estimate.formatted(.number.notation(.compactName)))
-                        .font(.caption2.monospacedDigit().weight(.semibold))
+                        .font(.microText.monospacedDigit().weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .padding(.horizontal, Spacing.xs).padding(.vertical, Spacing.xxxs)
                         .background(PortSQLPalette.sunken, in: Capsule())
                         .accessibilityLabel(L10n.plural("row_count", count: estimate))
                 }
             }
-            .frame(minHeight: 44, alignment: .leading)
+            .frame(minHeight: Sizes.touchTarget, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

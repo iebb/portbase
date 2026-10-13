@@ -7,17 +7,17 @@ struct ConsoleTabBar: View {
     @State private var closingID: UUID?
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Spacing.s) {
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: Spacing.xs) {
                         ForEach(consoles.consoles) { console in
                             tab(console)
                                 .id(console.id)
                         }
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, Spacing.m)
+                    .padding(.vertical, Spacing.xs)
                 }
                 .onChange(of: consoles.selectedID) { _, id in
                     withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
@@ -31,15 +31,15 @@ struct ConsoleTabBar: View {
                 }
             } label: {
                 Image(systemName: "plus")
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.toolSymbol)
                     .foregroundStyle(PortSQLPalette.accent)
-                    .frame(width: 44, height: 44)
+                    .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
             } primaryAction: {
                 consoles.add()
             }
             .accessibilityLabel("Consoles")
             .accessibilityHint("Opens a new console. Hold for more options.")
-            .padding(.trailing, 6)
+            .padding(.trailing, Spacing.xs)
         }
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
@@ -59,25 +59,25 @@ struct ConsoleTabBar: View {
 
     private func tab(_ console: QueryConsole) -> some View {
         let selected = consoles.selectedID == console.id
-        return HStack(spacing: 6) {
+        return HStack(spacing: Spacing.xs) {
             Button { consoles.select(console.id) } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: console.workspace.isRunning ? "bolt.fill" : "terminal")
-                        .font(.caption.weight(.bold))
+                        .font(.captionStrong)
                         .foregroundStyle(selected ? PortSQLPalette.accent : .secondary)
                         .symbolEffect(.pulse, isActive: console.workspace.isRunning)
                     Text(console.title)
-                        .font(.subheadline.weight(selected ? .semibold : .regular))
+                        .font(.rowDetail.weight(selected ? .semibold : .regular))
                         .foregroundStyle(selected ? PortSQLPalette.ink : .secondary)
                         .lineLimit(1)
                     if console.workspace.hasOpenTransaction {
-                        Circle().fill(Color.orange).frame(width: 6, height: 6)
+                        Circle().fill(Color.orange).frame(width: Sizes.dot, height: Sizes.dot)
                             .accessibilityLabel("Transaction open")
                     }
                 }
-                .padding(.leading, 12)
-                .padding(.trailing, consoles.consoles.count > 1 ? 2 : 12)
-                .frame(minHeight: 36)
+                .padding(.leading, Spacing.m)
+                .padding(.trailing, consoles.consoles.count > 1 ? Spacing.xxxs : Spacing.m)
+                .frame(minHeight: Sizes.tabStrip)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -85,16 +85,16 @@ struct ConsoleTabBar: View {
             if consoles.consoles.count > 1 {
                 Button { close(console.id) } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.badgeText)
                         .foregroundStyle(.secondary)
-                        .frame(width: 28, height: 36)
+                        .frame(width: Sizes.iconTileSmall, height: Sizes.tabStrip)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(L10n.format("Close %@", console.title))
             }
         }
-        .frame(minHeight: 44)
+        .frame(minHeight: Sizes.touchTarget)
         .background {
             Capsule()
                 .fill(selected ? PortSQLPalette.surface : Color.clear)

@@ -23,44 +23,44 @@ struct ConnectionIssueBanner: View {
     }
 
     private var compactBody: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: Spacing.s) {
             Image(systemName: issue.isSecurityIssue ? "lock.trianglebadge.exclamationmark.fill" : "exclamationmark.triangle.fill")
                 .foregroundStyle(tint)
                 .accessibilityHidden(true)
-            Text(issue.title).font(.callout.weight(.semibold)).lineLimit(1).layoutPriority(1)
-            Text(issue.guidance).font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
-            Spacer(minLength: 8)
+            Text(issue.title).font(.rowDetail.weight(.semibold)).lineLimit(1).layoutPriority(1)
+            Text(issue.guidance).font(.captionText).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
+            Spacer(minLength: Spacing.s)
             Button("Show Details") { showsDetails = true }
                 .buttonStyle(.borderless)
-                .font(.caption)
+                .font(.captionText)
                 .popover(isPresented: $showsDetails, arrowEdge: .bottom) {
                     ConnectionIssueBanner(message: issue.details)
-                        .padding(12)
+                        .padding(Spacing.m)
                         .frame(width: 440)
                 }
-            HStack(spacing: 8) { actionButtons }.controlSize(.small)
+            HStack(spacing: Spacing.s) { actionButtons }.controlSize(.small)
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 36)
-        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(.horizontal, Spacing.m)
+        .frame(minHeight: Sizes.statusBar)
+        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(tint.opacity(0.25), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).strokeBorder(tint.opacity(0.25), lineWidth: 1)
         }
         .accessibilityElement(children: .contain)
     }
 
     private var fullBody: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            HStack(alignment: .top, spacing: Spacing.s) {
                 Image(systemName: issue.isSecurityIssue ? "lock.trianglebadge.exclamationmark.fill" : "exclamationmark.triangle.fill")
                     .foregroundStyle(tint)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Text(issue.title)
-                        .font(.subheadline.weight(.semibold))
+                        .font(.rowTitle)
                         .foregroundStyle(PortSQLPalette.ink)
                     Text(issue.guidance)
-                        .font(.caption)
+                        .font(.captionText)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -71,33 +71,33 @@ struct ConnectionIssueBanner: View {
             if showsDetails {
                 ScrollView {
                     Text(issue.details)
-                        .font(.caption.monospaced())
+                        .font(.codeCaption)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxHeight: 120)
-                .padding(8)
-                .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .padding(Spacing.s)
+                .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
             }
 
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     detailButtons
                     Spacer(minLength: 0)
                     actionButtons
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) { actionButtons }
-                    HStack(spacing: 8) { detailButtons }
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    HStack(spacing: Spacing.s) { actionButtons }
+                    HStack(spacing: Spacing.s) { detailButtons }
                 }
             }
         }
-        .padding(12)
+        .padding(Spacing.m)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(tint.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(tint.opacity(0.25), lineWidth: 1)
+            RoundedRectangle(cornerRadius: Radius.control, style: .continuous).strokeBorder(tint.opacity(0.25), lineWidth: 1)
         }
     }
 
@@ -106,24 +106,24 @@ struct ConnectionIssueBanner: View {
             withAnimation(.easeOut(duration: 0.15)) { showsDetails.toggle() }
         }
         .buttonStyle(.borderless)
-        .font(.caption)
-        .frame(minHeight: PortbaseControlSize.minimumHeight)
+        .font(.captionText)
+        .frame(minHeight: Sizes.control)
         Button("Copy Details") { PortbaseClipboard.copy(issue.details) }
             .buttonStyle(.borderless)
-            .font(.caption)
-            .frame(minHeight: PortbaseControlSize.minimumHeight)
+            .font(.captionText)
+            .frame(minHeight: Sizes.control)
     }
 
     @ViewBuilder private var actionButtons: some View {
         if let onReconnect {
             Button(action: onReconnect) {
-                Label("Reconnect", systemImage: "arrow.clockwise").frame(minHeight: PortbaseControlSize.minimumHeight - 12)
+                Label("Reconnect", systemImage: "arrow.clockwise").frame(minHeight: Sizes.control - 12)
             }
             .buttonStyle(.bordered)
         }
         if let onEdit {
             Button(action: onEdit) {
-                Label("Edit Connection", systemImage: "slider.horizontal.3").frame(minHeight: PortbaseControlSize.minimumHeight - 12)
+                Label("Edit Connection", systemImage: "slider.horizontal.3").frame(minHeight: Sizes.control - 12)
             }
             .buttonStyle(.borderedProminent)
         }

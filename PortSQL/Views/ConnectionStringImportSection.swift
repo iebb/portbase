@@ -17,7 +17,7 @@ struct ConnectionStringImportSection: View {
             SecureField(Self.example, text: $text)
                 .portbaseTextCapitalization(.never)
                 .autocorrectionDisabled()
-                .font(.system(.body, design: .monospaced))
+                .font(.codeText)
                 .onSubmit(importString)
                 .accessibilityLabel("Connection string")
             Button {
@@ -28,16 +28,16 @@ struct ConnectionStringImportSection: View {
             .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             if let error {
                 Label(error, systemImage: "xmark.octagon.fill")
-                    .font(.footnote)
+                    .font(.footnoteText)
                     .foregroundStyle(.red)
             } else if imported {
                 Label("Connection details imported. Review them below, then save.", systemImage: "checkmark.circle.fill")
-                    .font(.footnote)
+                    .font(.footnoteText)
                     .foregroundStyle(.green)
             }
             ForEach(notices, id: \.self) { notice in
                 Label(notice, systemImage: "info.circle")
-                    .font(.footnote)
+                    .font(.footnoteText)
                     .foregroundStyle(.secondary)
             }
         } header: {

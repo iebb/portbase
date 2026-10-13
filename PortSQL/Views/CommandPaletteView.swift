@@ -86,13 +86,13 @@ struct CommandPaletteView: View {
     var body: some View {
         let results = results
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 Image(systemName: "magnifyingglass")
-                    .font(.title3.weight(.semibold))
+                    .font(.sectionTitle)
                     .foregroundStyle(PortSQLPalette.accent)
                 TextField("Search actions, tables, and queries", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.title3)
+                    .font(.sectionTitle)
                     .focused($searchFocused)
                     .autocorrectionDisabled()
                     .portbaseTextCapitalization(.never)
@@ -103,19 +103,19 @@ struct CommandPaletteView: View {
                 if !query.isEmpty {
                     Button { query = "" } label: {
                         Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                            .frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight)
+                            .frame(minWidth: Sizes.control, minHeight: Sizes.control)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Clear search")
                 }
 #if !os(macOS)
                 Button("Done") { dismiss() }
-                    .font(.body.weight(.semibold))
-                    .frame(minHeight: 44)
+                    .font(.bodyText.weight(.semibold))
+                    .frame(minHeight: Sizes.touchTarget)
 #endif
             }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 14)
+            .padding(.horizontal, Spacing.xl)
+            .padding(.vertical, Spacing.m)
 
             Divider()
 
@@ -127,7 +127,7 @@ struct CommandPaletteView: View {
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 2, pinnedViews: [.sectionHeaders]) {
+                        LazyVStack(alignment: .leading, spacing: Spacing.xxxs, pinnedViews: [.sectionHeaders]) {
                             if isSearching {
                                 // Ranked results keep the best match first so Return opens it.
                                 Section {
@@ -154,7 +154,7 @@ struct CommandPaletteView: View {
                                 }
                             }
                         }
-                        .padding(8)
+                        .padding(Spacing.s)
                     }
                     .onChange(of: highlighted) { _, value in
                         guard results.indices.contains(value) else { return }
@@ -165,16 +165,16 @@ struct CommandPaletteView: View {
 
 #if os(macOS)
             Divider()
-            HStack(spacing: 16) {
+            HStack(spacing: Spacing.l) {
                 Label("Navigate", systemImage: "arrow.up.arrow.down")
                 Label("Open", systemImage: "return")
                 Label("Close", systemImage: "escape")
                 Spacer()
             }
-            .font(.caption)
+            .font(.captionText)
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 16)
-            .frame(height: 30)
+            .padding(.horizontal, Spacing.l)
+            .frame(height: Sizes.statusBar)
 #endif
         }
         .background(PortSQLPalette.surface)
@@ -192,47 +192,47 @@ struct CommandPaletteView: View {
 
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
-            .font(.caption2.weight(.bold))
+            .font(.badgeText)
             .tracking(0.6)
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.top, 10)
-            .padding(.bottom, 4)
+            .padding(.horizontal, Spacing.m)
+            .padding(.top, Spacing.s)
+            .padding(.bottom, Spacing.xxs)
             .background(PortSQLPalette.surface)
     }
 
     private func row(_ item: CommandPaletteItem, isHighlighted: Bool, showsGroup: Bool = false) -> some View {
         Button { run(item) } label: {
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.m) {
                 Image(systemName: item.systemImage)
-                    .font(.body)
+                    .font(.bodyText)
                     .foregroundStyle(isHighlighted ? PortSQLPalette.accent : .secondary)
-                    .frame(width: 24)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(item.title).font(.body.weight(.medium)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                    .frame(width: Sizes.symbolColumn)
+                VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                    Text(item.title).font(.bodyText.weight(.medium)).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                     if let subtitle = item.subtitle, !subtitle.isEmpty {
-                        Text(subtitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        Text(subtitle).font(.captionText).foregroundStyle(.secondary).lineLimit(1)
                     }
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: Spacing.s)
                 if showsGroup {
                     Text(item.group.title)
-                        .font(.caption2.weight(.semibold))
+                        .font(.badgeText)
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
                 if let shortcut = item.shortcut {
                     Text(verbatim: shortcut)
-                        .font(.caption.monospaced().weight(.semibold))
+                        .font(.codeCaption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6).padding(.vertical, 3)
-                        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .padding(.horizontal, Spacing.xs).padding(.vertical, Spacing.xxs)
+                        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
                 }
             }
-            .padding(.horizontal, 10)
-            .frame(minHeight: PortbaseControlSize.minimumHeight + 10)
-            .background(isHighlighted ? PortSQLPalette.accent.opacity(0.10) : .clear, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .padding(.horizontal, Spacing.m)
+            .frame(minHeight: Sizes.control + 10)
+            .background(isHighlighted ? PortSQLPalette.accent.opacity(0.10) : .clear, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

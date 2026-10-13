@@ -36,30 +36,30 @@ struct MongoDocumentResults: View {
                 Text("No documents matched the query.").foregroundStyle(.secondary)
             }
             ForEach(Array(documents.enumerated()), id: \.offset) { index, document in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    HStack(spacing: Spacing.s) {
                         if let identifier = MongoDocumentSummary.identifier(in: document) {
-                            Text(verbatim: "_id").font(.caption.monospaced()).foregroundStyle(.secondary)
+                            Text(verbatim: "_id").font(.codeCaption).foregroundStyle(.secondary)
                             Text(verbatim: identifier)
-                                .font(.caption.monospaced().weight(.semibold))
+                                .font(.codeCaption.weight(.semibold))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                                 .textSelection(.enabled)
                         } else {
-                            Text(L10n.format("Document %d", index + 1)).font(.caption.weight(.semibold))
+                            Text(L10n.format("Document %d", index + 1)).font(.captionStrong)
                         }
-                        Spacer(minLength: 8)
+                        Spacer(minLength: Spacing.s)
                         Button {
                             PortbaseClipboard.copy(document)
                         } label: {
-                            Image(systemName: "doc.on.doc").frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight)
+                            Image(systemName: "doc.on.doc").frame(minWidth: Sizes.control, minHeight: Sizes.control)
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel("Copy JSON")
                         Button {
                             selectedDocument = MongoDocumentSelection(index: index, json: document, context: context)
                         } label: {
-                            Image(systemName: "arrow.up.left.and.arrow.down.right").frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight)
+                            Image(systemName: "arrow.up.left.and.arrow.down.right").frame(minWidth: Sizes.control, minHeight: Sizes.control)
                         }
                         .buttonStyle(.borderless)
                         .accessibilityLabel(L10n.format("Document %d", index + 1))
@@ -67,10 +67,10 @@ struct MongoDocumentResults: View {
                     }
                     MongoDocumentTree(json: document, preview: true)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .portbaseCardSurface(radius: 12)
-                .padding(.bottom, 8)
+                .padding(.horizontal, Spacing.m)
+                .padding(.vertical, Spacing.xs)
+                .portbaseCardSurface(radius: Radius.control)
+                .padding(.bottom, Spacing.s)
             }
         }
         .sheet(item: $selectedDocument) { selection in
@@ -105,7 +105,7 @@ struct MongoDocumentInspector: View {
                 ScrollView {
                     if showsJSON {
                         Text(MongoQueryService.formattedJSON(selection.json))
-                            .font(.system(.body, design: .monospaced))
+                            .font(.codeText)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding()
@@ -160,7 +160,7 @@ private struct MongoDocumentTree: View {
                 MongoValueRow(field: field)
             }
             if preview && !isShowingAll && fields.count > 6 {
-                Button("Show All Fields") { isShowingAll = true }.frame(minHeight: PortbaseControlSize.minimumHeight)
+                Button("Show All Fields") { isShowingAll = true }.frame(minHeight: Sizes.control)
             }
         }
         .task(id: json) {
@@ -205,28 +205,28 @@ private struct MongoValueRow: View {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(Array(children.prefix(childLimit))) { child in MongoValueRow(field: child) }
                         if children.count > childLimit {
-                            Button("Show More") { childLimit += 100 }.frame(minHeight: PortbaseControlSize.minimumHeight)
+                            Button("Show More") { childLimit += 100 }.frame(minHeight: Sizes.control)
                         }
                     }
                 } label: { label }
-                .frame(minHeight: PortbaseControlSize.minimumHeight)
+                .frame(minHeight: Sizes.control)
             } else { label }
         }
-        .font(.system(.caption, design: .monospaced))
+        .font(.codeCaption)
     }
 
     private var label: some View {
         ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: Spacing.m) {
                 Text(verbatim: field.key).foregroundStyle(.secondary)
                 Text(verbatim: String(field.preview.prefix(500))).textSelection(.enabled)
             }
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(verbatim: field.key).foregroundStyle(.secondary)
                 Text(verbatim: String(field.preview.prefix(500))).textSelection(.enabled)
             }
         }
-        .frame(minHeight: PortbaseControlSize.minimumHeight, alignment: .leading)
+        .frame(minHeight: Sizes.control, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: field.key))
         .accessibilityValue(Text(verbatim: String(field.preview.prefix(500))))

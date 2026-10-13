@@ -40,21 +40,21 @@ struct MongoIndexesView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section { Text(context.database + "." + context.collection).font(.callout.monospaced()) }
+                Section { Text(context.database + "." + context.collection).font(.codeDetail) }
                 if let error { Text(error).foregroundStyle(.red).textSelection(.enabled) }
                 if truncated { Text("Index results were truncated.").foregroundStyle(.orange) }
                 ForEach(matching) { index in
                     NavigationLink {
                         MongoIndexDetailsView(index: index)
                     } label: {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(index.name).font(.headline)
-                            Text(index.fields.map { $0.name + ": " + $0.direction }.joined(separator: ", ")).font(.caption.monospaced())
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            Text(index.name).font(.cardTitle)
+                            Text(index.fields.map { $0.name + ": " + $0.direction }.joined(separator: ", ")).font(.codeCaption)
                             let flags = [index.unique ? L10n.text("Unique") : nil, index.sparse ? L10n.text("Sparse") : nil,
                                          index.hidden ? L10n.text("Hidden") : nil, index.expiration.map { L10n.format("TTL: %@ s", $0) }].compactMap { $0 }
-                            if !flags.isEmpty { Text(flags.joined(separator: " · ")).font(.caption).foregroundStyle(.secondary) }
+                            if !flags.isEmpty { Text(flags.joined(separator: " · ")).font(.captionText).foregroundStyle(.secondary) }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, Spacing.xxs)
                     }
                 }
                 if !loading && matching.isEmpty && error == nil { Text("No matching indexes").foregroundStyle(.secondary) }
@@ -90,7 +90,7 @@ private struct MongoIndexDetailsView: View {
     var body: some View {
         List {
             Section("Index Keys") {
-                ForEach(index.fields) { field in HStack { Text(field.name).font(.body.monospaced()); Spacer(); Text(field.direction).foregroundStyle(.secondary) } }
+                ForEach(index.fields) { field in HStack { Text(field.name).font(.codeText); Spacer(); Text(field.direction).foregroundStyle(.secondary) } }
             }
             Section("Options") {
                 LabeledContent("Unique", value: index.unique ? L10n.text("Yes") : L10n.text("No"))
@@ -99,7 +99,7 @@ private struct MongoIndexDetailsView: View {
                 if let expiration = index.expiration { LabeledContent("TTL", value: L10n.format("%@ s", expiration)) }
             }
             Section("Definition") {
-                Text(ResultInspectionService.formattedJSON(index.json)).font(.callout.monospaced()).textSelection(.enabled)
+                Text(ResultInspectionService.formattedJSON(index.json)).font(.codeDetail).textSelection(.enabled)
                 Button("Copy Definition", systemImage: "doc.on.doc") { PortbaseClipboard.copy(index.json )}
             }
         }

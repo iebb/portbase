@@ -13,35 +13,35 @@ struct ResultInsightsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Spacing.l) {
             if isComputing {
                 LoadingStateView(title: L10n.text("Analyzing results"), message: L10n.text("Summarizing loaded rows."))
             } else if insights.columns.isEmpty {
                 Text("Run a query to see column insights.")
-                    .font(.subheadline)
+                    .font(.rowDetail)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, minHeight: 90)
             } else {
                 summary
                 if insights.columns.count > 6 {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                         TextField("Filter columns", text: $filter)
                             .textFieldStyle(.plain)
                             .autocorrectionDisabled()
                             .portbaseTextCapitalization(.never)
                     }
-                    .padding(.horizontal, 12)
-                    .frame(minHeight: PortbaseControlSize.minimumHeight)
-                    .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, Spacing.m)
+                    .frame(minHeight: Sizes.control)
+                    .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 12)], alignment: .leading, spacing: 12) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: Spacing.m)], alignment: .leading, spacing: Spacing.m) {
                     ForEach(visibleColumns) { column in
                         ColumnInsightCard(column: column)
                     }
                 }
                 Text("Statistics describe loaded rows only. They do not query the database again.")
-                    .font(.caption)
+                    .font(.captionText)
                     .foregroundStyle(.secondary)
             }
         }
@@ -56,7 +56,7 @@ struct ResultInsightsView: View {
     }
 
     private var summary: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: Spacing.s)], spacing: Spacing.s) {
             PortbaseMetricTile(title: L10n.text("Loaded rows"), value: insights.rowCount.formatted(), systemImage: "list.number",
                                tint: Color(hex: 0x6366F1), footnote: result.isTruncated == true ? L10n.text("Result truncated") : nil)
             PortbaseMetricTile(title: L10n.text("Columns"), value: insights.columns.count.formatted(), systemImage: "tablecells", tint: Color(hex: 0x0EA5E9))
@@ -72,16 +72,16 @@ private struct ColumnInsightCard: View {
     let column: ColumnInsight
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            HStack(alignment: .top, spacing: Spacing.s) {
                 Image(systemName: symbol)
-                    .font(.subheadline)
+                    .font(.rowDetail)
                     .foregroundStyle(tint)
-                    .frame(width: 20, height: 20)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(column.name).font(.subheadline.weight(.semibold)).lineLimit(1)
+                    .frame(width: Sizes.iconBadge, height: Sizes.iconBadge)
+                VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                    Text(column.name).font(.rowTitle).lineLimit(1)
                     Text(column.type.isEmpty ? kindTitle : column.type)
-                        .font(.caption.monospaced())
+                        .font(.codeCaption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -91,7 +91,7 @@ private struct ColumnInsightCard: View {
                 }
             }
 
-            HStack(spacing: 14) {
+            HStack(spacing: Spacing.m) {
                 stat(L10n.text("Distinct"), column.distinctCount.formatted())
                 stat("NULL", column.nullRatio.formatted(.percent.precision(.fractionLength(0...1))))
                 if column.emptyTextCount > 0 { stat(L10n.text("Empty"), column.emptyTextCount.formatted()) }
@@ -103,7 +103,7 @@ private struct ColumnInsightCard: View {
                 .accessibilityValue((1 - column.nullRatio).formatted(.percent.precision(.fractionLength(0))))
 
             if let numeric = column.numeric {
-                HStack(spacing: 14) {
+                HStack(spacing: Spacing.m) {
                     stat(L10n.text("Min"), format(numeric.minimum))
                     stat(L10n.text("Median"), format(numeric.median))
                     stat(L10n.text("Mean"), format(numeric.mean))
@@ -119,22 +119,22 @@ private struct ColumnInsightCard: View {
                 .frame(height: 64)
                 .accessibilityLabel("Value distribution")
             } else if let earliest = column.earliest, let latest = column.latest {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
                     Label(earliest, systemImage: "arrow.down.to.line").lineLimit(1)
                     Label(latest, systemImage: "arrow.up.to.line").lineLimit(1)
                 }
-                .font(.caption.monospaced())
+                .font(.codeCaption)
                 .foregroundStyle(.secondary)
             }
 
             if column.numeric == nil, !column.topValues.isEmpty, column.distinctCount < column.rowCount {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Most frequent").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text("Most frequent").font(.captionStrong).foregroundStyle(.secondary)
                     let peak = max(1, column.topValues.first?.count ?? 1)
                     ForEach(column.topValues) { value in
-                        HStack(spacing: 8) {
+                        HStack(spacing: Spacing.s) {
                             Text(value.value.isEmpty ? "\"\"" : value.value)
-                                .font(.caption.monospaced())
+                                .font(.codeCaption)
                                 .lineLimit(1)
                                 .frame(maxWidth: 120, alignment: .leading)
                             GeometryReader { proxy in
@@ -142,22 +142,22 @@ private struct ColumnInsightCard: View {
                                     .frame(width: max(4, proxy.size.width * CGFloat(value.count) / CGFloat(peak)))
                             }
                             .frame(height: 6)
-                            Text(value.count.formatted()).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                            Text(value.count.formatted()).font(.microText.monospacedDigit()).foregroundStyle(.secondary)
                         }
                         .accessibilityElement(children: .combine)
                     }
                 }
             }
         }
-        .padding(14)
+        .padding(Spacing.l)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .portbaseCardSurface(radius: 16)
+        .portbaseCardSurface()
     }
 
     private func stat(_ title: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-            Text(value).font(.subheadline.weight(.semibold).monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
+        VStack(alignment: .leading, spacing: Spacing.xxxs) {
+            Text(title).font(.badgeText).foregroundStyle(.secondary)
+            Text(value).font(.rowTitle.monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
         }
         .accessibilityElement(children: .combine)
     }

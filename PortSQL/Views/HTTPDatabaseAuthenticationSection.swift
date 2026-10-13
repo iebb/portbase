@@ -8,16 +8,16 @@ struct HTTPDatabaseAuthenticationSection: View {
             Picker("Authentication", selection: $profile.httpAuthentication) {
                 ForEach(authenticationMethods) { method in Text(method.title).tag(method) }
             }
-            .frame(minHeight: 44)
+            .frame(minHeight: Sizes.touchTarget)
             if profile.httpAuthentication == .basic {
                 TextField("Username", text: $profile.username)
-                    .portbaseTextCapitalization(.never).autocorrectionDisabled().frame(minHeight: 44)
+                    .portbaseTextCapitalization(.never).autocorrectionDisabled().frame(minHeight: Sizes.touchTarget)
             }
             SecureField(secretTitle, text: Binding(get: { profile.password }, set: {
                 profile.password = $0
                 profile.passwordWasExplicitlySet = true
             }))
-            .portbaseTextCapitalization(.never).autocorrectionDisabled().frame(minHeight: 44)
+            .portbaseTextCapitalization(.never).autocorrectionDisabled().frame(minHeight: Sizes.touchTarget)
             .accessibilityLabel(secretTitle)
         }
     }

@@ -128,8 +128,8 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         view.autoresizingMask = [.width]
         view.backgroundColor = .textBackgroundColor
         view.textColor = .textColor
-        view.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
-        view.textContainerInset = NSSize(width: 12, height: 12)
+        view.font = .monospacedSystemFont(ofSize: TypeSize.body, weight: .regular)
+        view.textContainerInset = NSSize(width: Spacing.m, height: Spacing.m)
         view.backgroundColor = palette.backgroundColor
         view.insertionPointColor = palette.caretColor
         view.usesFindPanel = true
@@ -235,7 +235,7 @@ private final class QueryLineGutter: NSView {
         guard let view = textView, let manager = view.layoutManager, let container = view.textContainer else { return }
         manager.ensureLayout(for: container)
         let offset = view.enclosingScrollView?.contentView.bounds.minY ?? 0
-        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular), .foregroundColor: palette?.gutterTextColor ?? NSColor.secondaryLabelColor]
+        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: TypeSize.caption, weight: .regular), .foregroundColor: palette?.gutterTextColor ?? NSColor.secondaryLabelColor]
         for (line, start) in SQLEditingService.lineStarts(in: view.string).enumerated() {
             let frame: NSRect
             if manager.numberOfGlyphs == 0 || start >= view.string.utf16.count { frame = manager.extraLineFragmentRect }
@@ -272,9 +272,9 @@ struct NativeReadOnlyText: NSViewRepresentable {
         view.isVerticallyResizable = true
         view.textContainer?.containerSize = NSSize(width: 600, height: CGFloat.greatestFiniteMagnitude)
         view.textContainer?.widthTracksTextView = true
-        view.font = .monospacedSystemFont(ofSize: 13, weight: .regular)
+        view.font = .monospacedSystemFont(ofSize: TypeSize.body, weight: .regular)
         view.usesFindPanel = true
-        view.textContainerInset = NSSize(width: 10, height: 10)
+        view.textContainerInset = NSSize(width: Spacing.s, height: Spacing.s)
         view.autoresizingMask = [.width]
         return EditorHostView(textView: view, showsLineNumbers: false)
     }
@@ -289,8 +289,8 @@ struct ScriptActivitySheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var error: String?
     var body: some View {
-        VStack(spacing: 16) {
-            Text(url.lastPathComponent).font(.headline)
+        VStack(spacing: Spacing.l) {
+            Text(url.lastPathComponent).font(.cardTitle)
             if let error { Text(error).foregroundStyle(.red) }
             Button("Save File") {
                 let panel = NSSavePanel(); panel.nameFieldStringValue = url.lastPathComponent
@@ -300,6 +300,6 @@ struct ScriptActivitySheet: View {
                 }
             }.keyboardShortcut(.defaultAction)
             Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-        }.padding(24).frame(minWidth: 360)
+        }.padding(Spacing.xxl).frame(minWidth: 360)
     }
 }

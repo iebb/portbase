@@ -7,16 +7,6 @@ import AppKit
 enum PortbaseKeyboardType { case `default`, numberPad, decimalPad, numbersAndPunctuation, URL, emailAddress, asciiCapable }
 #endif
 
-enum PortbaseControlSize {
-    static var minimumHeight: CGFloat {
-#if os(macOS)
-        24
-#else
-        44
-#endif
-    }
-}
-
 enum PortbaseTitleMode { case inline, large, automatic }
 enum PortbaseCapitalization { case never, words, sentences, characters }
 

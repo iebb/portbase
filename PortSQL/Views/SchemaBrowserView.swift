@@ -16,7 +16,7 @@ struct SchemaBrowserView: View {
                     Section(kind.title) {
                         ForEach(matches) { object in
                             NavigationLink { SchemaObjectView(object: object) } label: {
-                                Label(object.displayName, systemImage: kind.symbol).frame(minHeight: 44)
+                                Label(object.displayName, systemImage: kind.symbol).frame(minHeight: Sizes.touchTarget)
                             }
                         }
                     }
@@ -55,7 +55,7 @@ struct SchemaObjectView: View {
                 Section("Columns") {
                     ForEach(table.columns) { column in
                         HStack {
-                            Text(column.name).font(.body.monospaced())
+                            Text(column.name).font(.codeText)
                             Spacer()
                             Text(column.type).foregroundStyle(.secondary)
                             if column.isPrimaryKey { Image(systemName: "key.fill").accessibilityLabel("Primary Key") }
@@ -67,17 +67,17 @@ struct SchemaObjectView: View {
                 if !details.definition.isEmpty {
                     Section("Definition") {
                         ScrollView(.horizontal) {
-                            Text(details.definition).font(.callout.monospaced()).textSelection(.enabled)
+                            Text(details.definition).font(.codeDetail).textSelection(.enabled)
                                 .fixedSize(horizontal: true, vertical: false)
                         }
                         Button("Copy Definition", systemImage: "doc.on.doc") { PortbaseClipboard.copy(details.definition )}
                     }
                 }
                 if !details.indexes.isEmpty {
-                    Section("Indexes") { ForEach(details.indexes, id: \.self) { Text($0).font(.callout.monospaced()).textSelection(.enabled) } }
+                    Section("Indexes") { ForEach(details.indexes, id: \.self) { Text($0).font(.codeDetail).textSelection(.enabled) } }
                 }
                 if !details.constraints.isEmpty {
-                    Section("Constraints") { ForEach(details.constraints, id: \.self) { Text($0).font(.callout.monospaced()).textSelection(.enabled) } }
+                    Section("Constraints") { ForEach(details.constraints, id: \.self) { Text($0).font(.codeDetail).textSelection(.enabled) } }
                 }
                 if !details.foreignKeys.isEmpty {
                     Section("Foreign Keys") {
@@ -85,9 +85,9 @@ struct SchemaObjectView: View {
                             NavigationLink {
                                 SchemaObjectView(object: SchemaObject(id: key.id, schema: key.referencedSchema, name: key.referencedTable, kind: .table))
                             } label: {
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: Spacing.xxs) {
                                     Text(key.name)
-                                    Text(key.summary).font(.caption.monospaced()).foregroundStyle(.secondary)
+                                    Text(key.summary).font(.codeCaption).foregroundStyle(.secondary)
                                 }
                             }
                         }

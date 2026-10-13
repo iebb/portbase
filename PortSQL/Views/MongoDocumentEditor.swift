@@ -11,7 +11,7 @@ struct MongoInsertDocumentButton: View {
 #if os(macOS)
                 .frame(minHeight: 24)
 #else
-                .frame(minHeight: PortbaseControlSize.minimumHeight)
+                .frame(minHeight: Sizes.control)
 #endif
                 .disabled(workspace.isRunning)
                 .sheet(item: $context) { context in
@@ -54,7 +54,7 @@ struct MongoDocumentEditor: View {
                 if mode == .delete {
                     Section("Document") {
                         Text(MongoQueryService.formattedJSON(originalJSON ?? "{}"))
-                            .font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                            .font(.codeCaption).textSelection(.enabled)
                     }
                 } else {
                     Section {
@@ -118,7 +118,7 @@ struct MongoDocumentEditor: View {
                 if !field.isIdentifier {
                     Button(role: .destructive) {
                         draft?.fields.removeAll { $0.id == field.id }
-                    } label: { Image(systemName: "trash").frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight) }
+                    } label: { Image(systemName: "trash").frame(minWidth: Sizes.control, minHeight: Sizes.control) }
                         .buttonStyle(.borderless).accessibilityLabel("Remove Field")
                 }
             }
@@ -131,10 +131,10 @@ struct MongoDocumentEditor: View {
                                              set: { fieldBinding(field, \.value).wrappedValue = String($0) }))
                     .disabled(field.isIdentifier)
             } else if field.type == .null {
-                Text(verbatim: "NULL").font(.system(.body, design: .monospaced)).foregroundStyle(.secondary)
+                Text(verbatim: "NULL").font(.codeText).foregroundStyle(.secondary)
             } else {
                 TextField("Value", text: fieldBinding(field, \.value), axis: .vertical)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.codeText)
                     .portbaseTextCapitalization(.never).autocorrectionDisabled()
                     .disabled(field.isIdentifier)
             }
@@ -207,11 +207,11 @@ private struct MongoDocumentMutationReview: View {
                 }
                 Section("Command") {
                     Text((try? request.previewCommand()) ?? "")
-                        .font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+                        .font(.codeCaption).textSelection(.enabled)
                 }
                 Section {
                     Text("The original document is checked again in a transaction. Conflicting changes cancel the save.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.captionText).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Review Changes")
@@ -233,7 +233,7 @@ private struct MongoDocumentMutationReview: View {
     }
 
     private func json(_ text: String) -> some View {
-        Text(MongoQueryService.formattedJSON(text)).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
+        Text(MongoQueryService.formattedJSON(text)).font(.codeCaption).textSelection(.enabled)
     }
 
     private func save() {

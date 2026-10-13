@@ -5,38 +5,38 @@ struct ElasticsearchExplorerView: View {
 
     var body: some View {
         AdaptiveWorkspaceView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 PanelCard {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         Menu {
                             ForEach(workspace.schemaCatalog) { index in
                                 Button(index.name) { workspace.selectExplorerTable(index) }
                             }
                         } label: {
                             HStack {
-                                Text("Index").font(.subheadline.weight(.semibold))
+                                Text("Index").font(.rowTitle)
                                 Spacer()
                                 Text(verbatim: workspace.selectedExplorerTable?.name ?? "_all")
-                                    .font(.system(.body, design: .monospaced))
+                                    .font(.codeText)
                                 Image(systemName: "chevron.down")
-                            }.frame(minHeight: 44)
+                            }.frame(minHeight: Sizes.touchTarget)
                         }
                         .disabled(workspace.schemaCatalog.isEmpty)
                         DisclosureGroup("Mappings") {
                             if let table = workspace.selectedExplorerTable {
-                                LazyVStack(alignment: .leading, spacing: 4) {
+                                LazyVStack(alignment: .leading, spacing: Spacing.xxs) {
                                     ForEach(table.columns) { column in
                                         ViewThatFits(in: .horizontal) {
                                             HStack { Text(verbatim: column.name); Spacer(); Text(verbatim: column.type).foregroundStyle(.secondary) }
                                             VStack(alignment: .leading) { Text(verbatim: column.name); Text(verbatim: column.type).foregroundStyle(.secondary) }
                                         }
-                                        .font(.system(.caption, design: .monospaced)).textSelection(.enabled)
-                                        .frame(minHeight: 44).accessibilityElement(children: .combine)
+                                        .font(.codeCaption).textSelection(.enabled)
+                                        .frame(minHeight: Sizes.touchTarget).accessibilityElement(children: .combine)
                                     }
                                 }
                             } else { Text("Select an index.").foregroundStyle(.secondary) }
                         }
-                        .frame(minHeight: 44)
+                        .frame(minHeight: Sizes.touchTarget)
                     }
                 }
                 ElasticsearchQueryEditorCard()

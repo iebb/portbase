@@ -9,7 +9,7 @@ struct SettingsView: View {
             Section {
                 AboutHeader()
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowInsets(EdgeInsets(top: Spacing.s, leading: 0, bottom: Spacing.s, trailing: 0))
             }
 
             AppearanceSettingsSection()
@@ -24,7 +24,7 @@ struct SettingsView: View {
                     Label("Sync Now", systemImage: "arrow.triangle.2.circlepath")
                 }
                 if let error = bookmarks.cloudSyncError ?? library.cloudSyncError {
-                    Text(error).font(.footnote).foregroundStyle(.red)
+                    Text(error).font(.footnoteText).foregroundStyle(.red)
                 }
             } header: {
                 Text("iCloud")
@@ -46,7 +46,7 @@ struct SettingsView: View {
 
             Section {
                 FlowChips(items: DatabaseEngine.allCases.map { ($0.rawValue, $0.symbolName, $0.tint) })
-                    .padding(.vertical, 4)
+                    .padding(.vertical, Spacing.xxs)
             } header: {
                 Text("Supported Engines")
             } footer: {
@@ -60,11 +60,11 @@ struct SettingsView: View {
 
 struct AboutHeader: View {
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: Spacing.m) {
             PortbaseLogoMark(size: 56)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(verbatim: "Portbase").font(.title2.weight(.bold))
-                Text(versionLabel).font(.subheadline).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Text(verbatim: "Portbase").font(.pageTitle)
+                Text(versionLabel).font(.rowDetail).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
@@ -95,29 +95,29 @@ struct AppearanceSettingsSection: View {
             .labelsHidden()
 #endif
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Accent Color").font(.subheadline)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: 12)], spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("Accent Color").font(.rowDetail)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 52), spacing: Spacing.m)], spacing: Spacing.m) {
                     ForEach(PortbaseAccent.allCases) { option in
                         Button {
                             withAnimation(.easeInOut(duration: 0.2)) { accent = option.rawValue }
                         } label: {
-                            VStack(spacing: 6) {
+                            VStack(spacing: Spacing.xs) {
                                 Circle()
                                     .fill(LinearGradient(colors: option.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
-                                    .frame(width: 36, height: 36)
+                                    .frame(width: Sizes.iconTile, height: Sizes.iconTile)
                                     .overlay {
                                         if accent == option.rawValue {
-                                            Image(systemName: "checkmark").font(.caption.weight(.heavy)).foregroundStyle(.white)
+                                            Image(systemName: "checkmark").font(.captionText.weight(.heavy)).foregroundStyle(.white)
                                         }
                                     }
-                                    .padding(3)
+                                    .padding(Spacing.xxs)
                                     .overlay {
                                         Circle().strokeBorder(accent == option.rawValue ? option.gradient[0] : .clear, lineWidth: 2)
                                     }
-                                Text(option.title).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                Text(option.title).font(.microText).foregroundStyle(.secondary).lineLimit(1)
                             }
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
@@ -126,7 +126,7 @@ struct AppearanceSettingsSection: View {
                     }
                 }
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, Spacing.xxs)
         } header: {
             Text("Appearance")
         }
@@ -138,20 +138,20 @@ struct EditorThemeSettingsSection: View {
 
     var body: some View {
         Section {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], spacing: 12) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: Spacing.m)], spacing: Spacing.m) {
                 ForEach(EditorTheme.allCases) { theme in
                     Button {
                         themeName = theme.rawValue
                     } label: {
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             EditorThemePreview(theme: theme, isSelected: themeName == theme.rawValue)
-                            HStack(spacing: 4) {
-                                Text(theme.title).font(.caption.weight(.semibold)).foregroundStyle(PortSQLPalette.ink)
+                            HStack(spacing: Spacing.xxs) {
+                                Text(theme.title).font(.captionStrong).foregroundStyle(PortSQLPalette.ink)
                                 if themeName == theme.rawValue {
-                                    Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(PortSQLPalette.accent)
+                                    Image(systemName: "checkmark.circle.fill").font(.captionText).foregroundStyle(PortSQLPalette.accent)
                                 }
                             }
-                            Text(theme.subtitle).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                            Text(theme.subtitle).font(.microText).foregroundStyle(.secondary).lineLimit(1)
                         }
                         .contentShape(Rectangle())
                     }
@@ -160,7 +160,7 @@ struct EditorThemeSettingsSection: View {
                     .accessibilityAddTraits(themeName == theme.rawValue ? [.isButton, .isSelected] : .isButton)
                 }
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, Spacing.xs)
         } header: {
             Text("Editor Theme")
         }
@@ -184,7 +184,7 @@ struct FlowChips: View {
     let items: [(String, String, Color)]
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], alignment: .leading, spacing: 8) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: Spacing.s)], alignment: .leading, spacing: Spacing.s) {
             ForEach(items, id: \.0) { item in
                 PortbaseChip(title: item.0, systemImage: item.1, tint: item.2)
             }

@@ -22,16 +22,16 @@ struct VisualizationChartPreview: View {
     private var selectedPoint: VisualizationPlotPoint? { content.points.first { $0.id == selectedPointID } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(spacing: Spacing.s) {
                 if !content.dateFields.isEmpty {
                     Button { showsDateFilter = true } label: {
                         Label("Date Range", systemImage: dateFilter == nil ? "calendar" : "calendar.badge.checkmark")
                     }
-                    .frame(minHeight: 44)
+                    .frame(minHeight: Sizes.touchTarget)
                 }
                 Button { showsPointList = true } label: {
-                    Label("Inspect", systemImage: "scope").frame(minHeight: 44)
+                    Label("Inspect", systemImage: "scope").frame(minHeight: Sizes.touchTarget)
                 }
                 .disabled(content.points.isEmpty)
                 Spacer(minLength: 0)
@@ -39,21 +39,21 @@ struct VisualizationChartPreview: View {
                     Button("Export PNG") { export(.png) }
                     Button("Export PDF") { export(.pdf) }
                 } label: {
-                    Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
+                    Image(systemName: "square.and.arrow.up").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                 }
                 .disabled(content.points.isEmpty)
                 .accessibilityLabel("Export Chart")
             }
-            .font(.subheadline)
+            .font(.rowDetail)
             .buttonStyle(.borderless)
 
             if let dateFilter {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
                     Text(dateFilter.field + ": " + dateRangeLabel(dateFilter))
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.captionText).foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                     Button { self.dateFilter = nil } label: {
-                        Image(systemName: "xmark").frame(width: 44, height: 44)
+                        Image(systemName: "xmark").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                     }
                     .accessibilityLabel("Clear Date Filter")
                 }
@@ -71,10 +71,10 @@ struct VisualizationChartPreview: View {
                 selectedPointDetails(point)
             }
             Text(L10n.format("Loaded rows: %d / %d", content.result.rows.count, result.rows.count))
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.captionText).foregroundStyle(.secondary)
             if result.isTruncated == true {
                 Text("Chart uses the loaded result only. Export all data from the query for the complete result.")
-                    .font(.caption).foregroundStyle(.orange)
+                    .font(.captionText).foregroundStyle(.orange)
             }
         }
         .onChange(of: result, initial: true) { _, _ in rebuild() }
@@ -94,16 +94,16 @@ struct VisualizationChartPreview: View {
     }
 
     private func selectedPointDetails(_ point: VisualizationPlotPoint) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(pointTitle(point)).font(.subheadline.weight(.semibold)).textSelection(.enabled)
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            HStack(alignment: .top, spacing: Spacing.s) {
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(pointTitle(point)).font(.rowTitle).textSelection(.enabled)
                     Text(point.yValue, format: .number.precision(.significantDigits(1...12)))
-                        .font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                        .font(.codeText).textSelection(.enabled)
                 }
                 Spacer(minLength: 0)
                 Button { selectedPointID = nil } label: {
-                    Image(systemName: "xmark").frame(width: 44, height: 44)
+                    Image(systemName: "xmark").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                 }
                 .accessibilityLabel("Close Inspection")
             }
@@ -111,11 +111,11 @@ struct VisualizationChartPreview: View {
                 drilldown = ChartDrilldown(title: pointTitle(point), result: VisualizationService.matchingResult(content.result, point: point))
             } label: {
                 Label(L10n.format("View Rows (%d)", point.sourceRowIDs.count), systemImage: "tablecells")
-                    .frame(minHeight: 44)
+                    .frame(minHeight: Sizes.touchTarget)
             }
         }
-        .padding(10)
-        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: 4))
+        .padding(Spacing.m)
+        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.xs))
     }
 
     private func pointTitle(_ point: VisualizationPlotPoint) -> String {
@@ -158,14 +158,14 @@ private struct ChartPointList: View {
                     onSelect(point); dismiss()
                 } label: {
                     HStack(alignment: .firstTextBaseline) {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: Spacing.xxs) {
                             Text(point.xText)
-                            if let series = point.group ?? point.metric { Text(series).font(.caption).foregroundStyle(.secondary) }
+                            if let series = point.group ?? point.metric { Text(series).font(.captionText).foregroundStyle(.secondary) }
                         }
                         Spacer()
                         Text(point.yValue, format: .number.precision(.significantDigits(1...12))).monospacedDigit()
                     }
-                    .frame(minHeight: 44)
+                    .frame(minHeight: Sizes.touchTarget)
                 }
                 .buttonStyle(.plain)
             }
@@ -247,9 +247,9 @@ private struct ChartDrilldownView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(drilldown.title).font(.headline).textSelection(.enabled)
-                    Text(drilldown.result.executionSummary).font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    Text(drilldown.title).font(.cardTitle).textSelection(.enabled)
+                    Text(drilldown.result.executionSummary).font(.captionText).foregroundStyle(.secondary)
                     if drilldown.result.documents != nil {
                         Picker("Results", selection: $showsDocuments) {
                             Text("Table").tag(false)
@@ -295,10 +295,10 @@ private struct ChartRowInspector: View {
             List(Array(selection.result.columns.enumerated()), id: \.offset) { index, column in
                 let cells = selection.result.rows[selection.index].cells
                 let cell = cells.indices.contains(index) ? cells[index] : .null
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(column.name).font(.subheadline).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: Spacing.xs) {
+                    Text(column.name).font(.rowDetail).foregroundStyle(.secondary)
                     Text(cell.isNull ? "NULL" : (cell.displayValue.isEmpty ? "\"\"" : cell.displayValue))
-                        .font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                        .font(.codeText).textSelection(.enabled)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(ResultGridAccessibility.rowLabel(columns: [column], cells: [cell]))
@@ -321,14 +321,14 @@ enum ChartExportError: LocalizedError {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("PortSQLCharts", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent("chart-" + UUID().uuidString + "." + format.rawValue)
-        let view = VStack(alignment: .leading, spacing: 16) {
-            Text(preset.chartTitle.isEmpty ? preset.title : preset.chartTitle).font(.title2.weight(.semibold))
+        let view = VStack(alignment: .leading, spacing: Spacing.l) {
+            Text(preset.chartTitle.isEmpty ? preset.title : preset.chartTitle).font(.pageTitle)
             VisualizationChartPlot(preset: preset, points: points, xMode: xMode, compact: false)
-            if let dateFilter { Text(dateFilter.field + ": " + dateRangeLabel(dateFilter)).font(.caption) }
-            Text(L10n.format("Loaded rows: %d", result.rows.count)).font(.caption).foregroundStyle(.secondary)
-            if result.isTruncated == true { Text("Truncated query result").font(.caption).foregroundStyle(.secondary) }
+            if let dateFilter { Text(dateFilter.field + ": " + dateRangeLabel(dateFilter)).font(.captionText) }
+            Text(L10n.format("Loaded rows: %d", result.rows.count)).font(.captionText).foregroundStyle(.secondary)
+            if result.isTruncated == true { Text("Truncated query result").font(.captionText).foregroundStyle(.secondary) }
         }
-        .padding(32)
+        .padding(Spacing.xxxl)
         .frame(width: 1_000, alignment: .leading)
         .background(.white)
         .environment(\.colorScheme, .light)

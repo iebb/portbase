@@ -43,16 +43,16 @@ struct RedisExplorerView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 PanelCard {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: Spacing.s) {
                         HStack {
-                            Text("Redis keys").font(.headline)
+                            Text("Redis keys").font(.cardTitle)
                             Spacer()
                             if let profile = workspace.selectedBookmark, !profile.isReadOnly {
                                 Button {
                                     mutation = RedisMutationSelection(profile: profile, database: database, key: nil, type: "string", action: .write)
-                                } label: { Image(systemName: "plus").frame(width: PortbaseControlSize.minimumHeight, height: PortbaseControlSize.minimumHeight) }
+                                } label: { Image(systemName: "plus").frame(width: Sizes.control, height: Sizes.control) }
                                 .accessibilityLabel("Create Key")
                             }
                         }
@@ -70,17 +70,17 @@ struct RedisExplorerView: View {
                                 if isLoading { task?.cancel() } else { scan(reset: true) }
                             } label: {
                                 Label(L10n.text(isLoading ? "Stop" : "Scan"), systemImage: isLoading ? "stop.fill" : "arrow.clockwise")
-                                    .frame(minHeight: PortbaseControlSize.minimumHeight)
+                                    .frame(minHeight: Sizes.control)
                             }.buttonStyle(.borderedProminent).disabled(workspace.selectedBookmark == nil)
                         }
-                        if let error { Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
+                        if let error { Text(error).font(.captionText).foregroundStyle(.red).textSelection(.enabled) }
                     }
                 }
                 if started {
                     PanelCard {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: Spacing.s) {
                             HStack {
-                                Text(L10n.format("Loaded keys: %d", keys.count)).font(.subheadline.monospacedDigit())
+                                Text(L10n.format("Loaded keys: %d", keys.count)).font(.rowDetail.monospacedDigit())
                                 Spacer()
                                 Picker("Display", selection: $tableMode) {
                                     Text("Keys").tag(false)
@@ -96,11 +96,11 @@ struct RedisExplorerView: View {
                                     ForEach(keys) { key in
                                         Button { open(key) } label: {
                                             HStack {
-                                                Text(key.displayName).font(.system(.callout, design: .monospaced))
+                                                Text(key.displayName).font(.codeDetail)
                                                     .lineLimit(2).multilineTextAlignment(.leading)
                                                 Spacer()
                                                 Image(systemName: "chevron.right").foregroundStyle(.secondary)
-                                            }.frame(minHeight: PortbaseControlSize.minimumHeight)
+                                            }.frame(minHeight: Sizes.control)
                                                 .contentShape(Rectangle())
                                         }.buttonStyle(.plain)
                                         Divider()
@@ -109,11 +109,11 @@ struct RedisExplorerView: View {
                             }
                             if isLoading { ProgressView() }
                             if truncated {
-                                Text("The key limit was reached. Narrow the pattern and scan again.").font(.caption).foregroundStyle(.secondary)
+                                Text("The key limit was reached. Narrow the pattern and scan again.").font(.captionText).foregroundStyle(.secondary)
                             } else if cursor != "0" {
-                                Button("Load More Keys") { scan(reset: false) }.frame(minHeight: PortbaseControlSize.minimumHeight).disabled(isLoading)
+                                Button("Load More Keys") { scan(reset: false) }.frame(minHeight: Sizes.control).disabled(isLoading)
                             } else if !isLoading {
-                                Text("Scan complete").font(.caption).foregroundStyle(.secondary)
+                                Text("Scan complete").font(.captionText).foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -143,20 +143,20 @@ struct RedisExplorerView: View {
 
     private var databaseControl: some View {
         HStack {
-            Text("Database").font(.subheadline)
+            Text("Database").font(.rowDetail)
             TextField("Database number", text: $databaseText).portbaseKeyboardType(.numberPad)
                 .textFieldStyle(.roundedBorder).frame(minWidth: 56, maxWidth: 100)
             Button("Use") {
                 guard let value = Int32(databaseText), value >= 0 else { error = RedisClientError.invalidDatabase.localizedDescription; return }
                 workspace.selectDatabase(String(value)); error = nil
-            }.frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight).disabled(isLoading)
+            }.frame(minWidth: Sizes.control, minHeight: Sizes.control).disabled(isLoading)
         }
     }
 
     private var patternControl: some View {
         HStack {
-            Text("Pattern").font(.subheadline)
-            TextField("Key pattern", text: $pattern).font(.system(.body, design: .monospaced))
+            Text("Pattern").font(.rowDetail)
+            TextField("Key pattern", text: $pattern).font(.codeText)
                 .portbaseTextCapitalization(.never).autocorrectionDisabled().textFieldStyle(.roundedBorder)
         }
     }
@@ -213,10 +213,10 @@ struct RedisKeyInspector: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: Spacing.m) {
                     PanelCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(key.displayName).font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                        VStack(alignment: .leading, spacing: Spacing.s) {
+                            Text(key.displayName).font(.codeText).textSelection(.enabled)
                             LabeledContent("Database", value: database)
                             if let inspection {
                                 LabeledContent("Type", value: inspection.type)
@@ -224,28 +224,28 @@ struct RedisKeyInspector: View {
                                 if let length = inspection.length { LabeledContent("Length", value: String(length)) }
                                 if !profile.isReadOnly, inspection.type != "none" {
                                     ViewThatFits(in: .horizontal) {
-                                        HStack(spacing: 16) { mutationButtons(for: inspection) }
+                                        HStack(spacing: Spacing.l) { mutationButtons(for: inspection) }
                                             .fixedSize(horizontal: true, vertical: false)
-                                        VStack(alignment: .leading, spacing: 4) { mutationButtons(for: inspection) }
+                                        VStack(alignment: .leading, spacing: Spacing.xxs) { mutationButtons(for: inspection) }
                                     }.disabled(isLoading)
                                 }
                             }
-                            if let error { Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
+                            if let error { Text(error).font(.captionText).foregroundStyle(.red).textSelection(.enabled) }
                         }
                     }
                     if let inspection {
                         PanelCard {
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: Spacing.s) {
                                 ResultGridView(result: inspection.result, persistenceKey: "redis.value." + inspection.type)
                                 if inspection.result.isTruncated == true {
-                                    Text("The reply was truncated. Use a smaller range in the command editor.").font(.caption).foregroundStyle(.secondary)
+                                    Text("The reply was truncated. Use a smaller range in the command editor.").font(.captionText).foregroundStyle(.secondary)
                                 }
                                 if let next = inspection.nextCursor {
-                                    Button("Next Page") { load(cursor: next) }.frame(minHeight: PortbaseControlSize.minimumHeight).disabled(isLoading)
+                                    Button("Next Page") { load(cursor: next) }.frame(minHeight: Sizes.control).disabled(isLoading)
                                 }
                                 DisclosureGroup("Command") {
-                                    Text(inspection.result.sourceQuery ?? "").font(.system(.caption, design: .monospaced)).textSelection(.enabled)
-                                }.frame(minHeight: PortbaseControlSize.minimumHeight)
+                                    Text(inspection.result.sourceQuery ?? "").font(.codeCaption).textSelection(.enabled)
+                                }.frame(minHeight: Sizes.control)
                             }
                         }
                     }
@@ -259,7 +259,7 @@ struct RedisKeyInspector: View {
                 ToolbarItem(placement: PortbaseToolbar.trailing) {
                     Button {
                         if isLoading { task?.cancel() } else { load(cursor: "0") }
-                    } label: { Image(systemName: isLoading ? "stop.fill" : "arrow.clockwise").frame(width: PortbaseControlSize.minimumHeight, height: PortbaseControlSize.minimumHeight) }
+                    } label: { Image(systemName: isLoading ? "stop.fill" : "arrow.clockwise").frame(width: Sizes.control, height: Sizes.control) }
                         .accessibilityLabel(L10n.text(isLoading ? "Stop" : "Refresh"))
                 }
             }
@@ -272,7 +272,7 @@ struct RedisKeyInspector: View {
     @ViewBuilder
     private func mutationButtons(for inspection: RedisKeyInspection) -> some View {
         if inspection.type != "string" || completeString != nil {
-            Button("Write Value") { mutate(.write) }.frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight)
+            Button("Write Value") { mutate(.write) }.frame(minWidth: Sizes.control, minHeight: Sizes.control)
         }
         Menu {
             Button("Set Expiration") { mutate(.expire) }
@@ -280,7 +280,7 @@ struct RedisKeyInspector: View {
                 .disabled(inspection.ttlMilliseconds < 0)
             Button("Delete Key", role: .destructive) { mutate(.delete) }
         } label: {
-            Label("Edit", systemImage: "ellipsis.circle").frame(minWidth: PortbaseControlSize.minimumHeight, minHeight: PortbaseControlSize.minimumHeight)
+            Label("Edit", systemImage: "ellipsis.circle").frame(minWidth: Sizes.control, minHeight: Sizes.control)
         }
     }
 
@@ -341,7 +341,7 @@ private struct RedisMutationEditor: View {
                     LabeledContent("Connection", value: selection.profile.name)
                     LabeledContent("Database", value: selection.database)
                     if let key = selection.key {
-                        LabeledContent("Key") { Text(key.displayName).font(.system(.callout, design: .monospaced)).textSelection(.enabled) }
+                        LabeledContent("Key") { Text(key.displayName).font(.codeDetail).textSelection(.enabled) }
                     } else {
                         byteField("Key", text: $keyText, encoding: $keyEncoding)
                         Picker("Key type", selection: $type) {
@@ -360,7 +360,7 @@ private struct RedisMutationEditor: View {
                 }
                 Section("Command") {
                     if let command = try? command() {
-                        Text(command.preview).font(.system(.callout, design: .monospaced)).textSelection(.enabled)
+                        Text(command.preview).font(.codeDetail).textSelection(.enabled)
                     } else {
                         Text("Complete the fields to preview the command.").foregroundStyle(.secondary)
                     }
@@ -395,9 +395,9 @@ private struct RedisMutationEditor: View {
     }
 
     private func byteField(_ title: String, text: Binding<String>, encoding: Binding<RedisByteEncoding>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
             HStack {
-                Text(L10n.text(title)).font(.subheadline)
+                Text(L10n.text(title)).font(.rowDetail)
                 Spacer()
                 Picker("Encoding", selection: Binding(get: { encoding.wrappedValue }, set: { next in
                     do {
@@ -415,7 +415,7 @@ private struct RedisMutationEditor: View {
                 }.pickerStyle(.segmented).frame(maxWidth: 200)
             }
             TextField(L10n.text(title), text: text, axis: .vertical)
-                .font(.system(.body, design: .monospaced)).portbaseTextCapitalization(.never).autocorrectionDisabled()
+                .font(.codeText).portbaseTextCapitalization(.never).autocorrectionDisabled()
         }
     }
 

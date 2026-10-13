@@ -10,7 +10,7 @@ struct ConnectionStatusLine: View {
             VStack(spacing: 0) {
                 EnvironmentStripe(environment: profile.environment)
                 if profile.environment != .none || profile.isReadOnly || unencrypted {
-                    HStack(spacing: 8) {
+                    HStack(spacing: Spacing.s) {
                         EnvironmentBadge(environment: profile.environment)
                         if profile.isReadOnly {
                             PortbaseChip(title: L10n.text("Read-only"), systemImage: "lock.fill", tint: .secondary)
@@ -20,8 +20,8 @@ struct ConnectionStatusLine: View {
                         }
                         Spacer(minLength: 0)
                     }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
+                    .padding(.horizontal, Spacing.m)
+                    .padding(.vertical, Spacing.xs)
                     .background(.bar)
                 }
             }

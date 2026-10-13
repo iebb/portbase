@@ -10,23 +10,23 @@ struct ConsoleTransactionControls: View {
                     .disabled(workspace.hasOpenTransaction)
                 Button("Manual Commit") { workspace.setManualCommit(true) }
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: Spacing.xs) {
                     Image(systemName: workspace.manualCommit ? "hand.raised.fill" : "arrow.triangle.branch")
                     Text(workspace.manualCommit ? L10n.text("Manual Commit") : L10n.text("Auto-commit"))
                         .lineLimit(1)
                     if workspace.hasOpenTransaction {
-                        Circle().fill(Color.orange).frame(width: 7, height: 7)
+                        Circle().fill(Color.orange).frame(width: Sizes.dot, height: Sizes.dot)
                             .accessibilityLabel("Transaction open")
                     }
                 }
-                .font(.caption.weight(.semibold))
+                .font(.captionStrong)
                 .foregroundStyle(workspace.manualCommit ? Color.orange : PortSQLPalette.ink)
-                .padding(.horizontal, 12)
-                .frame(minHeight: PortbaseMetrics.toolSize)
+                .padding(.horizontal, Spacing.m)
+                .frame(minHeight: Sizes.control)
                 .background(workspace.manualCommit ? Color.orange.opacity(0.12) : PortSQLPalette.sunken,
-                            in: RoundedRectangle(cornerRadius: PortbaseMetrics.controlRadius, style: .continuous))
+                            in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: PortbaseMetrics.controlRadius, style: .continuous)
+                    RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                         .strokeBorder(PortSQLPalette.stroke, lineWidth: 1)
                 }
             }

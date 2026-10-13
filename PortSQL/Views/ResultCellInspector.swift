@@ -33,23 +33,23 @@ struct ResultCellInspector: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack {
-                    Text(ResultInspectionService.typeName(selection.cell) + " · " + selection.column.type).font(.caption).foregroundStyle(.secondary)
+                    Text(ResultInspectionService.typeName(selection.cell) + " · " + selection.column.type).font(.captionText).foregroundStyle(.secondary)
                     Spacer()
-                    Text(L10n.format("Row %d", selection.row + 1)).font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.format("Row %d", selection.row + 1)).font(.captionText).foregroundStyle(.secondary)
                 }
-                if case .json = selection.cell { Toggle("Format JSON", isOn: $formatted).frame(minHeight: 44) }
+                if case .json = selection.cell { Toggle("Format JSON", isOn: $formatted).frame(minHeight: Sizes.touchTarget) }
                 if case .binary(let bytes) = selection.cell {
                     Picker("Encoding", selection: $base64) { Text("Hex").tag(false); Text("Base64").tag(true) }.pickerStyle(.segmented)
-                    Text(ByteCountFormatter.string(fromByteCount: Int64(bytes.count), countStyle: .file)).font(.caption)
-                    if bytes.count > 4_096 { Text("Preview: first 4096 bytes. Share exports the complete value.").font(.caption).foregroundStyle(.secondary) }
+                    Text(ByteCountFormatter.string(fromByteCount: Int64(bytes.count), countStyle: .file)).font(.captionText)
+                    if bytes.count > 4_096 { Text("Preview: first 4096 bytes. Share exports the complete value.").font(.captionText).foregroundStyle(.secondary) }
                 }
                 if selection.cell == .text("") { Text("Empty text").foregroundStyle(.secondary) }
                 CellValueTextView(value: preview)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .accessibilityLabel("Cell value")
-                if let error { Text(error).font(.caption).foregroundStyle(.red) }
+                if let error { Text(error).font(.captionText).foregroundStyle(.red) }
             }
             .padding()
             .navigationTitle(selection.column.name)
@@ -88,7 +88,7 @@ private struct CellValueTextView: UIViewRepresentable {
         view.font = .monospacedSystemFont(ofSize: UIFont.preferredFont(forTextStyle: .body).pointSize, weight: .regular)
         view.adjustsFontForContentSizeCategory = true
         view.backgroundColor = .secondarySystemBackground
-        view.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
+        view.textContainerInset = UIEdgeInsets(top: Spacing.m, left: Spacing.s, bottom: Spacing.m, right: Spacing.s)
         return view
     }
     func updateUIView(_ uiView: UITextView, context: Context) { if uiView.text != value { uiView.text = value } }

@@ -142,7 +142,7 @@ struct ResultGridView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     Button { focusedColumn = nil; showsColumns = true } label: {
                         Label("Columns", systemImage: "tablecells")
                     }
@@ -179,7 +179,7 @@ struct ResultGridView: View {
                     .disabled(selection == nil && result.rows.isEmpty)
                     if let selection {
                         Text(L10n.format("Cells: %d", selection.count))
-                            .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                            .font(.captionText.monospacedDigit()).foregroundStyle(.secondary)
                         Button { self.selection = nil; extendsSelection = false } label: {
                             Image(systemName: "xmark").frame(width: controlHeight, height: controlHeight)
                         }
@@ -187,14 +187,14 @@ struct ResultGridView: View {
                     }
                 }
                 .buttonStyle(.borderless)
-                .font(.subheadline)
+                .font(.rowDetail)
 #if os(macOS)
-                .font(.system(size: 13)).padding(.horizontal, 8)
+                .font(.bodyText).padding(.horizontal, Spacing.s)
 #endif
             }
             if filter.isActive {
                 HStack {
-                    Text(L10n.format("Loaded rows: %d / %d", rowIndices.count, result.rows.count)).font(.caption).foregroundStyle(.secondary)
+                    Text(L10n.format("Loaded rows: %d / %d", rowIndices.count, result.rows.count)).font(.captionText).foregroundStyle(.secondary)
                     Spacer()
                     Button("Clear Filter") { filter = LoadedResultFilter() }.frame(minHeight: controlHeight)
                 }
@@ -273,7 +273,7 @@ struct ResultGridView: View {
                     TextField("Value", text: $filter.text).portbaseTextCapitalization(.never).autocorrectionDisabled()
                 }
                 Text(L10n.format("Loaded rows: %d / %d", rowIndices.count, result.rows.count))
-                Text("Filters apply to loaded rows only.").font(.footnote).foregroundStyle(.secondary)
+                Text("Filters apply to loaded rows only.").font(.footnoteText).foregroundStyle(.secondary)
                 Button("Clear Filter") { filter = LoadedResultFilter() }
             }
             .navigationTitle("Filter Loaded Rows")

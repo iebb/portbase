@@ -23,7 +23,7 @@ struct LibraryStorageView: View {
                     HStack {
                         VStack(alignment: .leading) {
                             Text(draft.title)
-                            Text(draft.query).font(.caption.monospaced()).lineLimit(2).foregroundStyle(.secondary)
+                            Text(draft.query).font(.codeCaption).lineLimit(2).foregroundStyle(.secondary)
                         }
                         Spacer()
                         Button("Restore") { consoles.add(restoring: draft) }.buttonStyle(.borderless)
@@ -36,7 +36,7 @@ struct LibraryStorageView: View {
                     HStack {
                         VStack(alignment: .leading) {
                             Text(item.title)
-                            Text(item.deletedAt, style: .date).font(.caption).foregroundStyle(.secondary)
+                            Text(item.deletedAt, style: .date).font(.captionText).foregroundStyle(.secondary)
                         }
                         Spacer()
                         Button("Restore") { library.restore(item) }.buttonStyle(.borderless)

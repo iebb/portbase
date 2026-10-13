@@ -21,7 +21,7 @@ struct MongoConnectionURISection: View {
             if !profile.mongoConnection.additionalHosts.isEmpty {
                 LabeledContent("Additional seed hosts") {
                     Text(verbatim: profile.mongoConnection.additionalHosts.map(\.displayName).joined(separator: ", "))
-                        .font(.caption.monospaced()).textSelection(.enabled)
+                        .font(.codeCaption).textSelection(.enabled)
                 }
                 Button("Remove additional hosts", role: .destructive) { profile.mongoConnection.additionalHosts = [] }
             }
