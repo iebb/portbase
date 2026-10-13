@@ -156,7 +156,13 @@ final class BookmarkStore: ObservableObject {
         for profile in profiles {
             mergedByID[profile.id] = profile
         }
-        return mergedByID.values.sorted(by: { $0.createdAt > $1.createdAt })
+        // Newest first; equal timestamps (imports, duplicates) fall back to name and ID so the order is stable.
+        return mergedByID.values.sorted { lhs, rhs in
+            if lhs.createdAt != rhs.createdAt { return lhs.createdAt > rhs.createdAt }
+            let names = lhs.name.localizedStandardCompare(rhs.name)
+            if names != .orderedSame { return names == .orderedAscending }
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
     }
 
     private func secure(_ profile: ConnectionProfile, persistPrivateCAInput: Bool = false) -> ConnectionProfile {

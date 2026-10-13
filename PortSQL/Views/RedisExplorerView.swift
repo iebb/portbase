@@ -124,7 +124,7 @@ struct RedisExplorerView: View {
         .navigationTitle("Explorer")
         .portbaseTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: PortbaseToolbar.leading) { ConnectionSwitcherButton(toolbarMode: true) }
+            ToolbarItem(placement: PortbaseToolbar.leading) { ConnectionSwitcherButton() }
         }
 #endif
         .onChange(of: contextID, initial: true) { _, _ in

@@ -12,6 +12,9 @@ enum PortSQLPalette {
     static var accentSoft: Color { accent.opacity(0.12) }
     // A deep navy and slate palette in the style of modern host managers.
     static let ink = Color.adaptive(light: 0x101525, dark: 0xEDF1F2)
+    /// Secondary text and icons as a fixed slate, for places such as the Mac sidebar where
+    /// vibrancy would otherwise darken the system secondary style.
+    static let muted = Color.adaptive(light: 0x5A5E73, dark: 0x8D91A5)
     static let panel = Color.adaptive(light: 0xF5F7F9, dark: 0x111729)
     static let surface = Color.adaptive(light: 0xFFFFFF, dark: 0x161C30)
     static let tertiarySurface = Color.adaptive(light: 0xF7F9FA, dark: 0x1B2238)
@@ -251,7 +254,7 @@ struct WorkbenchView: View {
         .portbaseTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: PortbaseToolbar.leading) {
-                ConnectionSwitcherButton(toolbarMode: true)
+                ConnectionSwitcherButton()
             }
             ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
                 SchemaRefreshButton()
@@ -279,20 +282,16 @@ struct WorkbenchView: View {
 struct ConnectionSwitcherButton: View {
     @EnvironmentObject private var bookmarks: BookmarkStore
     @EnvironmentObject private var workspace: WorkspaceViewModel
-    var toolbarMode = false
-
     var body: some View {
         Group {
             if bookmarks.bookmarks.isEmpty {
                 Button {
                     workspace.createBookmark()
                 } label: {
-                    Image(systemName: toolbarMode ? "plus.circle.fill" : "plus")
+                    Image(systemName: "plus.circle.fill")
                         .font(.tileSymbol)
-                        .foregroundStyle(toolbarMode ? PortSQLPalette.accent : .white)
+                        .foregroundStyle(PortSQLPalette.accent)
                         .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-                        .background(toolbarMode ? Color.clear : Color.white.opacity(0.14),
-                                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Add database connection")
@@ -333,17 +332,13 @@ struct ConnectionSwitcherButton: View {
                         } else {
                             Image(systemName: "server.rack")
                                 .font(.toolSymbol)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(PortSQLPalette.ink)
                         }
 
                         Image(systemName: "chevron.down")
                             .font(.captionStrong)
-                            .foregroundStyle(toolbarMode ? PortSQLPalette.ink.opacity(0.65) : .white.opacity(0.85))
+                            .foregroundStyle(PortSQLPalette.ink.opacity(0.65))
                     }
-                    .padding(.horizontal, toolbarMode ? 0 : Spacing.m)
-                    .padding(.vertical, toolbarMode ? 0 : Spacing.s)
-                    .background(toolbarMode ? Color.clear : Color.white.opacity(0.14),
-                                in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                     .frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                 }
                 .accessibilityLabel("Choose database connection")
@@ -422,35 +417,13 @@ struct QueryEditorCard: View {
     @EnvironmentObject private var bookmarks: BookmarkStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var editorMinimumHeight: CGFloat = 220
+    @ScaledMetric(relativeTo: .body) private var editorMinimumHeight: CGFloat = 160
     @State private var isShowingExpandedEditor = false
     @State private var isShowingLibrarySheet = false
 
     var body: some View {
         PanelCard {
-            VStack(alignment: .leading, spacing: Spacing.l) {
-                HStack(alignment: .center, spacing: Spacing.m) {
-                    if let bookmark = workspace.selectedBookmark {
-                        BookmarkAvatar(profile: bookmark, size: Sizes.avatarLarge, cornerRadius: Radius.chip)
-                    }
-                    SectionHeader(title: L10n.text("Query"), subtitle: querySubtitle)
-                    Spacer(minLength: Spacing.m)
-                    Button {
-                        isShowingLibrarySheet = true
-                    } label: {
-                        Image(systemName: "books.vertical").toolIconChrome()
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Open query library")
-                    Button {
-                        isShowingExpandedEditor = true
-                    } label: {
-                        Image(systemName: "arrow.up.left.and.arrow.down.right").toolIconChrome()
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(workspace.usesJSONEditor ? "Open JSON editor" : "Open full screen SQL editor")
-                }
-
+            VStack(alignment: .leading, spacing: Spacing.m) {
                 if bookmarks.bookmarks.isEmpty {
                     connectionSection
                 }
@@ -536,6 +509,27 @@ struct QueryEditorCard: View {
                 .padding(.vertical, Spacing.xxxs)
             }
             .scrollClipDisabled()
+            .mask {
+                // Fades the scrolling tools under the fixed buttons instead of cutting them off.
+                HStack(spacing: 0) {
+                    Rectangle()
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: Spacing.l)
+                }
+            }
+            Button {
+                isShowingLibrarySheet = true
+            } label: {
+                Image(systemName: "books.vertical").toolIconChrome()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open query library")
+            Button {
+                isShowingExpandedEditor = true
+            } label: {
+                Image(systemName: "arrow.up.left.and.arrow.down.right").toolIconChrome()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(workspace.usesJSONEditor ? "Open JSON editor" : "Open full screen SQL editor")
         }
     }
 
@@ -585,7 +579,7 @@ struct QueryEditorCard: View {
                 allowsSQLComments: workspace.isSQLDatabase,
                 errorRange: workspace.queryErrorRange
             )
-                .frame(minHeight: min(max(editorMinimumHeight, 220), 440))
+                .frame(minHeight: min(max(editorMinimumHeight, 160), 360))
 
             if workspace.queryText.isEmpty {
                 Text(verbatim: workspace.editorPlaceholder)
@@ -647,18 +641,6 @@ struct QueryEditorCard: View {
 
     private var trimmedQuery: String {
         workspace.queryText.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var querySubtitle: String {
-        guard let bookmark = workspace.selectedBookmark else {
-            return ""
-        }
-
-        let serverName = bookmark.displayTitle
-        if let database = workspace.activeDatabaseName {
-            return "\(serverName) • \(database)"
-        }
-        return serverName
     }
 
     private var runButton: some View {
@@ -802,7 +784,6 @@ struct ResultsCard: View {
     @State private var mongoResultView = "documents"
     @State private var tableResultView = "table"
     @State private var selectedDocument: MongoDocumentSelection?
-    private let pagerControlHeight: CGFloat = 44
 
     private var hasTabularResult: Bool { !workspace.result.columns.isEmpty }
     private var queryPlan: QueryPlan? {
@@ -814,19 +795,22 @@ struct ResultsCard: View {
         PanelCard {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 HStack(alignment: .center, spacing: Spacing.m) {
-                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text("Results")
-                            .font(.sectionTitle)
-                            .accessibilityAddTraits(.isHeader)
-                        if let resultsMetadataSubtitle {
-                            Text(resultsMetadataSubtitle)
-                                .font(.captionText)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    Text("Results")
+                        .font(.sectionTitle)
+                        .accessibilityAddTraits(.isHeader)
                     Spacer(minLength: 0)
                     HStack(spacing: Spacing.s) {
                         if workspace.isDocumentDatabase { MongoInsertDocumentButton() }
+                        if !workspace.isRunning && workspace.selectedBookmark?.isReadOnly != true && workspace.canInsertIntoCurrentTable {
+                            Button {
+                                workspace.prepareInsert()
+                            } label: {
+                                Image(systemName: "plus").toolIconChrome()
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Insert row")
+                            .help(L10n.text("Insert row"))
+                        }
                         if canCreateVisualization {
                             visualizerButton
                         }
@@ -900,18 +884,10 @@ struct ResultsCard: View {
                     .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                 }
 
-                if !workspace.isRunning && workspace.selectedBookmark?.isReadOnly != true && workspace.canInsertIntoCurrentTable {
-                    Button {
-                        workspace.prepareInsert()
-                    } label: {
-                        Label("Insert row", systemImage: "plus").frame(minHeight: Sizes.buttonContent)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Insert row")
-                }
-
                 if !workspace.isRunning && workspace.isShowingExplorerResult {
-                    HStack(spacing: Spacing.s) {
+                    HStack(spacing: 0) {
+                        pageStatusMenu
+                        Spacer(minLength: Spacing.s)
                         Button {
                             workspace.goToPreviousExplorerPage()
                         } label: {
@@ -921,13 +897,6 @@ struct ResultsCard: View {
                         .disabled(!workspace.canGoToPreviousExplorerPage)
                         .accessibilityLabel("Previous results page")
                         .accessibilityHint("Loads the preceding page of rows")
-
-                        Spacer(minLength: 0)
-
-                        pageStatusMenu
-
-                        Spacer(minLength: 0)
-
                         Button {
                             workspace.goToNextExplorerPage()
                         } label: {
@@ -1089,20 +1058,22 @@ struct ResultsCard: View {
                 }
             }
         } label: {
-            VStack(spacing: Spacing.xxxs) {
+            HStack(spacing: Spacing.xs) {
                 Text(workspace.explorerPageLabel)
                     .font(.captionStrong)
                     .foregroundStyle(PortSQLPalette.ink)
                 Text(workspace.explorerResultRangeLabel)
-                    .font(.microText.weight(.medium))
+                    .font(.captionText.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.microText)
                     .foregroundStyle(.secondary)
             }
-            .frame(minWidth: 116, minHeight: Sizes.touchTarget)
-            .padding(.horizontal, Spacing.m)
-            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
-            .overlay { RoundedRectangle(cornerRadius: Radius.button, style: .continuous).strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+            .frame(minHeight: Sizes.touchTarget)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityHint("Chooses how many rows each page loads")
     }
 
     private var schemaButton: some View {
@@ -1138,19 +1109,6 @@ struct ResultsCard: View {
         .buttonStyle(.plain)
         .accessibilityLabel("Add to visualizer")
         .accessibilityHint("Opens chart configuration for these results")
-    }
-
-    private var resultsMetadataSubtitle: String? {
-        guard workspace.isShowingExplorerResult,
-              let selectedTable = workspace.selectedExplorerTable else {
-            return nil
-        }
-
-        var parts = [L10n.plural("column_count_short", count: workspace.isDocumentDatabase ? workspace.result.columns.count : selectedTable.columns.count)]
-        if let rowCountEstimate = selectedTable.rowCountEstimate {
-            parts.append(L10n.plural("row_count", count: rowCountEstimate))
-        }
-        return parts.joined(separator: " • ")
     }
 
     private var canCreateVisualization: Bool {
@@ -2471,9 +2429,13 @@ struct InlineSuggestionMenu: View {
                                         .lineLimit(1)
                                 }
                             }
-                            .padding(.horizontal, Spacing.m)
+                            .padding(.horizontal, Spacing.s)
+                            .padding(.vertical, Spacing.xs)
+                            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
+                            .overlay { RoundedRectangle(cornerRadius: Radius.chip, style: .continuous).strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+                            // A compact tag that still keeps a full-size touch target.
                             .frame(minHeight: Sizes.control)
-                            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(L10n.format("Insert %@", item.title))

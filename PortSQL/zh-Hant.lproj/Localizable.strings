@@ -1186,3 +1186,4 @@
 "Choose a connection" = "選擇連線";
 "Pick a saved connection to browse its tables and run queries." = "選擇一個已儲存的連線以瀏覽其表格並執行查詢。";
 "Jade" = "翡翠綠";
+"Chooses how many rows each page loads" = "選擇每頁載入的列數";

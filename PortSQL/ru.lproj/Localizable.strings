@@ -1186,3 +1186,4 @@
 "Choose a connection" = "Выберите подключение";
 "Pick a saved connection to browse its tables and run queries." = "Выберите сохранённое подключение, чтобы просматривать таблицы и выполнять запросы.";
 "Jade" = "Нефрит";
+"Chooses how many rows each page loads" = "Выбирает, сколько строк загружает каждая страница";

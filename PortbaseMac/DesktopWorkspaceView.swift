@@ -216,11 +216,11 @@ struct DesktopWorkspaceView: View {
                 sidebarLink("Home", systemImage: "house.fill", isSelected: destination == .home) { destination = .home }
                 sidebarLink("Connections", systemImage: "server.rack", isSelected: destination == .connections) { destination = .connections }
                 sidebarLink("Query Library", systemImage: "books.vertical.fill", isSelected: false) { showsLibrary = true }
-                Section("Servers") {
+                Section {
                     ForEach(bookmarks.bookmarks.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || $0.id == workspace.selectedBookmarkID }) { profile in
                         DisclosureGroup(isExpanded: Binding(get: { expandedConnections.contains(profile.id) }, set: { if $0 { expandedConnections.insert(profile.id) } else { expandedConnections.remove(profile.id) } })) {
                             if profile.id == workspace.selectedBookmarkID {
-                                if let database = workspace.activeDatabaseName { Label(database, systemImage: "externaldrive").foregroundStyle(.secondary) }
+                                if let database = workspace.activeDatabaseName { Label(database, systemImage: "externaldrive").foregroundStyle(PortSQLPalette.muted) }
                                 if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
                                 if let error = workspace.schemaErrorMessage {
                                     SidebarConnectionIssueRow(message: error)
@@ -231,7 +231,7 @@ struct DesktopWorkspaceView: View {
                                     Button { workspace.selectExplorerTable(table); destination = .explorer } label: {
                                         HStack(spacing: Spacing.xs) {
                                             Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc" : table.objectKind?.symbol ?? "tablecells")
-                                                .foregroundStyle(selected ? PortSQLPalette.accent : .secondary)
+                                                .foregroundStyle(selected ? PortSQLPalette.accent : PortSQLPalette.muted)
                                                 .frame(width: Sizes.symbolColumn)
                                             Text(table.name).lineLimit(1)
                                             if pinned {
@@ -246,7 +246,7 @@ struct DesktopWorkspaceView: View {
                                         }
                                         .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
                                     }.buttonStyle(.plain)
-                                    .foregroundStyle(selected ? PortSQLPalette.accent : .primary)
+                                    .foregroundStyle(selected ? PortSQLPalette.accent : PortSQLPalette.ink)
                                     .fontWeight(selected ? .semibold : .regular)
                                     .contextMenu {
                                         Button("Query") { workspace.queryText = workspace.defaultQuery(for: table); destination = .console }
@@ -284,7 +284,7 @@ struct DesktopWorkspaceView: View {
                                     if workspace.selectedBookmarkID == profile.id { Circle().fill(Color(red: 0.2, green: 0.78, blue: 0.35)).frame(width: Sizes.dot, height: Sizes.dot) }
                                 }.contentShape(Rectangle())
                             }.buttonStyle(.plain)
-                            .foregroundStyle(workspace.selectedBookmarkID == profile.id ? PortSQLPalette.accent : .primary)
+                            .foregroundStyle(workspace.selectedBookmarkID == profile.id ? PortSQLPalette.accent : PortSQLPalette.ink)
                             .contextMenu {
                                 Button("Edit Connection") { workspace.selectedProfileForEdit = profile }
                                 Button("Duplicate Connection") { workspace.selectedProfileForEdit = profile.duplicate() }
@@ -293,6 +293,8 @@ struct DesktopWorkspaceView: View {
                             }
                         }
                     }
+                } header: {
+                    Text("Servers").foregroundStyle(PortSQLPalette.muted)
                 }
             }.listStyle(.sidebar).font(.bodyText)
             .scrollContentBackground(.hidden)
@@ -312,8 +314,11 @@ struct DesktopWorkspaceView: View {
 
     private func sidebarLink(_ title: LocalizedStringKey, systemImage: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label(title, systemImage: systemImage)
-                .foregroundStyle(isSelected ? PortSQLPalette.accent : .primary)
+            Label {
+                Text(title).foregroundStyle(isSelected ? PortSQLPalette.accent : PortSQLPalette.ink)
+            } icon: {
+                Image(systemName: systemImage).foregroundStyle(isSelected ? PortSQLPalette.accent : PortSQLPalette.muted)
+            }
                 .fontWeight(isSelected ? .semibold : .regular)
                 .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
         }

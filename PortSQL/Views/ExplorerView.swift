@@ -203,7 +203,7 @@ struct ExplorerView: View {
         .portbaseTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: PortbaseToolbar.leading) {
-                ConnectionSwitcherButton(toolbarMode: true)
+                ConnectionSwitcherButton()
             }
             ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
                 SchemaRefreshButton()

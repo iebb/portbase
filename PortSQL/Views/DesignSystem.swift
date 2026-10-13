@@ -531,13 +531,11 @@ struct ToolIconChrome: ViewModifier {
             .font(.toolSymbol)
             .foregroundStyle(isProminent ? AnyShapeStyle(.white) : AnyShapeStyle(isEnabled ? (tint ?? PortSQLPalette.ink) : Color.secondary.opacity(0.5)))
             .frame(width: Sizes.tool, height: Sizes.tool)
+            // Flat icons, as in terminal and host-manager toolbars; only the prominent action gets a fill.
             .background {
-                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .fill(isProminent ? AnyShapeStyle(PortSQLPalette.accent) : AnyShapeStyle(PortSQLPalette.sunken))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .strokeBorder(isProminent ? Color.clear : PortSQLPalette.stroke, lineWidth: 1)
+                if isProminent {
+                    RoundedRectangle(cornerRadius: Radius.button, style: .continuous).fill(PortSQLPalette.accent)
+                }
             }
             .contentShape(Rectangle())
     }

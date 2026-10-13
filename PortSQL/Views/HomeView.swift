@@ -198,7 +198,7 @@ struct HomeView: View {
                 if library.history.isEmpty {
                     placeholder("Queries you run appear here. Loading one never runs it.")
                 } else {
-                    ForEach(Array(library.history.prefix(5).enumerated()), id: \.element.id) { index, entry in
+                    ForEach(Array(WorkspaceActivityService.recentDistinct(library.history, limit: 5).enumerated()), id: \.element.id) { index, entry in
                         if index > 0 { PortbaseRowDivider(leadingIcon: Sizes.symbolColumn) }
                         Button {
                             if workspace.apply(history: entry) { onNavigate(.console) }

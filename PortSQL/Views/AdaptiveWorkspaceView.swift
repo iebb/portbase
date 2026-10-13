@@ -98,18 +98,23 @@ struct ExplorerWorkspaceView: View {
         } detail: {
             if showsConsole {
                 WorkbenchView()
-            } else if workspace.selectedBookmark?.engine == .redis {
-                RedisExplorerView()
-            } else if workspace.selectedBookmark?.engine == .elasticsearch {
-                ElasticsearchExplorerView()
-            } else if workspace.isDocumentDatabase {
-                MongoExplorerView()
             } else {
-                ExplorerView()
+                Group {
+                    if workspace.selectedBookmark?.engine == .redis {
+                        RedisExplorerView()
+                    } else if workspace.selectedBookmark?.engine == .elasticsearch {
+                        ElasticsearchExplorerView()
+                    } else if workspace.isDocumentDatabase {
+                        MongoExplorerView()
+                    } else {
+                        ExplorerView()
+                    }
+                }
+                // Inside the detail column, so the stripe sits under the navigation bar rather than over it.
+                .safeAreaInset(edge: .top, spacing: 0) { ConnectionStatusLine() }
             }
         }
         .navigationSplitViewStyle(.balanced)
-        .safeAreaInset(edge: .top, spacing: 0) { if !showsConsole { ConnectionStatusLine() } }
     }
 
     private func pinButton(_ table: SchemaTableDescriptor) -> some View {

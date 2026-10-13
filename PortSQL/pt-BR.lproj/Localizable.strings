@@ -1186,3 +1186,4 @@
 "Choose a connection" = "Escolha uma conexão";
 "Pick a saved connection to browse its tables and run queries." = "Escolha uma conexão salva para navegar pelas tabelas e executar consultas.";
 "Jade" = "Verde-jade";
+"Chooses how many rows each page loads" = "Escolhe quantas linhas cada página carrega";

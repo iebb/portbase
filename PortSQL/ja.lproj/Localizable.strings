@@ -1186,3 +1186,4 @@
 "Choose a connection" = "接続を選択";
 "Pick a saved connection to browse its tables and run queries." = "保存済みの接続を選ぶと、テーブルの閲覧やクエリの実行ができます。";
 "Jade" = "ジェイド";
+"Chooses how many rows each page loads" = "1ページに読み込む行数を選択します";

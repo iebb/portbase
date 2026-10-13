@@ -159,7 +159,7 @@ private final class QueryLineNumberGutter: UIView {
 
     override func draw(_ rect: CGRect) {
         guard let textView else { return }
-        let font = UIFont.monospacedDigitSystemFont(ofSize: textView.font?.pointSize ?? 16, weight: .regular)
+        let font = PortbaseFonts.codeFont(textView.font?.pointSize ?? TypeSize.code)
         let manager = textView.layoutManager
         let container = textView.textContainer
         let visible = CGRect(x: 0, y: textView.contentOffset.y - textView.textContainerInset.top, width: textView.bounds.width, height: textView.bounds.height)

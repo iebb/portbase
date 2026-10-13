@@ -109,6 +109,23 @@ final class PinnedTablesAndTesterTests: XCTestCase {
         XCTAssertTrue(store.pins.isEmpty)
     }
 
+    func testConnectionsCreatedTogetherKeepAStableOrder() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("order-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let created = Date(timeIntervalSince1970: 1_800_000_000)
+        let names = ["Orders", "analytics", "Cache", "Billing", "catalog"]
+        let profiles = names.map { name -> ConnectionProfile in
+            var profile = ConnectionProfile(name: name, engine: .postgresql, host: "db.example.com", port: 5432, username: "", password: "", defaultDatabase: "")
+            profile.createdAt = created
+            return profile
+        }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode(profiles).write(to: dir.appendingPathComponent("bookmarks.json"))
+        let store = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        XCTAssertEqual(store.bookmarks.map(\.name), ["analytics", "Billing", "Cache", "catalog", "Orders"])
+    }
+
     func testConnectionTestSummaries() {
         XCTAssertTrue(ConnectionTester.summary(.init(duration: 0.084, databaseCount: 3)).contains("3"))
         XCTAssertFalse(ConnectionTester.summary(.init(duration: 0.2, databaseCount: nil)).isEmpty)

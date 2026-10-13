@@ -99,6 +99,20 @@ final class WorkspaceInsightsAndPaletteTests: XCTestCase {
         XCTAssertEqual(activity.busiestConnection, "Prod")
     }
 
+    func testRecentDistinctKeepsTheLatestRunOfEachQuery() {
+        let connection = UUID()
+        func entry(_ sql: String, _ database: String?, _ minutesAgo: Double, bookmark: UUID? = connection) -> QueryHistoryEntry {
+            QueryHistoryEntry(title: sql, sql: sql, connectionName: "Local", summary: "", executedAt: .now.addingTimeInterval(-minutesAgo * 60),
+                              bookmarkID: bookmark, database: database)
+        }
+        let history = [entry("SELECT 1", "main", 1), entry("SELECT 2", "main", 2), entry("SELECT 1 ", "main", 3),
+                       entry("SELECT 1", "other", 4), entry("SELECT 1", "main", 5, bookmark: UUID()), entry("SELECT 3", "main", 6)]
+        let recent = WorkspaceActivityService.recentDistinct(history, limit: 4)
+        XCTAssertEqual(recent.map(\.id), [history[0].id, history[1].id, history[3].id, history[4].id],
+                       "Repeats collapse to their newest run; another database or connection is a different query")
+        XCTAssertEqual(WorkspaceActivityService.recentDistinct(history, limit: 10).count, 5)
+    }
+
     func testActivityWithoutHistoryHasNoRates() {
         let activity = WorkspaceActivityService.activity(history: [])
         XCTAssertFalse(activity.hasActivity)

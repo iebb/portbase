@@ -1186,3 +1186,4 @@
 "Choose a connection" = "연결 선택";
 "Pick a saved connection to browse its tables and run queries." = "저장된 연결을 선택해 테이블을 탐색하고 쿼리를 실행하세요.";
 "Jade" = "제이드";
+"Chooses how many rows each page loads" = "페이지마다 불러올 행 수를 선택합니다";

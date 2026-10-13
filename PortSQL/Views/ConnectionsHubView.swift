@@ -470,7 +470,7 @@ private struct ConnectionInspector: View {
     }
 
     @ViewBuilder private var recentQueries: some View {
-        let history = library.history.filter { $0.bookmarkID == profile.id }.prefix(5)
+        let history = WorkspaceActivityService.recentDistinct(library.history.filter { $0.bookmarkID == profile.id }, limit: 5)
         if !history.isEmpty {
             VStack(alignment: .leading, spacing: Spacing.s) {
                 Text("Recent Queries").font(.cardTitle).accessibilityAddTraits(.isHeader)

@@ -21,6 +21,21 @@ struct WorkspaceActivity: Equatable {
 }
 
 enum WorkspaceActivityService {
+    /// The most recent run of each distinct query (same connection, database, and SQL), newest
+    /// first, so repeated runs of one query don't crowd the recent list. History is stored newest first.
+    static func recentDistinct(_ history: [QueryHistoryEntry], limit: Int) -> [QueryHistoryEntry] {
+        var seen = Set<String>()
+        var result: [QueryHistoryEntry] = []
+        for entry in history {
+            let key = [entry.bookmarkID?.uuidString ?? entry.connectionName, entry.database ?? "",
+                       entry.sql.trimmingCharacters(in: .whitespacesAndNewlines)].joined(separator: "\u{1F}")
+            guard seen.insert(key).inserted else { continue }
+            result.append(entry)
+            if result.count == limit { break }
+        }
+        return result
+    }
+
     static func activity(
         history: [QueryHistoryEntry],
         days dayCount: Int = 14,
