@@ -1175,3 +1175,11 @@
 "Temporary table" = "一時テーブル";
 "Total cost: %@" = "総コスト: %@";
 "Warnings: %d" = "警告: %d";
+"Clear filter %@" = "フィルタ %@ を解除";
+"Details" = "詳細";
+"Duplicate" = "複製";
+"Environments" = "環境";
+"Makes this the active connection" = "これをアクティブな接続にします";
+"Opens the connection form with these details" = "これらの情報で接続フォームを開きます";
+"Search or paste a connection string" = "検索、または接続文字列を貼り付け";
+"Shows only connections in this environment" = "この環境の接続だけを表示します";

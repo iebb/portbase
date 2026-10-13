@@ -111,3 +111,23 @@ final class ConnectionImportAndIssueTests: XCTestCase {
         XCTAssertEqual(ConnectionIssue.classify("raw text").details, "raw text")
     }
 }
+
+@MainActor
+final class QuickConnectImportTests: XCTestCase {
+    func testQuickConnectOpensAnUnsavedPrefilledForm() throws {
+        let workspace = WorkspaceViewModel()
+        try workspace.importConnection(from: "mysql://report@db.example.com:3307/shop?sslmode=disable")
+        let draft = try XCTUnwrap(workspace.selectedProfileForEdit)
+        XCTAssertEqual(draft.engine, .mysql)
+        XCTAssertEqual(draft.host, "db.example.com")
+        XCTAssertEqual(draft.port, 3307)
+        XCTAssertEqual(draft.username, "report")
+        XCTAssertEqual(draft.defaultDatabase, "shop")
+        XCTAssertNotEqual(draft.transportSecurityMode, .plaintext, "Quick connect never turns encryption off")
+        XCTAssertNotEqual(draft.transportSecurityMode, .preferTLS)
+
+        workspace.selectedProfileForEdit = nil
+        XCTAssertThrowsError(try workspace.importConnection(from: "ftp://example.com"))
+        XCTAssertNil(workspace.selectedProfileForEdit)
+    }
+}

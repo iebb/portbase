@@ -282,6 +282,8 @@ enum Sizes {
     static let iconTileSmall: CGFloat = 28
     /// Large icon tiles in headers.
     static let iconTileLarge: CGFloat = 44
+    /// Width of side inspectors such as connection details.
+    static let inspectorWidth: CGFloat = 300
     /// Line-number gutter of the query editor.
     static let editorGutter: CGFloat = 44
     /// Status and environment dots.

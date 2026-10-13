@@ -1175,3 +1175,11 @@
 "Temporary table" = "임시 테이블";
 "Total cost: %@" = "총 비용: %@";
 "Warnings: %d" = "경고: %d";
+"Clear filter %@" = "필터 %@ 지우기";
+"Details" = "세부 정보";
+"Duplicate" = "복제";
+"Environments" = "환경";
+"Makes this the active connection" = "이 연결을 활성 연결로 설정합니다";
+"Opens the connection form with these details" = "이 정보로 연결 양식을 엽니다";
+"Search or paste a connection string" = "검색하거나 연결 문자열 붙여넣기";
+"Shows only connections in this environment" = "이 환경의 연결만 표시합니다";

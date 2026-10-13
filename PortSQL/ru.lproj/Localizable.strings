@@ -1175,3 +1175,11 @@
 "Temporary table" = "Временная таблица";
 "Total cost: %@" = "Общая стоимость: %@";
 "Warnings: %d" = "Предупреждения: %d";
+"Clear filter %@" = "Сбросить фильтр %@";
+"Details" = "Подробности";
+"Duplicate" = "Дублировать";
+"Environments" = "Окружения";
+"Makes this the active connection" = "Делает это подключение активным";
+"Opens the connection form with these details" = "Открывает форму подключения с этими данными";
+"Search or paste a connection string" = "Поиск или вставка строки подключения";
+"Shows only connections in this environment" = "Показывает только подключения этого окружения";

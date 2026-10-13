@@ -1175,3 +1175,11 @@
 "Temporary table" = "Table temporaire";
 "Total cost: %@" = "Coût total : %@";
 "Warnings: %d" = "Avertissements : %d";
+"Clear filter %@" = "Retirer le filtre %@";
+"Details" = "Détails";
+"Duplicate" = "Dupliquer";
+"Environments" = "Environnements";
+"Makes this the active connection" = "En fait la connexion active";
+"Opens the connection form with these details" = "Ouvre le formulaire de connexion avec ces informations";
+"Search or paste a connection string" = "Rechercher ou coller une chaîne de connexion";
+"Shows only connections in this environment" = "Affiche uniquement les connexions de cet environnement";

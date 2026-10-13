@@ -89,7 +89,7 @@ struct RootView: View {
 
             Tab("Servers", systemImage: "server.rack", value: RootTab.servers) {
                 NavigationStack {
-                    BookmarksView()
+                    BookmarksView(onOpenConsole: { navigate(.console) })
                 }
             }
             .badge(hasConnectionProblem ? Text(verbatim: "!") : nil)
@@ -1393,168 +1393,28 @@ private struct SchemaColumnEditorSheet: View {
 }
 
 struct BookmarksView: View {
+    var onOpenConsole: (() -> Void)?
     @EnvironmentObject private var bookmarks: BookmarkStore
     @EnvironmentObject private var workspace: WorkspaceViewModel
-    @State private var pendingDeletionIDs: [UUID] = []
-    @State private var search = ""
-    @State private var engineFilter: DatabaseEngine?
-    @State private var onlyReadOnly = false
-    @State private var isConfirmingDeletion = false
+    @State private var pendingDeletion: ConnectionProfile?
+    @State private var createsSQLite = false
 
     var body: some View {
-        List {
-            if bookmarks.bookmarks.isEmpty {
-                Section {
-                    PortbaseEmptyState(
-                        title: L10n.text("No servers saved"),
-                        message: L10n.text("Add a connection to browse tables, run queries, and build charts."),
-                        systemImage: "server.rack",
-                        actionTitle: L10n.text("Add Connection"),
-                        action: { workspace.createBookmark() }
-                    )
-                    .listRowBackground(Color.clear)
-                }
-            } else {
-                Section {
-                    serverSummary
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                }
-                Section("Servers") {
-                    if filteredBookmarks.isEmpty { Text("No matching servers").foregroundStyle(.secondary) }
-                    ForEach(filteredBookmarks) { bookmark in
-                        serverRow(bookmark)
-                            .listRowBackground(workspace.selectedBookmarkID == bookmark.id ? PortSQLPalette.accent.opacity(0.08) : PortSQLPalette.surface)
+        ConnectionsHubView(onOpenConsole: onOpenConsole, onCreateSQLite: { createsSQLite = true }, onDelete: { pendingDeletion = $0 })
+            .navigationTitle("Servers")
+            .newSQLiteDatabasePrompt(isPresented: $createsSQLite) { onOpenConsole?() }
+            .alert("Delete Server?", isPresented: Binding(get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } })) {
+                Button("Delete", role: .destructive) {
+                    if let profile = pendingDeletion, let index = bookmarks.bookmarks.firstIndex(where: { $0.id == profile.id }) {
+                        bookmarks.delete(at: IndexSet(integer: index))
+                        PinnedTableStore.shared.removeAll(for: profile.id)
                     }
-                    .onDelete { offsets in
-                        pendingDeletionIDs = offsets.compactMap { filteredBookmarks.indices.contains($0) ? filteredBookmarks[$0].id : nil }
-                        isConfirmingDeletion = true
-                    }
+                    pendingDeletion = nil
                 }
+                Button("Cancel", role: .cancel) { pendingDeletion = nil }
+            } message: {
+                Text("Deleting a server also removes its saved credentials from this device.")
             }
-
-            Section("Sync") {
-                Label("Server settings sync through iCloud. Passwords stay in this device’s Keychain.", systemImage: "icloud")
-                    .font(.footnoteText)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .background(PortbaseBackdrop().ignoresSafeArea())
-        .navigationTitle("Servers")
-        .searchable(text: $search, prompt: L10n.text("Search servers"))
-        .toolbar {
-            Menu {
-                Picker("Engine", selection: $engineFilter) {
-                    Text("All Engines").tag(Optional<DatabaseEngine>.none)
-                    ForEach(DatabaseEngine.allCases) { engine in Text(engine.rawValue).tag(Optional(engine)) }
-                }
-                Toggle("Read-only connections", isOn: $onlyReadOnly)
-                Button("Reset Filters") { engineFilter = nil; onlyReadOnly = false; search = "" }
-            } label: {
-                Image(systemName: engineFilter != nil || onlyReadOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                    .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-            }
-            .accessibilityLabel("Filter servers")
-            Button {
-                workspace.createBookmark()
-            } label: {
-                Label("Add Connection", systemImage: "plus")
-            }
-            .accessibilityHint("Opens the server connection form")
-        }
-        .alert("Delete Server?", isPresented: $isConfirmingDeletion) {
-            Button("Delete", role: .destructive) {
-                let offsets = IndexSet(bookmarks.bookmarks.indices.filter { pendingDeletionIDs.contains(bookmarks.bookmarks[$0].id) })
-                bookmarks.delete(at: offsets)
-                pendingDeletionIDs.forEach { PinnedTableStore.shared.removeAll(for: $0) }
-                pendingDeletionIDs = []
-            }
-            Button("Cancel", role: .cancel) {
-                pendingDeletionIDs = []
-            }
-        } message: {
-            Text("Deleting a server also removes its saved credentials from this device.")
-        }
-    }
-
-    private var serverSummary: some View {
-        HStack(spacing: Spacing.s) {
-            PortbaseMetricTile(title: L10n.text("Connections"), value: bookmarks.bookmarks.count.formatted(), systemImage: "server.rack", tint: Color(hex: 0x6366F1))
-            PortbaseMetricTile(title: L10n.text("Engines"), value: Set(bookmarks.bookmarks.map(\.engine)).count.formatted(), systemImage: "cylinder.split.1x2.fill", tint: Color(hex: 0x0EA5E9))
-            PortbaseMetricTile(title: L10n.text("Encrypted"), value: bookmarks.bookmarks.filter { $0.engine.isLocal || $0.transportSecurityMode == .systemCA || $0.transportSecurityMode == .privateCA }.count.formatted(),
-                               systemImage: "lock.shield.fill", tint: Color(hex: 0x10B981))
-        }
-        .padding(.vertical, Spacing.xxs)
-    }
-
-    private func serverRow(_ bookmark: ConnectionProfile) -> some View {
-        let isActive = workspace.selectedBookmarkID == bookmark.id
-        return HStack(spacing: Spacing.m) {
-            BookmarkAvatar(profile: bookmark, size: Sizes.avatarHero, cornerRadius: Radius.card)
-                .overlay(alignment: .bottomTrailing) {
-                    if isActive {
-                        Circle().fill(Color.green)
-                            .frame(width: 13, height: 13)
-                            .overlay { Circle().strokeBorder(PortSQLPalette.surface, lineWidth: 2) }
-                            .offset(x: 3, y: 3)
-                    }
-                }
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                HStack(spacing: Spacing.xs) {
-                    Text(bookmark.displayTitle)
-                        .font(.bodyText.weight(.semibold))
-                        .lineLimit(1)
-                    if isActive {
-                        PortbaseChip(title: L10n.text("Active"), tint: .green)
-                    }
-                }
-                Text(bookmark.endpointSummary)
-                    .font(.captionText)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: Spacing.xs) {
-                        ConnectionSecurityChips(profile: bookmark)
-                        PortbaseChip(title: bookmark.schemaCachingEnabled ? L10n.format("Cache %@", bookmark.schemaCacheDurationLabel) : L10n.text("Table list caching off"),
-                                     systemImage: "clock.arrow.2.circlepath", tint: .secondary)
-                    }
-                }
-            }
-
-            Spacer(minLength: Spacing.xxs)
-
-            Button {
-                workspace.selectedProfileForEdit = bookmark
-            } label: {
-                Image(systemName: "slider.horizontal.3").toolIconChrome()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L10n.format("Edit %@", bookmark.displayTitle))
-        }
-        .padding(.vertical, Spacing.xs)
-        .contentShape(Rectangle())
-        .onTapGesture { workspace.selectBookmark(bookmark.id) }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
-        .accessibilityAction(named: Text("Edit")) { workspace.selectedProfileForEdit = bookmark }
-        .contextMenu {
-            Button("Connect", systemImage: "bolt.horizontal.fill") { workspace.selectBookmark(bookmark.id) }
-            Button("Duplicate Connection", systemImage: "plus.square.on.square") {
-                workspace.selectedProfileForEdit = bookmark.duplicate()
-            }
-            Button("Edit", systemImage: "pencil") { workspace.selectedProfileForEdit = bookmark }
-        }
-    }
-
-    private var filteredBookmarks: [ConnectionProfile] {
-        bookmarks.bookmarks.filter { profile in
-            (engineFilter == nil || profile.engine == engineFilter)
-                && (!onlyReadOnly || profile.isReadOnly)
-                && (search.isEmpty || [profile.name, profile.host, profile.defaultDatabase, profile.username, profile.notes, profile.engine.rawValue]
-                    .contains { $0.localizedCaseInsensitiveContains(search) })
-        }
     }
 }
 

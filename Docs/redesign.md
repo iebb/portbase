@@ -23,6 +23,7 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 | Feature | Where | Behavior |
 | --- | --- | --- |
 | Home | iOS Home tab; Mac Home destination (⌘0) | Current connection with database switcher, four quick actions, recent queries, 14-day activity (runs, success rate, median time), connections, and saved queries. Loading a recent or saved query never runs it. |
+| Connections hub | iOS/iPadOS Servers tab; Mac sidebar → Connections (⌘K → Servers) | Modeled on host managers such as Termius: one bar searches connections or, when a connection string is pasted, offers Import, which opens an unsaved, prefilled connection form under the same explicit TLS rules as the editor. Environment groups filter the grid; connection cards show engine and user, environment, read-only and unencrypted markers, and an actions menu (Open Console, Edit, Duplicate, Delete). On the Mac and in regular-width iPad layouts, an inspector shows the active connection's details, security chips, recent queries, and actions. Double-clicking a card on the Mac opens its console. |
 | Command palette | ⌘K on all platforms; Home search button; Mac toolbar | Fuzzy search across actions, destinations, connections, databases, tables, saved queries, and history. Keyboard navigation with ↑/↓, Return, and Esc. |
 | Result insights | Results → Insights (SQL tables and MongoDB) | Per-column type, NULL ratio, distinct count, empty-text count, min/median/mean/max, histograms, temporal ranges, and most frequent values. Computed off the main thread from loaded rows only; no extra queries. SQL `NULL`, empty text, the literal string `NULL`, and binary bytes stay distinct. |
 | SQL templates | Console tool row; Mac editor toolbar | Select, group-and-count, join, CTE, running total, and (for writable profiles) insert/update/delete/create-index templates. Identifiers are engine-quoted, write templates use named parameters, and inserting a template never executes it. |
@@ -44,7 +45,7 @@ The iPhone, iPad, and Mac apps share one design system and a set of new workspac
 | Row Details | Mac results bar → Row Details | Lists the selected row's fields vertically with types, NULL and empty-text styling, and per-field copy. |
 | Keyboard and haptics | iPad hardware keyboard: ⌘1–⌘5 tabs, ⌘K search, ⌘, settings; Mac: ⌘0 Home, ⌘1–⌘4 destinations | iPhone and iPad give success or error haptics when a console run finishes. |
 
-The console tab strip, Servers list (summary tiles, security chips, active indicator), Explorer sidebar (row-count badges) and table header chips, Charts grid, and status banners were restyled with the shared components.
+The console tab strip, Explorer sidebar (row-count badges) and table header chips, Charts grid, and status banners were restyled with the shared components.
 
 ## Tests
 

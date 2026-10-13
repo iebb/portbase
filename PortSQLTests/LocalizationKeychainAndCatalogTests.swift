@@ -69,7 +69,7 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
     }
 
     func testPluralCatalogsDefineEveryRuntimePluralWithSemanticForms() throws {
-        let expectedKeys: Set<String> = ["column_count", "column_count_short", "row_count", "metric_count"]
+        let expectedKeys: Set<String> = ["column_count", "column_count_short", "row_count", "metric_count", "connection_count"]
 
         for locale in locales {
             let catalog = try localizablePluralRules(for: locale)

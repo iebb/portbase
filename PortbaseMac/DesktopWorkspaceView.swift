@@ -10,13 +10,23 @@ extension Notification.Name {
 
 struct DesktopWorkspaceView: View {
     enum Destination: String, CaseIterable {
-        case home, console, explorer, structure, charts
+        case home, connections, console, explorer, structure, charts
         var title: String {
-            switch self { case .home: "Home"; case .console: "Console"; case .explorer: "Explorer"; case .structure: "Structure"; case .charts: "Charts" }
+            switch self {
+            case .home: "Home"; case .connections: "Connections"; case .console: "Console"; case .explorer: "Explorer"
+            case .structure: "Structure"; case .charts: "Charts"
+            }
         }
         var symbol: String {
-            switch self { case .home: "house"; case .console: "terminal"; case .explorer: "tablecells"; case .structure: "list.bullet.rectangle"; case .charts: "chart.xyaxis.line" }
+            switch self {
+            case .home: "house"; case .connections: "server.rack"; case .console: "terminal"; case .explorer: "tablecells"
+            case .structure: "list.bullet.rectangle"; case .charts: "chart.xyaxis.line"
+            }
         }
+        /// Destinations in the switcher above the workspace; Connections lives in the sidebar.
+        static let switcherCases: [Destination] = [.home, .console, .explorer, .structure, .charts]
+        /// Pages that aren't about the active connection, so connection banners and auto-navigation stay out of them.
+        var isOverview: Bool { self == .home || self == .connections }
     }
     @EnvironmentObject private var bookmarks: BookmarkStore
     @EnvironmentObject private var library: WorkspaceLibraryStore
@@ -54,7 +64,7 @@ struct DesktopWorkspaceView: View {
                 destinationBar
                 Divider()
                 ConnectionStatusLine()
-                if let error = workspace.schemaErrorMessage, workspace.selectedBookmark != nil, destination != .home {
+                if let error = workspace.schemaErrorMessage, workspace.selectedBookmark != nil, !destination.isOverview {
                     ConnectionIssueBanner(message: error, compact: true, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
                         .padding(.horizontal, Spacing.m)
                         .padding(.vertical, Spacing.xs)
@@ -63,6 +73,9 @@ struct DesktopWorkspaceView: View {
                     switch destination {
                     case .home:
                         HomeView(onNavigate: navigate, onSearch: { showsPalette = true })
+                    case .connections:
+                        ConnectionsHubView(onOpenConsole: { destination = .console }, onCreateSQLite: { createsSQLite = true },
+                                           onDelete: { deletingProfile = $0 })
                     case .console: console
                     case .explorer:
                         if workspace.selectedBookmark?.engine == .redis { RedisExplorerView() }
@@ -132,15 +145,16 @@ struct DesktopWorkspaceView: View {
         .onChange(of: consoles.selectedID) { _, _ in destination = .console }
         .onChange(of: workspace.selectedBookmarkID) { _, id in
             if let id { expandedConnections.insert(id) }
-            if destination != .home { destination = .console }
+            if !destination.isOverview { destination = .console }
         }
         .onAppear { if let id = workspace.selectedBookmarkID { expandedConnections.insert(id) } }
-        .onChange(of: workspace.activeDatabaseName) { _, _ in if destination != .home { destination = .console } }
+        .onChange(of: workspace.activeDatabaseName) { _, _ in if !destination.isOverview { destination = .console } }
     }
 
     private func navigate(_ target: PortbaseDestination) {
         switch target {
-        case .home, .servers: destination = .home
+        case .home: destination = .home
+        case .servers: destination = .connections
         case .explorer: destination = .explorer
         case .console: destination = .console
         case .charts: destination = .charts
@@ -152,7 +166,7 @@ struct DesktopWorkspaceView: View {
     private var destinationBar: some View {
         HStack(spacing: Spacing.s) {
             HStack(spacing: Spacing.xxxs) {
-                ForEach(Destination.allCases, id: \.self) { item in
+                ForEach(Destination.switcherCases, id: \.self) { item in
                     Button { withAnimation(.easeOut(duration: 0.15)) { destination = item } } label: {
                         Label(L10n.text(item.title), systemImage: item.symbol)
                             .font(.rowTitle.weight(destination == item ? .semibold : .medium))
@@ -199,11 +213,9 @@ struct DesktopWorkspaceView: View {
             .portbaseFieldChrome()
             .padding(.horizontal, Spacing.m).padding(.vertical, Spacing.s)
             List {
-                Button { destination = .home } label: {
-                    Label("Home", systemImage: "house.fill")
-                        .foregroundStyle(destination == .home ? PortSQLPalette.accent : .primary)
-                        .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                }.buttonStyle(.plain)
+                sidebarLink("Home", systemImage: "house.fill", isSelected: destination == .home) { destination = .home }
+                sidebarLink("Connections", systemImage: "server.rack", isSelected: destination == .connections) { destination = .connections }
+                sidebarLink("Query Library", systemImage: "books.vertical.fill", isSelected: false) { showsLibrary = true }
                 Section("Servers") {
                     ForEach(bookmarks.bookmarks.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || $0.id == workspace.selectedBookmarkID }) { profile in
                         DisclosureGroup(isExpanded: Binding(get: { expandedConnections.contains(profile.id) }, set: { if $0 { expandedConnections.insert(profile.id) } else { expandedConnections.remove(profile.id) } })) {
@@ -294,6 +306,17 @@ struct DesktopWorkspaceView: View {
                 Button("New SQLite Database") { createsSQLite = true }.buttonStyle(.borderless).font(.captionText)
             }.padding(.horizontal, Spacing.s).frame(height: Sizes.tabStrip)
         }
+    }
+
+    private func sidebarLink(_ title: LocalizedStringKey, systemImage: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .foregroundStyle(isSelected ? PortSQLPalette.accent : .primary)
+                .fontWeight(isSelected ? .semibold : .regular)
+                .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var console: some View {

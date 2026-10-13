@@ -66,5 +66,21 @@
             <string>%d 個指標</string>
         </dict>
     </dict>
+    <key>connection_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@connections@</string>
+        <key>connections</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d 個連線</string>
+            <key>other</key>
+            <string>%d 個連線</string>
+        </dict>
+    </dict>
 </dict>
 </plist>

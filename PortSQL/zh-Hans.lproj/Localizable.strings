@@ -1175,3 +1175,11 @@
 "Temporary table" = "临时表";
 "Total cost: %@" = "总成本：%@";
 "Warnings: %d" = "警告：%d";
+"Clear filter %@" = "清除筛选 %@";
+"Details" = "详细信息";
+"Duplicate" = "复制";
+"Environments" = "环境";
+"Makes this the active connection" = "将其设为当前连接";
+"Opens the connection form with these details" = "使用这些信息打开连接表单";
+"Search or paste a connection string" = "搜索或粘贴连接字符串";
+"Shows only connections in this environment" = "仅显示此环境中的连接";

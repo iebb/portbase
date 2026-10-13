@@ -82,5 +82,25 @@
             <string>%d метрики</string>
         </dict>
     </dict>
+    <key>connection_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@connections@</string>
+        <key>connections</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d подключение</string>
+            <key>few</key>
+            <string>%d подключения</string>
+            <key>many</key>
+            <string>%d подключений</string>
+            <key>other</key>
+            <string>%d подключения</string>
+        </dict>
+    </dict>
 </dict>
 </plist>
