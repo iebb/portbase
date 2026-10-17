@@ -1,5 +1,17 @@
 import SwiftUI
 
+extension View {
+    /// Browses a table selected for the user (the first one after a database loads, or one picked from a
+    /// list) like a clicked one, instead of showing its name over an empty grid. Browsing is read-only.
+    func autoBrowsesSelectedTable(_ workspace: WorkspaceViewModel) -> some View {
+        task(id: workspace.selectedExplorerTableID) {
+            guard let table = workspace.selectedExplorerTable, !workspace.isRunning,
+                  workspace.result.sourceTableReference != table.displayName else { return }
+            workspace.selectExplorerTable(table)
+        }
+    }
+}
+
 /// Recently applied filters or sorts for the current table; choosing one fills the field and applies it.
 struct ClauseHistoryMenu: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel

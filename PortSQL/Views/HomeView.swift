@@ -268,6 +268,12 @@ struct HomeView: View {
     private var connectionsSection: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             PortbaseSectionHeading(title: L10n.text("Connections")) {
+                if bookmarks.bookmarks.count > 6 {
+                    Button("Show All") { onNavigate(.servers) }
+                        .buttonStyle(.borderless)
+                        .font(.rowDetail)
+                        .frame(minHeight: Sizes.control)
+                }
                 Button { workspace.createBookmark() } label: {
                     Image(systemName: "plus")
                         .frame(width: Sizes.control, height: Sizes.control)
@@ -319,7 +325,14 @@ struct HomeView: View {
 
     private var savedSection: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            PortbaseSectionHeading(title: L10n.text("Saved Queries"))
+            PortbaseSectionHeading(title: L10n.text("Saved Queries")) {
+                if library.snippets.count > 5 {
+                    Button("Show All") { onNavigate(.library) }
+                        .buttonStyle(.borderless)
+                        .font(.rowDetail)
+                        .frame(minHeight: Sizes.control)
+                }
+            }
             VStack(spacing: 0) {
                 if library.snippets.isEmpty {
                     placeholder("Save a query from the console to keep it one tap away.")

@@ -107,7 +107,7 @@ struct ExplorerWorkspaceView: View {
                     } else if workspace.isDocumentDatabase {
                         MongoExplorerView()
                     } else {
-                        ExplorerView()
+                        ExplorerView().autoBrowsesSelectedTable(workspace)
                     }
                 }
                 // Inside the detail column, so the stripe sits under the navigation bar rather than over it.

@@ -1051,7 +1051,7 @@ struct ResultsCard: View {
 
     private var pageStatusMenu: some View {
         Menu {
-            ForEach([10, 25, 50, 100], id: \.self) { size in
+            ForEach(WorkspaceViewModel.explorerPageSizes, id: \.self) { size in
                 Button {
                     workspace.setExplorerPageSize(size)
                 } label: {

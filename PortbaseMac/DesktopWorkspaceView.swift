@@ -570,13 +570,7 @@ private struct DesktopTableBrowser: View {
             Divider()
             DesktopResultsView()
         }
-        // A table selected for us (the first one after a database loads) is browsed like a clicked one,
-        // instead of showing its name over an empty grid.
-        .task(id: workspace.selectedExplorerTableID) {
-            guard let table = workspace.selectedExplorerTable, !workspace.isRunning,
-                  workspace.result.sourceTableReference != table.displayName else { return }
-            workspace.selectExplorerTable(table)
-        }
+        .autoBrowsesSelectedTable(workspace)
     }
 }
 
@@ -724,7 +718,7 @@ private struct DesktopResultsView: View {
                 Spacer()
                 if workspace.isShowingExplorerResult {
                     Button("Previous results page", systemImage: "chevron.left") { workspace.goToPreviousExplorerPage() }.labelStyle(.iconOnly).disabled(!workspace.canGoToPreviousExplorerPage)
-                    Menu { ForEach([10, 25, 50, 100], id: \.self) { size in Button(L10n.plural("row_count", count: size)) { workspace.setExplorerPageSize(size) } } } label: { Text(workspace.explorerPageLabel) }
+                    Menu { ForEach(WorkspaceViewModel.explorerPageSizes, id: \.self) { size in Button(L10n.plural("row_count", count: size)) { workspace.setExplorerPageSize(size) } } } label: { Text(workspace.explorerPageLabel) }
                     Button("Next results page", systemImage: "chevron.right") { workspace.goToNextExplorerPage() }.labelStyle(.iconOnly).disabled(!workspace.canGoToNextExplorerPage)
                 }
             }.font(.rowDetail).buttonStyle(.portbaseToolbar).portbaseBar(Sizes.statusBar)

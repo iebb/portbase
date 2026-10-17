@@ -20,17 +20,9 @@ struct ExplorerView: View {
                     if workspace.selectedBookmark != nil {
                         PanelCard {
                             VStack(alignment: .leading, spacing: Spacing.m) {
-                                HStack(alignment: .center, spacing: Spacing.m) {
-                                    VStack(alignment: .leading, spacing: Spacing.xxs) {
-                                        Text("Browse")
-                                            .font(.sectionTitle)
-                                            .accessibilityAddTraits(.isHeader)
-                                        Text(explorerSubtitle)
-                                            .font(.captionText)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                    Spacer()
+                                // One row: the table and the run button (selecting a table browses it; run re-applies the clauses).
+                                HStack(alignment: .center, spacing: Spacing.s) {
+                                    tableMenu
                                     Button {
                                         focusedClause = nil
                                         workspace.restartBrowse()
@@ -48,70 +40,15 @@ struct ExplorerView: View {
                                 }
 
                                 if let selectedTable = workspace.selectedExplorerTable {
-                                    HStack(alignment: .center, spacing: Spacing.s) {
-                                        Menu {
-                                            ForEach(filteredTables) { table in
-                                                Button {
-                                                    focusedClause = nil
-                                                    workspace.selectExplorerTable(table)
-                                                } label: {
-                                                    HStack(alignment: .top, spacing: Spacing.s) {
-                                                        Image(systemName: workspace.selectedExplorerTableID == table.id ? "checkmark.circle.fill" : "tablecells")
-                                                            .font(.footnoteText.weight(.bold))
-                                                            .foregroundStyle(workspace.selectedExplorerTableID == table.id ? PortSQLPalette.accent : .secondary)
-
-                                                        VStack(alignment: .leading, spacing: Spacing.xxxs) {
-                                                            Text(table.name)
-                                                                .font(.rowTitle)
-                                                            VStack(alignment: .leading, spacing: Spacing.xxxs) {
-                                                                Text(tableSummary(table))
-                                                                    .font(.microText)
-                                                                    .foregroundStyle(.secondary)
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        } label: {
-                                            HStack {
-                                                VStack(alignment: .leading, spacing: Spacing.xxxs) {
-                                                    Text("Table")
-                                                        .font(.badgeText)
-                                                        .foregroundStyle(.secondary)
-                                                    Text(selectedTable.name)
-                                                        .font(.rowTitle)
-                                                        .foregroundStyle(PortSQLPalette.ink)
-                                                        .lineLimit(1)
-                                                }
-                                                Spacer()
-                                                Image(systemName: "chevron.down")
-                                                    .font(.footnoteText.weight(.bold))
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                            .padding(.horizontal, Spacing.m)
-                                            .padding(.vertical, Spacing.s)
-                                            .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                                            .overlay {
-                                                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                                                    .stroke(PortSQLPalette.stroke, lineWidth: 1)
-                                            }
-                                        }
-                                        .buttonStyle(.plain)
-                                        .frame(minHeight: Sizes.touchTarget)
-                                        .accessibilityLabel(L10n.format("Choose table, currently %@", selectedTable.name))
-                                    }
 
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: Spacing.xs) {
-                                            PortbaseChip(title: L10n.plural("column_count_short", count: selectedTable.columns.count), systemImage: "tablecells", tint: .teal)
+                                            // Column count and editability already show above the results.
                                             if let estimate = selectedTable.rowCountEstimate {
                                                 PortbaseChip(title: L10n.plural("row_count", count: estimate), systemImage: "list.number", tint: PortSQLPalette.accent)
                                             }
                                             if !selectedTable.primaryKeyColumns.isEmpty {
                                                 PortbaseChip(title: selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill", tint: .orange)
-                                            }
-                                            if workspace.canInsertIntoCurrentTable && workspace.selectedBookmark?.isReadOnly != true {
-                                                PortbaseChip(title: L10n.text("Editable"), systemImage: "pencil", tint: .green)
                                             }
                                         }
                                     }
@@ -233,6 +170,56 @@ struct ExplorerView: View {
     }
 
     @ViewBuilder
+    private var tableMenu: some View {
+        Menu {
+            ForEach(filteredTables) { table in
+                Button {
+                    focusedClause = nil
+                    workspace.selectExplorerTable(table)
+                } label: {
+                    HStack(alignment: .top, spacing: Spacing.s) {
+                        Image(systemName: workspace.selectedExplorerTableID == table.id ? "checkmark.circle.fill" : "tablecells")
+                            .font(.footnoteText.weight(.bold))
+                            .foregroundStyle(workspace.selectedExplorerTableID == table.id ? PortSQLPalette.accent : .secondary)
+
+                        VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                            Text(table.name)
+                                .font(.rowTitle)
+                            VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                                Text(tableSummary(table))
+                                    .font(.microText)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: Spacing.s) {
+                Image(systemName: "tablecells").foregroundStyle(PortSQLPalette.muted)
+                Text(workspace.selectedExplorerTable?.name ?? L10n.text("Choose a table"))
+                    .font(.rowTitle)
+                    .foregroundStyle(PortSQLPalette.ink)
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: "chevron.down")
+                    .font(.footnoteText.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, Spacing.m)
+            .frame(minHeight: Sizes.touchTarget)
+            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                    .stroke(PortSQLPalette.stroke, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .frame(minHeight: Sizes.touchTarget)
+        .accessibilityLabel(workspace.selectedExplorerTable.map { L10n.format("Choose table, currently %@", $0.name) } ?? L10n.text("Choose a table"))
+
+    }
+
     private func clauseRow(
         field: ClauseField,
         title: String,
@@ -300,16 +287,6 @@ struct ExplorerView: View {
                 )
             }
         }
-    }
-
-    private var explorerSubtitle: String {
-        if workspace.isLoadingSchema, let database = workspace.activeDatabaseName {
-            return L10n.format("Loading %@", database)
-        }
-        if let database = workspace.activeDatabaseName {
-            return L10n.format("Live browsing in %@", database)
-        }
-        return L10n.text("Choose a table to browse live rows")
     }
 
     private var loadingDatabaseMessage: String {

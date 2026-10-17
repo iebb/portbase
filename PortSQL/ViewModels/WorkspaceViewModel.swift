@@ -19,7 +19,14 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var explorerWhereClause = ""
     @Published var explorerOrderByClause = ""
     @Published private(set) var explorerPageIndex = 0
-    @Published private(set) var explorerPageSize = 25
+    /// Rows per Explorer page: the user's choice, kept across databases and launches.
+    @Published private(set) var explorerPageSize = WorkspaceViewModel.storedExplorerPageSize
+    static let explorerPageSizes = [50, 100, 250, 500, 1_000]
+    static let explorerPageSizeKey = "Portbase.explorerPageSize"
+    private static var storedExplorerPageSize: Int {
+        let stored = UserDefaults.standard.integer(forKey: explorerPageSizeKey)
+        return explorerPageSizes.contains(stored) ? stored : 100
+    }
     @Published var suggestions: [String] = []
     @Published var hints: [EditorHint] = []
     @Published var schema: [SchemaSuggestion] = []
@@ -665,7 +672,8 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func setExplorerPageSize(_ size: Int) {
-        let boundedSize = [10, 25, 50, 100].contains(size) ? size : 25
+        let boundedSize = Self.explorerPageSizes.contains(size) ? size : 100
+        UserDefaults.standard.set(boundedSize, forKey: Self.explorerPageSizeKey)
         guard explorerPageSize != boundedSize else { return }
         explorerPageSize = boundedSize
         explorerPageIndex = 0
@@ -1293,7 +1301,6 @@ final class WorkspaceViewModel: ObservableObject {
         }
         selectedDatabaseName = bookmarkStore?.bookmark(with: id)?.trimmedDefaultDatabase ?? ""
         explorerPageIndex = 0
-        explorerPageSize = 25
         result = QueryResultTable.empty
         resultSets = []
         runToken = nil
@@ -1319,7 +1326,6 @@ final class WorkspaceViewModel: ObservableObject {
         selectedDatabaseName = trimmed
         mongoDraft.collection = ""
         explorerPageIndex = 0
-        explorerPageSize = 25
         result = QueryResultTable.empty
         resultSets = []
         runToken = nil
