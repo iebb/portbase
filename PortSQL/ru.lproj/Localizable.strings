@@ -1257,3 +1257,11 @@
 "Now" = "Сейчас";
 "Set to NULL" = "Установить NULL";
 "This row is no longer loaded. Reload the table and try again." = "Эта строка больше не загружена. Перезагрузите таблицу и повторите попытку.";
+"Pending change" = "Несохранённое изменение";
+"Revert Change" = "Отменить изменение";
+"Pending changes: %d" = "Несохранённые изменения: %d";
+"Rows: %d" = "Строки: %d";
+"Revert" = "Отменить";
+"Submit" = "Применить";
+"Dismiss" = "Закрыть";
+"Saved %1$d of %2$d rows. %3$@" = "Сохранено строк: %1$d из %2$d. %3$@";

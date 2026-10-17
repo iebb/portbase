@@ -6,6 +6,12 @@ import AppKit
 #endif
 import UniformTypeIdentifiers
 
+/// A cell by row and column index into the loaded result.
+struct ResultGridCellKey: Hashable {
+    var row: Int
+    var column: Int
+}
+
 struct ResultGridSelection: Equatable {
     struct Cell: Equatable {
         var row: Int
@@ -126,6 +132,14 @@ struct ResultGridView: View {
     var onSortDirection: ((String, Bool?) -> Void)?
     /// Makes a loaded cell editable in the value editor; return nil for cells that can't be updated safely.
     var editCell: ((Int, Int) -> ResultCellEdit?)?
+    /// Staged values shown in place of loaded ones until they're submitted, keyed by loaded row and column.
+    var pendingCells: [ResultGridCellKey: QueryCell] = [:]
+    /// Stages text typed into a cell in place; returns a message when the text isn't valid for the column.
+    var onEditCellText: ((Int, Int, String) -> String?)?
+    var onSetCellNull: ((Int, Int) -> Void)?
+    var onRevertCell: ((Int, Int) -> Void)?
+    /// Shown between the grid's tools and its rows, such as the pending-changes bar.
+    var editsBar: AnyView?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var configuration = ResultGridConfiguration()
@@ -140,11 +154,24 @@ struct ResultGridView: View {
 
     private var rowIndices: [Int] { filteredRows ?? Array(result.rows.indices) }
     private var displayedResult: QueryResultTable {
-        guard let filteredRows else { return result }
         var table = result
-        table.rows = filteredRows.map { result.rows[$0] }
-        table.documents = result.documents.map { documents in filteredRows.compactMap { documents.indices.contains($0) ? documents[$0] : nil } }
+        if let filteredRows {
+            table.rows = filteredRows.map { result.rows[$0] }
+            table.documents = result.documents.map { documents in filteredRows.compactMap { documents.indices.contains($0) ? documents[$0] : nil } }
+        }
+        for (key, cell) in displayedPendingCells where table.rows.indices.contains(key.row) && table.rows[key.row].cells.indices.contains(key.column) {
+            table.rows[key.row].cells[key.column] = cell
+        }
         return table
+    }
+    /// Staged cells keyed by displayed row, which differs from the loaded row while rows are filtered.
+    private var displayedPendingCells: [ResultGridCellKey: QueryCell] {
+        guard !pendingCells.isEmpty else { return [:] }
+        guard let filteredRows else { return pendingCells }
+        let positions = Dictionary(uniqueKeysWithValues: filteredRows.enumerated().map { ($0.element, $0.offset) })
+        var cells: [ResultGridCellKey: QueryCell] = [:]
+        for (key, cell) in pendingCells { if let row = positions[key.row] { cells[ResultGridCellKey(row: row, column: key.column)] = cell } }
+        return cells
     }
 
     private var visibleColumns: [Int] { configuration.visibleColumns(count: result.columns.count) }
@@ -242,6 +269,7 @@ struct ResultGridView: View {
                     Button("Clear Filter") { filter = LoadedResultFilter() }.frame(minHeight: controlHeight)
                 }
             }
+            if let editsBar { editsBar }
             GridCollectionBridge(
                 result: displayedResult, visibleColumns: visibleColumns,
                 configuration: configuration, selection: $selection, extendsSelection: $extendsSelection,
@@ -256,7 +284,15 @@ struct ResultGridView: View {
                 copyFormats: ResultCopyFormat.available(for: copyEngine),
                 onCopyAs: { copy(as: $0) },
                 headerMenu: { headerMenu(for: $0) },
-                cellMenu: { cellMenu(row: $0, column: $1) }
+                cellMenu: { cellMenu(row: $0, column: $1) },
+                pendingKeys: Set(displayedPendingCells.keys),
+                canEditCell: { row, column in
+                    onEditCellText != nil && rowIndices.indices.contains(row) && editCell?(rowIndices[row], column) != nil
+                },
+                onCommitEdit: { row, column, text in
+                    guard rowIndices.indices.contains(row) else { return nil }
+                    return onEditCellText?(rowIndices[row], column, text)
+                }
             )
             .frame(height: gridHeight)
 #if os(macOS)
@@ -294,7 +330,8 @@ struct ResultGridView: View {
     private func inspect(row: Int, column: Int) {
         guard rowIndices.indices.contains(row), result.columns.indices.contains(column) else { return }
         let original = rowIndices[row]
-        let value = result.rows[original].cells.indices.contains(column) ? result.rows[original].cells[column] : .null
+        let value = pendingCells[ResultGridCellKey(row: original, column: column)]
+            ?? (result.rows[original].cells.indices.contains(column) ? result.rows[original].cells[column] : .null)
         inspectedCell = ResultCellSelection(column: result.columns[column], cell: value, row: original, edit: editCell?(original, column))
     }
 
@@ -383,6 +420,7 @@ struct ResultGridView: View {
 
     private func cellValue(row: Int, column: Int) -> QueryCell {
         guard rowIndices.indices.contains(row) else { return .null }
+        if let staged = pendingCells[ResultGridCellKey(row: rowIndices[row], column: column)] { return staged }
         let cells = result.rows[rowIndices[row]].cells
         return cells.indices.contains(column) ? cells[column] : .null
     }
@@ -432,9 +470,18 @@ struct ResultGridView: View {
         guard rowIndices.indices.contains(row), result.columns.indices.contains(column) else { return [] }
         let value = cellValue(row: row, column: column)
         let name = result.columns[column].name
+        let edit = editCell?(rowIndices[row], column)
         var items: [ResultGridMenuItem] = [
-            .action(L10n.text(editCell?(rowIndices[row], column) == nil ? "Open in Value Editor" : "Edit Value…"), editCell?(rowIndices[row], column) == nil ? "arrow.up.left.and.arrow.down.right" : "pencil") { inspect(row: row, column: column) },
+            .action(L10n.text(edit == nil ? "Open in Value Editor" : "Edit Value…"), edit == nil ? "arrow.up.left.and.arrow.down.right" : "pencil") { inspect(row: row, column: column) },
         ]
+        if let edit {
+            if let onSetCellNull, edit.field.column.isNullable, !edit.field.isNull {
+                items.append(.action(L10n.text("Set to NULL"), "circle.slash") { onSetCellNull(rowIndices[row], column) })
+            }
+            if let onRevertCell, pendingCells[ResultGridCellKey(row: rowIndices[row], column: column)] != nil {
+                items.append(.action(L10n.text("Revert Change"), "arrow.uturn.backward") { onRevertCell(rowIndices[row], column) })
+            }
+        }
         if let onOpenRow {
             items.append(.action(L10n.text("Open Row"), "rectangle.and.pencil.and.ellipsis") { onOpenRow(rowIndices[row]) })
         }
@@ -536,6 +583,9 @@ private struct GridCollectionBridge: UIViewRepresentable {
     var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
     var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
     var cellMenu: (Int, Int) -> [ResultGridMenuItem] = { _, _ in [] }
+    var pendingKeys: Set<ResultGridCellKey> = []
+    var canEditCell: (Int, Int) -> Bool = { _, _ in false }
+    var onCommitEdit: (Int, Int, String) -> String? = { _, _, _ in nil }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -556,6 +606,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
         view.moveSelection = { [weak coordinator = context.coordinator] row, column, extend in
             coordinator?.moveSelection(row: row, column: column, extend: extend)
         }
+        view.editSelection = { [weak coordinator = context.coordinator] in coordinator?.editSelectedCell() }
         context.coordinator.collectionView = view
         return view
     }
@@ -596,12 +647,15 @@ private struct GridCollectionBridge: UIViewRepresentable {
         return min(208, max(64, ceil(samples.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 64) + 24))
     }
 
-    @MainActor final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegate {
+    @MainActor final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegate, UITextFieldDelegate {
         static let headerColor = UIColor(PortSQLPalette.sunken)
+        static let pendingColor = UIColor.systemOrange.withAlphaComponent(0.2)
         static let rowColor = UIColor(PortSQLPalette.surface)
         static let stripeColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(rgb: 0x191D27) : UIColor(rgb: 0xF8F9FC) }
         var parent: GridCollectionBridge
         weak var collectionView: ResultCollectionView?
+        private var editor: UITextField?
+        private var editing: (row: Int, column: Int, original: String)?
         init(_ parent: GridCollectionBridge) { self.parent = parent }
 
         func numberOfSections(in collectionView: UICollectionView) -> Int { parent.result.rows.count + 1 }
@@ -619,6 +673,9 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let selected = !header && !rowNumber && parent.selection?.contains(row: path.section - 1, column: path.item - 1) == true
             cell.backgroundColor = selected ? UIColor(PortSQLPalette.accent).withAlphaComponent(0.19)
                 : (header || rowNumber ? Self.headerColor : (path.section.isMultiple(of: 2) ? Self.stripeColor : Self.rowColor))
+            let pending = !header && !rowNumber && parent.visibleColumns.indices.contains(path.item - 1)
+                && parent.pendingKeys.contains(ResultGridCellKey(row: path.section - 1, column: parent.visibleColumns[path.item - 1]))
+            if pending && !selected { cell.backgroundColor = Self.pendingColor }
             cell.label.font = header ? PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1)
                 : PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
             cell.label.textColor = header || rowNumber ? .secondaryLabel : .label
@@ -666,6 +723,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
             if case .decimal = value { cell.label.textAlignment = .right }
             cell.accessibilityLabel = L10n.format("Row %d, %@", path.section, column.name)
             cell.accessibilityValue = ResultGridAccessibility.rowLabel(columns: [column], cells: [value])
+                + (pending ? ", " + L10n.text("Pending change") : "")
             cell.accessibilityCustomActions = [
                 UIAccessibilityCustomAction(name: L10n.text("Inspect Cell")) { [weak self] _ in
                     self?.parent.onInspectCell(path.section - 1, index); return true
@@ -688,6 +746,16 @@ private struct GridCollectionBridge: UIViewRepresentable {
         }
 
         func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+            // Tapping the selected cell again edits it in place, as in spreadsheets.
+            if indexPath.section > 0, indexPath.item > 0, !parent.extendsSelection {
+                let tapped = ResultGridSelection.Cell(row: indexPath.section - 1, column: indexPath.item - 1)
+                if parent.selection?.anchor == tapped, parent.selection?.end == tapped,
+                   parent.canEditCell(tapped.row, parent.visibleColumns[tapped.column]) {
+                    beginEditing(indexPath)
+                    return
+                }
+            }
+            endEditing(commit: true)
             collectionView.becomeFirstResponder()
             if indexPath.section == 0 {
                 if indexPath.item == 0 { selectAll() }
@@ -695,6 +763,75 @@ private struct GridCollectionBridge: UIViewRepresentable {
                 else { parent.onConfigureColumn(parent.visibleColumns[indexPath.item - 1]) }
             } else if indexPath.item == 0 { parent.onOpenRow?(indexPath.section - 1) }
             else { select(indexPath) }
+        }
+
+        func editSelectedCell() {
+            guard let cell = parent.selection?.end, parent.selection?.anchor == cell,
+                  parent.visibleColumns.indices.contains(cell.column),
+                  parent.canEditCell(cell.row, parent.visibleColumns[cell.column]) else { return }
+            beginEditing(IndexPath(item: cell.column + 1, section: cell.row + 1))
+        }
+
+        /// Places a text field over the cell. Return or tapping away stages the change; nothing is written until Submit.
+        func beginEditing(_ path: IndexPath) {
+            endEditing(commit: true)
+            guard let collectionView, parent.result.rows.indices.contains(path.section - 1),
+                  parent.visibleColumns.indices.contains(path.item - 1) else { return }
+            collectionView.scrollToItem(at: path, at: [], animated: false)
+            collectionView.layoutIfNeeded()
+            guard let attributes = collectionView.layoutAttributesForItem(at: path) else { return }
+            let row = path.section - 1, index = parent.visibleColumns[path.item - 1]
+            let cells = parent.result.rows[row].cells
+            let value = cells.indices.contains(index) ? cells[index] : .null
+            let text = value.isNull ? "" : value.displayValue
+            let column = parent.result.columns[index]
+            let field = UITextField(frame: attributes.frame.insetBy(dx: 1, dy: 1))
+            field.font = PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
+            field.adjustsFontForContentSizeCategory = true
+            field.text = text
+            field.placeholder = value.isNull ? "NULL" : nil
+            field.backgroundColor = .systemBackground
+            field.layer.borderColor = UIColor(PortSQLPalette.accent).cgColor
+            field.layer.borderWidth = 2
+            field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 7, height: 1))
+            field.leftViewMode = .always
+            field.clearButtonMode = .whileEditing
+            field.autocorrectionType = .no
+            field.autocapitalizationType = .none
+            field.smartQuotesType = .no
+            field.smartDashesType = .no
+            field.spellCheckingType = .no
+            field.keyboardType = DataEditorValidationService.keyboardType(for: SchemaColumnDescriptor(
+                name: column.name, type: column.type, isNullable: true, isPrimaryKey: false, isUnique: false))
+            field.returnKeyType = .done
+            field.delegate = self
+            field.layer.zPosition = 3_000
+            field.accessibilityLabel = L10n.format("Row %d, %@", row + 1, column.name)
+            collectionView.addSubview(field)
+            editor = field
+            editing = (row, index, text)
+            field.becomeFirstResponder()
+            field.selectAll(nil)
+        }
+
+        func endEditing(commit: Bool) {
+            guard let editor, let editing else { return }
+            self.editor = nil
+            self.editing = nil
+            let text = editor.text ?? ""
+            editor.delegate = nil
+            editor.removeFromSuperview()
+            if commit, text != editing.original { _ = parent.onCommitEdit(editing.row, editing.column, text) }
+            collectionView?.becomeFirstResponder()
+        }
+
+        func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+            endEditing(commit: true)
+            return false
+        }
+
+        func textFieldDidEndEditing(_ textField: UITextField) {
+            if textField === editor { endEditing(commit: true) }
         }
 
         func select(_ path: IndexPath) {
@@ -864,6 +1001,7 @@ private final class ResultCollectionView: UICollectionView {
     var copySelection: (() -> Void)?
     var selectAllCells: (() -> Void)?
     var moveSelection: ((Int, Int, Bool) -> Void)?
+    var editSelection: (() -> Void)?
     override var canBecomeFirstResponder: Bool { true }
     override var keyCommands: [UIKeyCommand]? {
         let editing = [UIKeyCommand(title: L10n.text("Copy"), action: #selector(copyCells), input: "c", modifierFlags: .command),
@@ -875,8 +1013,10 @@ private final class ResultCollectionView: UICollectionView {
                 return command
             }
         }
-        return editing + arrows
+        let edit = UIKeyCommand(input: "\r", modifierFlags: [], action: #selector(editSelectedCell))
+        return editing + arrows + [edit]
     }
+    @objc private func editSelectedCell() { editSelection?() }
     @objc private func copyCells() { copySelection?() }
     @objc private func selectAllCellsCommand() { selectAllCells?() }
     @objc private func moveGridSelection(_ command: UIKeyCommand) {

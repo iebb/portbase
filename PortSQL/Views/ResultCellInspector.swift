@@ -14,7 +14,7 @@ struct ResultCellSelection: Identifiable {
     var edit: ResultCellEdit?
 }
 
-/// What the value editor needs to change one cell: the field to edit and a save that writes only that row.
+/// What the value editor needs to change one cell: the field to edit and an apply action that stages it for Submit.
 struct ResultCellEdit {
     let field: DataEditorField
     let engine: DatabaseEngine
@@ -43,9 +43,9 @@ struct ResultCellInspector: View {
     }
 
     private var hasChanges: Bool {
-        guard let draft else { return false }
-        let originalIsNull = draft.originalIsNull ?? false
-        return draft.isNull != originalIsNull || (!draft.isNull && draft.value != (draft.originalValue ?? ""))
+        // Compared with the value the editor opened with, which may already be a staged edit.
+        guard let draft, let initial = selection.edit?.field else { return false }
+        return draft.isNull != initial.isNull || (!draft.isNull && draft.value != initial.value)
     }
 
     private var validationMessage: String? {
@@ -81,7 +81,7 @@ struct ResultCellInspector: View {
                 if draft != nil {
                     ToolbarItem(placement: .confirmationAction) {
                         if isSaving { ProgressView().controlSize(.small) }
-                        else { Button("Save") { save() }.disabled(!hasChanges || validationMessage != nil) }
+                        else { Button("Apply") { save() }.disabled(!hasChanges || validationMessage != nil) }
                     }
                 }
             }

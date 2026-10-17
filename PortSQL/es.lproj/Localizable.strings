@@ -1257,3 +1257,11 @@
 "Now" = "Ahora";
 "Set to NULL" = "Establecer en NULL";
 "This row is no longer loaded. Reload the table and try again." = "Esta fila ya no está cargada. Vuelve a cargar la tabla e inténtalo de nuevo.";
+"Pending change" = "Cambio pendiente";
+"Revert Change" = "Revertir cambio";
+"Pending changes: %d" = "Cambios pendientes: %d";
+"Rows: %d" = "Filas: %d";
+"Revert" = "Revertir";
+"Submit" = "Enviar";
+"Dismiss" = "Descartar";
+"Saved %1$d of %2$d rows. %3$@" = "Se guardaron %1$d de %2$d filas. %3$@";

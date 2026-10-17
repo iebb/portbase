@@ -34,6 +34,9 @@ struct GridCollectionBridge: NSViewRepresentable {
     var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
     var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
     var cellMenu: (Int, Int) -> [ResultGridMenuItem] = { _, _ in [] }
+    var pendingKeys: Set<ResultGridCellKey> = []
+    var canEditCell: (Int, Int) -> Bool = { _, _ in false }
+    var onCommitEdit: (Int, Int, String) -> String? = { _, _, _ in nil }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
@@ -98,7 +101,10 @@ struct GridCollectionBridge: NSViewRepresentable {
             column.headerCell.attributedStringValue = header
             column.headerToolTip = primaryKeys.contains(name) ? L10n.text("Primary key") + " · " + type : type
         }
-        if old.result != result || old.selection != selection || old.visibleColumns != visibleColumns || table.numberOfRows != result.rows.count { table.reloadData() }
+        let changed = old.result != result || old.selection != selection || old.visibleColumns != visibleColumns
+            || old.pendingKeys != pendingKeys || table.numberOfRows != result.rows.count
+        // Reloading would tear down the field being edited; the edit's own commit reloads afterwards.
+        if changed, !context.coordinator.isEditing { table.reloadData() }
     }
     static func naturalWidth(result: QueryResultTable, column: Int) -> CGFloat {
         guard result.columns.indices.contains(column) else { return 160 }
@@ -113,9 +119,11 @@ struct GridCollectionBridge: NSViewRepresentable {
         return min(360, max(100, header + 24, widest + 28))
     }
 
-    @MainActor final class Coordinator: NSObject, @preconcurrency NSTableViewDataSource, @preconcurrency NSTableViewDelegate, @preconcurrency NSMenuDelegate {
+    @MainActor final class Coordinator: NSObject, @preconcurrency NSTableViewDataSource, @preconcurrency NSTableViewDelegate, @preconcurrency NSMenuDelegate, @preconcurrency NSTextFieldDelegate {
         var parent: GridCollectionBridge
         fileprivate weak var table: ResultTableView?
+        private var editing: (row: Int, column: Int, original: String, field: NSTextField)?
+        var isEditing: Bool { editing != nil }
         private var actions: [() -> Void] = []
         init(_ parent: GridCollectionBridge) { self.parent = parent }
         func numberOfRows(in tableView: NSTableView) -> Int { parent.result.rows.count }
@@ -134,9 +142,17 @@ struct GridCollectionBridge: NSViewRepresentable {
             }
             field.toolTip = value.isNull ? L10n.text("NULL") : value.displayValue.isEmpty ? L10n.text("Empty text") : value.displayValue
             field.setAccessibilityValue(field.toolTip)
+            field.isEditable = false
+            let pending = parent.pendingKeys.contains(ResultGridCellKey(row: row, column: index))
+            if pending { field.setAccessibilityValue((field.toolTip ?? "") + ", " + L10n.text("Pending change")) }
+            // Tint the whole cell, not just the text, for selection and staged edits.
+            field.drawsBackground = false
+            container.wantsLayer = true
             if let position = parent.visibleColumns.firstIndex(of: index), parent.selection?.contains(row: row, column: position) == true {
-                field.drawsBackground = true; field.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15)
-            } else { field.drawsBackground = false }
+                container.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15).cgColor
+            } else if pending {
+                container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.22).cgColor
+            } else { container.layer?.backgroundColor = nil }
             return container
         }
         /// A cell with horizontal insets, so right-aligned numbers don't touch the next column.
@@ -158,6 +174,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             if let index = Int(tableColumn.identifier.rawValue) { parent.onSort?(parent.result.columns[index].name) }
         }
         func select(row: Int, column: Int, extend: Bool) {
+            if isEditing { finishEditing(commit: true) }
             let cell = ResultGridSelection.Cell(row: row, column: column)
             let anchor = (extend || parent.extendsSelection) ? parent.selection?.anchor ?? cell : cell
             parent.selection = ResultGridSelection(anchor: anchor, end: cell)
@@ -167,9 +184,58 @@ struct GridCollectionBridge: NSViewRepresentable {
             guard let selection = parent.selection else { return }
             ResultGridClipboard.copy(result: parent.result, visibleColumns: parent.visibleColumns, selection: selection, headers: headers)
         }
+        /// Double-click edits a cell in place when its row can be updated, and opens the value viewer otherwise.
         @objc func openCell() {
             guard let table, table.clickedRow >= 0, parent.visibleColumns.indices.contains(table.clickedColumn) else { return }
-            parent.onInspectCell(table.clickedRow, parent.visibleColumns[table.clickedColumn])
+            let row = table.clickedRow, index = parent.visibleColumns[table.clickedColumn]
+            if parent.canEditCell(row, index) { beginEditing(row: row, position: table.clickedColumn) }
+            else { parent.onInspectCell(row, index) }
+        }
+
+        func beginEditing(row: Int, position: Int) {
+            guard let table, parent.result.rows.indices.contains(row), parent.visibleColumns.indices.contains(position),
+                  let view = table.view(atColumn: position, row: row, makeIfNecessary: true) as? NSTableCellView,
+                  let field = view.textField else { return }
+            let index = parent.visibleColumns[position]
+            let cells = parent.result.rows[row].cells
+            let value = cells.indices.contains(index) ? cells[index] : .null
+            let text = value.isNull ? "" : value.displayValue
+            field.stringValue = text
+            field.placeholderString = value.isNull ? "NULL" : nil
+            field.textColor = .labelColor
+            field.isEditable = true
+            field.isSelectable = true
+            field.drawsBackground = true
+            field.backgroundColor = .textBackgroundColor
+            field.delegate = self
+            editing = (row, index, text, field)
+            table.window?.makeFirstResponder(field)
+            field.currentEditor()?.selectAll(nil)
+        }
+
+        private func finishEditing(commit: Bool) {
+            guard let editing else { return }
+            self.editing = nil
+            let text = editing.field.stringValue
+            editing.field.delegate = nil
+            editing.field.isEditable = false
+            editing.field.placeholderString = nil
+            if commit, text != editing.original, parent.onCommitEdit(editing.row, editing.column, text) != nil { NSSound.beep() }
+            table?.reloadData()
+            table?.window?.makeFirstResponder(table)
+        }
+
+        func controlTextDidEndEditing(_ notification: Notification) {
+            guard let field = notification.object as? NSTextField, field === editing?.field else { return }
+            finishEditing(commit: true)
+        }
+
+        func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            guard control === editing?.field, selector == #selector(NSResponder.cancelOperation(_:)) else { return false }
+            // Escape restores the loaded or staged value without staging anything.
+            editing?.field.abortEditing()
+            finishEditing(commit: false)
+            return true
         }
         weak var headerMenu: NSMenu?
         func menuNeedsUpdate(_ menu: NSMenu) {

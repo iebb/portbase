@@ -1257,3 +1257,11 @@
 "Now" = "現在";
 "Set to NULL" = "NULLに設定";
 "This row is no longer loaded. Reload the table and try again." = "この行はもう読み込まれていません。テーブルを再読み込みしてもう一度お試しください。";
+"Pending change" = "保留中の変更";
+"Revert Change" = "変更を元に戻す";
+"Pending changes: %d" = "保留中の変更: %d";
+"Rows: %d" = "行: %d";
+"Revert" = "元に戻す";
+"Submit" = "送信";
+"Dismiss" = "閉じる";
+"Saved %1$d of %2$d rows. %3$@" = "%2$d 行中 %1$d 行を保存しました。%3$@";

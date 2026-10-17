@@ -1257,3 +1257,11 @@
 "Now" = "지금";
 "Set to NULL" = "NULL로 설정";
 "This row is no longer loaded. Reload the table and try again." = "이 행은 더 이상 로드되어 있지 않습니다. 테이블을 다시 로드한 후 다시 시도하세요.";
+"Pending change" = "대기 중인 변경";
+"Revert Change" = "변경 되돌리기";
+"Pending changes: %d" = "대기 중인 변경: %d";
+"Rows: %d" = "행: %d";
+"Revert" = "되돌리기";
+"Submit" = "제출";
+"Dismiss" = "닫기";
+"Saved %1$d of %2$d rows. %3$@" = "%2$d개 행 중 %1$d개를 저장했습니다. %3$@";

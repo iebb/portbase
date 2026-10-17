@@ -104,4 +104,133 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
         XCTAssertEqual(fields["avatar"]?.value, "", "Binary values aren't copied into the form")
         withExtendedLifetime((bookmarks, library)) {}
     }
+
+    @MainActor
+    func testGridEditsStageUntilSubmitAndValidateByColumnType() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("stage-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var profile = ConnectionProfile(name: "Local", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        profile.sqliteFileName = "missing.sqlite"
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([profile]).write(to: dir.appendingPathComponent("bookmarks.json"))
+        let bookmarks = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        let library = WorkspaceLibraryStore(directory: dir, cloudSyncEnabled: false)
+        let workspace = WorkspaceViewModel()
+        workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
+        workspace.selectedBookmarkID = profile.id
+
+        let columns = [
+            SchemaColumnDescriptor(name: "id", type: "INTEGER", isNullable: false, isPrimaryKey: true, isUnique: true),
+            SchemaColumnDescriptor(name: "name", type: "TEXT", isNullable: false, isPrimaryKey: false, isUnique: false),
+            SchemaColumnDescriptor(name: "visits", type: "INTEGER", isNullable: true, isPrimaryKey: false, isUnique: false),
+        ]
+        workspace.schemaCatalog = [SchemaTableDescriptor(schemaName: "main", name: "people", columns: columns, rowCountEstimate: 2, objectKind: .table)]
+        let loaded = QueryResultTable(columns: columns.map { QueryColumn(name: $0.name, type: $0.type) },
+                                      rows: [QueryRow(cells: [.integer("1"), .text("Ada"), .integer("3")]),
+                                             QueryRow(cells: [.integer("2"), .text("Lin"), .null])],
+                                      executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: "main.people",
+                                      sourceQuery: nil, affectedRowCount: nil, isTruncated: false, isExplorerGenerated: true)
+        workspace.result = loaded
+
+        XCTAssertNil(workspace.editableField(rowIndex: 0, columnIndex: 0), "Key columns identify the row and aren't edited in place")
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "Grace"))
+        XCTAssertNotNil(workspace.stageCellText(rowIndex: 0, columnIndex: 2, text: "many"), "Integers are validated before staging")
+        XCTAssertNotNil(workspace.pendingEditError)
+        workspace.stageCellNull(rowIndex: 0, columnIndex: 2)
+        XCTAssertEqual(workspace.pendingCellEdits.count, 2)
+        XCTAssertEqual(workspace.pendingEditedRowCount, 1)
+        XCTAssertNil(workspace.pendingEditError)
+        XCTAssertEqual(workspace.pendingGridCells[ResultGridCellKey(row: 0, column: 1)], .text("Grace"))
+        XCTAssertEqual(workspace.pendingGridCells[ResultGridCellKey(row: 0, column: 2)], .null)
+        XCTAssertEqual(workspace.result.rows[0].cells[1], .text("Ada"), "Nothing is written or shown as loaded until Submit")
+        XCTAssertEqual(workspace.editableField(rowIndex: 0, columnIndex: 1)?.value, "Grace", "The value editor opens with the staged value")
+        XCTAssertEqual(workspace.editableField(rowIndex: 0, columnIndex: 1)?.originalValue, "Ada")
+
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "Ada"))
+        XCTAssertNil(workspace.pendingGridCells[ResultGridCellKey(row: 0, column: 1)], "Typing the loaded value back drops the edit")
+        XCTAssertNil(workspace.stageCellText(rowIndex: 1, columnIndex: 2, text: "5"))
+        XCTAssertEqual(workspace.pendingGridCells[ResultGridCellKey(row: 1, column: 2)], .integer("5"))
+        workspace.revertPendingCell(rowIndex: 1, columnIndex: 2)
+        XCTAssertEqual(workspace.pendingCellEdits.count, 1)
+
+        workspace.result = QueryResultTable(columns: loaded.columns, rows: [QueryRow(cells: [.integer("1"), .text("Ada"), .integer("3")])],
+                                            executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: "main.people",
+                                            sourceQuery: nil, affectedRowCount: nil, isTruncated: false, isExplorerGenerated: true)
+        XCTAssertTrue(workspace.pendingCellEdits.isEmpty, "Edits for rows that are no longer loaded are dropped")
+
+        // A read-only server, loaded from its own bookmark file so nothing touches the Keychain.
+        var readOnly = profile
+        readOnly.isReadOnly = true
+        let readOnlyDir = dir.appendingPathComponent("read-only")
+        try FileManager.default.createDirectory(at: readOnlyDir, withIntermediateDirectories: true)
+        try encoder.encode([readOnly]).write(to: readOnlyDir.appendingPathComponent("bookmarks.json"))
+        let readOnlyBookmarks = BookmarkStore(directory: readOnlyDir, cloudSyncEnabled: false)
+        let readOnlyWorkspace = WorkspaceViewModel()
+        readOnlyWorkspace.configure(bookmarkStore: readOnlyBookmarks, libraryStore: library)
+        readOnlyWorkspace.selectedBookmarkID = readOnly.id
+        readOnlyWorkspace.schemaCatalog = workspace.schemaCatalog
+        readOnlyWorkspace.result = loaded
+        XCTAssertNil(readOnlyWorkspace.editableField(rowIndex: 0, columnIndex: 1), "Read-only servers can't edit in place")
+        XCTAssertNotNil(readOnlyWorkspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "Grace"))
+        XCTAssertTrue(readOnlyWorkspace.pendingCellEdits.isEmpty)
+        withExtendedLifetime((bookmarks, library, readOnlyBookmarks)) {}
+    }
+
+#if canImport(UIKit)
+    /// Writes through a scratch SQLite file in the simulator's app container, then removes it.
+    @MainActor
+    func testSubmitWritesEachEditedRowAndReportsAFailedRow() async throws {
+        let file = try await SQLiteFileStore.shared.create(name: "submit-test-\(UUID().uuidString.prefix(8))")
+        defer { try? SQLiteFileStore.shared.remove(fileName: file.fileName) }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("submit-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var profile = ConnectionProfile(name: "Scratch", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        profile.sqliteFileName = file.fileName
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([profile]).write(to: dir.appendingPathComponent("bookmarks.json"))
+        let bookmarks = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        let library = WorkspaceLibraryStore(directory: dir, cloudSyncEnabled: false)
+        let workspace = WorkspaceViewModel()
+        workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
+        workspace.selectedBookmarkID = profile.id
+
+        let service = DatabaseService.shared
+        _ = try await service.execute(query: "CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT NOT NULL, visits INTEGER)",
+                                      profile: profile, policy: .userQuery(confirmed: true))
+        _ = try await service.execute(query: "INSERT INTO people (id, name, visits) VALUES (1, 'Ada', 3), (2, 'Lin', NULL), (3, 'Kay', 1)",
+                                      profile: profile, policy: .userQuery(confirmed: true))
+        let columns = [
+            SchemaColumnDescriptor(name: "id", type: "INTEGER", isNullable: false, isPrimaryKey: true, isUnique: true),
+            SchemaColumnDescriptor(name: "name", type: "TEXT", isNullable: false, isPrimaryKey: false, isUnique: false),
+            SchemaColumnDescriptor(name: "visits", type: "INTEGER", isNullable: true, isPrimaryKey: false, isUnique: false),
+        ]
+        workspace.schemaCatalog = [SchemaTableDescriptor(schemaName: "main", name: "people", columns: columns, rowCountEstimate: 3, objectKind: .table)]
+        // Row 3's loaded id no longer exists, so its update matches no row and must fail without writing.
+        workspace.result = QueryResultTable(columns: columns.map { QueryColumn(name: $0.name, type: $0.type) },
+                                            rows: [QueryRow(cells: [.integer("1"), .text("Ada"), .integer("3")]),
+                                                   QueryRow(cells: [.integer("2"), .text("Lin"), .null]),
+                                                   QueryRow(cells: [.integer("99"), .text("Gone"), .null])],
+                                            executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: "main.people",
+                                            sourceQuery: nil, affectedRowCount: nil, isTruncated: false, isExplorerGenerated: true)
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "Grace"))
+        workspace.stageCellNull(rowIndex: 0, columnIndex: 2)
+        XCTAssertNil(workspace.stageCellText(rowIndex: 1, columnIndex: 2, text: "8"))
+        XCTAssertNil(workspace.stageCellText(rowIndex: 2, columnIndex: 1, text: "Nobody"))
+
+        workspace.submitPendingEdits()
+        for _ in 0..<200 where workspace.isSubmittingPendingEdits { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertFalse(workspace.isSubmittingPendingEdits)
+        XCTAssertNotNil(workspace.pendingEditError, "The row that matches nothing is reported")
+        XCTAssertEqual(workspace.pendingCellEdits.count, 1, "Only the failed row stays pending")
+        XCTAssertEqual(workspace.result.rows[0].cells[1], .text("Grace"), "Written rows show their new values in place")
+        XCTAssertEqual(workspace.result.rows[0].cells[2], .null)
+
+        let stored = try await service.execute(query: "SELECT id, name, visits FROM people ORDER BY id", profile: profile, policy: .readOnly)
+        XCTAssertEqual(stored.rows.map { $0.cells.map(\.displayValue) }, [["1", "Grace", ""], ["2", "Lin", "8"], ["3", "Kay", "1"]])
+        XCTAssertTrue(stored.rows[0].cells[2].isNull)
+        withExtendedLifetime((bookmarks, library)) {}
+    }
+#endif
 }

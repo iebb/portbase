@@ -1257,3 +1257,11 @@
 "Now" = "现在";
 "Set to NULL" = "设为 NULL";
 "This row is no longer loaded. Reload the table and try again." = "此行已不再加载。请重新加载表后重试。";
+"Pending change" = "待提交的更改";
+"Revert Change" = "撤销更改";
+"Pending changes: %d" = "待提交的更改：%d";
+"Rows: %d" = "行：%d";
+"Revert" = "撤销";
+"Submit" = "提交";
+"Dismiss" = "关闭";
+"Saved %1$d of %2$d rows. %3$@" = "已保存 %1$d/%2$d 行。%3$@";

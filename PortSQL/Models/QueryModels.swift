@@ -123,6 +123,12 @@ struct DataEditorField: Identifiable, Hashable {
     }
 }
 
+/// Identifies a staged cell edit: the loaded row and the column's normalized name.
+struct PendingCellKey: Hashable {
+    let rowID: QueryRow.ID
+    let column: String
+}
+
 struct DataEditorDraft: Identifiable, Hashable {
     let id = UUID()
     let mode: DataEditorMode

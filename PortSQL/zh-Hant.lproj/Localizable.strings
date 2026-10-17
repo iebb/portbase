@@ -1257,3 +1257,11 @@
 "Now" = "現在";
 "Set to NULL" = "設為 NULL";
 "This row is no longer loaded. Reload the table and try again." = "此列已不再載入。請重新載入表格後再試一次。";
+"Pending change" = "待提交的變更";
+"Revert Change" = "還原變更";
+"Pending changes: %d" = "待提交的變更：%d";
+"Rows: %d" = "列：%d";
+"Revert" = "還原";
+"Submit" = "提交";
+"Dismiss" = "關閉";
+"Saved %1$d of %2$d rows. %3$@" = "已儲存 %1$d/%2$d 列。%3$@";

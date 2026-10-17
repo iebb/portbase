@@ -1047,7 +1047,12 @@ struct ResultsCard: View {
             copyEngine: workspace.selectedBookmark?.engine,
             copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName,
             onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil,
-            editCell: { workspace.cellEdit(rowIndex: $0, columnIndex: $1) }
+            editCell: { workspace.cellEdit(rowIndex: $0, columnIndex: $1) },
+            pendingCells: workspace.pendingGridCells,
+            onEditCellText: { workspace.stageCellText(rowIndex: $0, columnIndex: $1, text: $2) },
+            onSetCellNull: { workspace.stageCellNull(rowIndex: $0, columnIndex: $1) },
+            onRevertCell: { workspace.revertPendingCell(rowIndex: $0, columnIndex: $1) },
+            editsBar: AnyView(PendingEditsBar())
         )
     }
 

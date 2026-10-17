@@ -33,7 +33,13 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var schemaCatalog: [SchemaTableDescriptor] = []
     @Published private(set) var foreignKeys: [SchemaForeignKey] = []
     private var relationshipTask: Task<Void, Never>?
-    @Published var result = QueryResultTable.empty
+    @Published var result = QueryResultTable.empty {
+        didSet { prunePendingCellEdits() }
+    }
+    /// Cell values edited in the grid but not yet written, keyed by loaded row and column.
+    @Published private(set) var pendingCellEdits: [PendingCellKey: DataEditorField] = [:]
+    @Published private(set) var isSubmittingPendingEdits = false
+    @Published var pendingEditError: String?
     @Published private(set) var resultSets: [QueryResultTable] = []
     @Published private(set) var selectedResultIndex = 0
     @Published var selectedProfileForEdit: ConnectionProfile?
@@ -1146,58 +1152,200 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     /// The value editor's field for one loaded cell, or nil when that row can't be updated safely.
+    /// A staged edit for the cell is carried over, with the loaded value kept as the original.
     func editableField(rowIndex: Int, columnIndex: Int) -> DataEditorField? {
         guard canEditCurrentRows, result.documents == nil,
               result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return nil }
-        let draft = editDraft(for: result.rows[rowIndex])
+        let row = result.rows[rowIndex]
+        let draft = editDraft(for: row)
         guard draft.mode == .update else { return nil }
         let name = normalizedIdentifier(result.columns[columnIndex].name)
-        return draft.fields.first { $0.isEditable && normalizedIdentifier($0.column.name) == name }
+        guard var field = draft.fields.first(where: { $0.isEditable && normalizedIdentifier($0.column.name) == name }) else { return nil }
+        if let staged = pendingCellEdits[PendingCellKey(rowID: row.id, column: name)] {
+            field.value = staged.value
+            field.isNull = staged.isNull
+        }
+        return field
     }
 
-    /// The value editor's edit hook for one loaded cell, bound to that row's identity.
+    /// The value editor's edit hook for one loaded cell; applying it stages the change for Submit.
     func cellEdit(rowIndex: Int, columnIndex: Int) -> ResultCellEdit? {
         guard let field = editableField(rowIndex: rowIndex, columnIndex: columnIndex),
               let engine = selectedBookmark?.engine else { return nil }
         let rowID = result.rows[rowIndex].id
         return ResultCellEdit(field: field, engine: engine) { [weak self] field in
-            try await self?.saveCell(rowID: rowID, field: field)
+            try self?.stageCell(rowID: rowID, field: field)
         }
     }
 
-    /// Saves one value edited in the value editor as a single-row, transactional update, then reloads the result.
-    func saveCell(rowID: QueryRow.ID, field: DataEditorField) async throws {
-        func failure(_ message: String) -> NSError {
-            NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+    /// The staged value for a loaded cell, typed like the column, or nil when the cell has no pending edit.
+    func pendingCell(rowIndex: Int, columnIndex: Int) -> QueryCell? {
+        guard !pendingCellEdits.isEmpty, result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex),
+              let field = pendingCellEdits[PendingCellKey(rowID: result.rows[rowIndex].id, column: normalizedIdentifier(result.columns[columnIndex].name))]
+        else { return nil }
+        return Self.stagedCell(for: field)
+    }
+
+    /// Stages a value for one cell after validating it. Setting a cell back to its loaded value drops the edit.
+    func stageCell(rowID: QueryRow.ID, field: DataEditorField) throws {
+        guard let bookmark = selectedBookmark else {
+            throw NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.text("Choose a server first.")])
         }
-        guard let bookmark = selectedBookmark else { throw failure(L10n.text("Choose a server first.")) }
         try enforceWritableConnection(bookmark)
-        guard let row = result.rows.first(where: { $0.id == rowID }) else {
-            throw failure(L10n.text("This row is no longer loaded. Reload the table and try again."))
+        if let message = DataEditorValidationService.validate(fields: [field], mode: .update, engine: bookmark.engine).values.first {
+            throw NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
         }
-        var draft = editDraft(for: row)
-        let name = normalizedIdentifier(field.column.name)
-        guard draft.mode == .update,
-              let index = draft.fields.firstIndex(where: { $0.isEditable && normalizedIdentifier($0.column.name) == name }) else {
-            throw failure(L10n.text("This row cannot be saved because the primary key context is missing."))
+        let key = PendingCellKey(rowID: rowID, column: normalizedIdentifier(field.column.name))
+        let originalIsNull = field.originalIsNull ?? false
+        if field.isNull == originalIsNull && (field.isNull || field.value == (field.originalValue ?? "")) {
+            pendingCellEdits[key] = nil
+        } else {
+            pendingCellEdits[key] = field
         }
-        draft.fields[index].value = field.value
-        draft.fields[index].isNull = field.isNull
-        if let message = DataEditorValidationService.validate(fields: [draft.fields[index]], mode: .update, engine: bookmark.engine).values.first {
-            throw failure(message)
+        pendingEditError = nil
+    }
+
+    /// Stages text typed into a grid cell. Returns a message when the text isn't valid for the column.
+    func stageCellText(rowIndex: Int, columnIndex: Int, text: String) -> String? {
+        guard var field = editableField(rowIndex: rowIndex, columnIndex: columnIndex) else {
+            return L10n.text("This row cannot be saved because the primary key context is missing.")
         }
-        guard let mutation = mutationSQL(for: draft, engine: bookmark.engine) else {
-            throw failure(L10n.text("This row cannot be saved because the primary key context is missing."))
+        field.value = text
+        field.isNull = false
+        do { try stageCell(rowID: result.rows[rowIndex].id, field: field); return nil }
+        catch {
+            pendingEditError = error.localizedDescription
+            return error.localizedDescription
         }
-        _ = try await DatabaseService.shared.execute(
-            query: mutation.sql,
-            values: mutation.values,
-            profile: bookmark,
-            database: activeDatabaseName,
-            policy: .mutation(expectedAffectedRows: 1)
-        )
-        result.generatedMutation = mutation.sql
-        runQuery()
+    }
+
+    func stageCellNull(rowIndex: Int, columnIndex: Int) {
+        guard var field = editableField(rowIndex: rowIndex, columnIndex: columnIndex), field.column.isNullable else { return }
+        field.isNull = true
+        do { try stageCell(rowID: result.rows[rowIndex].id, field: field) }
+        catch { pendingEditError = error.localizedDescription }
+    }
+
+    func revertPendingCell(rowIndex: Int, columnIndex: Int) {
+        guard result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return }
+        pendingCellEdits[PendingCellKey(rowID: result.rows[rowIndex].id, column: normalizedIdentifier(result.columns[columnIndex].name))] = nil
+    }
+
+    func discardPendingEdits() {
+        pendingCellEdits = [:]
+        pendingEditError = nil
+    }
+
+    /// Staged values typed like their columns, keyed by loaded row and column index for the grid.
+    var pendingGridCells: [ResultGridCellKey: QueryCell] {
+        guard !pendingCellEdits.isEmpty else { return [:] }
+        let columns = Dictionary(result.columns.enumerated().map { (normalizedIdentifier($0.element.name), $0.offset) }, uniquingKeysWith: { first, _ in first })
+        let rows = Set(pendingCellEdits.keys.map(\.rowID))
+        var cells: [ResultGridCellKey: QueryCell] = [:]
+        for (rowIndex, row) in result.rows.enumerated() where rows.contains(row.id) {
+            for (key, field) in pendingCellEdits where key.rowID == row.id {
+                if let column = columns[key.column] { cells[ResultGridCellKey(row: rowIndex, column: column)] = Self.stagedCell(for: field) }
+            }
+        }
+        return cells
+    }
+
+    var pendingEditedRowCount: Int { Set(pendingCellEdits.keys.map(\.rowID)).count }
+
+    /// Writes staged edits one row at a time, each as a bound, single-row transactional update.
+    /// A failure stops the run: rows already written stay written and the rest stay pending.
+    func submitPendingEdits() {
+        guard !pendingCellEdits.isEmpty, !isSubmittingPendingEdits else { return }
+        guard let bookmark = selectedBookmark else { return }
+        do { try enforceWritableConnection(bookmark) } catch { pendingEditError = error.localizedDescription; return }
+        var plans: [(rowID: QueryRow.ID, keys: [PendingCellKey], fields: [DataEditorField], mutation: BoundQuery)] = []
+        for row in result.rows {
+            let entries = pendingCellEdits.filter { $0.key.rowID == row.id }
+            guard !entries.isEmpty else { continue }
+            var draft = editDraft(for: row)
+            guard draft.mode == .update else {
+                pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
+                return
+            }
+            for (key, staged) in entries {
+                guard let index = draft.fields.firstIndex(where: { $0.isEditable && normalizedIdentifier($0.column.name) == key.column }) else { continue }
+                draft.fields[index].value = staged.value
+                draft.fields[index].isNull = staged.isNull
+            }
+            let changed = draft.fields.filter { field in entries.keys.contains { $0.column == normalizedIdentifier(field.column.name) } }
+            if let message = DataEditorValidationService.validate(fields: changed, mode: .update, engine: bookmark.engine).values.first {
+                pendingEditError = message
+                return
+            }
+            guard let mutation = mutationSQL(for: draft, engine: bookmark.engine) else {
+                pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
+                return
+            }
+            plans.append((row.id, Array(entries.keys), Array(entries.values), mutation))
+        }
+        guard !plans.isEmpty else { return }
+        isSubmittingPendingEdits = true
+        pendingEditError = nil
+        let databaseName = activeDatabaseName
+        Task {
+            var saved = 0
+            for plan in plans {
+                do {
+                    _ = try await DatabaseService.shared.execute(
+                        query: plan.mutation.sql,
+                        values: plan.mutation.values,
+                        profile: bookmark,
+                        database: databaseName,
+                        policy: .mutation(expectedAffectedRows: 1)
+                    )
+                    saved += 1
+                    applyWrittenEdits(rowID: plan.rowID, fields: plan.fields)
+                    for key in plan.keys { pendingCellEdits[key] = nil }
+                    result.generatedMutation = plan.mutation.sql
+                } catch {
+                    let message = DatabaseErrorFormatter.message(for: error)
+                    pendingEditError = saved == 0 ? message : L10n.format("Saved %1$d of %2$d rows. %3$@", saved, plans.count, message)
+                    break
+                }
+            }
+            isSubmittingPendingEdits = false
+            if pendingEditError == nil { reloadAfterEdit() }
+        }
+    }
+
+    /// Shows written values in place, so rows saved before a failure don't look unsaved while others stay pending.
+    private func applyWrittenEdits(rowID: QueryRow.ID, fields: [DataEditorField]) {
+        guard let rowIndex = result.rows.firstIndex(where: { $0.id == rowID }) else { return }
+        let names = result.columns.map { normalizedIdentifier($0.name) }
+        for field in fields {
+            guard let column = names.firstIndex(of: normalizedIdentifier(field.column.name)),
+                  result.rows[rowIndex].cells.indices.contains(column) else { continue }
+            result.rows[rowIndex].cells[column] = Self.stagedCell(for: field)
+        }
+    }
+
+    private func reloadAfterEdit() {
+        if isShowingExplorerResult { browse() } else { runQuery() }
+    }
+
+    /// Drops staged edits for rows that are no longer loaded, such as after a reload or page change.
+    private func prunePendingCellEdits() {
+        guard !pendingCellEdits.isEmpty else { return }
+        let loaded = Set(result.rows.map(\.id))
+        let kept = pendingCellEdits.filter { loaded.contains($0.key.rowID) }
+        if kept.count != pendingCellEdits.count { pendingCellEdits = kept }
+    }
+
+    static func stagedCell(for field: DataEditorField) -> QueryCell {
+        if field.isNull { return .null }
+        switch DataEditorValidationService.valueKind(for: field.column) {
+        case .integer: return .integer(field.value)
+        case .decimal: return .decimal(field.value)
+        case .boolean: return .boolean(["1", "true", "yes"].contains(field.value.trimmingCharacters(in: .whitespaces).lowercased()))
+        case .date, .dateTime, .time: return .dateTime(field.value)
+        case .json: return .json(field.value)
+        case .text, .uuid, .binary: return .text(field.value)
+        }
     }
 
     func prepareInsert(for table: SchemaTableDescriptor? = nil) {
