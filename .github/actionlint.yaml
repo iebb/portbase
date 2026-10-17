@@ -1,0 +1,6 @@
+# GitHub's hosted xcode-27 label became generally available on 2026-10-15.
+# Older actionlint releases do not include it in their built-in label catalog.
+# This allow-list affects linting only; Actions still uses a hosted runner.
+self-hosted-runner:
+  labels:
+    - xcode-27
