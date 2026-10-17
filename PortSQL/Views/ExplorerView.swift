@@ -164,7 +164,8 @@ struct ExplorerView: View {
                             )
                         }
                     } else if let schemaErrorMessage = workspace.schemaErrorMessage {
-                        ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
+                        ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
+                                  onReviewCertificate: { workspace.reviewServerCertificate() })
                     } else if filteredTables.isEmpty {
                         Group {
                             if workspace.selectedBookmark == nil {

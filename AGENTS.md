@@ -14,7 +14,7 @@ This repository is archived. If work resumes, treat the decisions below as proje
 
 ## Transport and secret handling
 
-- Keep exactly four explicit transport modes: required TLS with system CAs, required TLS with a private CA, Prefer TLS, and plaintext only. System-CA TLS is the default.
+- Keep exactly four explicit transport modes: required TLS with system CAs, required TLS with a private CA, Prefer TLS, and plaintext only. System-CA TLS is the default mode, but a CA that isn't in the system trust store is not a dead end: when a server's chain fails verification as untrusted, Portbase fetches the CA the server presents (aborting that handshake before credentials are sent) and offers it for trust on first use, as managed databases (DigitalOcean, RDS, Azure) use their own CAs. Only after the user confirms the CA's name, SHA-256 fingerprint, and expiry is it stored in the Keychain and the profile switched to private-CA mode. Never trust a CA without that confirmation, never offer it when the certificate doesn't name the host or is outside its validity, and keep full chain and hostname verification afterward so a different CA fails again.
 - Prefer TLS may fall back only when the server reports that TLS is unsupported. Certificate validation, TLS negotiation, authentication, and post-handshake errors must never trigger a downgrade.
 - Plaintext must remain a separate, explicit choice with a persistent warning in the editor and server list. Never infer or silently enable it.
 - Private-CA TLS must retain full hostname verification and add validated certificates to the system trust roots. Reject missing or malformed certificates, embedded private keys, and input larger than 1 MiB. Continue supporting PEM/CRT/CER and binary DER import.

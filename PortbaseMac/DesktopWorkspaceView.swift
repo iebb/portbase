@@ -65,7 +65,8 @@ struct DesktopWorkspaceView: View {
                 Divider()
                 ConnectionStatusLine()
                 if let error = workspace.schemaErrorMessage, workspace.selectedBookmark != nil, !destination.isOverview {
-                    ConnectionIssueBanner(message: error, compact: true, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
+                    ConnectionIssueBanner(message: error, compact: true, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
+                                  onReviewCertificate: { workspace.reviewServerCertificate() })
                         .padding(.horizontal, Spacing.m)
                         .padding(.vertical, Spacing.xs)
                 }
@@ -123,6 +124,7 @@ struct DesktopWorkspaceView: View {
                   secondaryButton: .cancel { workspace.cancelPendingSafetyConfirmation() })
         }
         .focusedSceneObject(workspace)
+        .certificateTrustPrompt(workspace)
         .confirmationDialog("Delete Connection?", isPresented: Binding(get: { deletingProfile != nil }, set: { if !$0 { deletingProfile = nil } }), titleVisibility: .visible) {
             Button("Delete Connection", role: .destructive) {
                 if let profile = deletingProfile, let index = bookmarks.bookmarks.firstIndex(where: { $0.id == profile.id }) {
@@ -568,7 +570,8 @@ private struct DesktopResultsView: View {
             if let error = workspace.errorMessage {
                 Group {
                     if ConnectionIssue.isConnectionProblem(error) {
-                        ConnectionIssueBanner(message: error, compact: true, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
+                        ConnectionIssueBanner(message: error, compact: true, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
+                                  onReviewCertificate: { workspace.reviewServerCertificate() })
                     } else {
                         ScrollView {
                             Label(error, systemImage: "xmark.octagon.fill")
@@ -870,7 +873,8 @@ private struct SidebarConnectionIssueRow: View {
         .popover(isPresented: $showsIssue, arrowEdge: .trailing) {
             ConnectionIssueBanner(message: message,
                                   onEdit: { showsIssue = false; workspace.editCurrentConnection() },
-                                  onReconnect: { showsIssue = false; workspace.reconnect() })
+                                  onReconnect: { showsIssue = false; workspace.reconnect() },
+                                  onReviewCertificate: { showsIssue = false; workspace.reviewServerCertificate() })
                 .padding(Spacing.m)
                 .frame(width: 420)
         }

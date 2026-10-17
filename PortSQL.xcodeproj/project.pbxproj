@@ -15,6 +15,7 @@
 		058EAE07A623C0BEBD6B6C96 /* Inter-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */; };
 		06C4360B84C706A6554D7EAF /* MongoExtendedJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F929B764AFC3E50D32F5F4 /* MongoExtendedJSON.swift */; };
 		06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */; };
+		071C3A222675B56549A173EF /* ServerCertificateProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */; };
 		075363B746098275FBB5E230 /* MongoClient in Frameworks */ = {isa = PBXBuildFile; productRef = 37B8BCD7DB646F11A43DABAC /* MongoClient */; };
 		07636E71B9789D2EE0DB3E24 /* RedisServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA803D509860DB47C604F547 /* RedisServiceTests.swift */; };
 		082175C2020F84183C6E8713 /* SQLSafetyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50BB47279C113C0DDAD076A2 /* SQLSafetyService.swift */; };
@@ -33,6 +34,7 @@
 		0FC5AB682FC2F8E10CF8A5BE /* MongoConnectionOptions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 858C33D538E82DE60542BD2C /* MongoConnectionOptions.swift */; };
 		0FD3C3B5901BC1DD3F758AFA /* WorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B89D239D48FE17AB83512E6 /* WorkspaceViewModel.swift */; };
 		103A5DBF510F3B425C54BE30 /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 191E7961BD5B29C00811F0EA /* NIOSSH */; };
+		1134B1656EE5F55C435A8F6B /* ServerCertificateProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069A7E933C18061BED1FB614 /* ServerCertificateProbeTests.swift */; };
 		11C51568C3338F801C6D0DD3 /* ElasticsearchQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC42D2DAA16F628F2609972 /* ElasticsearchQueryEditorCard.swift */; };
 		12215840CC69326999DA90B1 /* ConsoleStorageAndSQLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFFCE96A9FFBC25F139FD31F /* ConsoleStorageAndSQLTests.swift */; };
 		129E962E9F6C56BBD57D977E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E06552C5652F257EA4996 /* HomeView.swift */; };
@@ -155,6 +157,7 @@
 		6AC1297B189A966798261E0E /* DesktopWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F855995945D86DACBDF277 /* DesktopWorkspaceView.swift */; };
 		6B07EC11FB0939626CDFCA7A /* MongoIndexesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD23E4CE4D8F3DCC58FFAB07 /* MongoIndexesView.swift */; };
 		6C070A429382F526EC5B8547 /* DatabaseService+SchemaObjects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C255FEA45FA7B30355DFA9 /* DatabaseService+SchemaObjects.swift */; };
+		6C3D12305137DFEA8B60CE33 /* ServerCertificateProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */; };
 		6E0865CB7921E94F885DC695 /* MySQLNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 4821E2CABB861D5D16C0DF51 /* MySQLNIO */; };
 		6E8EE7E294A38CE85718B872 /* MongoDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7867B3292D0801CEF08B739 /* MongoDatabaseClient.swift */; };
 		6FCC70B5A9F6BA67BDDDB951 /* ProductUIState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 341A5589EFBFFB8BD4C14B95 /* ProductUIState.swift */; };
@@ -188,6 +191,7 @@
 		86EDEB93300F512693176EF1 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */; };
 		8711D518313BB446FC280F8B /* NIOHTTP1 in Frameworks */ = {isa = PBXBuildFile; productRef = 03FADCDDCCAE0BDA655ECA72 /* NIOHTTP1 */; };
 		884192A7C374801C0C5DAF65 /* QueryPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */; };
+		889126422DD80E52074C5413 /* ServerCertificateProbeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069A7E933C18061BED1FB614 /* ServerCertificateProbeTests.swift */; };
 		8955EE2BC4F582387F068C91 /* MongoDocumentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2958FC4E2B745E93C90C45B /* MongoDocumentEditor.swift */; };
 		8A3821456C079FD236135759 /* DatabaseSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */; };
 		8A564980FC3AD9E971E4AAA0 /* MongoQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D16A9DA7C565C1D6AF7543 /* MongoQueryService.swift */; };
@@ -213,6 +217,7 @@
 		98243B77E6974EFEEC60C584 /* CopyFormatsAndEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D6719856F1A43DE76F9253 /* CopyFormatsAndEnvironmentTests.swift */; };
 		9A4C2244264E44A75AD686FB /* SQLiteDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03DA5F64AAE6D4280F68B27 /* SQLiteDatabaseClient.swift */; };
 		9A90E47616093281B702D1BA /* RedisQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F29DF17A5E18CD2E54079465 /* RedisQueryEditorCard.swift */; };
+		9B86CAA3380D7F1A640BFC25 /* CertificateTrustSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4347DEE88530446E7D272A81 /* CertificateTrustSheet.swift */; };
 		9C6ADE8AD6C1043ECF74A7D6 /* DataTransferModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A5A8BD8B3776437D1D7D3C /* DataTransferModels.swift */; };
 		9C6D50C36E191E664544E879 /* SQLAssistServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E39B44C66543C65AE60594D5 /* SQLAssistServiceTests.swift */; };
 		9CF2EA268E3A060355EF055C /* MongoDNSResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08DF46A0971483C6B75CF9B1 /* MongoDNSResolver.swift */; };
@@ -283,6 +288,7 @@
 		D9C07FDDCC78B515649FEA24 /* RedisRESPCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D686DBEF679D564B9F556AC8 /* RedisRESPCodec.swift */; };
 		DAF8506C7D41B649E9D41F41 /* DataEditorValidationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */; };
 		DB5981430670D84FC1DBCABD /* SourceCodePro-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */; };
+		DD3C41B87E7D3F09D90C8278 /* CertificateTrustSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4347DEE88530446E7D272A81 /* CertificateTrustSheet.swift */; };
 		DD5A273EE0B38B3EC02E2AB5 /* ConnectionStatusLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145631CFEE09178B998BFDC6 /* ConnectionStatusLine.swift */; };
 		DFF4D0AF8BE6FAE1C9BECCDC /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4D175FE93FD2599448CFCC29 /* InfoPlist.strings */; };
 		E05683D0AA165854FCEAFFED /* Inter-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */; };
@@ -350,6 +356,7 @@
 /* Begin PBXFileReference section */
 		04DF60A3CC28A1715A9CEB85 /* PlatformSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformSupport.swift; sourceTree = "<group>"; };
 		06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		069A7E933C18061BED1FB614 /* ServerCertificateProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCertificateProbeTests.swift; sourceTree = "<group>"; };
 		0717CE81BCB40CF0EE63576C /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		08DF46A0971483C6B75CF9B1 /* MongoDNSResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDNSResolver.swift; sourceTree = "<group>"; };
 		09A3626DFFC9234B75DB5CE7 /* SourceCodePro-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Regular.ttf"; sourceTree = "<group>"; };
@@ -359,6 +366,7 @@
 		145631CFEE09178B998BFDC6 /* ConnectionStatusLine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStatusLine.swift; sourceTree = "<group>"; };
 		15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLSyntaxHighlighter.swift; sourceTree = "<group>"; };
 		15ABDD9D3363094B27F1C170 /* MongoQueryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoQueryServiceTests.swift; sourceTree = "<group>"; };
+		16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCertificateProbe.swift; sourceTree = "<group>"; };
 		1853061DBC455AAA583C1304 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = en; path = en.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		19F2CFA2B57AD724B57F2CD9 /* PortSQLTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PortSQLTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1B3D1D9A7E8AFEDFE1F4E1A9 /* AdaptiveWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveWorkspaceView.swift; sourceTree = "<group>"; };
@@ -395,6 +403,7 @@
 		3EE53A06B4D778F2F9E510D1 /* PinnedTableStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PinnedTableStore.swift; sourceTree = "<group>"; };
 		3F931BDF7628C962CE3B5ACE /* MongoExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoExplorerView.swift; sourceTree = "<group>"; };
 		4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryPlanAndDuplicateTests.swift; sourceTree = "<group>"; };
+		4347DEE88530446E7D272A81 /* CertificateTrustSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateTrustSheet.swift; sourceTree = "<group>"; };
 		4652F0CAD2489F2A36BCE616 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
 		465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataEditorValidationService.swift; sourceTree = "<group>"; };
 		46D099F14C26E51D6333F2A1 /* SQLiteConnectionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteConnectionSection.swift; sourceTree = "<group>"; };
@@ -683,6 +692,7 @@
 				77AD64E9FD53B446DBDE8C9F /* ResultInspectionService.swift */,
 				88816ECE5369279575107C83 /* SchemaCacheStore.swift */,
 				93E0B98E8158EFD30C53FC5B /* ScriptFileService.swift */,
+				16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */,
 				1012CE7ABC285D5B578D4865 /* SQLAssistService.swift */,
 				DD78C569189221484F81399D /* SQLEditingService.swift */,
 				5EE40D207E6E6845C6EAA5C7 /* SQLiteBridge.c */,
@@ -739,6 +749,7 @@
 				4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */,
 				FA803D509860DB47C604F547 /* RedisServiceTests.swift */,
 				251D87D88DCD9B94086CB2C2 /* ResultGridChartTests.swift */,
+				069A7E933C18061BED1FB614 /* ServerCertificateProbeTests.swift */,
 				E39B44C66543C65AE60594D5 /* SQLAssistServiceTests.swift */,
 				D580722EA09FAA6C99677231 /* SQLiteDatabaseClientTests.swift */,
 				ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */,
@@ -800,6 +811,7 @@
 			isa = PBXGroup;
 			children = (
 				1B3D1D9A7E8AFEDFE1F4E1A9 /* AdaptiveWorkspaceView.swift */,
+				4347DEE88530446E7D272A81 /* CertificateTrustSheet.swift */,
 				77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */,
 				49CC6419D07FB098F5FC5171 /* ConnectionIssueBanner.swift */,
 				9C1A7CF6209A3E784768B757 /* ConnectionsHubView.swift */,
@@ -1071,6 +1083,7 @@
 				977D88BA24232D50370E0062 /* Bookmark.swift in Sources */,
 				BAF1A917DE7EFEBD71C31664 /* BookmarkIconCatalog.swift in Sources */,
 				45E5890A451EF53BDB4FD33A /* BookmarkStore.swift in Sources */,
+				DD3C41B87E7D3F09D90C8278 /* CertificateTrustSheet.swift in Sources */,
 				A0547DCA7D0CF35F67391B88 /* ClickHouseDatabaseClient.swift in Sources */,
 				FD71A9BE44BD55F69553FE3D /* ClickHouseQueryService.swift in Sources */,
 				86EDEB93300F512693176EF1 /* CommandPaletteView.swift in Sources */,
@@ -1174,6 +1187,7 @@
 				E29996214ECABCD100343C9B /* SchemaObjects.swift in Sources */,
 				D74C61F0D063DD0BCB17BEE0 /* ScriptFileService.swift in Sources */,
 				E823378806EC20D5CBF2AA4A /* ScriptFilesButton.swift in Sources */,
+				6C3D12305137DFEA8B60CE33 /* ServerCertificateProbe.swift in Sources */,
 				395FE4D4FD140F35542C5D3C /* SettingsView.swift in Sources */,
 				324C7657D64E47FAE6B3C0EF /* VisualizationModels.swift in Sources */,
 				8CCD53796779AEFB9659D4E1 /* VisualizationService.swift in Sources */,
@@ -1209,6 +1223,7 @@
 				1E64BAE770072DE127C77049 /* SQLSafetyServiceTests.swift in Sources */,
 				CF62BDB98B8BF4253B959FBE /* SQLiteDatabaseClientTests.swift in Sources */,
 				5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */,
+				1134B1656EE5F55C435A8F6B /* ServerCertificateProbeTests.swift in Sources */,
 				486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */,
 				345DFC6BED4439E0FF46D1C0 /* WorkspaceCloudSyncTests.swift in Sources */,
 				ACE31021F0B2122FEC8B2880 /* WorkspaceInsightsAndPaletteTests.swift in Sources */,
@@ -1238,6 +1253,7 @@
 				8F8DE55C0686900B6BE3EF93 /* SQLSafetyServiceTests.swift in Sources */,
 				B485056180E0AE5A1FE6F40A /* SQLiteDatabaseClientTests.swift in Sources */,
 				2DE3A2F6FFF1DBB0B49E3B23 /* SSHTunnelServiceTests.swift in Sources */,
+				889126422DD80E52074C5413 /* ServerCertificateProbeTests.swift in Sources */,
 				B665D7AB1A670C85278FBF52 /* VisualizationServiceTests.swift in Sources */,
 				FEF32D0898A63764D9A1E596 /* WorkspaceCloudSyncTests.swift in Sources */,
 				66506F6452C6FCC12E773D42 /* WorkspaceInsightsAndPaletteTests.swift in Sources */,
@@ -1253,6 +1269,7 @@
 				FCCD7A2C653B30FFFFE39383 /* Bookmark.swift in Sources */,
 				0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */,
 				22A06DB93DF8644C3D8CCF05 /* BookmarkStore.swift in Sources */,
+				9B86CAA3380D7F1A640BFC25 /* CertificateTrustSheet.swift in Sources */,
 				3F61C3333F9BF9AD20846B40 /* ClickHouseDatabaseClient.swift in Sources */,
 				587D9D01F4F76251218B8D26 /* ClickHouseQueryService.swift in Sources */,
 				7F3D87C7B22E662289397548 /* CommandPaletteView.swift in Sources */,
@@ -1352,6 +1369,7 @@
 				667D68FD6F0F26DB0BFB9380 /* SchemaObjects.swift in Sources */,
 				60812256393A68FBA4C58BF7 /* ScriptFileService.swift in Sources */,
 				3D37224F6252C3DFD04246DD /* ScriptFilesButton.swift in Sources */,
+				071C3A222675B56549A173EF /* ServerCertificateProbe.swift in Sources */,
 				40AED5A673FB8612E91CB78A /* SettingsView.swift in Sources */,
 				B771B5A8BF74390DD3463C36 /* VisualizationModels.swift in Sources */,
 				06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */,

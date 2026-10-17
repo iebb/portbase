@@ -5,15 +5,19 @@ struct ConnectionIssueBanner: View {
     let issue: ConnectionIssue
     var onEdit: (() -> Void)?
     var onReconnect: (() -> Void)?
+    /// Opens the server's CA for review; shown for untrusted certificates.
+    var onReviewCertificate: (() -> Void)?
     /// A single row whose height never depends on the message; details open in a popover.
     var compact = false
     @State private var showsDetails = false
 
-    init(message: String, compact: Bool = false, onEdit: (() -> Void)? = nil, onReconnect: (() -> Void)? = nil) {
+    init(message: String, compact: Bool = false, onEdit: (() -> Void)? = nil, onReconnect: (() -> Void)? = nil,
+         onReviewCertificate: (() -> Void)? = nil) {
         issue = ConnectionIssue.classify(message)
         self.compact = compact
         self.onEdit = onEdit
         self.onReconnect = onReconnect
+        self.onReviewCertificate = onReviewCertificate
     }
 
     private var tint: Color { issue.isSecurityIssue ? .orange : .red }
@@ -115,6 +119,12 @@ struct ConnectionIssueBanner: View {
     }
 
     @ViewBuilder private var actionButtons: some View {
+        if let onReviewCertificate, issue.kind == .certificateUntrusted {
+            Button(action: onReviewCertificate) {
+                Label("Review Certificate", systemImage: "lock.shield").frame(minHeight: Sizes.control - 12)
+            }
+            .buttonStyle(.borderedProminent)
+        }
         if let onReconnect {
             Button(action: onReconnect) {
                 Label("Reconnect", systemImage: "arrow.clockwise").frame(minHeight: Sizes.control - 12)

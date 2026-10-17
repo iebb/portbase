@@ -81,7 +81,8 @@ struct HomeView: View {
                 }
 
                 if let error = workspace.schemaErrorMessage {
-                    ConnectionIssueBanner(message: error, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
+                    ConnectionIssueBanner(message: error, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
+                                  onReviewCertificate: { workspace.reviewServerCertificate() })
                 }
 
                 HStack(spacing: Spacing.s) {

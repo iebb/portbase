@@ -31,8 +31,19 @@ final class WorkspaceViewModel: ObservableObject {
     @Published private(set) var selectedResultIndex = 0
     @Published var selectedProfileForEdit: ConnectionProfile?
     @Published var isRunning = false
-    @Published var errorMessage: String?
-    @Published var schemaErrorMessage: String?
+    @Published var errorMessage: String? {
+        didSet { offerCertificateTrustIfNeeded(for: errorMessage) }
+    }
+    @Published var schemaErrorMessage: String? {
+        didSet { offerCertificateTrustIfNeeded(for: schemaErrorMessage) }
+    }
+    /// A server CA awaiting the user's decision to trust it for a connection.
+    @Published var certificateTrustRequest: CertificateTrustRequest?
+    /// Why a requested certificate review couldn't show a CA to trust.
+    @Published var certificateReviewError: String?
+    var certificateProbeTask: Task<Void, Never>?
+    /// CAs the user declined, by connection and fingerprint, so they aren't offered again this session.
+    var declinedCertificateAuthorities: Set<String> = []
     @Published var dataEditorDraft: DataEditorDraft?
     @Published var dataEditorValidation: [UUID: String] = [:]
     @Published var dataEditorErrorMessage: String?
@@ -45,7 +56,7 @@ final class WorkspaceViewModel: ObservableObject {
     /// The most recent console execution, used for run status displays.
     @Published private(set) var lastExecution: QueryHistoryEntry?
 
-    private weak var bookmarkStore: BookmarkStore?
+    private(set) weak var bookmarkStore: BookmarkStore?
     private weak var libraryStore: WorkspaceLibraryStore?
     private var assistTask: Task<Void, Never>?
     private var schemaLoadToken: UUID?

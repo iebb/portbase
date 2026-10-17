@@ -97,6 +97,7 @@ struct RootView: View {
         }
         .tabViewStyle(.sidebarAdaptable)
         .portbaseMinimizingTabBar()
+        .certificateTrustPrompt(workspace)
         .portbaseTheme()
         .background {
             // Hardware keyboard shortcuts; the buttons themselves are invisible.
@@ -627,7 +628,8 @@ struct QueryEditorCard: View {
     @ViewBuilder
     private var feedbackSection: some View {
         if let schemaErrorMessage = workspace.schemaErrorMessage {
-            ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
+            ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
+                                  onReviewCertificate: { workspace.reviewServerCertificate() })
         }
 
         ForEach(workspace.hints) { hint in
@@ -853,7 +855,8 @@ struct ResultsCard: View {
 
                 if let errorMessage = workspace.errorMessage {
                     if ConnectionIssue.isConnectionProblem(errorMessage) {
-                        ConnectionIssueBanner(message: errorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect)
+                        ConnectionIssueBanner(message: errorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
+                                  onReviewCertificate: { workspace.reviewServerCertificate() })
                     } else {
                         StatusBanner(
                             title: "Execution failed",
@@ -1448,7 +1451,7 @@ private extension TransportSecurityMode {
     var localizedTitle: String {
         switch self {
         case .systemCA:
-            L10n.text("TLS Required (System CAs)")
+            L10n.text("TLS Required (Ask to Trust New CAs)")
         case .privateCA:
             L10n.text("TLS Required (Private CA)")
         case .preferTLS:
@@ -1471,6 +1474,10 @@ struct BookmarkEditorView: View {
     @State private var keepsImportedEndpoint = false
     @State private var testTask: Task<Void, Never>?
     @State private var testResult: Result<ConnectionTester.Success, Error>?
+    @State private var certificateTrustRequest: CertificateTrustRequest?
+    @State private var certificateReviewError: String?
+    /// Fingerprints already declined in this editor, so a repeated test doesn't ask again.
+    @State private var declinedFingerprints: Set<String> = []
 
     private static let certificateContentTypes: [UTType] = {
         let filenameTypes = ["pem", "crt", "cer"].compactMap { UTType(filenameExtension: $0) }
@@ -1664,8 +1671,16 @@ struct BookmarkEditorView: View {
                         Label(ConnectionTester.summary(success), systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                     case .failure(let error):
-                        ConnectionIssueBanner(message: DatabaseErrorFormatter.message(for: error))
+                        let message = DatabaseErrorFormatter.message(for: error)
+                        ConnectionIssueBanner(message: message,
+                                              onReviewCertificate: WorkspaceViewModel.offersCertificateTrust(for: message, profile: profile)
+                                                ? { reviewServerCertificate(automatic: false) } : nil)
                             .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.s, bottom: Spacing.s, trailing: Spacing.s))
+                        if let certificateReviewError {
+                            Label(certificateReviewError, systemImage: "info.circle")
+                                .font(.captionText)
+                                .foregroundStyle(.secondary)
+                        }
                     case nil:
                         EmptyView()
                     }
@@ -1700,6 +1715,22 @@ struct BookmarkEditorView: View {
             }
             .sheet(isPresented: $isShowingIconPicker) {
                 BookmarkIconPicker(profile: $profile)
+            }
+            .sheet(item: $certificateTrustRequest) { request in
+                CertificateTrustSheet(request: request, onTrust: {
+                    // The CA joins the unsaved form; saving stores it in the Keychain.
+                    profile.privateCACertificate = request.authority.pem
+                    profile.transportSecurityMode = .privateCA
+                    certificateTrustRequest = nil
+                    runConnectionTest()
+                }, onCancel: {
+                    declinedFingerprints.insert(request.authority.sha256Fingerprint)
+                    certificateTrustRequest = nil
+                })
+#if os(iOS)
+                .presentationDetents([.medium, .large])
+#endif
+                .interactiveDismissDisabled()
             }
             .onDisappear { testTask?.cancel() }
             .fileImporter(
@@ -1739,9 +1770,34 @@ struct BookmarkEditorView: View {
                 let success = try await ConnectionTester.test(candidate)
                 if !Task.isCancelled { testResult = .success(success) }
             } catch {
-                if !Task.isCancelled { testResult = .failure(error) }
+                if !Task.isCancelled {
+                    testResult = .failure(error)
+                    // A first connection to a server with its own CA asks to trust it.
+                    if WorkspaceViewModel.offersCertificateTrust(for: DatabaseErrorFormatter.message(for: error), profile: candidate) {
+                        reviewServerCertificate(automatic: true)
+                    }
+                }
             }
             testTask = nil
+        }
+    }
+
+    private func reviewServerCertificate(automatic: Bool) {
+        certificateReviewError = nil
+        let candidate = profile
+        Task {
+            do {
+                let authority = try await ServerCertificateProbe.authority(for: candidate)
+                if automatic, declinedFingerprints.contains(authority.sha256Fingerprint) { return }
+                certificateTrustRequest = CertificateTrustRequest(
+                    profileID: candidate.id,
+                    connectionName: candidate.displayTitle,
+                    authority: authority,
+                    replacesExistingAuthority: candidate.transportSecurityMode == .privateCA
+                        && !candidate.privateCACertificate.isEmpty && candidate.privateCACertificate != "<keychain>")
+            } catch {
+                certificateReviewError = DatabaseErrorFormatter.message(for: error)
+            }
         }
     }
 
@@ -1755,6 +1811,9 @@ struct BookmarkEditorView: View {
                 .foregroundStyle(.green)
 #endif
             Text("Encrypts the connection and verifies the server certificate using trusted system certificate authorities.")
+                .font(.captionText)
+                .foregroundStyle(.secondary)
+            Text("When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection.")
                 .font(.captionText)
                 .foregroundStyle(.secondary)
 

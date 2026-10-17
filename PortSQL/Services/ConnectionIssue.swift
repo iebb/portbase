@@ -28,7 +28,7 @@ struct ConnectionIssue: Equatable {
     var guidance: String {
         switch kind {
         case .certificateUntrusted:
-            L10n.text("The certificate isn’t signed by a trusted authority. If your organization uses its own CA, choose TLS Required (Private CA) and import its certificate.")
+            L10n.text("The certificate is signed by an authority this device doesn’t trust, as with managed databases that use their own CA. Review the server’s certificate to trust its authority for this connection.")
         case .certificateHostname:
             L10n.text("The certificate was issued for a different name. Connect with the hostname listed in the certificate instead of an IP address or alias.")
         case .certificateExpired:
