@@ -1291,3 +1291,14 @@
 "Statement executed" = "문이 실행되었습니다";
 "Choose a table or run a query to see rows here." = "테이블을 선택하거나 쿼리를 실행하면 여기에 행이 표시됩니다.";
 "Chart Current Result" = "현재 결과를 차트로 만들기";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "차트 미리보기 불러오는 중…";
+"Edit this chart and save a SQL query before running it." = "차트를 편집하고 실행하기 전에 SQL 쿼리를 저장하세요.";
+"Edit Chart" = "차트 편집";
+"Connection unavailable" = "연결을 사용할 수 없음";
+"Edit this chart and choose a saved database connection." = "차트를 편집하고 저장된 데이터베이스 연결을 선택하세요.";
+"Preview not loaded" = "미리보기를 불러오지 않음";
+"Run the saved query when you want to refresh this chart." = "차트를 새로 고치려면 저장된 쿼리를 실행하세요.";
+"Edit column %@" = "%@ 열 편집";
+"Multi-metric" = "여러 지표";

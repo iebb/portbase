@@ -1291,3 +1291,14 @@
 "Statement executed" = "Instrucción ejecutada";
 "Choose a table or run a query to see rows here." = "Elige una tabla o ejecuta una consulta para ver filas aquí.";
 "Chart Current Result" = "Graficar el resultado actual";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "Cargando vista previa del gráfico…";
+"Edit this chart and save a SQL query before running it." = "Edita este gráfico y guarda una consulta SQL antes de ejecutarlo.";
+"Edit Chart" = "Editar gráfico";
+"Connection unavailable" = "Conexión no disponible";
+"Edit this chart and choose a saved database connection." = "Edita este gráfico y elige una conexión de base de datos guardada.";
+"Preview not loaded" = "Vista previa sin cargar";
+"Run the saved query when you want to refresh this chart." = "Ejecuta la consulta guardada cuando quieras actualizar este gráfico.";
+"Edit column %@" = "Editar columna %@";
+"Multi-metric" = "Varias métricas";

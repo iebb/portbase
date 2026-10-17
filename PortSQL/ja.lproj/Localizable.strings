@@ -1291,3 +1291,14 @@
 "Statement executed" = "ステートメントを実行しました";
 "Choose a table or run a query to see rows here." = "テーブルを選ぶかクエリを実行すると、ここに行が表示されます。";
 "Chart Current Result" = "現在の結果をグラフにする";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "グラフのプレビューを読み込み中…";
+"Edit this chart and save a SQL query before running it." = "このグラフを編集し、実行前にSQLクエリを保存してください。";
+"Edit Chart" = "グラフを編集";
+"Connection unavailable" = "接続を利用できません";
+"Edit this chart and choose a saved database connection." = "このグラフを編集し、保存済みのデータベース接続を選択してください。";
+"Preview not loaded" = "プレビューは未読み込みです";
+"Run the saved query when you want to refresh this chart." = "このグラフを更新するときに、保存済みのクエリを実行してください。";
+"Edit column %@" = "列 %@ を編集";
+"Multi-metric" = "複数の指標";

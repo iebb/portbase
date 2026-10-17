@@ -1291,3 +1291,14 @@
 "Statement executed" = "语句已执行";
 "Choose a table or run a query to see rows here." = "选择一个表或运行查询，即可在此查看行。";
 "Chart Current Result" = "为当前结果创建图表";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "正在加载图表预览…";
+"Edit this chart and save a SQL query before running it." = "请编辑此图表并保存 SQL 查询，然后再运行。";
+"Edit Chart" = "编辑图表";
+"Connection unavailable" = "连接不可用";
+"Edit this chart and choose a saved database connection." = "请编辑此图表并选择已保存的数据库连接。";
+"Preview not loaded" = "尚未加载预览";
+"Run the saved query when you want to refresh this chart." = "要刷新此图表，请运行已保存的查询。";
+"Edit column %@" = "编辑列 %@";
+"Multi-metric" = "多指标";

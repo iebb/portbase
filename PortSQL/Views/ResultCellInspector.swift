@@ -85,7 +85,7 @@ struct ResultCellInspector: View {
             }
             Spacer(minLength: Spacing.s)
             if draft != nil {
-                Button(hasChanges ? "Cancel" : "Done") { dismiss() }
+                Button(L10n.text(hasChanges ? "Cancel" : "Done")) { dismiss() }
                     .buttonStyle(.portbaseSecondary)
                     .disabled(isSaving)
                 Button("Apply") { save() }

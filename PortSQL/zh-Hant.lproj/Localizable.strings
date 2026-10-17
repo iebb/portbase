@@ -60,7 +60,7 @@
 "Remove LIMIT / OFFSET" = "刪除 LIMIT / OFFSET";
 "Remove trailing ORDER BY" = "刪除尾隨 ORDER BY";
 "Clean Up" = "清理";
-"Run Preview" = "運行預覽";
+"Run Preview" = "執行預覽";
 "Chart" = "圖表";
 "X Axis" = "X 軸";
 "Y Axis" = "Y 軸";
@@ -1291,3 +1291,14 @@
 "Statement executed" = "陳述式已執行";
 "Choose a table or run a query to see rows here." = "選擇一個表格或執行查詢，即可在此查看列。";
 "Chart Current Result" = "為目前結果建立圖表";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "正在載入圖表預覽…";
+"Edit this chart and save a SQL query before running it." = "請編輯此圖表並儲存 SQL 查詢，然後再執行。";
+"Edit Chart" = "編輯圖表";
+"Connection unavailable" = "連線無法使用";
+"Edit this chart and choose a saved database connection." = "請編輯此圖表並選擇已儲存的資料庫連線。";
+"Preview not loaded" = "尚未載入預覽";
+"Run the saved query when you want to refresh this chart." = "若要重新整理此圖表，請執行已儲存的查詢。";
+"Edit column %@" = "編輯欄位 %@";
+"Multi-metric" = "多指標";

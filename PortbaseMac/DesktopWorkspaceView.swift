@@ -827,7 +827,7 @@ private struct DesktopMongoEditor: View {
                 Text("Collection").foregroundStyle(.secondary)
                 TextField("Collection", text: Binding(get: { workspace.mongoDraft.collection.isEmpty ? workspace.selectedExplorerTable?.name ?? "" : workspace.mongoDraft.collection }, set: { workspace.mongoDraft.collection = $0 })).textFieldStyle(.roundedBorder).frame(maxWidth: 260)
                 Spacer()
-                Button(workspace.isRunning ? "Cancel" : "Run Query", systemImage: workspace.isRunning ? "stop.fill" : "play.fill") {
+                Button(L10n.text(workspace.isRunning ? "Cancel" : "Run Query"), systemImage: workspace.isRunning ? "stop.fill" : "play.fill") {
                     if workspace.isRunning { workspace.cancelQuery() } else { perform { try workspace.runMongoBuilder() } }
                 }.disabled(workspace.selectedBookmark == nil)
                 Button("Explain") { perform { try workspace.runMongoBuilder(explain: true) } }.disabled(workspace.isRunning)

@@ -1291,3 +1291,14 @@
 "Statement executed" = "Statement executed";
 "Choose a table or run a query to see rows here." = "Choose a table or run a query to see rows here.";
 "Chart Current Result" = "Chart Current Result";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "Loading chart preview…";
+"Edit this chart and save a SQL query before running it." = "Edit this chart and save a SQL query before running it.";
+"Edit Chart" = "Edit Chart";
+"Connection unavailable" = "Connection unavailable";
+"Edit this chart and choose a saved database connection." = "Edit this chart and choose a saved database connection.";
+"Preview not loaded" = "Preview not loaded";
+"Run the saved query when you want to refresh this chart." = "Run the saved query when you want to refresh this chart.";
+"Edit column %@" = "Edit column %@";
+"Multi-metric" = "Multi-metric";

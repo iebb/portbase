@@ -1291,3 +1291,14 @@
 "Statement executed" = "Инструкция выполнена";
 "Choose a table or run a query to see rows here." = "Выберите таблицу или выполните запрос, чтобы увидеть здесь строки.";
 "Chart Current Result" = "Построить график по текущему результату";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "Загрузка предпросмотра диаграммы…";
+"Edit this chart and save a SQL query before running it." = "Отредактируйте диаграмму и сохраните SQL-запрос перед запуском.";
+"Edit Chart" = "Изменить диаграмму";
+"Connection unavailable" = "Подключение недоступно";
+"Edit this chart and choose a saved database connection." = "Отредактируйте диаграмму и выберите сохранённое подключение к базе данных.";
+"Preview not loaded" = "Предпросмотр не загружен";
+"Run the saved query when you want to refresh this chart." = "Запустите сохранённый запрос, чтобы обновить диаграмму.";
+"Edit column %@" = "Изменить столбец %@";
+"Multi-metric" = "Несколько показателей";

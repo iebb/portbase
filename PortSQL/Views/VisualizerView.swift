@@ -132,17 +132,17 @@ struct VisualizerComposerSheet: View {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     PanelCard {
                         VStack(alignment: .leading, spacing: Spacing.l) {
-                            SectionHeader(title: "Add to Visualizer")
+                            SectionHeader(title: L10n.text("Add to Visualizer"))
 
                             LabeledVisualizerTextField(
-                                label: "Preset Name",
-                                placeholder: "Saved chart name",
+                                label: L10n.text("Preset Name"),
+                                placeholder: L10n.text("Saved chart name"),
                                 text: $draft.title
                             )
 
                             LabeledVisualizerTextField(
-                                label: "Chart Title",
-                                placeholder: "Title shown on the chart",
+                                label: L10n.text("Chart Title"),
+                                placeholder: L10n.text("Title shown on the chart"),
                                 text: $draft.chartTitle
                             )
 
@@ -220,7 +220,7 @@ struct VisualizerComposerSheet: View {
 
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                 VisualizationControlMenu(
-                                    title: "Chart",
+                                    title: L10n.text("Chart"),
                                     value: draft.chartType.title,
                                     systemImage: draft.chartType.symbolName
                                 ) {
@@ -244,7 +244,7 @@ struct VisualizerComposerSheet: View {
 
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                     VisualizationControlMenu(
-                                        title: "Field",
+                                        title: L10n.text("Field"),
                                         value: draft.xField,
                                         systemImage: "arrow.left.and.right"
                                     ) {
@@ -263,7 +263,7 @@ struct VisualizerComposerSheet: View {
                                     }
 
                                     VisualizationControlMenu(
-                                        title: "Mode",
+                                        title: L10n.text("Mode"),
                                         value: draft.xAxisMode.title,
                                         systemImage: "timeline.selection"
                                     ) {
@@ -276,8 +276,8 @@ struct VisualizerComposerSheet: View {
                                 }
 
                                 LabeledVisualizerTextField(
-                                    label: "X Label",
-                                    placeholder: "XAxis title",
+                                    label: L10n.text("X Label"),
+                                    placeholder: L10n.text("XAxis title"),
                                     text: $draft.xAxisTitle
                                 )
                             }
@@ -290,7 +290,7 @@ struct VisualizerComposerSheet: View {
 
                                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                     VisualizationControlMenu(
-                                        title: "Field",
+                                        title: L10n.text("Field"),
                                         value: selectedYFieldsSummary,
                                         systemImage: "arrow.up.and.down"
                                     ) {
@@ -321,8 +321,8 @@ struct VisualizerComposerSheet: View {
                                 }
 
                                 LabeledVisualizerTextField(
-                                    label: "Y Label",
-                                    placeholder: "YAxis title",
+                                    label: L10n.text("Y Label"),
+                                    placeholder: L10n.text("YAxis title"),
                                     text: $draft.yAxisTitle
                                 )
                             }
@@ -330,8 +330,8 @@ struct VisualizerComposerSheet: View {
 
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                 VisualizationControlMenu(
-                                    title: "Group",
-                                    value: draft.groupField ?? "None",
+                                    title: L10n.text("Group"),
+                                    value: draft.groupField ?? L10n.text("None"),
                                     systemImage: "square.3.layers.3d.top.filled"
                                 ) {
                                     Button("None") {
@@ -345,8 +345,8 @@ struct VisualizerComposerSheet: View {
                                 }
 
                                 VisualizationControlMenu(
-                                    title: "Labels",
-                                    value: draft.labelField ?? "None",
+                                    title: L10n.text("Labels"),
+                                    value: draft.labelField ?? L10n.text("None"),
                                     systemImage: "textformat"
                                 ) {
                                     Button("None") {
@@ -365,12 +365,12 @@ struct VisualizerComposerSheet: View {
                     PanelCard {
                         VStack(alignment: .leading, spacing: Spacing.l) {
                             SectionHeader(
-                                title: draft.chartTitle.isEmpty ? "Preview" : draft.chartTitle,
+                                title: draft.chartTitle.isEmpty ? L10n.text("Preview") : draft.chartTitle,
                                 subtitle: previewSubtitle
                             )
                             if let expandedPreviewError {
                                 StatusBanner(
-                                    title: "Preview unavailable",
+                                    title: L10n.text("Preview unavailable"),
                                     message: expandedPreviewError,
                                     tint: .orange
                                 )
@@ -449,7 +449,7 @@ struct VisualizerComposerSheet: View {
 
     private var selectedXFieldDescriptor: VisualizationFieldDescriptor {
         fields.first(where: { $0.name == draft.xField }) ?? fields.first ?? VisualizationFieldDescriptor(
-            name: "Value",
+            name: L10n.text("Value"),
             sourceType: "",
             nonEmptyCount: 0,
             distinctCount: 0,
@@ -652,7 +652,7 @@ private struct VisualizationPresetCard: View {
                             VisualizerMetaChip(text: runnableBookmark?.engine.queryLanguage ?? "SQL")
                         }
                         if preset.resolvedYFields.count > 1 {
-                            VisualizerMetaChip(text: "Multi-metric")
+                            VisualizerMetaChip(text: L10n.text("Multi-metric"))
                         }
                         if let groupField = preset.groupField {
                             VisualizerMetaChip(text: L10n.format("Group %@", groupField))
@@ -666,7 +666,7 @@ private struct VisualizationPresetCard: View {
                 switch previewState {
                 case .failed(let message):
                     StatusBanner(
-                        title: "Execution failed",
+                        title: L10n.text("Execution failed"),
                         message: message,
                         tint: .red
                     )
@@ -679,23 +679,23 @@ private struct VisualizationPresetCard: View {
                     }
                 case .missingQuery:
                     unavailablePreview(
-                        title: "Chart query missing",
-                        message: "Edit this chart and save a SQL query before running it.",
-                        actionTitle: "Edit Chart",
+                        title: L10n.text("Chart query missing"),
+                        message: L10n.text("Edit this chart and save a SQL query before running it."),
+                        actionTitle: L10n.text("Edit Chart"),
                         action: onEdit
                     )
                 case .missingConnection:
                     unavailablePreview(
-                        title: "Connection unavailable",
-                        message: "Edit this chart and choose a saved database connection.",
-                        actionTitle: "Edit Chart",
+                        title: L10n.text("Connection unavailable"),
+                        message: L10n.text("Edit this chart and choose a saved database connection."),
+                        actionTitle: L10n.text("Edit Chart"),
                         action: onEdit
                     )
                 case .idle:
                     unavailablePreview(
-                        title: "Preview not loaded",
-                        message: "Run the saved query when you want to refresh this chart.",
-                        actionTitle: "Run Preview"
+                        title: L10n.text("Preview not loaded"),
+                        message: L10n.text("Run the saved query when you want to refresh this chart."),
+                        actionTitle: L10n.text("Run Preview")
                     ) {
                         Task {
                             await runPreset()
@@ -1281,7 +1281,7 @@ private struct VisualizationControlMenu<Content: View>: View {
                 Label(title, systemImage: systemImage)
                     .font(.captionStrong)
                     .foregroundStyle(.secondary)
-                Text(value.isEmpty ? "Select" : value)
+                Text(value.isEmpty ? L10n.text("Select") : value)
                     .font(.rowTitle)
                     .foregroundStyle(PortSQLPalette.ink)
                     .lineLimit(1)

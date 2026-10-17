@@ -105,7 +105,7 @@ struct ExplorerView: View {
                     if workspace.isLoadingSchema {
                         PanelCard {
                             LoadingStateView(
-                                title: "Loading database",
+                                title: L10n.text("Loading database"),
                                 message: loadingDatabaseMessage
                             )
                         }

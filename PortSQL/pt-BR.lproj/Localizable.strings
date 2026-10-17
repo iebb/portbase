@@ -60,7 +60,7 @@
 "Remove LIMIT / OFFSET" = "Remover LIMIT/OFFSET";
 "Remove trailing ORDER BY" = "Remover ORDER BY final";
 "Clean Up" = "Limpeza";
-"Run Preview" = "Visualização da execução";
+"Run Preview" = "Executar prévia";
 "Chart" = "Gráfico";
 "X Axis" = "Eixo X";
 "Y Axis" = "Eixo Y";
@@ -1291,3 +1291,14 @@
 "Statement executed" = "Instrução executada";
 "Choose a table or run a query to see rows here." = "Escolha uma tabela ou execute uma consulta para ver linhas aqui.";
 "Chart Current Result" = "Criar gráfico do resultado atual";
+
+/* Chart previews and dynamic accessibility labels. */
+"Loading chart preview…" = "Carregando prévia do gráfico…";
+"Edit this chart and save a SQL query before running it." = "Edite este gráfico e salve uma consulta SQL antes de executá-lo.";
+"Edit Chart" = "Editar gráfico";
+"Connection unavailable" = "Conexão indisponível";
+"Edit this chart and choose a saved database connection." = "Edite este gráfico e escolha uma conexão de banco de dados salva.";
+"Preview not loaded" = "Prévia não carregada";
+"Run the saved query when you want to refresh this chart." = "Execute a consulta salva quando quiser atualizar este gráfico.";
+"Edit column %@" = "Editar coluna %@";
+"Multi-metric" = "Várias métricas";

@@ -587,7 +587,7 @@ struct QueryEditorCard: View {
                 Image(systemName: "arrow.up.left.and.arrow.down.right").toolIconChrome()
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(workspace.usesJSONEditor ? "Open JSON editor" : "Open full screen SQL editor")
+            .accessibilityLabel(L10n.text(workspace.usesJSONEditor ? "Open JSON editor" : "Open full screen SQL editor"))
         }
     }
 
@@ -919,7 +919,7 @@ struct ResultsCard: View {
                                   onReviewCertificate: { workspace.reviewServerCertificate() })
                     } else {
                         StatusBanner(
-                            title: "Execution failed",
+                            title: L10n.text("Execution failed"),
                             message: errorMessage,
                             tint: .red
                         )
@@ -949,8 +949,8 @@ struct ResultsCard: View {
 
                 if workspace.isRunning {
                     LoadingStateView(
-                        title: "Loading results",
-                        message: "Fetching rows for the current request."
+                        title: L10n.text("Loading results"),
+                        message: L10n.text("Fetching rows for the current request.")
                     )
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.l)
@@ -1253,7 +1253,7 @@ struct ResultsCard: View {
                             }
                             .buttonStyle(.portbaseToolbar)
                             .disabled(workspace.selectedBookmark?.isReadOnly == true || workspace.selectedBookmark?.engine.supportsSchemaEditing != true)
-                            .accessibilityLabel("Edit column \(column.name)")
+                            .accessibilityLabel(L10n.format("Edit column %@", column.name))
                         }
                         .padding(.vertical, Spacing.xxxs)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -1358,7 +1358,7 @@ private struct SchemaColumnEditorSheet: View {
                 if let errorMessage {
                     Section {
                         StatusBanner(
-                            title: "Schema change failed",
+                            title: L10n.text("Schema change failed"),
                             message: errorMessage,
                             tint: .red
                         )
@@ -2174,7 +2174,7 @@ struct DataEditorSheet: View {
                             .font(.captionText)
                             .foregroundStyle(PortSQLPalette.muted)
                         if let errorMessage = workspace.dataEditorErrorMessage {
-                            StatusBanner(title: "Save failed", message: errorMessage, tint: .red)
+                            StatusBanner(title: L10n.text("Save failed"), message: errorMessage, tint: .red)
                         }
                         ForEach(binding.fields) { fieldBinding in
                             let field = fieldBinding.wrappedValue
@@ -2296,7 +2296,7 @@ private struct JSONFieldEditor: View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             if isEditable {
                 HStack(spacing: Spacing.s) {
-                    Label(isValidJSON ? "JSON" : "Invalid JSON", systemImage: isValidJSON ? "curlybraces" : "exclamationmark.triangle.fill")
+                    Label(isValidJSON ? "JSON" : L10n.text("Invalid JSON"), systemImage: isValidJSON ? "curlybraces" : "exclamationmark.triangle.fill")
                         .font(.captionStrong)
                         .foregroundStyle(isValidJSON ? Color.secondary : Color.red)
 
