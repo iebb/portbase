@@ -1,0 +1,15 @@
+Generated with the built-in ImageGen tool, then composited with exact typography.
+Reference 1: iebb/mithka docs/images/mithka-github-banner.png (composition and style).
+Reference 2: logo.png (Portbase mascot identity).
+
+Use case: ads-marketing. Asset type: GitHub README title-banner background for Portbase, a native portable database client. Create one polished wide 2.5:1 horizontal image, ideally 2000x800.
+Input image 1 is a COMPOSITION AND STYLE reference only: the Mithka banner. Do not use its penguin, text, or purple/pink palette. Input image 2 is the PORTBASE MASCOT identity reference: the cheerful golden yellow rubber-duck head on a three-tier database cylinder body, small yellow wing, black oval eyes with white highlights, orange smiling beak, tiny crest, rounded gold outlines.
+Recreate the Portbase duck faithfully and recognizably, large on the RIGHT side, roughly 70 percent of banner height, all of it comfortably inside the frame. Keep its database-cylinder body and cheerful character. Use crisp illustrated shapes with very restrained internal modeling, editorial polish similar to Mithka.
+Backdrop: warm ivory #fbf8f1. A broad flowing ribbon in soft mint, sky blue and periwinkle curves across the lower banner behind the duck, suggesting movement and portability, with generous whitespace.
+CRITICAL: Leave the whole left 58 percent as completely clean warm ivory negative space for a title that will be composited later. No symbols, text, letters, typography, logos, badges, screenshots, UI, watermarks or extra characters anywhere in the image. Keep the ribbon low on the left, below 75 percent of canvas height. Balance the duck with generous top and side margins. One banner, no panels or collage.
+
+Final typography: Google Sans Bold from PortSQL/Fonts/GoogleSans-Bold.ttf.
+Exact title: Portbase
+Exact subtitle, on two lines: Your Portable / DB Client
+Charcoal text (#1d2327), left aligned in the reserved negative space.
+Final PNG: 1983 x 793 pixels, embedded by README.md.
