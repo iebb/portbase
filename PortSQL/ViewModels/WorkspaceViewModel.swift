@@ -40,6 +40,8 @@ final class WorkspaceViewModel: ObservableObject {
     @Published private(set) var pendingCellEdits: [PendingCellKey: DataEditorField] = [:]
     @Published private(set) var isSubmittingPendingEdits = false
     @Published var pendingEditError: String?
+    /// An action that would replace the loaded rows, held until staged edits are discarded or kept.
+    @Published var pendingDiscardRequest: PendingDiscardRequest?
     @Published private(set) var resultSets: [QueryResultTable] = []
     @Published private(set) var selectedResultIndex = 0
     @Published var selectedProfileForEdit: ConnectionProfile?
@@ -285,6 +287,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func runQuery(entireBuffer: Bool = false) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.runQuery(entireBuffer: entireBuffer) }) else { return }
         guard !isRunning else { return }
         let sql = entireBuffer ? queryText : selectedQuery
         if activeBoundQuery?.sql != queryText {
@@ -599,6 +602,12 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func selectExplorerTable(_ table: SchemaTableDescriptor) {
+        // Keeping the edits returns the sidebar to the table they belong to.
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.selectExplorerTable(table) }, onCancel: { [weak self] in
+            guard let self, let reference = self.result.sourceTableReference,
+                  let edited = self.schemaCatalog.first(where: { $0.matches(reference: reference) }) else { return }
+            self.selectedExplorerTableID = edited.id
+        }) else { return }
         // Selecting first swaps in this table's own filter and sort before they're used below.
         selectedExplorerTableID = table.id
         if isDocumentDatabase {
@@ -615,6 +624,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func browse(table: SchemaTableDescriptor? = nil) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.browse(table: table) }) else { return }
         guard let targetTable = table ?? selectedExplorerTable else {
             errorMessage = L10n.text("Choose a table before browsing rows.")
             return
@@ -640,6 +650,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func restartBrowse() {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.restartBrowse() }) else { return }
         explorerPageIndex = 0
         if let table = selectedExplorerTable {
             // Applied clauses join the table's filter and sort history.
@@ -666,18 +677,21 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func goToPreviousExplorerPage() {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.goToPreviousExplorerPage() }) else { return }
         guard canGoToPreviousExplorerPage else { return }
         explorerPageIndex -= 1
         browse()
     }
 
     func goToNextExplorerPage() {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.goToNextExplorerPage() }) else { return }
         guard canGoToNextExplorerPage else { return }
         explorerPageIndex += 1
         browse()
     }
 
     func setExplorerPageSize(_ size: Int) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.setExplorerPageSize(size) }) else { return }
         let boundedSize = Self.explorerPageSizes.contains(size) ? size : 100
         UserDefaults.standard.set(boundedSize, forKey: Self.explorerPageSizeKey)
         guard explorerPageSize != boundedSize else { return }
@@ -689,6 +703,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func sortExplorer(by columnName: String) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.sortExplorer(by: columnName) }) else { return }
         if isDocumentDatabase {
             let descending = explorerSortColumn == columnName && explorerSortDirection != "DESC"
             explorerOrderByClause = MongoQueryService.pretty([columnName: descending ? -1 : 1])
@@ -710,6 +725,7 @@ final class WorkspaceViewModel: ObservableObject {
 
     /// Sorts the Explorer by one column in a given direction, or clears the sort when `descending` is nil.
     func sortExplorer(by columnName: String, descending: Bool?) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.sortExplorer(by: columnName, descending: descending) }) else { return }
         if let descending {
             explorerOrderByClause = isDocumentDatabase
                 ? MongoQueryService.pretty([columnName: descending ? -1 : 1])
@@ -899,6 +915,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func selectResult(_ index: Int) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.selectResult(index) }) else { return }
         guard resultSets.indices.contains(index) else { return }
         selectedResultIndex = index
         result = resultSets[index]
@@ -920,6 +937,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func followForeignKey(_ key: SchemaForeignKey, row: QueryRow) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.followForeignKey(key, row: row) }) else { return }
         guard let profile = selectedBookmark, profile.engine.isRelational,
               !key.columns.isEmpty, key.columns.count == key.referencedColumns.count else { return }
         var values: [QueryBoundValue] = []
@@ -1154,7 +1172,8 @@ final class WorkspaceViewModel: ObservableObject {
     /// The value editor's field for one loaded cell, or nil when that row can't be updated safely.
     /// A staged edit for the cell is carried over, with the loaded value kept as the original.
     func editableField(rowIndex: Int, columnIndex: Int) -> DataEditorField? {
-        guard canEditCurrentRows, result.documents == nil,
+        // While a query runs its rows are about to be replaced, which would drop anything staged now.
+        guard canEditCurrentRows, !isRunning, result.documents == nil,
               result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return nil }
         let row = result.rows[rowIndex]
         let draft = editDraft(for: row)
@@ -1231,6 +1250,25 @@ final class WorkspaceViewModel: ObservableObject {
         pendingCellEdits[PendingCellKey(rowID: result.rows[rowIndex].id, column: normalizedIdentifier(result.columns[columnIndex].name))] = nil
     }
 
+    /// Returns true when an action that replaces the loaded rows can go ahead now. With staged edits it
+    /// asks first, and runs the action only after the edits are discarded.
+    private func proceedDiscardingPendingEdits(_ action: @escaping () -> Void, onCancel: (() -> Void)? = nil) -> Bool {
+        guard !pendingCellEdits.isEmpty else { return true }
+        if pendingDiscardRequest == nil { pendingDiscardRequest = PendingDiscardRequest(proceed: action, cancel: onCancel) }
+        return false
+    }
+
+    func discardPendingEdits(andContinue request: PendingDiscardRequest) {
+        if pendingDiscardRequest?.id == request.id { pendingDiscardRequest = nil }
+        discardPendingEdits()
+        request.proceed()
+    }
+
+    func keepPendingEdits(_ request: PendingDiscardRequest) {
+        if pendingDiscardRequest?.id == request.id { pendingDiscardRequest = nil }
+        request.cancel?()
+    }
+
     func discardPendingEdits() {
         pendingCellEdits = [:]
         pendingEditError = nil
@@ -1255,7 +1293,7 @@ final class WorkspaceViewModel: ObservableObject {
     /// Writes staged edits one row at a time, each as a bound, single-row transactional update.
     /// A failure stops the run: rows already written stay written and the rest stay pending.
     func submitPendingEdits() {
-        guard !pendingCellEdits.isEmpty, !isSubmittingPendingEdits else { return }
+        guard !pendingCellEdits.isEmpty, !isSubmittingPendingEdits, !isRunning else { return }
         guard let bookmark = selectedBookmark else { return }
         do { try enforceWritableConnection(bookmark) } catch { pendingEditError = error.localizedDescription; return }
         var plans: [(rowID: QueryRow.ID, keys: [PendingCellKey], fields: [DataEditorField], mutation: BoundQuery)] = []
@@ -1499,6 +1537,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func selectBookmark(_ id: UUID?, previousEngineOverride: DatabaseEngine? = nil) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.selectBookmark(id, previousEngineOverride: previousEngineOverride) }) else { return }
         guard !hasOpenTransaction else { errorMessage = ConsoleSessionError.pendingTransaction.localizedDescription; return }
         disconnectConsole()
         let previousEngine = previousEngineOverride ?? selectedBookmark?.engine
@@ -1532,6 +1571,7 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func selectDatabase(_ name: String) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.selectDatabase(name) }) else { return }
         guard !hasOpenTransaction else { errorMessage = ConsoleSessionError.pendingTransaction.localizedDescription; return }
         disconnectConsole()
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)

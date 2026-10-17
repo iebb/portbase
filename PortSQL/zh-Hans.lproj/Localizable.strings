@@ -1265,3 +1265,7 @@
 "Submit" = "提交";
 "Dismiss" = "关闭";
 "Saved %1$d of %2$d rows. %3$@" = "已保存 %1$d/%2$d 行。%3$@";
+"Discard unsubmitted changes?" = "放弃未提交的更改？";
+"Discard Changes" = "放弃更改";
+"Keep Editing" = "继续编辑";
+"Submit them first to keep them, or discard them to continue." = "要保留请先提交，或放弃后继续。";

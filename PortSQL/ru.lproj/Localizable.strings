@@ -1265,3 +1265,7 @@
 "Submit" = "Применить";
 "Dismiss" = "Закрыть";
 "Saved %1$d of %2$d rows. %3$@" = "Сохранено строк: %1$d из %2$d. %3$@";
+"Discard unsubmitted changes?" = "Отменить неприменённые изменения?";
+"Discard Changes" = "Отменить изменения";
+"Keep Editing" = "Продолжить редактирование";
+"Submit them first to keep them, or discard them to continue." = "Чтобы сохранить их, сначала примените их, или отмените, чтобы продолжить.";

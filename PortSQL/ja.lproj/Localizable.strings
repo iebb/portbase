@@ -1265,3 +1265,7 @@
 "Submit" = "送信";
 "Dismiss" = "閉じる";
 "Saved %1$d of %2$d rows. %3$@" = "%2$d 行中 %1$d 行を保存しました。%3$@";
+"Discard unsubmitted changes?" = "送信していない変更を破棄しますか？";
+"Discard Changes" = "変更を破棄";
+"Keep Editing" = "編集を続ける";
+"Submit them first to keep them, or discard them to continue." = "保持するには先に送信してください。続行するには破棄してください。";

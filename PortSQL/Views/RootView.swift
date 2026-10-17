@@ -152,6 +152,7 @@ struct RootView: View {
         .sheet(item: $workspace.selectedProfileForEdit) { profile in
             BookmarkEditorView(profile: profile)
         }
+        .pendingEditsDiscardPrompt(workspace)
         .alert(item: $workspace.pendingSafetyConfirmation) { pending in
             Alert(
                 title: Text(pending.assessment.title),

@@ -115,6 +115,7 @@ struct DesktopWorkspaceView: View {
         .sheet(item: $workspace.dataEditorDraft) { _ in DesktopRowEditor().frame(minWidth: 620, minHeight: 360) }
         .sheet(item: $workspace.parameterDraft) { draft in QueryParameterSheet(draft: draft).frame(minWidth: 480, minHeight: 320) }
         .sheet(item: $workspace.selectedProfileForEdit) { profile in BookmarkEditorView(profile: profile).frame(width: 640, height: 600) }
+        .pendingEditsDiscardPrompt(workspace)
         .alert(item: $workspace.pendingSafetyConfirmation) { pending in
             Alert(title: Text(pending.assessment.title), message: Text(pending.assessment.message),
                   primaryButton: .destructive(Text("Run Anyway")) { workspace.runPendingSafetyConfirmation() },

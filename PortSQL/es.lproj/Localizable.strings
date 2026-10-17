@@ -1265,3 +1265,7 @@
 "Submit" = "Enviar";
 "Dismiss" = "Descartar";
 "Saved %1$d of %2$d rows. %3$@" = "Se guardaron %1$d de %2$d filas. %3$@";
+"Discard unsubmitted changes?" = "¿Descartar los cambios sin enviar?";
+"Discard Changes" = "Descartar cambios";
+"Keep Editing" = "Seguir editando";
+"Submit them first to keep them, or discard them to continue." = "Envíalos primero para conservarlos o descártalos para continuar.";

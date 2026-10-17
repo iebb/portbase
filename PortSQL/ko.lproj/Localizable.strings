@@ -1265,3 +1265,7 @@
 "Submit" = "제출";
 "Dismiss" = "닫기";
 "Saved %1$d of %2$d rows. %3$@" = "%2$d개 행 중 %1$d개를 저장했습니다. %3$@";
+"Discard unsubmitted changes?" = "제출하지 않은 변경을 폐기할까요?";
+"Discard Changes" = "변경 폐기";
+"Keep Editing" = "계속 편집";
+"Submit them first to keep them, or discard them to continue." = "유지하려면 먼저 제출하고, 계속하려면 폐기하세요.";

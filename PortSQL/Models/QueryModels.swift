@@ -129,6 +129,13 @@ struct PendingCellKey: Hashable {
     let column: String
 }
 
+/// An action that would replace loaded rows with staged edits, waiting for Discard or Keep Editing.
+struct PendingDiscardRequest: Identifiable {
+    let id = UUID()
+    let proceed: () -> Void
+    let cancel: (() -> Void)?
+}
+
 struct DataEditorDraft: Identifiable, Hashable {
     let id = UUID()
     let mode: DataEditorMode

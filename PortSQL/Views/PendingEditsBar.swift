@@ -53,3 +53,22 @@ struct PendingEditsBar: View {
         }
     }
 }
+
+extension View {
+    /// Asks before an action discards staged grid edits, such as a reload, page change, or switching tables.
+    func pendingEditsDiscardPrompt(_ workspace: WorkspaceViewModel) -> some View {
+        alert(
+            L10n.text("Discard unsubmitted changes?"),
+            isPresented: Binding(get: { workspace.pendingDiscardRequest != nil },
+                                 set: { if !$0 { workspace.pendingDiscardRequest = nil } }),
+            presenting: workspace.pendingDiscardRequest
+        ) { request in
+            // The actions use the presented request, so dismissal order can't drop the choice.
+            Button(L10n.text("Discard Changes"), role: .destructive) { workspace.discardPendingEdits(andContinue: request) }
+            Button(L10n.text("Keep Editing"), role: .cancel) { workspace.keepPendingEdits(request) }
+        } message: { _ in
+            Text(L10n.format("Pending changes: %d", workspace.pendingCellEdits.count) + "\n"
+                 + L10n.text("Submit them first to keep them, or discard them to continue."))
+        }
+    }
+}

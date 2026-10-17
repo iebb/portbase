@@ -154,6 +154,35 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
         workspace.revertPendingCell(rowIndex: 1, columnIndex: 2)
         XCTAssertEqual(workspace.pendingCellEdits.count, 1)
 
+        // Anything that would replace the loaded rows asks first and changes nothing until the edits are discarded.
+        let clause = workspace.explorerOrderByClause
+        workspace.sortExplorer(by: "name", descending: true)
+        let sortRequest = try XCTUnwrap(workspace.pendingDiscardRequest)
+        XCTAssertEqual(workspace.explorerOrderByClause, clause)
+        workspace.keepPendingEdits(sortRequest)
+        XCTAssertNil(workspace.pendingDiscardRequest)
+        XCTAssertEqual(workspace.pendingCellEdits.count, 1, "Keep Editing leaves the staged edits")
+
+        let people = try XCTUnwrap(workspace.schemaCatalog.first)
+        let other = SchemaTableDescriptor(schemaName: "main", name: "orders", columns: columns, rowCountEstimate: 0, objectKind: .table)
+        workspace.schemaCatalog.append(other)
+        workspace.selectedExplorerTableID = other.id
+        workspace.selectExplorerTable(other)
+        workspace.keepPendingEdits(try XCTUnwrap(workspace.pendingDiscardRequest))
+        XCTAssertEqual(workspace.selectedExplorerTableID, people.id, "Keeping the edits returns to their table")
+        workspace.schemaCatalog.removeLast()
+
+        workspace.sortExplorer(by: "name", descending: true)
+        workspace.discardPendingEdits(andContinue: try XCTUnwrap(workspace.pendingDiscardRequest))
+        XCTAssertTrue(workspace.pendingCellEdits.isEmpty)
+        XCTAssertTrue(workspace.explorerOrderByClause.hasSuffix("DESC"), "Discarding runs the held action")
+        workspace.cancelQuery()
+        workspace.result = loaded
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "Grace"))
+        workspace.isRunning = true
+        XCTAssertNil(workspace.editableField(rowIndex: 0, columnIndex: 2), "Cells can't be edited while a query is replacing the rows")
+        workspace.isRunning = false
+
         workspace.result = QueryResultTable(columns: loaded.columns, rows: [QueryRow(cells: [.integer("1"), .text("Ada"), .integer("3")])],
                                             executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: "main.people",
                                             sourceQuery: nil, affectedRowCount: nil, isTruncated: false, isExplorerGenerated: true)
@@ -206,6 +235,8 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
             SchemaColumnDescriptor(name: "name", type: "TEXT", isNullable: false, isPrimaryKey: false, isUnique: false),
             SchemaColumnDescriptor(name: "visits", type: "INTEGER", isNullable: true, isPrimaryKey: false, isUnique: false),
         ]
+        // Let any load started by selecting the bookmark finish, so it can't replace the rows edited below.
+        for _ in 0..<200 where workspace.isRunning { try await Task.sleep(nanoseconds: 20_000_000) }
         workspace.schemaCatalog = [SchemaTableDescriptor(schemaName: "main", name: "people", columns: columns, rowCountEstimate: 3, objectKind: .table)]
         // Row 3's loaded id no longer exists, so its update matches no row and must fail without writing.
         workspace.result = QueryResultTable(columns: columns.map { QueryColumn(name: $0.name, type: $0.type) },

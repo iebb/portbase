@@ -1265,3 +1265,7 @@
 "Submit" = "Submit";
 "Dismiss" = "Dismiss";
 "Saved %1$d of %2$d rows. %3$@" = "Saved %1$d of %2$d rows. %3$@";
+"Discard unsubmitted changes?" = "Discard unsubmitted changes?";
+"Discard Changes" = "Discard Changes";
+"Keep Editing" = "Keep Editing";
+"Submit them first to keep them, or discard them to continue." = "Submit them first to keep them, or discard them to continue.";

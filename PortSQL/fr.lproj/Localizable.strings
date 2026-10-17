@@ -1265,3 +1265,7 @@
 "Submit" = "Valider";
 "Dismiss" = "Ignorer";
 "Saved %1$d of %2$d rows. %3$@" = "%1$d ligne(s) sur %2$d enregistrée(s). %3$@";
+"Discard unsubmitted changes?" = "Abandonner les modifications non validées ?";
+"Discard Changes" = "Abandonner les modifications";
+"Keep Editing" = "Continuer à modifier";
+"Submit them first to keep them, or discard them to continue." = "Validez-les d’abord pour les conserver, ou abandonnez-les pour continuer.";

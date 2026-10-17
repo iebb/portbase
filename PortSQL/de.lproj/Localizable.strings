@@ -1265,3 +1265,7 @@
 "Submit" = "Übernehmen";
 "Dismiss" = "Schließen";
 "Saved %1$d of %2$d rows. %3$@" = "%1$d von %2$d Zeilen gespeichert. %3$@";
+"Discard unsubmitted changes?" = "Nicht übernommene Änderungen verwerfen?";
+"Discard Changes" = "Änderungen verwerfen";
+"Keep Editing" = "Weiter bearbeiten";
+"Submit them first to keep them, or discard them to continue." = "Übernimm sie zuerst, um sie zu behalten, oder verwirf sie, um fortzufahren.";
