@@ -66,9 +66,9 @@
 "Y Axis" = "Ось Y";
 "Field" = "Поле";
 "Mode" = "Режим";
-"X Label" = "X-метка";
+"X Label" = "Метка X";
 "Y Label" = "Метка Y";
-"XAxis title" = "Название XAxis";
+"XAxis title" = "Название оси X";
 "YAxis title" = "Название оси Y";
 "Group" = "Группа";
 "Labels" = "Метки";
@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "Запустите сохранённый запрос, чтобы обновить диаграмму.";
 "Edit column %@" = "Изменить столбец %@";
 "Multi-metric" = "Несколько показателей";
+
+"Source Code" = "Исходный код";
+
+"View Portbase on GitHub" = "Посмотреть Portbase на GitHub";

@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "차트를 새로 고치려면 저장된 쿼리를 실행하세요.";
 "Edit column %@" = "%@ 열 편집";
 "Multi-metric" = "여러 지표";
+
+"Source Code" = "소스 코드";
+
+"View Portbase on GitHub" = "GitHub에서 Portbase 보기";

@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "Execute a consulta salva quando quiser atualizar este gráfico.";
 "Edit column %@" = "Editar coluna %@";
 "Multi-metric" = "Várias métricas";
+
+"Source Code" = "Código-fonte";
+
+"View Portbase on GitHub" = "Ver Portbase no GitHub";

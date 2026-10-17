@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "若要重新整理此圖表，請執行已儲存的查詢。";
 "Edit column %@" = "編輯欄位 %@";
 "Multi-metric" = "多指標";
+
+"Source Code" = "原始碼";
+
+"View Portbase on GitHub" = "在 GitHub 上查看 Portbase";

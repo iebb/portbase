@@ -67,7 +67,7 @@
 "Field" = "Champ";
 "Mode" = "Mode";
 "X Label" = "Étiquette X";
-"Y Label" = "Etiquette Y";
+"Y Label" = "Étiquette Y";
 "XAxis title" = "Titre de l'axe X";
 "YAxis title" = "Titre de l'axe Y";
 "Group" = "Groupe";
@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "Exécutez la requête enregistrée pour actualiser ce graphique.";
 "Edit column %@" = "Modifier la colonne %@";
 "Multi-metric" = "Plusieurs mesures";
+
+"Source Code" = "Code source";
+
+"View Portbase on GitHub" = "Voir Portbase sur GitHub";

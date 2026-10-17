@@ -66,10 +66,10 @@
 "Y Axis" = "Eje Y";
 "Field" = "Campo";
 "Mode" = "Modo";
-"X Label" = "X Etiqueta";
+"X Label" = "Etiqueta X";
 "Y Label" = "Etiqueta Y";
 "XAxis title" = "Título del eje X";
-"YAxis title" = "Título del eje YA";
+"YAxis title" = "Título del eje Y";
 "Group" = "Grupo";
 "Labels" = "Etiquetas";
 "Preview" = "Vista previa";
@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "Ejecuta la consulta guardada cuando quieras actualizar este gráfico.";
 "Edit column %@" = "Editar columna %@";
 "Multi-metric" = "Varias métricas";
+
+"Source Code" = "Código fuente";
+
+"View Portbase on GitHub" = "Ver Portbase en GitHub";

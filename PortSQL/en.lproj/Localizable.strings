@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "Run the saved query when you want to refresh this chart.";
 "Edit column %@" = "Edit column %@";
 "Multi-metric" = "Multi-metric";
+
+"Source Code" = "Source Code";
+
+"View Portbase on GitHub" = "View Portbase on GitHub";

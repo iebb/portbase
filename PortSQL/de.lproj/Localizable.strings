@@ -67,9 +67,9 @@
 "Field" = "Feld";
 "Mode" = "Modus";
 "X Label" = "X-Beschriftung";
-"Y Label" = "Y-Label";
-"XAxis title" = "XAchsentitel";
-"YAxis title" = "YAxis-Titel";
+"Y Label" = "Y-Beschriftung";
+"XAxis title" = "X-Achsentitel";
+"YAxis title" = "Y-Achsentitel";
 "Group" = "Gruppe";
 "Labels" = "Beschriftungen";
 "Preview" = "Vorschau";
@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "Führe die gespeicherte Abfrage aus, um dieses Diagramm zu aktualisieren.";
 "Edit column %@" = "Spalte %@ bearbeiten";
 "Multi-metric" = "Mehrere Messwerte";
+
+"Source Code" = "Quellcode";
+
+"View Portbase on GitHub" = "Portbase auf GitHub ansehen";

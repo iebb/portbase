@@ -60,15 +60,30 @@ struct SettingsView: View {
 
 struct AboutHeader: View {
     var body: some View {
-        HStack(spacing: Spacing.m) {
-            PortbaseLogoMark(size: 56)
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(verbatim: "Portbase").font(.pageTitle)
-                Text(versionLabel).font(.rowDetail).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: Spacing.xs) {
+            HStack(spacing: Spacing.m) {
+                PortbaseLogoMark(size: 56)
+                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                    Text(verbatim: "Portbase").font(.pageTitle)
+                    Text(versionLabel).font(.rowDetail).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
+            .accessibilityElement(children: .combine)
+
+            Link(destination: URL(string: "https://github.com/iebb/portbase")!) {
+                HStack(spacing: Spacing.s) {
+                    Label("Source Code", systemImage: "chevron.left.forwardslash.chevron.right")
+                    Spacer(minLength: Spacing.s)
+                    Text(verbatim: "GitHub").foregroundStyle(.secondary)
+                    Image(systemName: "arrow.up.right")
+                }
+                .font(.rowDetail)
+                .frame(minHeight: Sizes.touchTarget)
+                .contentShape(Rectangle())
+            }
+            .accessibilityHint("View Portbase on GitHub")
         }
-        .accessibilityElement(children: .combine)
     }
 
     private var versionLabel: String {

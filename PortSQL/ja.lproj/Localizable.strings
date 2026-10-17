@@ -66,10 +66,10 @@
 "Y Axis" = "Y軸";
 "Field" = "フィールド";
 "Mode" = "モード";
-"X Label" = "Xレーベル";
-"Y Label" = "Yレーベル";
+"X Label" = "X軸ラベル";
+"Y Label" = "Y軸ラベル";
 "XAxis title" = "X軸タイトル";
-"YAxis title" = "YA軸タイトル";
+"YAxis title" = "Y軸タイトル";
 "Group" = "グループ";
 "Labels" = "ラベル";
 "Preview" = "プレビュー";
@@ -1302,3 +1302,7 @@
 "Run the saved query when you want to refresh this chart." = "このグラフを更新するときに、保存済みのクエリを実行してください。";
 "Edit column %@" = "列 %@ を編集";
 "Multi-metric" = "複数の指標";
+
+"Source Code" = "ソースコード";
+
+"View Portbase on GitHub" = "GitHubでPortbaseを見る";
