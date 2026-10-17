@@ -129,7 +129,7 @@ struct ConnectionIssueBanner: View {
             Button(action: onReconnect) {
                 Label("Reconnect", systemImage: "arrow.clockwise").frame(minHeight: Sizes.control - 12)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.portbaseSecondary)
         }
         if let onEdit {
             Button(action: onEdit) {

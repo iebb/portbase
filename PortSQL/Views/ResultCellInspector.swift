@@ -56,7 +56,8 @@ struct ResultCellInspector: View {
             .portbaseTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
-                ToolbarItemGroup(placement: .primaryAction) {
+            }
+            .portbaseSheetActions {
                     Button("Copy", systemImage: "doc.on.doc") {
                         let value: String
                         if case .binary(let bytes) = selection.cell, base64 { value = bytes.base64EncodedString() }
@@ -66,7 +67,6 @@ struct ResultCellInspector: View {
                         PortbaseClipboard.copy(items: [item])
                     }
                     if let file { ShareLink(item: file) { Label("Share Value", systemImage: "square.and.arrow.up") } }
-                }
             }
             .task {
                 do { file = try ResultInspectionService.export(selection.cell) }

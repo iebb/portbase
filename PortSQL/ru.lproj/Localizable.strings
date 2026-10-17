@@ -1218,3 +1218,14 @@
 "Elasticsearch request as JSON" = "Запрос Elasticsearch в формате JSON";
 "MongoDB command as JSON" = "Команда MongoDB в формате JSON";
 "SQL query" = "SQL-запрос";
+"Code Font" = "Шрифт кода";
+"Cool blue-gray" = "Холодный сине-серый";
+"Deep navy and slate" = "Глубокий тёмно-синий и сланец";
+"Font preview" = "Предпросмотр шрифтов";
+"Interface Font" = "Шрифт интерфейса";
+"Neutral grays" = "Нейтральные серые";
+"Rounded" = "Скруглённый";
+"System" = "Системный";
+"Theme" = "Тема";
+"View" = "Вид";
+"Warm and soft" = "Тёплый и мягкий";

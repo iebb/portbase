@@ -711,7 +711,7 @@ actor DatabaseService {
             )
             let rows = metadata.rows
             let definitions = metadata.columns ?? rows.first?.columnDefinitions ?? []
-            let columns = definitions.map { QueryColumn(name: $0.name, type: "\($0.columnType)") }
+            let columns = definitions.map { QueryColumn(name: $0.name, type: Self.mysqlTypeName($0)) }
             let mappedRows = rows.map { row in
                 QueryRow(cells: row.columnDefinitions.indices.map { index in
                     let definition = row.columnDefinitions[index]
@@ -1012,20 +1012,77 @@ actor DatabaseService {
         }
     }
 
+    /// The column type as MySQL writes it in DDL (`int unsigned`, `varchar`, `json`), rather than the
+    /// wire protocol's enum name, which reads as noise and doesn't fit a result header.
+    static func mysqlTypeName(_ definition: MySQLProtocol.ColumnDefinition41) -> String {
+        mysqlTypeName(columnType: definition.columnType, flags: definition.flags, characterSet: definition.characterSet)
+    }
+
+    static func mysqlTypeName(columnType: MySQLProtocol.DataType, flags: MySQLProtocol.ColumnFlags,
+                              characterSet: MySQLProtocol.CharacterSet) -> String {
+        let binary = characterSet == .binary
+        let unsigned = flags.contains(.COLUMN_UNSIGNED) ? " unsigned" : ""
+        // MySQL reports ENUM and SET columns as strings with these flags set.
+        if flags.rawValue & 0x0100 != 0 { return "enum" }
+        if flags.rawValue & 0x0800 != 0 { return "set" }
+        switch columnType {
+        case .tiny: return "tinyint" + unsigned
+        case .short: return "smallint" + unsigned
+        case .int24: return "mediumint" + unsigned
+        case .long: return "int" + unsigned
+        case .longlong: return "bigint" + unsigned
+        case .decimal, .newdecimal: return "decimal" + unsigned
+        case .float: return "float"
+        case .double: return "double"
+        case .bit: return "bit"
+        case .year: return "year"
+        case .date, .newdate: return "date"
+        case .time, .time2: return "time"
+        case .datetime, .datetime2: return "datetime"
+        case .timestamp, .timestamp2: return "timestamp"
+        case .varchar, .varString: return binary ? "varbinary" : "varchar"
+        case .string: return binary ? "binary" : "char"
+        case .tinyBlob: return binary ? "tinyblob" : "tinytext"
+        case .mediumBlob: return binary ? "mediumblob" : "mediumtext"
+        case .longBlob: return binary ? "longblob" : "longtext"
+        case .blob: return binary ? "blob" : "text"
+        case .json: return "json"
+        case .enum: return "enum"
+        case .set: return "set"
+        case .geometry: return "geometry"
+        case .null: return "null"
+        default: return ""
+        }
+    }
+
     static func cell(
         mysql data: MySQLData,
         definition: MySQLProtocol.ColumnDefinition41
     ) -> QueryCell {
+        cell(mysql: data, columnType: definition.columnType, flags: definition.flags, characterSet: definition.characterSet)
+    }
+
+    static func cell(
+        mysql data: MySQLData,
+        columnType: MySQLProtocol.DataType,
+        flags: MySQLProtocol.ColumnFlags,
+        characterSet: MySQLProtocol.CharacterSet
+    ) -> QueryCell {
         guard data.buffer != nil else { return .null }
-        if definition.characterSet == .binary,
+        if columnType == .json, let buffer = data.buffer {
+            // JSON arrives with the binary character set; in the binary protocol MySQLData.string doesn't
+            // decode it, so read the UTF-8 text directly instead of showing the bytes as hex.
+            return .json(data.string ?? String(decoding: buffer.readableBytesView, as: UTF8.self))
+        }
+        if characterSet == .binary,
            [.varchar, .varString, .string, .blob, .tinyBlob, .mediumBlob, .longBlob, .geometry]
-            .contains(definition.columnType),
+            .contains(columnType),
            let buffer = data.buffer {
             return .binary(Data(buffer.readableBytesView))
         }
-        switch definition.columnType {
+        switch columnType {
         case .tiny, .short, .long, .longlong, .int24, .year:
-            if definition.flags.contains(.COLUMN_UNSIGNED), let value = data.uint64 {
+            if flags.contains(.COLUMN_UNSIGNED), let value = data.uint64 {
                 return .integer(String(value))
             }
             if let value = data.int64 { return .integer(String(value)) }

@@ -118,7 +118,8 @@ struct MongoDocumentInspector: View {
             .portbaseTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-                ToolbarItem(placement: .primaryAction) {
+            }
+            .portbaseSheetActions {
                     Menu {
                         ShareLink(item: selection.json) { Label("JSON", systemImage: "square.and.arrow.up") }
                         if selection.context != nil, (try? MongoExtendedJSON.decode(selection.json, maximumBytes: 128 * 1_024 * 1_024)["_id"]) != nil {
@@ -126,8 +127,8 @@ struct MongoDocumentInspector: View {
                             Button("Duplicate Document", systemImage: "plus.square.on.square") { editing = .init(mode: .duplicate) }
                             Button("Delete Document", systemImage: "trash", role: .destructive) { editing = .init(mode: .delete) }
                         }
-                    } label: { Image(systemName: "ellipsis.circle").accessibilityLabel("Document Actions") }
-                }
+                    } label: { Label("Document Actions", systemImage: "ellipsis.circle") }
+                        .fixedSize()
             }
             .sheet(item: $editing) { editing in
                 if let context = selection.context {

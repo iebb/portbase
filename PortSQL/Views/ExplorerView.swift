@@ -648,6 +648,29 @@ struct LibrarySheetView: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
+    private var filterMenu: some View {
+        Menu {
+            Toggle("Current connection only", isOn: $currentConnectionOnly)
+                .disabled(workspace.selectedBookmark == nil)
+            if selection == .history {
+                Picker("Status", selection: $outcome) {
+                    Text("All Statuses").tag(Optional<QueryHistoryOutcome>.none)
+                    ForEach(QueryHistoryOutcome.allCases, id: \.self) { value in Text(value.title).tag(Optional(value)) }
+                }
+            }
+            Button("Reset Filters") { outcome = nil; currentConnectionOnly = false; search = "" }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .frame(minWidth: Sizes.control, minHeight: Sizes.control)
+        }
+#if os(macOS)
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+#endif
+        .accessibilityLabel("Filter queries")
+    }
+
     private var emptyRow: some View {
         PortbaseEmptyState(
             title: L10n.text("No matching queries"),
@@ -662,10 +685,19 @@ struct LibrarySheetView: View {
         NavigationStack {
             List {
                 Section {
-                    Picker("Library", selection: $selection) {
-                        ForEach(LibrarySection.allCases) { section in Text(section.title).tag(section) }
+                    HStack(spacing: Spacing.s) {
+                        Picker("Library", selection: $selection) {
+                            ForEach(LibrarySection.allCases) { section in Text(section.title).tag(section) }
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+#if os(macOS)
+                        // Mac sheets have no toolbar area, so these live beside the picker.
+                        Spacer(minLength: Spacing.s)
+                        filterMenu
+                        NavigationLink("Trash") { LibraryStorageView() }
+#endif
                     }
-                    .pickerStyle(.segmented)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: Spacing.xxs, leading: 0, bottom: Spacing.xxs, trailing: 0))
                     if selection == .history {
@@ -768,22 +800,15 @@ struct LibrarySheetView: View {
             .navigationTitle("Library")
             .portbaseTitleDisplayMode(.inline)
             .toolbar {
+#if os(macOS)
+                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+#else
                 ToolbarItem(placement: PortbaseToolbar.leading) { NavigationLink("Trash") { LibraryStorageView() } }
                 ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
-                    Menu {
-                        Toggle("Current connection only", isOn: $currentConnectionOnly)
-                            .disabled(workspace.selectedBookmark == nil)
-                        if selection == .history {
-                            Picker("Status", selection: $outcome) {
-                                Text("All Statuses").tag(Optional<QueryHistoryOutcome>.none)
-                                ForEach(QueryHistoryOutcome.allCases, id: \.self) { value in Text(value.title).tag(Optional(value)) }
-                            }
-                        }
-                        Button("Reset Filters") { outcome = nil; currentConnectionOnly = false; search = "" }
-                    } label: { Image(systemName: "line.3.horizontal.decrease.circle").frame(width: Sizes.touchTarget, height: Sizes.touchTarget) }
-                    .accessibilityLabel("Filter queries")
+                    filterMenu
                     Button("Done") { dismiss() }
                 }
+#endif
             }
             .sheet(item: $editing) { snippet in SavedQueryDetailsSheet(snippet: snippet) }
         }

@@ -91,15 +91,18 @@ enum PortbaseAppearance: String, CaseIterable, Identifiable {
 struct PortbaseThemeModifier: ViewModifier {
     @AppStorage(PortbaseAccent.storageKey) private var accent = PortbaseAccent.jade.rawValue
     @AppStorage(PortbaseAppearance.storageKey) private var appearance = PortbaseAppearance.system.rawValue
+    @AppStorage(PortbaseTheme.storageKey) private var theme = PortbaseTheme.navy.rawValue
+    @AppStorage(PortbaseInterfaceFont.storageKey) private var interfaceFont = PortbaseInterfaceFont.inter.rawValue
+    @AppStorage(PortbaseCodeFont.storageKey) private var codeFont = PortbaseCodeFont.sourceCodePro.rawValue
 
     func body(content: Content) -> some View {
         let accentChoice = PortbaseAccent(rawValue: accent) ?? .jade
         content
-            // Inter for all text that doesn't pick a role, and squared-off buttons instead of capsules.
+            // The interface font for all text that doesn't pick a role, and squared-off buttons instead of capsules.
             .font(.bodyText)
             .buttonBorderShape(.roundedRectangle(radius: Radius.button))
-            // Palette tokens read the stored accent, so a new identity redraws views that cached it.
-            .id(accentChoice)
+            // Palette and font tokens read the stored preferences, so a new identity redraws views that cached them.
+            .id([accent, theme, interfaceFont, codeFont].joined(separator: "/"))
             .tint(accentChoice.color)
             .preferredColorScheme((PortbaseAppearance(rawValue: appearance) ?? .system).colorScheme)
     }
@@ -107,6 +110,118 @@ struct PortbaseThemeModifier: ViewModifier {
 
 extension View {
     func portbaseTheme() -> some View { modifier(PortbaseThemeModifier()) }
+}
+
+/// The interface palette. Each theme defines light and dark surfaces; the accent is chosen separately.
+enum PortbaseTheme: String, CaseIterable, Identifiable {
+    case navy, graphite, nord, paper
+
+    static let storageKey = "Portbase.theme"
+    var id: String { rawValue }
+
+    // Theme names are product names and are not translated.
+    var title: String {
+        switch self {
+        case .navy: "Navy"
+        case .graphite: "Graphite"
+        case .nord: "Nord"
+        case .paper: "Paper"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .navy: L10n.text("Deep navy and slate")
+        case .graphite: L10n.text("Neutral grays")
+        case .nord: L10n.text("Cool blue-gray")
+        case .paper: L10n.text("Warm and soft")
+        }
+    }
+
+    struct Palette {
+        let ink, muted, panel, surface, tertiarySurface, sunken, stroke, canvas, canvasAccent: Color
+        /// Picker swatches as (canvas, surface) in light and dark.
+        let lightSwatch: (UInt32, UInt32)
+        let darkSwatch: (UInt32, UInt32)
+    }
+
+    var palette: Palette {
+        switch self {
+        case .navy:
+            Palette(ink: .adaptive(light: 0x101525, dark: 0xEDF1F2), muted: .adaptive(light: 0x5A5E73, dark: 0x8D91A5),
+                    panel: .adaptive(light: 0xF5F7F9, dark: 0x111729), surface: .adaptive(light: 0xFFFFFF, dark: 0x161C30),
+                    tertiarySurface: .adaptive(light: 0xF7F9FA, dark: 0x1B2238), sunken: .adaptive(light: 0xEDF1F2, dark: 0x0C1223),
+                    stroke: .adaptive(light: 0xDFE4E8, dark: 0x262D45), canvas: .adaptive(light: 0xF2F4F6, dark: 0x0A0F1E),
+                    canvasAccent: .adaptive(light: 0xE8ECEF, dark: 0x0E1426),
+                    lightSwatch: (0xF2F4F6, 0xFFFFFF), darkSwatch: (0x0A0F1E, 0x161C30))
+        case .graphite:
+            Palette(ink: .adaptive(light: 0x1C1C1E, dark: 0xEDEDEF), muted: .adaptive(light: 0x6B6B72, dark: 0x9A9AA2),
+                    panel: .adaptive(light: 0xF6F6F7, dark: 0x1B1B1E), surface: .adaptive(light: 0xFFFFFF, dark: 0x202023),
+                    tertiarySurface: .adaptive(light: 0xF8F8F9, dark: 0x26262A), sunken: .adaptive(light: 0xEEEEF0, dark: 0x141416),
+                    stroke: .adaptive(light: 0xE0E0E4, dark: 0x323237), canvas: .adaptive(light: 0xF3F3F5, dark: 0x161618),
+                    canvasAccent: .adaptive(light: 0xEAEAED, dark: 0x19191C),
+                    lightSwatch: (0xF3F3F5, 0xFFFFFF), darkSwatch: (0x161618, 0x202023))
+        case .nord:
+            Palette(ink: .adaptive(light: 0x2E3440, dark: 0xECEFF4), muted: .adaptive(light: 0x5E6779, dark: 0x9AA3B5),
+                    panel: .adaptive(light: 0xE9EDF3, dark: 0x2F3541), surface: .adaptive(light: 0xFFFFFF, dark: 0x343B48),
+                    tertiarySurface: .adaptive(light: 0xF3F5F8, dark: 0x3A4250), sunken: .adaptive(light: 0xE5E9F0, dark: 0x282D37),
+                    stroke: .adaptive(light: 0xD8DEE9, dark: 0x434C5E), canvas: .adaptive(light: 0xECEFF4, dark: 0x2B303B),
+                    canvasAccent: .adaptive(light: 0xE3E8EF, dark: 0x2D323D),
+                    lightSwatch: (0xECEFF4, 0xFFFFFF), darkSwatch: (0x2B303B, 0x343B48))
+        case .paper:
+            Palette(ink: .adaptive(light: 0x2B2722, dark: 0xF2EDE4), muted: .adaptive(light: 0x786F63, dark: 0xA79E91),
+                    panel: .adaptive(light: 0xF2EDE5, dark: 0x211E1B), surface: .adaptive(light: 0xFFFDF9, dark: 0x27231F),
+                    tertiarySurface: .adaptive(light: 0xF8F5F0, dark: 0x2D2924), sunken: .adaptive(light: 0xEDE7DE, dark: 0x181613),
+                    stroke: .adaptive(light: 0xE3DBCF, dark: 0x3A342D), canvas: .adaptive(light: 0xF6F2EC, dark: 0x1C1A17),
+                    canvasAccent: .adaptive(light: 0xEFE9E0, dark: 0x1F1C19),
+                    lightSwatch: (0xF6F2EC, 0xFFFDF9), darkSwatch: (0x1C1A17, 0x27231F))
+        }
+    }
+
+    static var current: PortbaseTheme {
+        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseTheme.init(rawValue:)) ?? .navy
+    }
+}
+
+/// The interface typeface.
+enum PortbaseInterfaceFont: String, CaseIterable, Identifiable {
+    case inter, system, rounded
+
+    static let storageKey = "Portbase.interfaceFont"
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .inter: "Inter"
+        case .system: L10n.text("System")
+        case .rounded: L10n.text("Rounded")
+        }
+    }
+
+    static var current: PortbaseInterfaceFont {
+        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseInterfaceFont.init(rawValue:)) ?? .inter
+    }
+}
+
+/// The typeface for SQL, JSON, and values in results.
+enum PortbaseCodeFont: String, CaseIterable, Identifiable {
+    case sourceCodePro, sfMono, menlo
+
+    static let storageKey = "Portbase.codeFont"
+    var id: String { rawValue }
+
+    // Typeface names are product names and are not translated.
+    var title: String {
+        switch self {
+        case .sourceCodePro: "Source Code Pro"
+        case .sfMono: "SF Mono"
+        case .menlo: "Menlo"
+        }
+    }
+
+    static var current: PortbaseCodeFont {
+        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseCodeFont.init(rawValue:)) ?? .sourceCodePro
+    }
 }
 
 // MARK: - Color helpers
@@ -351,20 +466,63 @@ enum PortbaseFonts {
         CTFontManagerRegisterFontURLs(urls as CFArray, .process, true, nil)
     }()
 
-    /// An interface font that scales with Dynamic Type relative to `style` on iOS.
+    /// An interface font in the chosen typeface; it scales with Dynamic Type relative to `style` on iOS.
     static func ui(_ size: CGFloat, _ weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
         _ = registration
-        return Font.custom(interface, size: size, relativeTo: style).weight(weight)
+        switch PortbaseInterfaceFont.current {
+        case .inter: return Font.custom(interface, size: size, relativeTo: style).weight(weight)
+        case .system: return Font.system(size: scaled(size, style), weight: weight)
+        case .rounded: return Font.system(size: scaled(size, style), weight: weight, design: .rounded)
+        }
     }
 
-    /// A monospaced font for code and values.
+    /// A monospaced font in the chosen code typeface.
     static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
         _ = registration
-        return Font.custom(code, size: size, relativeTo: style).weight(weight)
+        switch PortbaseCodeFont.current {
+        case .sourceCodePro: return Font.custom(code, size: size, relativeTo: style).weight(weight)
+        case .sfMono: return Font.system(size: scaled(size, style), weight: weight, design: .monospaced)
+        case .menlo: return Font.custom("Menlo", size: size, relativeTo: style).weight(weight)
+        }
     }
 
-    private static func postScriptName(code isCode: Bool, bold: Bool, weight: CGFloat) -> String {
-        if isCode { return bold ? "SourceCodePro-Bold" : "SourceCodePro-Regular" }
+    /// The Dynamic Type size for system fonts on iOS; the Mac uses fixed sizes.
+    private static func scaled(_ size: CGFloat, _ style: Font.TextStyle) -> CGFloat {
+#if canImport(UIKit)
+        UIFontMetrics(forTextStyle: uiTextStyle(style)).scaledValue(for: size)
+#else
+        size
+#endif
+    }
+
+#if canImport(UIKit)
+    private static func uiTextStyle(_ style: Font.TextStyle) -> UIFont.TextStyle {
+        switch style {
+        case .largeTitle: .largeTitle
+        case .title: .title1
+        case .title2: .title2
+        case .title3: .title3
+        case .headline: .headline
+        case .subheadline: .subheadline
+        case .callout: .callout
+        case .footnote: .footnote
+        case .caption: .caption1
+        case .caption2: .caption2
+        default: .body
+        }
+    }
+#endif
+
+    /// The PostScript name for UIKit and AppKit text, or nil when the chosen typeface is a system design.
+    private static func postScriptName(code isCode: Bool, bold: Bool, weight: CGFloat) -> String? {
+        if isCode {
+            switch PortbaseCodeFont.current {
+            case .sourceCodePro: return bold ? "SourceCodePro-Bold" : "SourceCodePro-Regular"
+            case .menlo: return bold ? "Menlo-Bold" : "Menlo-Regular"
+            case .sfMono: return nil
+            }
+        }
+        guard PortbaseInterfaceFont.current == .inter else { return nil }
         if bold || weight >= 0.4 { return "Inter-Bold" }
         if weight >= 0.3 { return "Inter-SemiBold" }
         if weight >= 0.2 { return "Inter-Medium" }
@@ -374,16 +532,22 @@ enum PortbaseFonts {
 #if canImport(UIKit)
     static func uiFont(_ size: CGFloat, weight: UIFont.Weight = .regular, textStyle: UIFont.TextStyle? = nil) -> UIFont {
         _ = registration
-        let font = UIFont(name: postScriptName(code: false, bold: false, weight: weight.rawValue), size: size)
-            ?? .systemFont(ofSize: size, weight: weight)
+        let font = postScriptName(code: false, bold: false, weight: weight.rawValue).flatMap { UIFont(name: $0, size: size) }
+            ?? systemUIFont(size, weight: weight)
         return textStyle.map { UIFontMetrics(forTextStyle: $0).scaledFont(for: font) } ?? font
     }
 
     static func codeFont(_ size: CGFloat, bold: Bool = false, textStyle: UIFont.TextStyle? = nil) -> UIFont {
         _ = registration
-        let font = UIFont(name: postScriptName(code: true, bold: bold, weight: 0), size: size)
+        let font = postScriptName(code: true, bold: bold, weight: 0).flatMap { UIFont(name: $0, size: size) }
             ?? .monospacedSystemFont(ofSize: size, weight: bold ? .bold : .regular)
         return textStyle.map { UIFontMetrics(forTextStyle: $0).scaledFont(for: font) } ?? font
+    }
+
+    private static func systemUIFont(_ size: CGFloat, weight: UIFont.Weight) -> UIFont {
+        let base = UIFont.systemFont(ofSize: size, weight: weight)
+        guard PortbaseInterfaceFont.current == .rounded, let rounded = base.fontDescriptor.withDesign(.rounded) else { return base }
+        return UIFont(descriptor: rounded, size: size)
     }
 
     /// Applies the interface font to navigation bars and segmented controls, which UIKit draws.
@@ -397,13 +561,19 @@ enum PortbaseFonts {
 #else
     static func nsFont(_ size: CGFloat, weight: NSFont.Weight = .regular) -> NSFont {
         _ = registration
-        return NSFont(name: postScriptName(code: false, bold: false, weight: weight.rawValue), size: size)
-            ?? .systemFont(ofSize: size, weight: weight)
+        return postScriptName(code: false, bold: false, weight: weight.rawValue).flatMap { NSFont(name: $0, size: size) }
+            ?? systemNSFont(size, weight: weight)
+    }
+
+    private static func systemNSFont(_ size: CGFloat, weight: NSFont.Weight) -> NSFont {
+        let base = NSFont.systemFont(ofSize: size, weight: weight)
+        guard PortbaseInterfaceFont.current == .rounded, let rounded = base.fontDescriptor.withDesign(.rounded) else { return base }
+        return NSFont(descriptor: rounded, size: size) ?? base
     }
 
     static func codeFont(_ size: CGFloat, bold: Bool = false) -> NSFont {
         _ = registration
-        return NSFont(name: postScriptName(code: true, bold: bold, weight: 0), size: size)
+        return postScriptName(code: true, bold: bold, weight: 0).flatMap { NSFont(name: $0, size: size) }
             ?? .monospacedSystemFont(ofSize: size, weight: bold ? .bold : .regular)
     }
 #endif
@@ -411,26 +581,26 @@ enum PortbaseFonts {
 
 /// Typography roles, set in Inter with Source Code Pro for code. iOS sizes scale with Dynamic Type.
 extension Font {
-    static let displayTitle = PortbaseFonts.ui(TypeSize.display, .bold, relativeTo: .largeTitle)
-    static let pageTitle = PortbaseFonts.ui(TypeSize.title, .bold, relativeTo: .title2)
-    static let sectionTitle = PortbaseFonts.ui(TypeSize.section, .semibold, relativeTo: .title3)
-    static let cardTitle = PortbaseFonts.ui(TypeSize.heading, .semibold, relativeTo: .headline)
-    static let bodyText = PortbaseFonts.ui(TypeSize.body, relativeTo: .body)
-    static let rowTitle = PortbaseFonts.ui(TypeSize.row, .medium, relativeTo: .subheadline)
-    static let rowDetail = PortbaseFonts.ui(TypeSize.detail, relativeTo: .subheadline)
-    static let footnoteText = PortbaseFonts.ui(TypeSize.footnote, relativeTo: .footnote)
-    static let captionText = PortbaseFonts.ui(TypeSize.caption, relativeTo: .caption)
-    static let captionStrong = PortbaseFonts.ui(TypeSize.caption, .semibold, relativeTo: .caption)
-    static let microText = PortbaseFonts.ui(TypeSize.micro, relativeTo: .caption2)
-    static let badgeText = PortbaseFonts.ui(TypeSize.micro, .semibold, relativeTo: .caption2)
-    static let codeText = PortbaseFonts.mono(TypeSize.code, relativeTo: .body)
-    static let codeDetail = PortbaseFonts.mono(TypeSize.detail, relativeTo: .callout)
-    static let codeCaption = PortbaseFonts.mono(TypeSize.caption, relativeTo: .caption)
-    static let metricValue = PortbaseFonts.ui(TypeSize.title, .semibold, relativeTo: .title3).monospacedDigit()
-    static let toolSymbol = Font.system(size: TypeSize.body, weight: .semibold)
-    static let tileSymbol = Font.system(size: TypeSize.section, weight: .semibold)
+    static var displayTitle: Font { PortbaseFonts.ui(TypeSize.display, .bold, relativeTo: .largeTitle) }
+    static var pageTitle: Font { PortbaseFonts.ui(TypeSize.title, .bold, relativeTo: .title2) }
+    static var sectionTitle: Font { PortbaseFonts.ui(TypeSize.section, .semibold, relativeTo: .title3) }
+    static var cardTitle: Font { PortbaseFonts.ui(TypeSize.heading, .semibold, relativeTo: .headline) }
+    static var bodyText: Font { PortbaseFonts.ui(TypeSize.body, relativeTo: .body) }
+    static var rowTitle: Font { PortbaseFonts.ui(TypeSize.row, .medium, relativeTo: .subheadline) }
+    static var rowDetail: Font { PortbaseFonts.ui(TypeSize.detail, relativeTo: .subheadline) }
+    static var footnoteText: Font { PortbaseFonts.ui(TypeSize.footnote, relativeTo: .footnote) }
+    static var captionText: Font { PortbaseFonts.ui(TypeSize.caption, relativeTo: .caption) }
+    static var captionStrong: Font { PortbaseFonts.ui(TypeSize.caption, .semibold, relativeTo: .caption) }
+    static var microText: Font { PortbaseFonts.ui(TypeSize.micro, relativeTo: .caption2) }
+    static var badgeText: Font { PortbaseFonts.ui(TypeSize.micro, .semibold, relativeTo: .caption2) }
+    static var codeText: Font { PortbaseFonts.mono(TypeSize.code, relativeTo: .body) }
+    static var codeDetail: Font { PortbaseFonts.mono(TypeSize.detail, relativeTo: .callout) }
+    static var codeCaption: Font { PortbaseFonts.mono(TypeSize.caption, relativeTo: .caption) }
+    static var metricValue: Font { PortbaseFonts.ui(TypeSize.title, .semibold, relativeTo: .title3).monospacedDigit() }
+    static var toolSymbol: Font { Font.system(size: TypeSize.body, weight: .semibold) }
+    static var tileSymbol: Font { Font.system(size: TypeSize.section, weight: .semibold) }
     /// Symbols in empty states and onboarding.
-    static let emptyStateSymbol = Font.system(size: Sizes.emptyStateSymbol, weight: .regular)
+    static var emptyStateSymbol: Font { Font.system(size: Sizes.emptyStateSymbol, weight: .regular) }
 }
 
 // MARK: - Surfaces
@@ -500,6 +670,70 @@ extension View {
             .background(PortSQLPalette.sunken, in: shape)
             .overlay { shape.strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
     }
+}
+
+/// A toolbar button: regular text color (not link-tinted), comfortable padding and height, and a quiet
+/// background on hover and press, so tool rows read as controls rather than hyperlinks.
+struct PortbaseToolbarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PortbaseToolbarButton(configuration: configuration)
+    }
+}
+
+private struct PortbaseToolbarButton: View {
+    let configuration: ButtonStyleConfiguration
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovering = false
+
+    var body: some View {
+        configuration.label
+            .foregroundStyle(isEnabled ? PortSQLPalette.ink : PortSQLPalette.muted.opacity(0.55))
+            .padding(.horizontal, Spacing.s)
+            .frame(minHeight: Sizes.control)
+            .background {
+                RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+                    .fill(PortSQLPalette.ink.opacity(configuration.isPressed ? 0.14 : (isHovering && isEnabled ? 0.07 : 0)))
+            }
+            .contentShape(RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
+            .onHover { isHovering = $0 }
+    }
+}
+
+/// A secondary button: a visible surface with an outline and regular text, in place of the system
+/// bordered style, whose translucent fill nearly disappears on dark themed surfaces.
+struct PortbaseSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PortbaseSecondaryButton(configuration: configuration)
+    }
+}
+
+private struct PortbaseSecondaryButton: View {
+    let configuration: ButtonStyleConfiguration
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+        configuration.label
+            .foregroundStyle(PortSQLPalette.ink)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xxs)
+            .frame(minHeight: Sizes.control)
+            .background(shape.fill(PortSQLPalette.sunken))
+            .background(shape.fill(PortSQLPalette.ink.opacity(configuration.isPressed ? 0.12 : (isHovering ? 0.05 : 0))))
+            .overlay(shape.strokeBorder(PortSQLPalette.stroke, lineWidth: 1))
+            .opacity(isEnabled ? 1 : 0.5)
+            .contentShape(shape)
+            .onHover { isHovering = $0 }
+    }
+}
+
+extension ButtonStyle where Self == PortbaseSecondaryButtonStyle {
+    static var portbaseSecondary: PortbaseSecondaryButtonStyle { PortbaseSecondaryButtonStyle() }
+}
+
+extension ButtonStyle where Self == PortbaseToolbarButtonStyle {
+    static var portbaseToolbar: PortbaseToolbarButtonStyle { PortbaseToolbarButtonStyle() }
 }
 
 /// A divider inset to line up with row text that follows a leading icon or avatar.
@@ -633,7 +867,32 @@ struct PortbaseMetricTile: View {
 struct PortbaseLogoMark: View {
     var size: CGFloat = 32
 
+    /// The app's own icon (the duck), so About and Settings match the Dock and Home Screen.
+    private static var appIcon: Image? {
+#if os(macOS)
+        Image(nsImage: NSApplication.shared.applicationIconImage)
+#else
+        let icons = Bundle.main.infoDictionary?["CFBundleIcons"] as? [String: Any]
+        let primary = icons?["CFBundlePrimaryIcon"] as? [String: Any]
+        let name = (primary?["CFBundleIconFiles"] as? [String])?.last
+        return name.flatMap { UIImage(named: $0) }.map { Image(uiImage: $0) }
+#endif
+    }
+
     var body: some View {
+        if let icon = Self.appIcon {
+            icon.resizable().interpolation(.high).aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+#if os(iOS)
+                .clipShape(RoundedRectangle(cornerRadius: size * 0.225, style: .continuous))
+#endif
+                .accessibilityHidden(true)
+        } else {
+            fallbackMark
+        }
+    }
+
+    private var fallbackMark: some View {
         RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
             .fill(PortSQLPalette.accent)
             .frame(width: size, height: size)
@@ -677,7 +936,7 @@ struct PortbaseEmptyState: View {
                 Button(action: secondaryAction) {
                     Text(secondaryTitle).lineLimit(1).padding(.horizontal, Spacing.s).frame(minHeight: Sizes.buttonContent)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.portbaseSecondary)
             }
         }
         .frame(maxWidth: Sizes.readableWidth)

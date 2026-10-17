@@ -169,7 +169,7 @@ struct CertificateTrustSheet: View {
                     Button(role: .cancel, action: onCancel) {
                         Text("Cancel").frame(minHeight: Sizes.buttonContent)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.portbaseSecondary)
                     .keyboardShortcut(.cancelAction)
                     Button(action: onTrust) {
                         Text(request.replacesExistingAuthority ? L10n.text("Replace and Connect") : L10n.text("Trust and Connect"))

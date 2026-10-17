@@ -56,13 +56,16 @@ struct DesktopWorkspaceView: View {
     }
 
     var body: some View {
+        withObservers(withSheets(window))
+    }
+
+    private var window: some View {
         NavigationSplitView {
             sidebar.navigationSplitViewColumnWidth(min: 210, ideal: 260, max: 380)
         } detail: {
             VStack(spacing: 0) {
-                DesktopConsoleTabs()
-                destinationBar
-                Divider()
+                // The tab strip appears once there's more than one console.
+                if consoles.consoles.count > 1 { DesktopConsoleTabs() }
                 ConnectionStatusLine()
                 if let error = workspace.schemaErrorMessage, workspace.selectedBookmark != nil, !destination.isOverview {
                     ConnectionIssueBanner(message: error, compact: true, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
@@ -98,20 +101,13 @@ struct DesktopWorkspaceView: View {
                 }
             }.background(PortSQLPalette.surface)
         }
-        .navigationTitle("Portbase")
-        .navigationSubtitle(workspace.selectedBookmark?.displayTitle ?? "")
-        .toolbar {
-            ToolbarItem(placement: .navigation) { Button("Add Connection", systemImage: "plus") { workspace.createBookmark() } }
-            ToolbarItemGroup(placement: .primaryAction) {
-                if workspace.selectedBookmark != nil {
-                    Button("Refresh Schema", systemImage: "arrow.clockwise") { workspace.refreshSchemaCatalog() }
-                        .disabled(workspace.isLoadingSchema)
-                }
-                Button("Query Library", systemImage: "books.vertical") { showsLibrary = true }
-                Button("Search", systemImage: "magnifyingglass") { showsPalette = true }
-                    .help(L10n.text("Search actions, tables, and queries") + " (⌘K)")
-            }
-        }
+        .navigationTitle(workspace.selectedBookmark?.displayTitle ?? "Portbase")
+        .navigationSubtitle(workspace.selectedBookmark == nil ? "" : (workspace.activeDatabaseName ?? ""))
+        .toolbar { toolbarContent }
+    }
+
+    private func withSheets<Content: View>(_ content: Content) -> some View {
+        content
         .sheet(isPresented: $showsLibrary) { LibrarySheetView().frame(minWidth: 680, minHeight: 480) }
         .sheet(isPresented: $showsPalette) { CommandPaletteView(onNavigate: navigate, onCreateSQLite: { createsSQLite = true }) }
         .newSQLiteDatabasePrompt(isPresented: $createsSQLite) { destination = .console }
@@ -137,6 +133,10 @@ struct DesktopWorkspaceView: View {
             }
             Button("Cancel", role: .cancel) { deletingProfile = nil }
         } message: { Text("Pending transactions on this connection will be rolled back.") }
+    }
+
+    private func withObservers<Content: View>(_ content: Content) -> some View {
+        content
         .onReceive(NotificationCenter.default.publisher(for: .portbaseShowCommandPalette)) { _ in showsPalette = true }
         .onReceive(NotificationCenter.default.publisher(for: .portbaseShowHome)) { _ in destination = .home }
         .onReceive(NotificationCenter.default.publisher(for: .portbaseShowDestination)) { note in
@@ -153,6 +153,32 @@ struct DesktopWorkspaceView: View {
         .onChange(of: workspace.activeDatabaseName) { _, _ in if !destination.isOverview { destination = .console } }
     }
 
+    @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
+            ToolbarItem(placement: .principal) {
+            Picker("View", selection: $destination) {
+                ForEach(Destination.switcherCases, id: \.self) { item in Text(L10n.text(item.title)).tag(item) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+        }
+        ToolbarItemGroup(placement: .primaryAction) {
+            if workspace.selectedBookmark != nil {
+                DatabasePicker().labelsHidden().fixedSize()
+                    .help(workspace.selectedBookmark?.endpointSummary ?? "")
+            }
+            Button("New Console", systemImage: "plus.rectangle.on.rectangle") { consoles.add(); destination = .console }
+                .help(L10n.text("New Console"))
+            if workspace.selectedBookmark != nil {
+                Button("Refresh Schema", systemImage: "arrow.clockwise") { workspace.refreshSchemaCatalog() }
+                    .disabled(workspace.isLoadingSchema)
+            }
+            Button("Query Library", systemImage: "books.vertical") { showsLibrary = true }
+            Button("Search", systemImage: "magnifyingglass") { showsPalette = true }
+                .help(L10n.text("Search actions, tables, and queries") + " (⌘K)")
+        }
+    }
+
     private func navigate(_ target: PortbaseDestination) {
         switch target {
         case .home: destination = .home
@@ -163,42 +189,6 @@ struct DesktopWorkspaceView: View {
         case .library: showsLibrary = true
         case .settings: openSettings()
         }
-    }
-
-    private var destinationBar: some View {
-        HStack(spacing: Spacing.s) {
-            HStack(spacing: Spacing.xxxs) {
-                ForEach(Destination.switcherCases, id: \.self) { item in
-                    Button { withAnimation(.easeOut(duration: 0.15)) { destination = item } } label: {
-                        Label(L10n.text(item.title), systemImage: item.symbol)
-                            .font(.rowTitle.weight(destination == item ? .semibold : .medium))
-                            .padding(.horizontal, Spacing.m).frame(height: Sizes.control)
-                            .foregroundStyle(destination == item ? PortSQLPalette.ink : Color.secondary)
-                            .portbaseSelectedSegment(destination == item)
-                            .contentShape(Rectangle())
-                    }.buttonStyle(.plain)
-                    .accessibilityAddTraits(destination == item ? .isSelected : [])
-                }
-            }
-            .portbaseSegmentTrack()
-            Spacer(minLength: 0)
-            if let profile = workspace.selectedBookmark {
-                HStack(spacing: Spacing.xs) {
-                    Circle()
-                        .fill(workspace.errorMessage == nil && workspace.schemaErrorMessage == nil ? Color.green : Color.orange)
-                        .frame(width: Sizes.dot, height: Sizes.dot)
-                        .accessibilityHidden(true)
-                    BookmarkAvatar(profile: profile, size: Sizes.avatarSmall, cornerRadius: Radius.xs)
-                    Text(profile.displayTitle).lineLimit(1).font(.rowTitle)
-                    EnvironmentBadge(environment: profile.environment, compact: true)
-                    DatabasePicker().labelsHidden()
-                }
-                .help(profile.endpointSummary)
-            }
-        }
-        .padding(.horizontal, Spacing.m)
-        .frame(height: Sizes.bar)
-        .background(PortSQLPalette.panel)
     }
 
     private var sidebar: some View {
@@ -307,20 +297,23 @@ struct DesktopWorkspaceView: View {
                         }
                     }
                 } header: {
-                    Text("Servers").foregroundStyle(PortSQLPalette.muted)
+                    HStack {
+                        Text("Servers").foregroundStyle(PortSQLPalette.muted)
+                        Spacer()
+                        Menu {
+                            Button("Add Connection") { workspace.createBookmark() }
+                            Button("Import Connection String…") { workspace.createBookmark() }
+                            Divider()
+                            Button("New SQLite Database") { createsSQLite = true }
+                        } label: { Image(systemName: "plus").foregroundStyle(PortSQLPalette.muted) }
+                            .menuStyle(.borderlessButton)
+                            .menuIndicator(.hidden)
+                            .fixedSize()
+                            .help(L10n.text("Add Connection"))
+                    }
                 }
             }.listStyle(.sidebar).font(.bodyText)
             .scrollContentBackground(.hidden)
-            Divider()
-            HStack {
-                Menu {
-                    Button("Add Connection") { workspace.createBookmark() }
-                    Button("Import Connection String…") { workspace.createBookmark() }
-                    Button("New SQLite Database") { createsSQLite = true }
-                } label: { Image(systemName: "plus") }.menuStyle(.borderlessButton).frame(width: Sizes.iconTileSmall)
-                Spacer()
-                Button("New SQLite Database") { createsSQLite = true }.buttonStyle(.borderless).font(.captionText)
-            }.padding(.horizontal, Spacing.s).frame(height: Sizes.tabStrip)
         }
         .background(PortSQLPalette.sunken)
     }
@@ -452,7 +445,7 @@ private struct DesktopSQLEditor: View {
                     }
                 } label: { Label("Editor", systemImage: "ellipsis") }.labelStyle(.iconOnly).menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: Sizes.iconTileSmall)
                 DesktopTransactions()
-            }.buttonStyle(.borderless).font(.bodyText).portbaseBar(Sizes.toolbar)
+            }.buttonStyle(.portbaseToolbar).font(.bodyText).portbaseBar(Sizes.toolbar)
             Divider()
             HighlightedQueryEditor(text: $workspace.queryText, cursorOffset: $workspace.queryCursorOffset,
                                    selectionLength: $workspace.querySelectionLength, colorScheme: colorScheme, isJSON: workspace.usesJSONEditor,
@@ -501,27 +494,42 @@ private struct DesktopTableBrowser: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     var body: some View {
         VStack(spacing: 0) {
+            // One bar: the table, its filter and sort (Return applies them), and its actions.
             HStack(spacing: Spacing.s) {
-                Text(workspace.selectedExplorerTable?.displayName ?? L10n.text("Tables")).font(.cardTitle)
-                if let table = workspace.selectedExplorerTable {
-                    PortbaseChip(title: L10n.plural("column_count_short", count: table.columns.count), tint: .secondary)
-                    if let estimate = table.rowCountEstimate { PortbaseChip(title: L10n.plural("row_count", count: estimate), tint: .secondary) }
+                Text(workspace.selectedExplorerTable?.name ?? L10n.text("Tables")).font(.cardTitle).lineLimit(1)
+                    .help(workspace.selectedExplorerTable.map { table in
+                        [table.displayName, L10n.plural("column_count_short", count: table.columns.count),
+                         table.rowCountEstimate.map { L10n.plural("row_count", count: $0) }].compactMap { $0 }.joined(separator: " · ")
+                    } ?? "")
+                    .layoutPriority(1)
+                clauseField(workspace.isDocumentDatabase ? L10n.text("Filter") : "WHERE", text: $workspace.explorerWhereClause, prompt: L10n.text("Filter"))
+                clauseField(workspace.isDocumentDatabase ? L10n.text("Sort") : "ORDER BY", text: $workspace.explorerOrderByClause, prompt: L10n.text("Sort"))
+                    .frame(maxWidth: 260)
+                Button("Refresh", systemImage: "arrow.clockwise") { workspace.restartBrowse() }
+                    .labelStyle(.iconOnly)
+                    .help(L10n.text("Refresh"))
+                    .disabled(workspace.isRunning || workspace.selectedExplorerTable == nil)
+                if workspace.canInsertIntoCurrentTable && workspace.selectedBookmark?.isReadOnly != true {
+                    Button("Insert row", systemImage: "plus") { workspace.prepareInsert() }
+                        .labelStyle(.iconOnly)
+                        .help(L10n.text("Insert row"))
                 }
-                Spacer()
-                Button("Refresh", systemImage: "arrow.clockwise") { workspace.restartBrowse() }.disabled(workspace.isRunning || workspace.selectedExplorerTable == nil)
-                if workspace.canInsertIntoCurrentTable && workspace.selectedBookmark?.isReadOnly != true { Button("Insert row", systemImage: "plus") { workspace.prepareInsert() } }
                 DataTransferMenu()
-            }.font(.bodyText).buttonStyle(.borderless).portbaseBar(Sizes.toolbar)
-            HStack(spacing: Spacing.s) {
-                Text(workspace.isDocumentDatabase ? L10n.text("Filter") : "WHERE").font(.codeDetail)
-                TextField("Filter", text: $workspace.explorerWhereClause).font(.codeText).onSubmit { workspace.restartBrowse() }
-                Text(workspace.isDocumentDatabase ? L10n.text("Sort") : "ORDER BY").font(.codeDetail)
-                TextField("Sort", text: $workspace.explorerOrderByClause).font(.codeText).onSubmit { workspace.restartBrowse() }
-                Button("Apply") { workspace.restartBrowse() }.disabled(workspace.isRunning)
-            }.textFieldStyle(.roundedBorder).padding(Spacing.s)
+            }.font(.bodyText).buttonStyle(.portbaseToolbar).portbaseBar(Sizes.toolbar)
             Divider()
             DesktopResultsView()
         }
+    }
+}
+
+extension DesktopTableBrowser {
+    /// A clause keyword and its field, styled like the sidebar's search field.
+    func clauseField(_ keyword: String, text: Binding<String>, prompt: String) -> some View {
+        HStack(spacing: Spacing.xs) {
+            Text(keyword).font(.codeCaption.weight(.semibold)).foregroundStyle(PortSQLPalette.muted).fixedSize()
+            TextField(prompt, text: text).textFieldStyle(.plain).font(.codeDetail).onSubmit { workspace.restartBrowse() }
+        }
+        .portbaseFieldChrome()
     }
 }
 
@@ -543,41 +551,73 @@ private struct DesktopResultsView: View {
             connectionName: workspace.selectedBookmark?.name ?? L10n.text("Current Result"), databaseName: workspace.activeDatabaseName, sourceTableReference: workspace.result.sourceTableReference)
     }
     private var canChart: Bool { VisualizationService.fieldDescriptors(for: workspace.result).contains(where: \.supportsNumeric) }
+    /// Whether the grid is showing; its tool row then carries the result controls, so there's one bar, not two.
+    private var showsGrid: Bool {
+        guard !workspace.result.columns.isEmpty else { return false }
+        if workspace.result.documents != nil { return presentation == "table" }
+        if tableMode == "plan" && queryPlan != nil { return false }
+        return tableMode != "insights"
+    }
+
+    @ViewBuilder private var modeControls: some View {
+        HStack(spacing: Spacing.s) {
+            if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
+                Picker("Results", selection: $tableMode) {
+                    if queryPlan != nil { Text("Plan").tag("plan") }
+                    Text("Table").tag("table")
+                    Text("Insights").tag("insights")
+                }.labelsHidden().pickerStyle(.segmented).fixedSize()
+            }
+            if workspace.result.documents != nil {
+                Picker("Results", selection: $presentation) { Text("Table").tag("table"); Text("Documents").tag("documents"); Text("Chart").tag("chart"); Text("Insights").tag("insights") }
+                    .labelsHidden().pickerStyle(.segmented).fixedSize()
+            }
+            if workspace.resultSets.count > 1 {
+                Picker("Result Set", selection: Binding(get: { workspace.selectedResultIndex }, set: { workspace.selectResult($0) })) {
+                    ForEach(workspace.resultSets.indices, id: \.self) { index in Text(L10n.format("Result %d", index + 1)).tag(index) }
+                }.labelsHidden().fixedSize()
+            }
+            if workspace.isRunning { ProgressView().controlSize(.small) }
+        }
+    }
+
+    @ViewBuilder private var resultActions: some View {
+        HStack(spacing: Spacing.s) {
+            if workspace.isDocumentDatabase { MongoInsertDocumentButton() }
+            if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
+                Toggle(isOn: $showsRowDetails) { Label("Row Details", systemImage: "sidebar.right") }
+                    .toggleStyle(.button)
+                    .labelStyle(.iconOnly)
+                    .help(L10n.text("Show the selected row’s fields"))
+            }
+            if canChart {
+                Button("Configure Chart", systemImage: "chart.xyaxis.line") { composerPreset = chartPreset }
+                    .labelStyle(.iconOnly)
+                    .help(L10n.text("Configure Chart"))
+            }
+            Menu {
+                Button("CSV") { exportURL = workspace.exportResultURL(format: .csv) }
+                Button("JSON") { exportURL = workspace.exportResultURL(format: .json) }
+            } label: { Label("Export", systemImage: "square.and.arrow.up") }
+                .menuStyle(.button)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(L10n.text("Export"))
+                .disabled(workspace.result.columns.isEmpty && workspace.result.documents == nil)
+        }
+        .buttonStyle(.portbaseToolbar)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: Spacing.s) {
-                Text("Results").fontWeight(.semibold)
-                if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
-                    Picker("Results", selection: $tableMode) {
-                        if queryPlan != nil { Label("Plan", systemImage: "list.bullet.indent").tag("plan") }
-                        Label("Table", systemImage: "tablecells").tag("table")
-                        Label("Insights", systemImage: "sparkles").tag("insights")
-                    }.labelsHidden().pickerStyle(.segmented).fixedSize()
-                }
-                if workspace.resultSets.count > 1 {
-                    Picker("Result Set", selection: Binding(get: { workspace.selectedResultIndex }, set: { workspace.selectResult($0) })) {
-                        ForEach(workspace.resultSets.indices, id: \.self) { index in Text(L10n.format("Result %d", index + 1)).tag(index) }
-                    }.labelsHidden().frame(width: 120)
-                }
-                if workspace.result.documents != nil {
-                    Picker("Results", selection: $presentation) { Text("Table").tag("table"); Text("Documents").tag("documents"); Text("Chart").tag("chart"); Text("Insights").tag("insights") }
-                        .labelsHidden().frame(width: 150)
-                }
-                if workspace.isRunning { ProgressView().controlSize(.small) }
-                Spacer()
-                if workspace.isDocumentDatabase { MongoInsertDocumentButton() }
-                if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
-                    Toggle(isOn: $showsRowDetails) { Label("Row Details", systemImage: "sidebar.right") }
-                        .toggleStyle(.button)
-                        .help(L10n.text("Show the selected row’s fields"))
-                }
-                if canChart { Button("Configure Chart", systemImage: "chart.xyaxis.line") { composerPreset = chartPreset } }
-                Menu {
-                    Button("CSV") { exportURL = workspace.exportResultURL(format: .csv) }
-                    Button("JSON") { exportURL = workspace.exportResultURL(format: .json) }
-                } label: { Label("Export", systemImage: "square.and.arrow.up") }.disabled(workspace.result.columns.isEmpty && workspace.result.documents == nil)
-            }.font(.bodyText).buttonStyle(.borderless).portbaseBar(Sizes.toolbar)
-            Divider()
+            if !showsGrid {
+                HStack(spacing: Spacing.s) {
+                    modeControls
+                    Spacer()
+                    resultActions
+                }.font(.bodyText).portbaseBar(Sizes.toolbar)
+                Divider()
+            }
             if let error = workspace.errorMessage {
                 Group {
                     if ConnectionIssue.isConnectionProblem(error) {
@@ -628,7 +668,7 @@ private struct DesktopResultsView: View {
                     Menu { ForEach([10, 25, 50, 100], id: \.self) { size in Button(L10n.plural("row_count", count: size)) { workspace.setExplorerPageSize(size) } } } label: { Text(workspace.explorerPageLabel) }
                     Button("Next results page", systemImage: "chevron.right") { workspace.goToNextExplorerPage() }.labelStyle(.iconOnly).disabled(!workspace.canGoToNextExplorerPage)
                 }
-            }.font(.rowDetail).buttonStyle(.borderless).portbaseBar(Sizes.statusBar)
+            }.font(.rowDetail).buttonStyle(.portbaseToolbar).portbaseBar(Sizes.statusBar)
         }
         .onChange(of: queryPlan != nil, initial: true) { _, hasPlan in
             if hasPlan { tableMode = "plan" } else if tableMode == "plan" { tableMode = "table" }
@@ -662,7 +702,9 @@ private struct DesktopResultsView: View {
             },
             copyEngine: workspace.selectedBookmark?.engine,
             copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName,
-            onSelectRow: { focusedRow = $0 })
+            onSelectRow: { focusedRow = $0 },
+            leadingAccessory: AnyView(modeControls.font(.bodyText)),
+            trailingAccessory: AnyView(resultActions.font(.bodyText)))
     }
 }
 
@@ -680,7 +722,7 @@ private struct DesktopMongoEditor: View {
                     if workspace.isRunning { workspace.cancelQuery() } else { perform { try workspace.runMongoBuilder() } }
                 }.disabled(workspace.selectedBookmark == nil)
                 Button("Explain") { perform { try workspace.runMongoBuilder(explain: true) } }.disabled(workspace.isRunning)
-            }.font(.bodyText).buttonStyle(.borderless).portbaseBar(Sizes.toolbar)
+            }.font(.bodyText).buttonStyle(.portbaseToolbar).portbaseBar(Sizes.toolbar)
             Divider()
             if workspace.mongoDraft.mode == .command { DesktopSQLEditor() }
             else if workspace.mongoDraft.mode == .find {
@@ -757,6 +799,8 @@ struct DesktopSettingsView: View {
                 Section("Library") { NavigationLink("Library Storage") { LibraryStorageView() } }
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(PortSQLPalette.canvasTop)
             }
             .tabItem { Label("General", systemImage: "gearshape") }
 
@@ -764,6 +808,8 @@ struct DesktopSettingsView: View {
                 AppearanceSettingsSection()
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(PortSQLPalette.canvasTop)
             .tabItem { Label("Appearance", systemImage: "paintpalette") }
 
             Form {
@@ -775,6 +821,8 @@ struct DesktopSettingsView: View {
                 }
             }
             .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .background(PortSQLPalette.canvasTop)
             .tabItem { Label("Editor", systemImage: "chevron.left.forwardslash.chevron.right") }
         }
         .frame(width: 580, height: 520)

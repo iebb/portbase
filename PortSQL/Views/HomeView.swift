@@ -93,7 +93,7 @@ struct HomeView: View {
                     Button { onNavigate(.explorer) } label: {
                         Label("Browse Data", systemImage: "tablecells").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.portbaseSecondary)
                 }
             }
             .padding(Spacing.l)
@@ -115,7 +115,7 @@ struct HomeView: View {
                             }
                             .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.portbaseSecondary)
                         .tint(.secondary)
                         .foregroundStyle(PortSQLPalette.ink)
                     }
@@ -156,7 +156,7 @@ struct HomeView: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.portbaseSecondary)
     }
 
     private var tableCountLabel: String {

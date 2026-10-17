@@ -10,18 +10,19 @@ enum PortSQLPalette {
         LinearGradient(colors: [accent, accent], startPoint: .top, endPoint: .bottom)
     }
     static var accentSoft: Color { accent.opacity(0.12) }
-    // A deep navy and slate palette in the style of modern host managers.
-    static let ink = Color.adaptive(light: 0x101525, dark: 0xEDF1F2)
-    /// Secondary text and icons as a fixed slate, for places such as the Mac sidebar where
+    // Surfaces and text come from the selected theme (Navy by default).
+    private static var theme: PortbaseTheme.Palette { PortbaseTheme.current.palette }
+    static var ink: Color { theme.ink }
+    /// Secondary text and icons as a fixed color, for places such as the Mac sidebar where
     /// vibrancy would otherwise darken the system secondary style.
-    static let muted = Color.adaptive(light: 0x5A5E73, dark: 0x8D91A5)
-    static let panel = Color.adaptive(light: 0xF5F7F9, dark: 0x111729)
-    static let surface = Color.adaptive(light: 0xFFFFFF, dark: 0x161C30)
-    static let tertiarySurface = Color.adaptive(light: 0xF7F9FA, dark: 0x1B2238)
-    static let sunken = Color.adaptive(light: 0xEDF1F2, dark: 0x0C1223)
-    static let stroke = Color.adaptive(light: 0xDFE4E8, dark: 0x262D45)
-    static let canvasTop = Color.adaptive(light: 0xF2F4F6, dark: 0x0A0F1E)
-    static let canvasAccent = Color.adaptive(light: 0xE8ECEF, dark: 0x0E1426)
+    static var muted: Color { theme.muted }
+    static var panel: Color { theme.panel }
+    static var surface: Color { theme.surface }
+    static var tertiarySurface: Color { theme.tertiarySurface }
+    static var sunken: Color { theme.sunken }
+    static var stroke: Color { theme.stroke }
+    static var canvasTop: Color { theme.canvas }
+    static var canvasAccent: Color { theme.canvasAccent }
     static let shadow = Color.black.opacity(0.12)
 
     static func editorBackground(for colorScheme: ColorScheme) -> Color {

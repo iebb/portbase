@@ -64,7 +64,7 @@ extension DatabaseService {
             try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
             try await self.configureMySQLSession(connection, profile: profile, policy: .readOnly)
             let future = connection.query(query.sql, query.values.map(Self.mysqlBind), onColumns: { definitions in
-                writer.setColumns(definitions.map { QueryColumn(name: $0.name, type: "\($0.columnType)") })
+                writer.setColumns(definitions.map { QueryColumn(name: $0.name, type: DatabaseService.mysqlTypeName($0)) })
             }, onRow: { row in
                 let cells = row.columnDefinitions.indices.map { index in
                     let definition = row.columnDefinitions[index]

@@ -7,6 +7,28 @@ import AppKit
 enum PortbaseKeyboardType { case `default`, numberPad, decimalPad, numbersAndPunctuation, URL, emailAddress, asciiCapable }
 #endif
 
+extension View {
+    /// Secondary actions for a sheet. macOS sheets don't show toolbar items other than their cancel and
+    /// confirm buttons, so on the Mac these sit in a bar along the bottom; on iOS they're toolbar items.
+    @ViewBuilder func portbaseSheetActions<Actions: View>(@ViewBuilder _ actions: @escaping () -> Actions) -> some View {
+#if os(macOS)
+        safeAreaInset(edge: .bottom, spacing: 0) {
+            HStack(spacing: Spacing.s) {
+                actions()
+                Spacer(minLength: 0)
+            }
+            .controlSize(.regular)
+            .padding(.horizontal, Spacing.l)
+            .frame(minHeight: Sizes.toolbar)
+            .background(PortSQLPalette.panel)
+            .overlay(alignment: .top) { Divider() }
+        }
+#else
+        toolbar { ToolbarItemGroup(placement: .topBarTrailing) { actions() } }
+#endif
+    }
+}
+
 enum PortbaseTitleMode { case inline, large, automatic }
 enum PortbaseCapitalization { case never, words, sentences, characters }
 

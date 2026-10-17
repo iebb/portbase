@@ -82,6 +82,9 @@ struct AboutHeader: View {
 struct AppearanceSettingsSection: View {
     @AppStorage(PortbaseAccent.storageKey) private var accent = PortbaseAccent.jade.rawValue
     @AppStorage(PortbaseAppearance.storageKey) private var appearance = PortbaseAppearance.system.rawValue
+    @AppStorage(PortbaseTheme.storageKey) private var theme = PortbaseTheme.navy.rawValue
+    @AppStorage(PortbaseInterfaceFont.storageKey) private var interfaceFont = PortbaseInterfaceFont.inter.rawValue
+    @AppStorage(PortbaseCodeFont.storageKey) private var codeFont = PortbaseCodeFont.sourceCodePro.rawValue
 
     var body: some View {
         Section {
@@ -127,8 +130,76 @@ struct AppearanceSettingsSection: View {
                 }
             }
             .padding(.vertical, Spacing.xxs)
+
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("Theme").font(.rowDetail)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: Spacing.m)], spacing: Spacing.m) {
+                    ForEach(PortbaseTheme.allCases) { option in themeCard(option) }
+                }
+            }
+            .padding(.vertical, Spacing.xxs)
+
+            Picker("Interface Font", selection: $interfaceFont) {
+                ForEach(PortbaseInterfaceFont.allCases) { option in Text(option.title).tag(option.rawValue) }
+            }
+            Picker("Code Font", selection: $codeFont) {
+                ForEach(PortbaseCodeFont.allCases) { option in Text(option.title).tag(option.rawValue) }
+            }
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text(verbatim: "Aa Bb Cc 0123").font(.cardTitle)
+                Text(verbatim: "SELECT 1;").font(.codeDetail).foregroundStyle(.secondary)
+            }
+            .padding(.vertical, Spacing.xxs)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Font preview")
         } header: {
             Text("Appearance")
+        }
+    }
+}
+
+extension AppearanceSettingsSection {
+    /// A theme preview: light and dark canvases with a card, so both appearances are visible at once.
+    func themeCard(_ option: PortbaseTheme) -> some View {
+        let palette = option.palette
+        let selected = theme == option.rawValue
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) { theme = option.rawValue }
+        } label: {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                HStack(spacing: 0) {
+                    swatch(canvas: palette.lightSwatch.0, surface: palette.lightSwatch.1)
+                    swatch(canvas: palette.darkSwatch.0, surface: palette.darkSwatch.1)
+                }
+                .frame(height: 56)
+                .clipShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                        .strokeBorder(selected ? PortSQLPalette.accent : PortSQLPalette.stroke, lineWidth: selected ? 2 : 1)
+                }
+                VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                    Text(option.title).font(.rowTitle).foregroundStyle(PortSQLPalette.ink)
+                    Text(option.subtitle).font(.captionText).foregroundStyle(.secondary).lineLimit(1)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(option.title)
+        .accessibilityHint(option.subtitle)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func swatch(canvas: UInt32, surface: UInt32) -> some View {
+        Color(hex: canvas).overlay(alignment: .bottomTrailing) {
+            VStack(alignment: .leading, spacing: Spacing.xxs) {
+                Capsule().fill(PortSQLPalette.accent).frame(width: 18, height: 4)
+                Capsule().fill(Color.gray.opacity(0.35)).frame(width: 26, height: 4)
+            }
+            .padding(Spacing.xs)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(Color(hex: surface), in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+            .padding([.top, .leading], Spacing.s)
         }
     }
 }

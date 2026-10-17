@@ -126,7 +126,7 @@ struct ConnectionsHubView: View {
         Button(action: onCreateSQLite) {
             Label("New SQLite Database", systemImage: "externaldrive.badge.plus").frame(minHeight: Sizes.buttonContent)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.portbaseSecondary)
     }
 
     // MARK: Groups
@@ -429,7 +429,7 @@ private struct ConnectionInspector: View {
                     Label("Duplicate", systemImage: "plus.square.on.square").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                 }
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.portbaseSecondary)
         }
     }
 

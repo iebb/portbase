@@ -256,12 +256,11 @@ struct RedisKeyInspector: View {
             .portbaseTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
-                ToolbarItem(placement: PortbaseToolbar.trailing) {
-                    Button {
-                        if isLoading { task?.cancel() } else { load(cursor: "0") }
-                    } label: { Image(systemName: isLoading ? "stop.fill" : "arrow.clockwise").frame(width: Sizes.control, height: Sizes.control) }
-                        .accessibilityLabel(L10n.text(isLoading ? "Stop" : "Refresh"))
-                }
+            }
+            .portbaseSheetActions {
+                Button {
+                    if isLoading { task?.cancel() } else { load(cursor: "0") }
+                } label: { Label(L10n.text(isLoading ? "Stop" : "Refresh"), systemImage: isLoading ? "stop.fill" : "arrow.clockwise") }
             }
             .task { load(cursor: "0") }
             .onDisappear { task?.cancel() }

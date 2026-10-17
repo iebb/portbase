@@ -384,7 +384,7 @@ struct VisualizerComposerSheet: View {
                                     Label("Delete Chart", systemImage: "trash")
                                         .frame(maxWidth: .infinity)
                                 }
-                                .buttonStyle(.bordered)
+                                .buttonStyle(.portbaseSecondary)
                                 .tint(.red)
                             }
                         }
@@ -713,7 +713,7 @@ private struct VisualizationPresetCard: View {
                 .font(.footnoteText)
                 .foregroundStyle(.secondary)
             Button(actionTitle, action: action)
-                .buttonStyle(.bordered)
+                .buttonStyle(.portbaseSecondary)
                 .frame(minHeight: Sizes.touchTarget)
         }
         .padding(Spacing.l)

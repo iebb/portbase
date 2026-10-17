@@ -1218,3 +1218,14 @@
 "Elasticsearch request as JSON" = "JSON 형식의 Elasticsearch 요청";
 "MongoDB command as JSON" = "JSON 형식의 MongoDB 명령";
 "SQL query" = "SQL 쿼리";
+"Code Font" = "코드 서체";
+"Cool blue-gray" = "차가운 청회색";
+"Deep navy and slate" = "짙은 남색과 슬레이트";
+"Font preview" = "서체 미리 보기";
+"Interface Font" = "인터페이스 서체";
+"Neutral grays" = "중립적인 회색";
+"Rounded" = "둥근 서체";
+"System" = "시스템";
+"Theme" = "테마";
+"View" = "보기";
+"Warm and soft" = "따뜻하고 부드러운";

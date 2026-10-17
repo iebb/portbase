@@ -92,6 +92,9 @@ struct ResultGridView: View {
     var copyTableName: String?
     /// Reports the loaded-row index of the focused cell's row, for detail panes.
     var onSelectRow: ((Int?) -> Void)?
+    /// Controls placed before and after the grid's own tools, so a host can share one toolbar row.
+    var leadingAccessory: AnyView?
+    var trailingAccessory: AnyView?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var configuration = ResultGridConfiguration()
@@ -141,6 +144,8 @@ struct ResultGridView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Spacing.s) {
+            if let leadingAccessory { leadingAccessory }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.s) {
                     Button { focusedColumn = nil; showsColumns = true } label: {
@@ -174,8 +179,8 @@ struct ResultGridView: View {
                         Button("Select All") { selectAll() }
                     } label: {
                         Label("Copy", systemImage: "doc.on.doc")
-                            .frame(minHeight: controlHeight)
                     }
+                    .menuStyle(.button)
                     .disabled(selection == nil && result.rows.isEmpty)
                     if let selection {
                         Text(L10n.format("Cells: %d", selection.count))
@@ -186,12 +191,19 @@ struct ResultGridView: View {
                         .accessibilityLabel("Clear selection")
                     }
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.portbaseToolbar)
                 .font(.rowDetail)
 #if os(macOS)
                 .font(.bodyText).padding(.horizontal, Spacing.s)
 #endif
             }
+            if let trailingAccessory { trailingAccessory }
+            }
+#if os(macOS)
+            .padding(.horizontal, leadingAccessory == nil ? 0 : Spacing.m)
+            .frame(minHeight: leadingAccessory == nil ? nil : Sizes.toolbar)
+            .background(leadingAccessory == nil ? Color.clear : PortSQLPalette.panel)
+#endif
             if filter.isActive {
                 HStack {
                     Text(L10n.format("Loaded rows: %d / %d", rowIndices.count, result.rows.count)).font(.captionText).foregroundStyle(.secondary)
