@@ -67,7 +67,7 @@ limited to 10,000 rows with explicit truncation.
 
 ## Build from source
 
-Use macOS with Xcode 26 or newer and Swift 6 support. The iOS app targets iOS 18
+Use macOS with Xcode 27 or newer and Swift 6 support. The iOS app targets iOS 18
 and later; the native Mac app targets macOS 15 and later. Mac Catalyst is not used.
 
 ```sh

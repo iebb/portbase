@@ -2,10 +2,14 @@
 
 `.github/workflows/app-store-connect.yml` builds the triggering `master` commit
 in **iebb/portbase**, or the current `master` commit on a manual run. iOS and
-native macOS archive independently on hosted `macos-26` runners. The workflow
+native macOS archive independently on hosted `xcode-27` runners. The workflow
 uses repository secrets directly, without deployment environments or reviewer
 approval gates. A new push queues behind an active release rather than
 cancelling an upload.
+
+The stable Xcode 27 toolchain is selected explicitly. Xcode 26.6 crashes in
+optimized compilation of the current iOS app; CI uses the release SDK rather
+than the beta installations also present on the runner image.
 
 ## Build and signing
 

@@ -27,7 +27,7 @@ jobs:
     name: Archive and upload ${{ matrix.platform }}
     needs: release-checks
     if: github.ref == 'refs/heads/master'
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 120
     strategy:
       fail-fast: false
@@ -42,6 +42,8 @@ jobs:
             destination: generic/platform=macOS
             app: Portbase.app
     env:
+      # Pin the stable SDK; the image also contains beta Xcode installations.
+      DEVELOPER_DIR: /Applications/Xcode_27.app/Contents/Developer
       APP_STORE_ID: '6762447018'
       DEVELOPMENT_TEAM: 7P8CLHDH5G
       ASC_PLATFORM: ${{ matrix.platform }}
