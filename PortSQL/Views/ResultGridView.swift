@@ -619,7 +619,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let selected = !header && !rowNumber && parent.selection?.contains(row: path.section - 1, column: path.item - 1) == true
             cell.backgroundColor = selected ? UIColor(PortSQLPalette.accent).withAlphaComponent(0.19)
                 : (header || rowNumber ? Self.headerColor : (path.section.isMultiple(of: 2) ? Self.stripeColor : Self.rowColor))
-            cell.label.font = header ? PortbaseFonts.uiFont(TypeSize.caption, weight: .semibold, textStyle: .caption1)
+            cell.label.font = header ? PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1)
                 : PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
             cell.label.textColor = header || rowNumber ? .secondaryLabel : .label
             cell.label.textAlignment = rowNumber ? .center : .left
@@ -641,12 +641,12 @@ private struct GridCollectionBridge: UIViewRepresentable {
                 let sorted = parent.sortedColumn == column.name
                 cell.symbol.image = parent.primaryKeys.contains(column.name) ? UIImage(systemName: "key.fill") : nil
                 let title = NSMutableAttributedString(string: column.name + (sorted ? (parent.sortDirection == "DESC" ? " ↓" : " ↑") : ""),
-                                                      attributes: [.font: PortbaseFonts.uiFont(TypeSize.caption, weight: .semibold, textStyle: .caption1),
+                                                      attributes: [.font: PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1),
                                                                    .foregroundColor: UIColor.label])
                 // The column's type sits under its name, as in desktop SQL clients.
                 if !column.type.isEmpty {
                     title.append(NSAttributedString(string: "\n" + column.type.lowercased(),
-                                                    attributes: [.font: PortbaseFonts.uiFont(TypeSize.micro, textStyle: .caption2),
+                                                    attributes: [.font: PortbaseFonts.codeFont(TypeSize.micro, textStyle: .caption2),
                                                                  .foregroundColor: UIColor.tertiaryLabel]))
                     cell.label.numberOfLines = 2
                 }

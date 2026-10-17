@@ -83,8 +83,8 @@ struct AppearanceSettingsSection: View {
     @AppStorage(PortbaseAccent.storageKey) private var accent = PortbaseAccent.jade.rawValue
     @AppStorage(PortbaseAppearance.storageKey) private var appearance = PortbaseAppearance.system.rawValue
     @AppStorage(PortbaseTheme.storageKey) private var theme = PortbaseTheme.navy.rawValue
-    @AppStorage(PortbaseInterfaceFont.storageKey) private var interfaceFont = PortbaseInterfaceFont.inter.rawValue
-    @AppStorage(PortbaseCodeFont.storageKey) private var codeFont = PortbaseCodeFont.sourceCodePro.rawValue
+    @AppStorage(PortbaseInterfaceFont.storageKey) private var interfaceFont = PortbaseInterfaceFont.googleSans.rawValue
+    @AppStorage(PortbaseCodeFont.storageKey) private var codeFont = PortbaseCodeFont.googleSansCode.rawValue
 
     var body: some View {
         Section {

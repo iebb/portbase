@@ -47,6 +47,7 @@
 		1C0D87518414AD3198B63443 /* AdaptiveWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3D1D9A7E8AFEDFE1F4E1A9 /* AdaptiveWorkspaceView.swift */; };
 		1CAB890451177CE9DA728528 /* HTTPDatabaseTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = F391223F1E41E8BE0F2D827D /* HTTPDatabaseTransport.swift */; };
 		1CEBCE815013CB660569EC69 /* DatabaseService+SchemaObjects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66C255FEA45FA7B30355DFA9 /* DatabaseService+SchemaObjects.swift */; };
+		1DD1BDB4C71A7CAE31AAE617 /* GoogleSansCode.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9BE0FDCB322A60EC92D1673E /* GoogleSansCode.ttf */; };
 		1DDAF727A09CACD67B95B03A /* DatabaseService+DataTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA37ABF0B4F735A4AE66464B /* DatabaseService+DataTransfer.swift */; };
 		1E18FF043CAAEE593834094B /* MongoDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7867B3292D0801CEF08B739 /* MongoDatabaseClient.swift */; };
 		1E64BAE770072DE127C77049 /* SQLSafetyServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */; };
@@ -99,6 +100,7 @@
 		3F111012F4D1C2CD865BA6E2 /* DatabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B4E17BED217B13694466C80 /* DatabaseService.swift */; };
 		3F4F270C8A071A7A0E2CD732 /* Crypto in Frameworks */ = {isa = PBXBuildFile; productRef = 2C1A17A86B43B1FD8FFDAA13 /* Crypto */; };
 		3F61C3333F9BF9AD20846B40 /* ClickHouseDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22AFD3BD8AC9A13A7B595C68 /* ClickHouseDatabaseClient.swift */; };
+		3F703D17432C2CE2DABFDFED /* GoogleSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C1B2E637815EEC5622B6264E /* GoogleSans-Bold.ttf */; };
 		3F8775515111911DB106E11A /* ElasticsearchDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266104AD5AF46E38E1A8CD0F /* ElasticsearchDatabaseClient.swift */; };
 		3FA469AD11C3D4EB794F641B /* ResultCopyFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4FBA23C69DADEC2B085A0E7 /* ResultCopyFormatter.swift */; };
 		3FEB745B5D87FE2A25F273BF /* DataTransferModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87A5A8BD8B3776437D1D7D3C /* DataTransferModels.swift */; };
@@ -155,6 +157,7 @@
 		6801E86699C4826804508E49 /* ConsoleStorageAndSQLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFFCE96A9FFBC25F139FD31F /* ConsoleStorageAndSQLTests.swift */; };
 		687E8A63196B55871E2969F0 /* ResultInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC78B5ECB863307828AF3718 /* ResultInsightsView.swift */; };
 		690A700F5922EBE63721C43D /* ElasticsearchDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266104AD5AF46E38E1A8CD0F /* ElasticsearchDatabaseClient.swift */; };
+		69968AB526A5A2AB620D0BAA /* GoogleSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 303E76920A0C19BC7BE06784 /* GoogleSans-Medium.ttf */; };
 		6A5EC5F68CD5A2EBBBC02D69 /* ResultCellInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B9D14041642CE740791883 /* ResultCellInspector.swift */; };
 		6AC1297B189A966798261E0E /* DesktopWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F855995945D86DACBDF277 /* DesktopWorkspaceView.swift */; };
 		6B07EC11FB0939626CDFCA7A /* MongoIndexesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD23E4CE4D8F3DCC58FFAB07 /* MongoIndexesView.swift */; };
@@ -182,14 +185,18 @@
 		7AF92EE5AAFE07BFD0E58DD5 /* ConnectionStringImportSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F1931C56AE2F37BF716948 /* ConnectionStringImportSection.swift */; };
 		7B0635F3FA17FEF9133579D7 /* SQLAssistServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E39B44C66543C65AE60594D5 /* SQLAssistServiceTests.swift */; };
 		7CF309494C67F491C97DCEF8 /* LocalizationKeychainAndCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B00FBD279062676E4B5484F /* LocalizationKeychainAndCatalogTests.swift */; };
+		7D715338E1BE2D2CF6DCEEB6 /* GoogleSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 78C736DF9C6AFAF97E6EB2A1 /* GoogleSans-Regular.ttf */; };
 		7EB6E689F43369ED2A45D59F /* Crypto in Frameworks */ = {isa = PBXBuildFile; productRef = A387DEB054010AD35A0F081C /* Crypto */; };
 		7EF165E31E9C457C44DBA91C /* MongoDocumentEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5386C3FB749D9E3C6F4B50C /* MongoDocumentEditingTests.swift */; };
 		7F3D87C7B22E662289397548 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */; };
 		7FFA2312B72A609C1077C166 /* SQLiteDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03DA5F64AAE6D4280F68B27 /* SQLiteDatabaseClient.swift */; };
+		804ECABD0BA80CF67F810F3C /* GoogleSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 303E76920A0C19BC7BE06784 /* GoogleSans-Medium.ttf */; };
 		80CE4D0B6F55A75F0234E21F /* WorkspaceToolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85FF698B692E31F5D83E3B42 /* WorkspaceToolsTests.swift */; };
 		81FF78AEEE680E2361086F4A /* WorkspaceActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934A946D9B49098CF15CE03C /* WorkspaceActivityService.swift */; };
+		825D5720680A19572F282CC5 /* GoogleSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 78C736DF9C6AFAF97E6EB2A1 /* GoogleSans-Regular.ttf */; };
 		840D1CEF920D56AB08F43F45 /* QueryParameterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C0B78E00C4985082E65410 /* QueryParameterService.swift */; };
 		844E54BB7106AD53815C2890 /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C43FD9CD8FFE98EA50A6AFE /* ExplorerView.swift */; };
+		8468A090A386274266977404 /* GoogleSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7B69EB94ECEE7FF7144D2AE6 /* GoogleSans-SemiBold.ttf */; };
 		86A9C00E017CE67722C80EC0 /* ClauseHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC84B2175B057E0A17E9C30 /* ClauseHistoryStore.swift */; };
 		86EDEB93300F512693176EF1 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */; };
 		8711D518313BB446FC280F8B /* NIOHTTP1 in Frameworks */ = {isa = PBXBuildFile; productRef = 03FADCDDCCAE0BDA655ECA72 /* NIOHTTP1 */; };
@@ -211,6 +218,7 @@
 		906087DCF0982DA6132B9581 /* WorkspaceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B89D239D48FE17AB83512E6 /* WorkspaceViewModel.swift */; };
 		90A020D410E47A405D6C43ED /* SQLiteModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30481C95CB3C97725483486C /* SQLiteModels.swift */; };
 		90D53DA93C1CFB1BA769BA06 /* InteractiveChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AC296A2B11CE78022CF31E /* InteractiveChartView.swift */; };
+		915A624A8F8F3129416C9C3F /* GoogleSans-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C1B2E637815EEC5622B6264E /* GoogleSans-Bold.ttf */; };
 		91934FCF440DF634AFC94177 /* DataEditorValidationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 465C87F78195FB7C368FCAFB /* DataEditorValidationService.swift */; };
 		93F4A75FCDCC1F0B8A1371A5 /* DatabaseService+DataTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA37ABF0B4F735A4AE66464B /* DatabaseService+DataTransfer.swift */; };
 		951EF16B96D362BC1F847A0F /* ResultInsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEC7CD18B27601AF3A8FF44 /* ResultInsightsService.swift */; };
@@ -295,6 +303,7 @@
 		DB5981430670D84FC1DBCABD /* SourceCodePro-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */; };
 		DD3C41B87E7D3F09D90C8278 /* CertificateTrustSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4347DEE88530446E7D272A81 /* CertificateTrustSheet.swift */; };
 		DD5A273EE0B38B3EC02E2AB5 /* ConnectionStatusLine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 145631CFEE09178B998BFDC6 /* ConnectionStatusLine.swift */; };
+		DDB535B7956FFA89AB8FEB7A /* GoogleSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7B69EB94ECEE7FF7144D2AE6 /* GoogleSans-SemiBold.ttf */; };
 		DFF4D0AF8BE6FAE1C9BECCDC /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 4D175FE93FD2599448CFCC29 /* InfoPlist.strings */; };
 		E05683D0AA165854FCEAFFED /* Inter-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */; };
 		E149852F4935AD7D5D8CF004 /* Localizable.stringsdict in Resources */ = {isa = PBXBuildFile; fileRef = 8157E6741A0563EC852697C9 /* Localizable.stringsdict */; };
@@ -311,6 +320,7 @@
 		E823378806EC20D5CBF2AA4A /* ScriptFilesButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325B57CEA6AB5C9B70261FEC /* ScriptFilesButton.swift */; };
 		E85F0CE6E2C66B22087411BD /* WorkspaceFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF71402E9A73FE068C63162F /* WorkspaceFileStore.swift */; };
 		E94235766A587356E40A8E8D /* PinnedTableStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE53A06B4D778F2F9E510D1 /* PinnedTableStore.swift */; };
+		EB363AC9731C33310E001852 /* GoogleSansCode.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9BE0FDCB322A60EC92D1673E /* GoogleSansCode.ttf */; };
 		EB727A3288203B0051E9993B /* SQLTemplateService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51D052A6EDBBBEC17FF22ED /* SQLTemplateService.swift */; };
 		EB8FB6158210E0D5DB96ED55 /* ConnectionsHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C1A7CF6209A3E784768B757 /* ConnectionsHubView.swift */; };
 		EE84245D5CADDE09EC576CBD /* ElasticsearchModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8B685BE103998684123BF20 /* ElasticsearchModels.swift */; };
@@ -395,6 +405,7 @@
 		28BA0C08CE22B10DAB99618D /* fr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = fr; path = fr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		28C27A4427703F412FD07644 /* ConsoleTabBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsoleTabBar.swift; sourceTree = "<group>"; };
 		2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.otf"; sourceTree = "<group>"; };
+		303E76920A0C19BC7BE06784 /* GoogleSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GoogleSans-Medium.ttf"; sourceTree = "<group>"; };
 		30481C95CB3C97725483486C /* SQLiteModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteModels.swift; sourceTree = "<group>"; };
 		31CB1110D1A265C5D04A9F6F /* SQLiteSchemaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteSchemaService.swift; sourceTree = "<group>"; };
 		325B57CEA6AB5C9B70261FEC /* ScriptFilesButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptFilesButton.swift; sourceTree = "<group>"; };
@@ -455,8 +466,10 @@
 		77AD64E9FD53B446DBDE8C9F /* ResultInspectionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultInspectionService.swift; sourceTree = "<group>"; };
 		77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPaletteView.swift; sourceTree = "<group>"; };
 		785CBF772127810438B159B0 /* SQLQueryDiagnostic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLQueryDiagnostic.swift; sourceTree = "<group>"; };
+		78C736DF9C6AFAF97E6EB2A1 /* GoogleSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GoogleSans-Regular.ttf"; sourceTree = "<group>"; };
 		7A7F8B6B81411A3951C32F65 /* PortbaseMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PortbaseMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7B00FBD279062676E4B5484F /* LocalizationKeychainAndCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationKeychainAndCatalogTests.swift; sourceTree = "<group>"; };
+		7B69EB94ECEE7FF7144D2AE6 /* GoogleSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GoogleSans-SemiBold.ttf"; sourceTree = "<group>"; };
 		83752D4DFB57E52D5894933F /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = es; path = es.lproj/Localizable.strings; sourceTree = "<group>"; };
 		8406B5134DBA9C067C46E4FF /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		8463A17B78D6D423C713CA8B /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -474,6 +487,7 @@
 		934A946D9B49098CF15CE03C /* WorkspaceActivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceActivityService.swift; sourceTree = "<group>"; };
 		93E0B98E8158EFD30C53FC5B /* ScriptFileService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptFileService.swift; sourceTree = "<group>"; };
 		96C2582C00122CD6222047E0 /* PortSQL.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PortSQL.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9BE0FDCB322A60EC92D1673E /* GoogleSansCode.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GoogleSansCode.ttf; sourceTree = "<group>"; };
 		9C1A7CF6209A3E784768B757 /* ConnectionsHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionsHubView.swift; sourceTree = "<group>"; };
 		9C872754AF981E9529ECBC05 /* NewSQLiteDatabasePrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewSQLiteDatabasePrompt.swift; sourceTree = "<group>"; };
 		A3F1286F50D428475C38033F /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ko; path = ko.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
@@ -503,6 +517,7 @@
 		C068A9A18ACC5469C5441369 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DatabaseSafetyTests.swift; sourceTree = "<group>"; };
 		C14B81968F6B961EC57B9332 /* RedisCommandService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisCommandService.swift; sourceTree = "<group>"; };
+		C1B2E637815EEC5622B6264E /* GoogleSans-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "GoogleSans-Bold.ttf"; sourceTree = "<group>"; };
 		C2958FC4E2B745E93C90C45B /* MongoDocumentEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDocumentEditor.swift; sourceTree = "<group>"; };
 		C2F929B764AFC3E50D32F5F4 /* MongoExtendedJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoExtendedJSON.swift; sourceTree = "<group>"; };
 		C325888189767A996734E33C /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
@@ -730,6 +745,11 @@
 		885B9E63B36C1704897979BC /* Fonts */ = {
 			isa = PBXGroup;
 			children = (
+				C1B2E637815EEC5622B6264E /* GoogleSans-Bold.ttf */,
+				303E76920A0C19BC7BE06784 /* GoogleSans-Medium.ttf */,
+				78C736DF9C6AFAF97E6EB2A1 /* GoogleSans-Regular.ttf */,
+				7B69EB94ECEE7FF7144D2AE6 /* GoogleSans-SemiBold.ttf */,
+				9BE0FDCB322A60EC92D1673E /* GoogleSansCode.ttf */,
 				619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */,
 				85933FC85A65CAEAEEE98DA9 /* Inter-Medium.otf */,
 				2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */,
@@ -1053,6 +1073,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				F2B9AC336783FD7D30AF8A71 /* AppIcon.icon in Resources */,
+				3F703D17432C2CE2DABFDFED /* GoogleSans-Bold.ttf in Resources */,
+				804ECABD0BA80CF67F810F3C /* GoogleSans-Medium.ttf in Resources */,
+				825D5720680A19572F282CC5 /* GoogleSans-Regular.ttf in Resources */,
+				DDB535B7956FFA89AB8FEB7A /* GoogleSans-SemiBold.ttf in Resources */,
+				1DD1BDB4C71A7CAE31AAE617 /* GoogleSansCode.ttf in Resources */,
 				DFF4D0AF8BE6FAE1C9BECCDC /* InfoPlist.strings in Resources */,
 				BCC9280BDFAFD6133502D5A6 /* Inter-Bold.otf in Resources */,
 				4940EBB3BE4C24F23B1E0271 /* Inter-Medium.otf in Resources */,
@@ -1071,6 +1096,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				E181DB43C5082EDF08E82ACA /* AppIcon.icon in Resources */,
+				915A624A8F8F3129416C9C3F /* GoogleSans-Bold.ttf in Resources */,
+				69968AB526A5A2AB620D0BAA /* GoogleSans-Medium.ttf in Resources */,
+				7D715338E1BE2D2CF6DCEEB6 /* GoogleSans-Regular.ttf in Resources */,
+				8468A090A386274266977404 /* GoogleSans-SemiBold.ttf in Resources */,
+				EB363AC9731C33310E001852 /* GoogleSansCode.ttf in Resources */,
 				7889D85E8399B28CC34F0798 /* InfoPlist.strings in Resources */,
 				058EAE07A623C0BEBD6B6C96 /* Inter-Bold.otf in Resources */,
 				41F0AAC6DBB518B683BABF8F /* Inter-Medium.otf in Resources */,

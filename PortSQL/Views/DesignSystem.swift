@@ -185,13 +185,14 @@ enum PortbaseTheme: String, CaseIterable, Identifiable {
 
 /// The interface typeface.
 enum PortbaseInterfaceFont: String, CaseIterable, Identifiable {
-    case inter, system, rounded
+    case googleSans, inter, system, rounded
 
     static let storageKey = "Portbase.interfaceFont"
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .googleSans: "Google Sans"
         case .inter: "Inter"
         case .system: L10n.text("System")
         case .rounded: L10n.text("Rounded")
@@ -199,13 +200,13 @@ enum PortbaseInterfaceFont: String, CaseIterable, Identifiable {
     }
 
     static var current: PortbaseInterfaceFont {
-        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseInterfaceFont.init(rawValue:)) ?? .inter
+        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseInterfaceFont.init(rawValue:)) ?? .googleSans
     }
 }
 
 /// The typeface for SQL, JSON, and values in results.
 enum PortbaseCodeFont: String, CaseIterable, Identifiable {
-    case sourceCodePro, sfMono, menlo
+    case googleSansCode, sourceCodePro, sfMono, menlo
 
     static let storageKey = "Portbase.codeFont"
     var id: String { rawValue }
@@ -213,6 +214,7 @@ enum PortbaseCodeFont: String, CaseIterable, Identifiable {
     // Typeface names are product names and are not translated.
     var title: String {
         switch self {
+        case .googleSansCode: "Google Sans Code"
         case .sourceCodePro: "Source Code Pro"
         case .sfMono: "SF Mono"
         case .menlo: "Menlo"
@@ -220,7 +222,7 @@ enum PortbaseCodeFont: String, CaseIterable, Identifiable {
     }
 
     static var current: PortbaseCodeFont {
-        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseCodeFont.init(rawValue:)) ?? .sourceCodePro
+        UserDefaults.standard.string(forKey: storageKey).flatMap(PortbaseCodeFont.init(rawValue:)) ?? .googleSansCode
     }
 }
 
@@ -452,15 +454,14 @@ enum TypeSize {
 /// The bundled typefaces: Inter for the interface and Source Code Pro for SQL, JSON, and values.
 /// Both are SIL Open Font License fonts shipped unmodified in `PortSQL/Fonts` (see `OFL.txt`).
 enum PortbaseFonts {
-    static let interface = "Inter"
-    static let code = "Source Code Pro"
-
     private final class BundleToken {}
 
     /// Registers the bundled faces for this process once; every font helper touches it first.
     static let registration: Void = {
         let bundle = Bundle(for: BundleToken.self)
-        let files = [("Inter-Regular", "otf"), ("Inter-Medium", "otf"), ("Inter-SemiBold", "otf"), ("Inter-Bold", "otf"),
+        let files = [("GoogleSans-Regular", "ttf"), ("GoogleSans-Medium", "ttf"), ("GoogleSans-SemiBold", "ttf"), ("GoogleSans-Bold", "ttf"),
+                     ("GoogleSansCode", "ttf"),
+                     ("Inter-Regular", "otf"), ("Inter-Medium", "otf"), ("Inter-SemiBold", "otf"), ("Inter-Bold", "otf"),
                      ("SourceCodePro-Regular", "ttf"), ("SourceCodePro-Bold", "ttf")]
         let urls = files.compactMap { bundle.url(forResource: $0.0, withExtension: $0.1) }
         CTFontManagerRegisterFontURLs(urls as CFArray, .process, true, nil)
@@ -470,7 +471,8 @@ enum PortbaseFonts {
     static func ui(_ size: CGFloat, _ weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
         _ = registration
         switch PortbaseInterfaceFont.current {
-        case .inter: return Font.custom(interface, size: size, relativeTo: style).weight(weight)
+        case .googleSans: return Font.custom("Google Sans", size: size, relativeTo: style).weight(weight)
+        case .inter: return Font.custom("Inter", size: size, relativeTo: style).weight(weight)
         case .system: return Font.system(size: scaled(size, style), weight: weight)
         case .rounded: return Font.system(size: scaled(size, style), weight: weight, design: .rounded)
         }
@@ -480,7 +482,8 @@ enum PortbaseFonts {
     static func mono(_ size: CGFloat, _ weight: Font.Weight = .regular, relativeTo style: Font.TextStyle = .body) -> Font {
         _ = registration
         switch PortbaseCodeFont.current {
-        case .sourceCodePro: return Font.custom(code, size: size, relativeTo: style).weight(weight)
+        case .googleSansCode: return Font.custom("Google Sans Code", size: size, relativeTo: style).weight(weight)
+        case .sourceCodePro: return Font.custom("Source Code Pro", size: size, relativeTo: style).weight(weight)
         case .sfMono: return Font.system(size: scaled(size, style), weight: weight, design: .monospaced)
         case .menlo: return Font.custom("Menlo", size: size, relativeTo: style).weight(weight)
         }
@@ -517,16 +520,22 @@ enum PortbaseFonts {
     private static func postScriptName(code isCode: Bool, bold: Bool, weight: CGFloat) -> String? {
         if isCode {
             switch PortbaseCodeFont.current {
+            case .googleSansCode: return bold ? "GoogleSansCode-Bold" : "GoogleSansCode-Regular"
             case .sourceCodePro: return bold ? "SourceCodePro-Bold" : "SourceCodePro-Regular"
             case .menlo: return bold ? "Menlo-Bold" : "Menlo-Regular"
             case .sfMono: return nil
             }
         }
-        guard PortbaseInterfaceFont.current == .inter else { return nil }
-        if bold || weight >= 0.4 { return "Inter-Bold" }
-        if weight >= 0.3 { return "Inter-SemiBold" }
-        if weight >= 0.2 { return "Inter-Medium" }
-        return "Inter-Regular"
+        let family: String
+        switch PortbaseInterfaceFont.current {
+        case .googleSans: family = "GoogleSans"
+        case .inter: family = "Inter"
+        case .system, .rounded: return nil
+        }
+        if bold || weight >= 0.4 { return family + "-Bold" }
+        if weight >= 0.3 { return family + "-SemiBold" }
+        if weight >= 0.2 { return family + "-Medium" }
+        return family + "-Regular"
     }
 
 #if canImport(UIKit)
@@ -579,7 +588,7 @@ enum PortbaseFonts {
 #endif
 }
 
-/// Typography roles, set in Inter with Source Code Pro for code. iOS sizes scale with Dynamic Type.
+/// Typography roles, set in Google Sans with Google Sans Code for code by default. iOS sizes scale with Dynamic Type.
 extension Font {
     static var displayTitle: Font { PortbaseFonts.ui(TypeSize.display, .bold, relativeTo: .largeTitle) }
     static var pageTitle: Font { PortbaseFonts.ui(TypeSize.title, .bold, relativeTo: .title2) }

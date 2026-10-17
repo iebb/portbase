@@ -4,6 +4,12 @@ Copyright (c) 2020 The Inter Project Authors (https://github.com/rsms/inter)
 Source Code Pro
 Copyright 2010-2020 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
 
+Google Sans
+Copyright 2025 The Google Sans Project Authors (github.com/googlefonts/googlesans)
+
+Google Sans Code
+Copyright 2026 The Google Sans Code Project Authors (github.com/googlefonts/googlesans-code)
+
 These fonts are bundled unmodified and are licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at: https://openfontlicense.org
 

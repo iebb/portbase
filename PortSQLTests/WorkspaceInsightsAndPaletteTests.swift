@@ -177,15 +177,23 @@ final class WorkspaceInsightsAndPaletteTests: XCTestCase {
 
     func testBundledFontsRegisterWithLicense() throws {
         _ = PortbaseFonts.registration
-        for name in ["Inter-Regular", "Inter-Medium", "Inter-SemiBold", "Inter-Bold", "SourceCodePro-Regular", "SourceCodePro-Bold"] {
+        for name in ["GoogleSans-Regular", "GoogleSans-Medium", "GoogleSans-SemiBold", "GoogleSans-Bold", "GoogleSansCode-Regular", "GoogleSansCode-Bold",
+                     "Inter-Regular", "Inter-Medium", "Inter-SemiBold", "Inter-Bold", "SourceCodePro-Regular", "SourceCodePro-Bold"] {
 #if canImport(UIKit)
             XCTAssertNotNil(UIFont(name: name, size: 13), name)
 #else
             XCTAssertNotNil(NSFont(name: name, size: 13), name)
 #endif
         }
-        XCTAssertEqual(PortbaseFonts.codeFont(13).fontName, "SourceCodePro-Regular")
+        let defaults = UserDefaults.standard
+        defaults.removeObject(forKey: PortbaseInterfaceFont.storageKey)
+        defaults.removeObject(forKey: PortbaseCodeFont.storageKey)
+        XCTAssertEqual(PortbaseInterfaceFont.current, .googleSans)
+        XCTAssertEqual(PortbaseCodeFont.current, .googleSansCode)
+        XCTAssertEqual(PortbaseFonts.codeFont(13).fontName, "GoogleSansCode-Regular")
+        XCTAssertEqual(PortbaseFonts.codeFont(13, bold: true).fontName, "GoogleSansCode-Bold")
         let license = try XCTUnwrap(Bundle.main.url(forResource: "OFL", withExtension: "txt"), "The font license ships with the app")
         XCTAssertTrue(try String(contentsOf: license, encoding: .utf8).contains("SIL OPEN FONT LICENSE Version 1.1"))
+        XCTAssertTrue(try String(contentsOf: license, encoding: .utf8).contains("The Google Sans Code Project Authors"))
     }
 }
