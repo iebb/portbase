@@ -1290,3 +1290,4 @@
 "Refresh Database List" = "刷新数据库列表";
 "Statement executed" = "语句已执行";
 "Choose a table or run a query to see rows here." = "选择一个表或运行查询，即可在此查看行。";
+"Chart Current Result" = "为当前结果创建图表";

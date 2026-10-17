@@ -1290,3 +1290,4 @@
 "Refresh Database List" = "Actualiser la liste des bases de données";
 "Statement executed" = "Instruction exécutée";
 "Choose a table or run a query to see rows here." = "Choisissez une table ou exécutez une requête pour voir des lignes ici.";
+"Chart Current Result" = "Représenter le résultat actuel";

@@ -6,14 +6,29 @@ struct VisualizerView: View {
     @EnvironmentObject private var libraryStore: WorkspaceLibraryStore
     @State private var editingPreset: SavedVisualizationPreset?
 
+    private var canChartCurrentResult: Bool {
+        !workspace.result.columns.isEmpty
+            && VisualizationService.fieldDescriptors(for: workspace.result).contains(where: \.supportsNumeric)
+    }
+
+    private var currentResultPreset: SavedVisualizationPreset {
+        VisualizationService.reconciledPreset(nil, for: workspace.result,
+            connectionProfileID: workspace.selectedBookmark?.id,
+            connectionName: workspace.selectedBookmark?.name ?? L10n.text("Current Result"),
+            databaseName: workspace.activeDatabaseName, sourceTableReference: workspace.result.sourceTableReference)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.xl) {
                 if libraryStore.visualizations.isEmpty {
+                    // When the current result can be charted, start from it here instead of only pointing to Results.
                     PortbaseEmptyState(
                         title: L10n.text("No saved charts yet"),
                         message: L10n.text("Run a query with numeric columns, then choose the chart button in Results to design and save a chart."),
-                        systemImage: "chart.bar.xaxis"
+                        systemImage: "chart.bar.xaxis",
+                        actionTitle: canChartCurrentResult ? L10n.text("Chart Current Result") : nil,
+                        action: canChartCurrentResult ? { editingPreset = currentResultPreset } : nil
                     )
                     .padding(.top, Spacing.xxxl * 2)
                 } else {

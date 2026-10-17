@@ -1290,3 +1290,4 @@
 "Refresh Database List" = "データベース一覧を更新";
 "Statement executed" = "ステートメントを実行しました";
 "Choose a table or run a query to see rows here." = "テーブルを選ぶかクエリを実行すると、ここに行が表示されます。";
+"Chart Current Result" = "現在の結果をグラフにする";

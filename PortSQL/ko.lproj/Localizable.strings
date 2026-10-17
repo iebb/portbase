@@ -1290,3 +1290,4 @@
 "Refresh Database List" = "데이터베이스 목록 새로 고침";
 "Statement executed" = "문이 실행되었습니다";
 "Choose a table or run a query to see rows here." = "테이블을 선택하거나 쿼리를 실행하면 여기에 행이 표시됩니다.";
+"Chart Current Result" = "현재 결과를 차트로 만들기";

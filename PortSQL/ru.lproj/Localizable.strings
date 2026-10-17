@@ -1290,3 +1290,4 @@
 "Refresh Database List" = "Обновить список баз данных";
 "Statement executed" = "Инструкция выполнена";
 "Choose a table or run a query to see rows here." = "Выберите таблицу или выполните запрос, чтобы увидеть здесь строки.";
+"Chart Current Result" = "Построить график по текущему результату";

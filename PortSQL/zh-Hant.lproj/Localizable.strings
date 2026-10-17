@@ -1290,3 +1290,4 @@
 "Refresh Database List" = "重新整理資料庫列表";
 "Statement executed" = "陳述式已執行";
 "Choose a table or run a query to see rows here." = "選擇一個表格或執行查詢，即可在此查看列。";
+"Chart Current Result" = "為目前結果建立圖表";
