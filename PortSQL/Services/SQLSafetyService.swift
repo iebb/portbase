@@ -155,7 +155,8 @@ enum SQLSafetyService {
     }
 
     private static func containsWord(_ word: String, in normalized: String) -> Bool {
-        normalized.range(of: #"(?<![A-Z0-9_])\#(word)(?![A-Z0-9_])"#, options: .regularExpression) != nil
+        // No lookbehind: newer Foundation runtimes evaluate this with Swift Regex, which rejects it.
+        normalized.range(of: #"(^|[^A-Z0-9_])\#(word)($|[^A-Z0-9_])"#, options: .regularExpression) != nil
     }
 
     private static func normalizedStatements(_ sql: String, engine: DatabaseEngine) -> [String] {
