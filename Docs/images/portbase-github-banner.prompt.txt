@@ -10,6 +10,7 @@ CRITICAL: Leave the whole left 58 percent as completely clean warm ivory negativ
 
 Final typography: Google Sans Bold from PortSQL/Fonts/GoogleSans-Bold.ttf.
 Exact title: Portbase
-Exact subtitle, on two lines: Your Portable / DB Client
-Charcoal text (#1d2327), left aligned in the reserved negative space.
+Exact subtitle, one small uppercase line: YOUR PORTABLE DB CLIENT
+Title: Google Sans Bold 205px. Subtitle: Google Sans SemiBold 44px with 3px letter spacing.
+Charcoal text (#1d2327); title and subtitle share the same x=97px left edge.
 Final PNG: 1983 x 793 pixels, embedded by README.md.
