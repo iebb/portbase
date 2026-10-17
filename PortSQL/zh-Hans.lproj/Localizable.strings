@@ -1214,3 +1214,7 @@
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "当服务器使用自有证书颁发机构时（托管数据库常这样做），Portbase 会在首次连接时显示它，并在为此连接信任它之前征求确认。";
 "This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "此连接已信任服务器的证书颁发机构，因此失败另有原因。请检查连接详情。";
 "TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "仍需使用 TLS。服务器证书必须链接到此私有 CA，主机名也仍会验证。";
+"Database %@" = "数据库 %@";
+"Elasticsearch request as JSON" = "JSON 格式的 Elasticsearch 请求";
+"MongoDB command as JSON" = "JSON 格式的 MongoDB 命令";
+"SQL query" = "SQL 查询";

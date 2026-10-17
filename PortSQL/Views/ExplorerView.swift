@@ -120,7 +120,7 @@ struct ExplorerView: View {
                                         field: .whereClause,
                                         title: "WHERE",
                                         text: $workspace.explorerWhereClause,
-                                        placeholder: wherePlaceholder(for: selectedTable),
+                                        placeholder: L10n.text("Filter"),
                                         suggestions: whereSuggestions(for: selectedTable),
                                         apply: applyWhereSuggestion
                                     )
@@ -129,7 +129,7 @@ struct ExplorerView: View {
                                         field: .orderByClause,
                                         title: "ORDER",
                                         text: $workspace.explorerOrderByClause,
-                                        placeholder: orderByPlaceholder(for: selectedTable),
+                                        placeholder: L10n.text("Sort"),
                                         suggestions: orderBySuggestions(for: selectedTable),
                                         apply: applyOrderSuggestion
                                     )
@@ -221,16 +221,6 @@ struct ExplorerView: View {
         let columnSummary = L10n.plural("column_count", count: table.columns.count)
         guard let rowCountEstimate = table.rowCountEstimate else { return columnSummary }
         return L10n.format("%@ • approximately %@", columnSummary, L10n.plural("row_count", count: rowCountEstimate))
-    }
-
-    private func wherePlaceholder(for table: SchemaTableDescriptor) -> String {
-        let columnName = table.columns.first?.name ?? "column"
-        return "\(columnName) > 5"
-    }
-
-    private func orderByPlaceholder(for table: SchemaTableDescriptor) -> String {
-        let columnName = table.columns.first?.name ?? "column"
-        return "\(columnName) DESC"
     }
 
     private func dismissClauseFocus() {

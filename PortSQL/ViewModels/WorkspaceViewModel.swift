@@ -93,7 +93,7 @@ final class WorkspaceViewModel: ObservableObject {
     var isDocumentDatabase: Bool { selectedBookmark?.engine == .mongodb }
     var isSQLDatabase: Bool { selectedBookmark?.engine.isSQL ?? true }
     var usesJSONEditor: Bool { selectedBookmark?.engine.usesJSONEditor == true }
-    var editorPlaceholder: String { selectedBookmark?.engine.queryPlaceholder ?? "SELECT …" }
+    var editorPlaceholder: String { selectedBookmark?.engine.queryPlaceholder ?? L10n.text("SQL query") }
 
     var isSchemaCachingEnabled: Bool {
         selectedBookmark?.schemaCachingEnabled == true

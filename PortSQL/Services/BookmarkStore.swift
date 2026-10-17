@@ -30,6 +30,7 @@ final class BookmarkStore: ObservableObject {
                 quotaMessage: L10n.text("Connections are saved on this device. The library exceeds the iCloud sync limit."))
             mergeFromCloud()
         }
+        removeLegacySampleConnections()
         NotificationCenter.default.addObserver(
             forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
             object: keyValueStore,
@@ -37,6 +38,7 @@ final class BookmarkStore: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.mergeFromCloud()
+                self?.removeLegacySampleConnections()
             }
         }
     }
@@ -76,6 +78,30 @@ final class BookmarkStore: ObservableObject {
         }
         bookmarks.remove(atOffsets: offsets)
         persist()
+    }
+
+    /// Whether a connection is one of the sample connections older builds created on first launch.
+    /// The match is exact (name, engine, and the samples' own port, database, or file), so a connection the
+    /// user made is never mistaken for one.
+    static func isLegacySampleConnection(_ profile: ConnectionProfile) -> Bool {
+        switch (profile.name, profile.engine) {
+        case ("Sample Redis", .redis):
+            return profile.host == "127.0.0.1" && profile.port == 26379
+        case ("Sample MongoDB", .mongodb):
+            return profile.host == "127.0.0.1" && profile.port == 27019 && profile.defaultDatabase == "portbase_demo"
+        case ("Sample Database", .sqlite):
+            return profile.sqliteFileName?.hasPrefix("Portbase_Sample-") == true
+        default:
+            return false
+        }
+    }
+
+    /// Removes leftover sample connections, including any that sync back from an older device. The sample
+    /// SQLite file stays in place: local database files are only deleted explicitly.
+    func removeLegacySampleConnections() {
+        let offsets = IndexSet(bookmarks.indices.filter { Self.isLegacySampleConnection(bookmarks[$0]) })
+        guard !offsets.isEmpty else { return }
+        delete(at: offsets)
     }
 
     func bookmark(with id: UUID?) -> ConnectionProfile? {

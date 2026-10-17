@@ -1214,3 +1214,7 @@
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "マネージドデータベースのようにサーバが独自の認証局を使う場合、Portbase は最初の接続時にそれを表示し、この接続で信頼する前に確認します。";
 "This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "この接続はすでにサーバの認証局を信頼しているため、別の理由で失敗しています。接続の詳細を確認してください。";
 "TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "TLS は引き続き必須です。サーバ証明書はこのプライベート CA につながっている必要があり、ホスト名も引き続き検証されます。";
+"Database %@" = "データベース %@";
+"Elasticsearch request as JSON" = "JSON 形式の Elasticsearch リクエスト";
+"MongoDB command as JSON" = "JSON 形式の MongoDB コマンド";
+"SQL query" = "SQL クエリ";

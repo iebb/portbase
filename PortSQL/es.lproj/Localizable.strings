@@ -1214,3 +1214,7 @@
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "Cuando un servidor usa su propia autoridad de certificación, como suele ocurrir con las bases de datos gestionadas, Portbase la muestra en la primera conexión y pregunta antes de confiar en ella para esta conexión.";
 "This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "Esta conexión ya confía en la autoridad de certificación del servidor, así que falló por otro motivo. Revisa los detalles de la conexión.";
 "TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "TLS sigue siendo obligatorio. El certificado del servidor debe encadenar a esta CA privada y el nombre de host se sigue verificando.";
+"Database %@" = "Base de datos %@";
+"Elasticsearch request as JSON" = "Solicitud de Elasticsearch en JSON";
+"MongoDB command as JSON" = "Comando de MongoDB en JSON";
+"SQL query" = "Consulta SQL";

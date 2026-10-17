@@ -26,12 +26,13 @@ enum DatabaseEngine: String, Codable, CaseIterable, Identifiable {
     var supportsNativeParameters: Bool { supportsRowEditing }
     var canNegotiateTLS: Bool { isMySQLFamily || self == .postgresql }
     var queryLanguage: String { usesJSONEditor ? "JSON" : isSQL ? "SQL" : "Redis" }
+    /// Describes what the empty editor accepts, without sample values that could be mistaken for real ones.
     var queryPlaceholder: String {
         switch self {
-        case .mongodb: "{\"find\": \"collection\", \"filter\": {}, \"limit\": 25}"
-        case .redis: "GET key"
-        case .elasticsearch: "{\"method\": \"POST\", \"path\": \"/index/_search\", \"body\": {\"query\": {\"match_all\": {}}}}"
-        default: "SELECT …"
+        case .mongodb: L10n.text("MongoDB command as JSON")
+        case .redis: L10n.text("Redis command")
+        case .elasticsearch: L10n.text("Elasticsearch request as JSON")
+        default: L10n.text("SQL query")
         }
     }
     var defaultPort: Int {

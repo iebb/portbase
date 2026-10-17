@@ -126,6 +126,29 @@ final class PinnedTablesAndTesterTests: XCTestCase {
         XCTAssertEqual(store.bookmarks.map(\.name), ["analytics", "Billing", "Cache", "catalog", "Orders"])
     }
 
+    func testLegacySampleConnectionsAreRemovedButLookalikesStay() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("samples-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var redis = ConnectionProfile(name: "Sample Redis", engine: .redis, host: "127.0.0.1", port: 26379, username: "", password: "", defaultDatabase: "0")
+        var mongo = ConnectionProfile(name: "Sample MongoDB", engine: .mongodb, host: "127.0.0.1", port: 27019, username: "", password: "", defaultDatabase: "portbase_demo")
+        var sqlite = ConnectionProfile(name: "Sample Database", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        sqlite.sqliteFileName = "Portbase_Sample-8AC81938-F560-4619-B5CD-22A978717FF0.sqlite"
+        // Lookalikes the user made: same names but their own servers or files.
+        let ownRedis = ConnectionProfile(name: "Sample Redis", engine: .redis, host: "127.0.0.1", port: 6379, username: "", password: "", defaultDatabase: "0")
+        var ownSQLite = ConnectionProfile(name: "Sample Database", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        ownSQLite.sqliteFileName = "Inventory-1.sqlite"
+        let created = Date(timeIntervalSince1970: 1_800_000_000)
+        redis.createdAt = created; mongo.createdAt = created; sqlite.createdAt = created
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([redis, mongo, sqlite, ownRedis, ownSQLite]).write(to: dir.appendingPathComponent("bookmarks.json"))
+
+        let store = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        XCTAssertEqual(Set(store.bookmarks.map(\.id)), [ownRedis.id, ownSQLite.id])
+        let reloaded = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        XCTAssertEqual(reloaded.bookmarks.count, 2, "The removal is saved")
+    }
+
     func testConnectionTestSummaries() {
         XCTAssertTrue(ConnectionTester.summary(.init(duration: 0.084, databaseCount: 3)).contains("3"))
         XCTAssertFalse(ConnectionTester.summary(.init(duration: 0.2, databaseCount: nil)).isEmpty)

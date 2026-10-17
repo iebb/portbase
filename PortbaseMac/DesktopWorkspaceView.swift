@@ -222,7 +222,18 @@ struct DesktopWorkspaceView: View {
                     ForEach(bookmarks.bookmarks.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || $0.id == workspace.selectedBookmarkID }) { profile in
                         DisclosureGroup(isExpanded: Binding(get: { expandedConnections.contains(profile.id) }, set: { if $0 { expandedConnections.insert(profile.id) } else { expandedConnections.remove(profile.id) } })) {
                             if profile.id == workspace.selectedBookmarkID {
-                                if let database = workspace.activeDatabaseName { Label(database, systemImage: "externaldrive").foregroundStyle(PortSQLPalette.muted) }
+                                if let database = workspace.activeDatabaseName {
+                                    // Same icon column and spacing as the table rows below, so names line up.
+                                    HStack(spacing: Spacing.xs) {
+                                        Image(systemName: "cylinder")
+                                            .foregroundStyle(PortSQLPalette.muted)
+                                            .frame(width: Sizes.symbolColumn)
+                                        Text(database).lineLimit(1).foregroundStyle(PortSQLPalette.muted).fontWeight(.medium)
+                                        Spacer(minLength: 0)
+                                    }
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityLabel(L10n.format("Database %@", database))
+                                }
                                 if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
                                 if let error = workspace.schemaErrorMessage {
                                     SidebarConnectionIssueRow(message: error)

@@ -185,7 +185,7 @@ struct VisualizerComposerSheet: View {
                                         .frame(minHeight: 150)
 
                                     if queryBinding.wrappedValue.isEmpty {
-                                        Text(verbatim: previewBookmark?.engine.queryPlaceholder ?? "SELECT …")
+                                        Text(verbatim: previewBookmark?.engine.queryPlaceholder ?? L10n.text("SQL query"))
                                             .font(.codeText)
                                             .foregroundStyle(PortSQLPalette.editorPlaceholder(for: colorScheme))
                                             .padding(.horizontal, Spacing.l)

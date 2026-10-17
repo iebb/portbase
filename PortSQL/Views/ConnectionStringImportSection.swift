@@ -9,12 +9,10 @@ struct ConnectionStringImportSection: View {
     @State private var error: String?
     @State private var notices: [String] = []
     @State private var imported = false
-    /// An example URL; it is not translated.
-    private static let example = "postgresql://user:password@host:5432/database"
 
     var body: some View {
         Section {
-            SecureField(Self.example, text: $text)
+            SecureField("Connection string", text: $text)
                 .portbaseTextCapitalization(.never)
                 .autocorrectionDisabled()
                 .font(.codeText)

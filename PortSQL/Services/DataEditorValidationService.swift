@@ -106,7 +106,7 @@ enum DataEditorValidationService {
             return "true / false"
         }
         if isJSONType(type) {
-            return "{\"key\":\"value\"}"
+            return L10n.text("JSON")
         }
         return column.name
     }
