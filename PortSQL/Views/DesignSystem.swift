@@ -933,6 +933,9 @@ struct PortbasePillTabs<Value: Hashable>: View {
             }
         }
         .padding(3)
+        // A fixed, theme-colored outline rather than the system's glass capsule.
+        .background(PortSQLPalette.sunken.opacity(0.6), in: RoundedRectangle(cornerRadius: Radius.button + 4, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: Radius.button + 4, style: .continuous).strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
         .fixedSize()
     }
 }

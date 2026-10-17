@@ -161,8 +161,16 @@ struct DesktopWorkspaceView: View {
     }
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .principal) {
-            DestinationSwitcher(selection: $destination)
+        // macOS 26 wraps toolbar items in a Liquid Glass capsule; the switcher draws its own outline.
+        if #available(macOS 26.0, *) {
+            ToolbarItem(placement: .principal) {
+                DestinationSwitcher(selection: $destination)
+            }
+            .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .principal) {
+                DestinationSwitcher(selection: $destination)
+            }
         }
         ToolbarItemGroup(placement: .primaryAction) {
             if workspace.selectedBookmark != nil {
