@@ -44,7 +44,7 @@ struct MongoDocumentEditor: View {
     @State private var review: MongoMutationReview?
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(title) {
             Form {
                 Section {
                     LabeledContent("Collection", value: context.collection)
@@ -58,10 +58,10 @@ struct MongoDocumentEditor: View {
                     }
                 } else {
                     Section {
-                        Picker("Editor", selection: Binding(get: { showsJSON }, set: changeEditor)) {
-                            Text("Fields").tag(false)
-                            Text("JSON").tag(true)
-                        }.pickerStyle(.segmented)
+                        PortbaseSegmentedPicker(selection: Binding(get: { showsJSON }, set: changeEditor), options: [
+                            PortbaseChoice(value: false, title: L10n.text("Fields")), PortbaseChoice(value: true, title: L10n.text("JSON")),
+                        ], fills: true)
+                        .accessibilityLabel("Editor")
                     }
                     if showsJSON {
                         Section("Document") {
@@ -78,14 +78,6 @@ struct MongoDocumentEditor: View {
                     }
                 }
             }
-            .navigationTitle(title)
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Review") { prepareReview() }.disabled(draft == nil)
-                }
-            }
             .task {
                 guard draft == nil else { return }
                 do { draft = try MongoDocumentDraft(mode: mode, originalJSON: originalJSON) }
@@ -97,6 +89,13 @@ struct MongoDocumentEditor: View {
                     dismiss()
                 }
             }
+        } footer: {
+            Button("Cancel") { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button("Review") { prepareReview() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(draft == nil)
         }
     }
 
@@ -191,7 +190,7 @@ private struct MongoDocumentMutationReview: View {
     @State private var commitUnknown = false
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Review Changes")) {
             List {
                 Section {
                     LabeledContent("Connection", value: context.profile.name)
@@ -214,21 +213,17 @@ private struct MongoDocumentMutationReview: View {
                         .font(.captionText).foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Review Changes")
-            .portbaseTitleDisplayMode(.inline)
             .interactiveDismissDisabled(isSaving)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.text(isSaving ? "Stop" : "Cancel")) {
-                        if isSaving { task?.cancel() } else { dismiss() }
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(L10n.text(request.operation == .delete ? "Delete" : "Save"), role: request.operation == .delete ? .destructive : nil) { save() }
-                        .disabled(isSaving || commitUnknown)
-                }
-            }
             .onDisappear { task?.cancel() }
+        } footer: {
+            Button(L10n.text(isSaving ? "Stop" : "Cancel")) {
+                if isSaving { task?.cancel() } else { dismiss() }
+            }
+            .buttonStyle(.portbaseSecondary)
+            Button(L10n.text(request.operation == .delete ? "Delete" : "Save"), role: request.operation == .delete ? .destructive : nil) { save() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(isSaving || commitUnknown)
         }
     }
 

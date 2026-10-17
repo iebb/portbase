@@ -63,7 +63,7 @@ private struct DataTransferSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(model.presentation.mode == .importData ? L10n.text("Import Data") : L10n.text("Export Data")) {
             Form {
                 Section {
                     LabeledContent("Connection", value: model.presentation.profile.name)
@@ -90,13 +90,6 @@ private struct DataTransferSheet: View {
                     }
                 }
             }
-            .navigationTitle(model.presentation.mode == .importData ? L10n.text("Import Data") : L10n.text("Export Data"))
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }.disabled(model.isWorking)
-                }
-            }
             .fileImporter(isPresented: $showsFileImporter, allowedContentTypes: [.commaSeparatedText, .json, .plainText]) { result in
                 switch result {
                 case .success(let url): model.loadFile(url)
@@ -108,7 +101,12 @@ private struct DataTransferSheet: View {
             } message: {
                 Text(L10n.format("Insert into %@?", model.destinationLabel))
             }
+        } footer: {
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+                .disabled(model.isWorking)
         }
+        .portbaseSheetNavigation()
         .interactiveDismissDisabled(model.isWorking)
         .onDisappear { model.close() }
     }
@@ -197,10 +195,12 @@ private struct DataTransferSheet: View {
 
     @ViewBuilder private var exportSections: some View {
         Section {
-            Picker("Source", selection: $model.exportsQuery) {
-                Text("Query").tag(true)
-                Text(model.presentation.profile.engine == .mongodb ? L10n.text("Collection") : L10n.text("Table")).tag(false)
-            }.pickerStyle(.segmented).disabled(model.isWorking)
+            PortbaseSegmentedPicker(selection: $model.exportsQuery, options: [
+                PortbaseChoice(value: true, title: L10n.text("Query")),
+                PortbaseChoice(value: false, title: model.presentation.profile.engine == .mongodb ? L10n.text("Collection") : L10n.text("Table")),
+            ], fills: true)
+            .disabled(model.isWorking)
+            .accessibilityLabel("Source")
             Picker("Format", selection: $model.exportFormat) {
                 Text("CSV").tag(QueryResultExportFormat.csv)
                 Text("JSON").tag(QueryResultExportFormat.json)

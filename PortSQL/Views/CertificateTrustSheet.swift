@@ -175,14 +175,15 @@ struct CertificateTrustSheet: View {
                         Text(request.replacesExistingAuthority ? L10n.text("Replace and Connect") : L10n.text("Trust and Connect"))
                             .frame(minHeight: Sizes.buttonContent)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.portbasePrimary)
+                    .keyboardShortcut(.defaultAction)
                     .disabled(!authority.coversHostname)
                 }
             }
             .padding(Spacing.xl)
         }
         .frame(minWidth: 360, idealWidth: 500, maxWidth: 560)
-        .background(PortSQLPalette.surface)
+        .background(PortSQLPalette.canvasTop)
     }
 
     private func row(_ title: String, _ value: String) -> some View {

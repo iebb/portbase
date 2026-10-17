@@ -40,7 +40,7 @@ struct RedisQueryEditorCard: View {
                         Label(L10n.text(workspace.isRunning ? "Stop" : "Run"), systemImage: workspace.isRunning ? "stop.fill" : "play.fill")
                             .frame(minHeight: Sizes.touchTarget)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.portbasePrimary)
                     .keyboardShortcut(.return, modifiers: .command)
                     .disabled(!workspace.isRunning && (command == nil || workspace.selectedBookmark == nil))
                     Button("Save", systemImage: "bookmark") { workspace.saveSnippet() }
@@ -50,7 +50,7 @@ struct RedisQueryEditorCard: View {
             }
         }
         .sheet(isPresented: $showsHelp) {
-            NavigationStack {
+            PortbaseSheet(L10n.text("Redis command reference"), onClose: { showsHelp = false }) {
                 List {
                     Section {
                         Text("One command per run. Quote empty values and spaces; use \\xNN for binary bytes.")
@@ -68,8 +68,10 @@ struct RedisQueryEditorCard: View {
                         }.buttonStyle(.plain)
                     }
                 }
-                .navigationTitle("Redis command reference")
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showsHelp = false } } }
+            } footer: {
+                Button("Done") { showsHelp = false }
+                    .buttonStyle(.portbasePrimary)
+                    .keyboardShortcut(.defaultAction)
             }
         }
     }

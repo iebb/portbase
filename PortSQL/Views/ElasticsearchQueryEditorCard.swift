@@ -15,11 +15,10 @@ struct ElasticsearchQueryEditorCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             HStack {
-            Picker("Query", selection: $rawCommand) {
-                Text("Request").tag(false)
-                Text("Command").tag(true)
-            }
-            .pickerStyle(.segmented)
+            PortbaseSegmentedPicker(selection: $rawCommand, options: [
+                PortbaseChoice(value: false, title: L10n.text("Request")), PortbaseChoice(value: true, title: L10n.text("Command")),
+            ])
+            .accessibilityLabel("Query")
             if !rawCommand { QueryLibraryButton() }
             }
             if rawCommand { QueryEditorCard() }
@@ -77,7 +76,7 @@ struct ElasticsearchQueryEditorCard: View {
                         systemImage: workspace.isRunning ? "stop.fill" : "play.fill")
                         .labelStyle(.iconOnly).frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                 }
-                .buttonStyle(.borderedProminent).keyboardShortcut(.return, modifiers: .command)
+                .buttonStyle(.portbasePrimary).keyboardShortcut(.return, modifiers: .command)
                 .disabled(!workspace.isRunning && workspace.selectedBookmark == nil)
                 Button {
                     guard let body = try? HTTPJSONValue.parse(requestBody) else { validationMessage = L10n.text("Invalid JSON"); return }

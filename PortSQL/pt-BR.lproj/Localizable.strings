@@ -1284,3 +1284,6 @@
 "No queries yet" = "Ainda não há consultas";
 "No saved queries" = "Nenhuma consulta salva";
 "Saved Queries: %d" = "Consultas salvas: %d";
+"Couldn't load database objects" = "Não foi possível carregar os objetos do banco de dados";
+"No database objects" = "Nenhum objeto de banco de dados";
+"Tables, views, and routines in this database appear here." = "Tabelas, visualizações e rotinas deste banco de dados aparecem aqui.";

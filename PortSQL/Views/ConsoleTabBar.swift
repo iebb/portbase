@@ -42,7 +42,7 @@ struct ConsoleTabBar: View {
             .accessibilityHint("Opens a new console. Hold for more options.")
             .padding(.trailing, Spacing.xs)
         }
-        .background(.bar)
+        .background(PortSQLPalette.panel)
         .overlay(alignment: .bottom) { Divider() }
         .confirmationDialog("Discard Changes and Close Console?", isPresented: Binding(get: { discardingID != nil }, set: { if !$0 { discardingID = nil } })) {
             Button("Discard Changes", role: .destructive) { if let discardingID { close(discardingID, discardingEdits: true) }; discardingID = nil }

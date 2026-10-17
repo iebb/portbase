@@ -112,7 +112,7 @@ struct VisualizerComposerSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Chart Config")) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     PanelCard {
@@ -170,7 +170,7 @@ struct VisualizerComposerSheet: View {
                                             Label("Run Preview", systemImage: "play.fill")
                                         }
                                     }
-                                    .buttonStyle(.borderedProminent)
+                                    .buttonStyle(.portbasePrimary)
                                     .disabled(queryBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || previewBookmark == nil)
                                 }
 
@@ -393,9 +393,6 @@ struct VisualizerComposerSheet: View {
                 .padding(.horizontal, Spacing.l)
                 .padding(.vertical, Spacing.l)
             }
-            .background(WorkbenchBackground().ignoresSafeArea())
-            .navigationTitle("Chart Config")
-            .portbaseTitleDisplayMode(.inline)
             .alert("Delete Chart", isPresented: $isConfirmingDelete) {
                 Button("Delete", role: .destructive) {
                     libraryStore.deleteVisualization(draft)
@@ -405,33 +402,34 @@ struct VisualizerComposerSheet: View {
             } message: {
                 Text("Move this chart to Recently Deleted?")
             }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        var stored = draft
-                        stored.title = normalizedPresetTitle
-                        stored.chartTitle = normalizedChartTitle
-                        stored.xAxisTitle = normalizedXAxisTitle
-                        stored.yAxisTitle = normalizedYAxisTitle
-                        stored.yFields = stored.resolvedYFields
-                        stored.yField = stored.resolvedYFields.first ?? ""
-                        stored.usesUnlimitedRows = false
-                        stored.connectionName = previewBookmark?.name ?? stored.connectionName
-                        stored.connectionProfileID = previewBookmark?.id ?? stored.connectionProfileID
-                        stored.databaseName = stored.databaseName ?? workspace.activeDatabaseName
-                        stored.sourceTableReference = stored.sourceTableReference ?? workspace.result.sourceTableReference
-                        stored.sourceQuery = stored.sourceQuery ?? workspace.result.sourceQuery
-                        libraryStore.saveVisualization(stored)
-                        libraryStore.cacheVisualizationPreview(previewResult, for: stored.id)
-                        dismiss()
-                    }
-                    .disabled(draft.xField.isEmpty || draft.resolvedYFields.isEmpty || numericFields.isEmpty)
-                }
-            }
+        } footer: {
+            Button("Close") { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button("Save") { saveChart() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(draft.xField.isEmpty || draft.resolvedYFields.isEmpty || numericFields.isEmpty)
         }
+        .portbaseSheetNavigation()
+    }
+
+    private func saveChart() {
+        var stored = draft
+        stored.title = normalizedPresetTitle
+        stored.chartTitle = normalizedChartTitle
+        stored.xAxisTitle = normalizedXAxisTitle
+        stored.yAxisTitle = normalizedYAxisTitle
+        stored.yFields = stored.resolvedYFields
+        stored.yField = stored.resolvedYFields.first ?? ""
+        stored.usesUnlimitedRows = false
+        stored.connectionName = previewBookmark?.name ?? stored.connectionName
+        stored.connectionProfileID = previewBookmark?.id ?? stored.connectionProfileID
+        stored.databaseName = stored.databaseName ?? workspace.activeDatabaseName
+        stored.sourceTableReference = stored.sourceTableReference ?? workspace.result.sourceTableReference
+        stored.sourceQuery = stored.sourceQuery ?? workspace.result.sourceQuery
+        libraryStore.saveVisualization(stored)
+        libraryStore.cacheVisualizationPreview(previewResult, for: stored.id)
+        dismiss()
     }
 
     private var selectedXFieldDescriptor: VisualizationFieldDescriptor {

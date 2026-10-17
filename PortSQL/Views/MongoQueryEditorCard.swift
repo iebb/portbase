@@ -8,10 +8,9 @@ struct MongoQueryEditorCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             HStack {
-            Picker("Query", selection: $workspace.mongoDraft.mode) {
-                ForEach(MongoEditorMode.allCases) { mode in Text(mode.title).tag(mode) }
-            }
-            .pickerStyle(.segmented)
+            PortbaseSegmentedPicker(selection: $workspace.mongoDraft.mode,
+                                    options: MongoEditorMode.allCases.map { PortbaseChoice(value: $0, title: $0.title) })
+                .accessibilityLabel("Query")
             if workspace.mongoDraft.mode != .command { QueryLibraryButton() }
             }
             if workspace.mongoDraft.mode == .command {
@@ -84,7 +83,7 @@ struct MongoQueryEditorCard: View {
                           systemImage: workspace.isRunning ? "stop.fill" : "play.fill")
                         .labelStyle(.iconOnly).frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.portbasePrimary)
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(!workspace.isRunning && (workspace.selectedBookmark == nil || workspace.activeDatabaseName == nil))
                 DataTransferMenu()

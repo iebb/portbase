@@ -152,7 +152,10 @@ private struct ChartPointList: View {
     @State private var search = ""
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Inspect Chart")) {
+            PortbaseSearchField(text: $search)
+                .padding(.horizontal, Spacing.xl)
+                .padding(.bottom, Spacing.s)
             List(points.filter { search.isEmpty || [$0.xText, $0.group ?? "", $0.metric ?? ""].contains(where: { $0.localizedStandardContains(search) }) }) { point in
                 Button {
                     onSelect(point); dismiss()
@@ -169,10 +172,12 @@ private struct ChartPointList: View {
                 }
                 .buttonStyle(.plain)
             }
-            .searchable(text: $search)
-            .navigationTitle("Inspect Chart")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+        } footer: {
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 }
@@ -201,32 +206,34 @@ private struct ChartDateFilterSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Date Range")) {
             Form {
                 Picker("Date Field", selection: $field) {
                     ForEach(fields) { Text($0.name).tag($0.name) }
                 }
                 DatePicker("From", selection: $start, displayedComponents: .date)
                 DatePicker("Through", selection: $end, displayedComponents: .date)
-                Button("Clear Date Filter") { onApply(nil); dismiss() }
             }
-            .navigationTitle("Date Range")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Apply") {
-                        let lower = Calendar.current.startOfDay(for: start)
-                        let upper = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: end)) ?? end
-                        onApply(VisualizationDateFilter(field: field, start: lower, end: upper)); dismiss()
-                    }
-                    .disabled(field.isEmpty || Calendar.current.startOfDay(for: start) > Calendar.current.startOfDay(for: end))
-                }
-            }
+            .portbaseForm()
             .onChange(of: field) { _, value in
                 if let bounds = VisualizationService.dateBounds(for: result, field: value) { start = bounds.lowerBound; end = bounds.upperBound }
             }
+        } footer: {
+            Button("Clear Date Filter") { onApply(nil); dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Spacer(minLength: 0)
+            Button("Cancel") { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button("Apply") {
+                let lower = Calendar.current.startOfDay(for: start)
+                let upper = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: end)) ?? end
+                onApply(VisualizationDateFilter(field: field, start: lower, end: upper)); dismiss()
+            }
+            .buttonStyle(.portbasePrimary)
+            .keyboardShortcut(.defaultAction)
+            .disabled(field.isEmpty || Calendar.current.startOfDay(for: start) > Calendar.current.startOfDay(for: end))
         }
+        .portbaseSheetNavigation()
         .presentationDetents([.medium, .large])
     }
 }
@@ -245,17 +252,15 @@ private struct ChartDrilldownView: View {
     @State private var rowSelection: ChartRowSelection?
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Matching Rows")) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     Text(drilldown.title).font(.cardTitle).textSelection(.enabled)
                     Text(drilldown.result.executionSummary).font(.captionText).foregroundStyle(.secondary)
                     if drilldown.result.documents != nil {
-                        Picker("Results", selection: $showsDocuments) {
-                            Text("Table").tag(false)
-                            Text("Documents").tag(true)
-                        }
-                        .pickerStyle(.segmented)
+                        PortbaseTabs(selection: $showsDocuments, options: [
+                            PortbaseChoice(value: false, title: L10n.text("Table")), PortbaseChoice(value: true, title: L10n.text("Documents")),
+                        ])
                     }
                     if showsDocuments, let documents = drilldown.result.documents {
                         MongoDocumentResults(documents: documents)
@@ -271,11 +276,12 @@ private struct ChartDrilldownView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Matching Rows")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .sheet(item: $documentSelection) { MongoDocumentInspector(selection: $0) }
             .sheet(item: $rowSelection) { ChartRowInspector(selection: $0) }
+        } footer: {
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 }
@@ -291,7 +297,7 @@ private struct ChartRowInspector: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("View Row")) {
             List(Array(selection.result.columns.enumerated()), id: \.offset) { index, column in
                 let cells = selection.result.rows[selection.index].cells
                 let cell = cells.indices.contains(index) ? cells[index] : .null
@@ -303,8 +309,10 @@ private struct ChartRowInspector: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(ResultGridAccessibility.rowLabel(columns: [column], cells: [cell]))
             }
-            .navigationTitle("View Row")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        } footer: {
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 }

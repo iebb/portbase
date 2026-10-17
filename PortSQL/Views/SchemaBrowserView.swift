@@ -9,7 +9,11 @@ struct SchemaBrowserView: View {
 
     var body: some View {
         List {
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error {
+                StatusBanner(title: L10n.text("Couldn't load database objects"), message: error, tint: .red)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: Spacing.s, leading: 0, bottom: Spacing.s, trailing: 0))
+            }
             ForEach(SchemaObjectKind.allCases, id: \.self) { kind in
                 let matches = objects.filter { $0.kind == kind && (search.isEmpty || $0.displayName.localizedCaseInsensitiveContains(search)) }
                 if !matches.isEmpty {
@@ -23,9 +27,18 @@ struct SchemaBrowserView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(PortSQLPalette.canvasTop)
         .searchable(text: $search, prompt: L10n.text("Search database objects"))
         .navigationTitle("Database Objects")
-        .overlay { if loading { ProgressView() } }
+        .overlay {
+            if loading { ProgressView() }
+            else if objects.isEmpty && error == nil {
+                PortbaseEmptyState(title: L10n.text("No database objects"),
+                                   message: L10n.text("Tables, views, and routines in this database appear here."),
+                                   systemImage: "square.stack.3d.up")
+            }
+        }
         .toolbar { Button("Refresh", systemImage: "arrow.clockwise") { Task { await load() } }.disabled(loading) }
         .task { await load() }
         .refreshable { await load() }
@@ -36,7 +49,7 @@ struct SchemaBrowserView: View {
         loading = true; error = nil
         defer { loading = false }
         do { objects = try await DatabaseService.shared.schemaObjects(profile: profile, database: workspace.activeDatabaseName) }
-        catch { self.error = error.localizedDescription }
+        catch { self.error = DatabaseErrorFormatter.message(for: error) }
     }
 }
 
@@ -95,6 +108,8 @@ struct SchemaObjectView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(PortSQLPalette.canvasTop)
         .navigationTitle(object.name)
         .portbaseTitleDisplayMode(.inline)
         .overlay { if loading { ProgressView() } }

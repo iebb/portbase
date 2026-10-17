@@ -54,13 +54,9 @@ struct ResultCellInspector: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(selection.column.name,
+                      subtitle: ResultInspectionService.typeName(selection.cell) + " · " + selection.column.type + " · " + L10n.format("Row %d", selection.row + 1)) {
             VStack(alignment: .leading, spacing: Spacing.m) {
-                HStack {
-                    Text(ResultInspectionService.typeName(selection.cell) + " · " + selection.column.type).font(.captionText).foregroundStyle(.secondary)
-                    Spacer()
-                    Text(L10n.format("Row %d", selection.row + 1)).font(.captionText).foregroundStyle(.secondary)
-                }
                 if draft != nil {
                     CellValueEditor(field: Binding(get: { draft! }, set: { draft = $0 }))
                     if let validationMessage {
@@ -71,45 +67,53 @@ struct ResultCellInspector: View {
                 }
                 if let error { Text(error).font(.captionText).foregroundStyle(.red) }
             }
-            .padding()
-            .navigationTitle(selection.column.name)
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(hasChanges ? "Cancel" : "Done") { dismiss() }.disabled(isSaving)
-                }
-                if draft != nil {
-                    ToolbarItem(placement: .confirmationAction) {
-                        if isSaving { ProgressView().controlSize(.small) }
-                        else { Button("Apply") { save() }.disabled(!hasChanges || validationMessage != nil) }
-                    }
-                }
+            .padding(.horizontal, Spacing.xl)
+            .padding(.bottom, Spacing.l)
+        } footer: {
+            Button("Copy", systemImage: "doc.on.doc") {
+                let value: String
+                if case .binary(let bytes) = selection.cell, base64 { value = bytes.base64EncodedString() }
+                else { value = selection.cell.isNull ? "NULL" : selection.cell.displayValue }
+                var item: [String: Any] = ["public.utf8-plain-text": value]
+                if let data = try? JSONEncoder().encode(selection.cell) { item["ad.neko.portsql.cell"] = data }
+                PortbaseClipboard.copy(items: [item])
             }
-            .portbaseSheetActions {
-                    Button("Copy", systemImage: "doc.on.doc") {
-                        let value: String
-                        if case .binary(let bytes) = selection.cell, base64 { value = bytes.base64EncodedString() }
-                        else { value = selection.cell.isNull ? "NULL" : selection.cell.displayValue }
-                        var item: [String: Any] = ["public.utf8-plain-text": value]
-                        if let data = try? JSONEncoder().encode(selection.cell) { item["ad.neko.portsql.cell"] = data }
-                        PortbaseClipboard.copy(items: [item])
-                    }
-                    if let file { ShareLink(item: file) { Label("Share Value", systemImage: "square.and.arrow.up") } }
+            .buttonStyle(.portbaseToolbar)
+            if let file {
+                ShareLink(item: file) { Label("Share Value", systemImage: "square.and.arrow.up") }
+                    .buttonStyle(.portbaseToolbar)
             }
-            .interactiveDismissDisabled(hasChanges || isSaving)
-            .onAppear { if draft == nil { draft = selection.edit?.field } }
-            .task {
-                do { file = try ResultInspectionService.export(selection.cell) }
-                catch { self.error = error.localizedDescription }
+            Spacer(minLength: Spacing.s)
+            if draft != nil {
+                Button(hasChanges ? "Cancel" : "Done") { dismiss() }
+                    .buttonStyle(.portbaseSecondary)
+                    .disabled(isSaving)
+                Button("Apply") { save() }
+                    .buttonStyle(.portbasePrimary)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!hasChanges || validationMessage != nil || isSaving)
+            } else {
+                Button("Done") { dismiss() }
+                    .buttonStyle(.portbasePrimary)
+                    .keyboardShortcut(.defaultAction)
             }
-            .onDisappear { if let file { try? FileManager.default.removeItem(at: file) } }
         }
+        .interactiveDismissDisabled(hasChanges || isSaving)
+        .onAppear { if draft == nil { draft = selection.edit?.field } }
+        .task {
+            do { file = try ResultInspectionService.export(selection.cell) }
+            catch { self.error = error.localizedDescription }
+        }
+        .onDisappear { if let file { try? FileManager.default.removeItem(at: file) } }
     }
 
     @ViewBuilder private var readOnlyPreview: some View {
         if case .json = selection.cell { Toggle("Format JSON", isOn: $formatted).frame(minHeight: Sizes.touchTarget) }
         if case .binary(let bytes) = selection.cell {
-            Picker("Encoding", selection: $base64) { Text("Hex").tag(false); Text("Base64").tag(true) }.pickerStyle(.segmented)
+            PortbaseSegmentedPicker(selection: $base64, options: [
+                PortbaseChoice(value: false, title: L10n.text("Hex")), PortbaseChoice(value: true, title: L10n.text("Base64")),
+            ])
+            .accessibilityLabel("Encoding")
             Text(ByteCountFormatter.string(fromByteCount: Int64(bytes.count), countStyle: .file)).font(.captionText)
             if bytes.count > 4_096 { Text("Preview: first 4096 bytes. Share exports the complete value.").font(.captionText).foregroundStyle(.secondary) }
         }
@@ -180,15 +184,11 @@ private struct CellValueEditor: View {
         let usesDigits = ["0", "1"].contains(field.originalValue ?? "")
         let isTrue = ["1", "true", "yes"].contains(field.value.trimmingCharacters(in: .whitespaces).lowercased())
         return VStack(alignment: .leading, spacing: Spacing.m) {
-            Picker("Value", selection: Binding(
+            PortbaseSegmentedPicker(selection: Binding(
                 get: { isTrue },
                 set: { field.value = usesDigits ? ($0 ? "1" : "0") : ($0 ? "true" : "false") }
-            )) {
-                Text(verbatim: "true").tag(true)
-                Text(verbatim: "false").tag(false)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            ), options: [PortbaseChoice(value: true, title: "true"), PortbaseChoice(value: false, title: "false")])
+            .accessibilityLabel("Value")
             Spacer(minLength: 0)
         }
     }

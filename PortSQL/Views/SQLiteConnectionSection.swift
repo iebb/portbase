@@ -78,7 +78,7 @@ private struct SQLiteLocalFilesView: View {
     @State private var deleting: SQLiteManagedFile?
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Local Database Files")) {
             List {
                 if files.isEmpty { Text("No local database files").foregroundStyle(.secondary) }
                 ForEach(files) { file in
@@ -101,8 +101,6 @@ private struct SQLiteLocalFilesView: View {
                 }
                 if let error { Text(error).foregroundStyle(.red).textSelection(.enabled) }
             }
-            .navigationTitle("Local Database Files")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
             .onAppear(perform: reload)
             .confirmationDialog("Delete Database File?", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), presenting: deleting) { file in
                 Button("Delete File", role: .destructive) {
@@ -115,6 +113,10 @@ private struct SQLiteLocalFilesView: View {
             } message: { _ in
                 Text("This permanently deletes the local database. Bookmarks that use it will need another file.")
             }
+        } footer: {
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 

@@ -658,43 +658,14 @@ struct LibrarySheetView: View {
     }
 
     private var closeButton: some View {
-        Button { dismiss() } label: {
-            Image(systemName: "xmark")
-                .font(.toolSymbol)
-                .foregroundStyle(PortSQLPalette.muted)
-                .frame(width: Sizes.tool, height: Sizes.tool)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.portbaseToolbar)
-        .keyboardShortcut(.cancelAction)
-        .accessibilityLabel("Close")
+        PortbaseCloseButton { dismiss() }
     }
 
     private var tabs: some View {
-        HStack(spacing: Spacing.xl) {
-            ForEach(LibrarySection.allCases) { section in
-                let selected = selection == section
-                Button { selection = section } label: {
-                    VStack(spacing: Spacing.s) {
-                        HStack(spacing: Spacing.xs) {
-                            Text(section.title).font(.rowTitle)
-                            Text(verbatim: "\(section == .history ? library.history.count : library.snippets.count)")
-                                .font(.captionText.monospacedDigit())
-                                .foregroundStyle(PortSQLPalette.muted)
-                        }
-                        .foregroundStyle(selected ? PortSQLPalette.ink : PortSQLPalette.muted)
-                        Rectangle()
-                            .fill(selected ? PortSQLPalette.accent : Color.clear)
-                            .frame(height: 2)
-                    }
-                    .fixedSize(horizontal: true, vertical: false)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
-            }
-            Spacer(minLength: 0)
-        }
+        PortbaseTabs(selection: $selection, options: [
+            PortbaseChoice(value: LibrarySection.history, title: LibrarySection.history.title, count: library.history.count),
+            PortbaseChoice(value: LibrarySection.snippets, title: LibrarySection.snippets.title, count: library.snippets.count),
+        ])
         .padding(.horizontal, Spacing.xl)
         .overlay(alignment: .bottom) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
     }
@@ -1055,7 +1026,7 @@ private struct SavedQueryDetailsSheet: View {
     @State var snippet: SavedQuerySnippet
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Edit Saved Query")) {
             Form {
                 TextField("Query name", text: $snippet.title)
                 Section("Notes") { TextEditor(text: $snippet.note).frame(minHeight: 100).accessibilityLabel("Query notes") }
@@ -1070,15 +1041,14 @@ private struct SavedQueryDetailsSheet: View {
                 }
                 Section("Query") { Text(snippet.sql).font(.codeDetail).textSelection(.enabled) }
             }
-            .navigationTitle("Edit Saved Query")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { snippet.title = snippet.title.trimmingCharacters(in: .whitespacesAndNewlines); library.updateSnippet(snippet); dismiss() }
-                        .disabled(snippet.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
+            .portbaseForm()
+        } footer: {
+            Button("Cancel") { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button("Save") { snippet.title = snippet.title.trimmingCharacters(in: .whitespacesAndNewlines); library.updateSnippet(snippet); dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(snippet.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
 }

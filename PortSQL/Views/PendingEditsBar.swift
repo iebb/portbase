@@ -38,8 +38,7 @@ struct PendingEditsBar: View {
                         if workspace.isSubmittingPendingEdits { ProgressView().controlSize(.small) }
                         else { Label("Submit", systemImage: "checkmark") }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(PortSQLPalette.accent)
+                    .buttonStyle(.portbasePrimary)
                     .keyboardShortcut("s", modifiers: .command)
                     .disabled(workspace.isSubmittingPendingEdits)
                     .frame(minHeight: Sizes.touchTarget)

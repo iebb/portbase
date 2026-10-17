@@ -1284,3 +1284,6 @@
 "No queries yet" = "Запросов пока нет";
 "No saved queries" = "Нет сохранённых запросов";
 "Saved Queries: %d" = "Сохранённые запросы: %d";
+"Couldn't load database objects" = "Не удалось загрузить объекты базы данных";
+"No database objects" = "Нет объектов базы данных";
+"Tables, views, and routines in this database appear here." = "Здесь отображаются таблицы, представления и процедуры этой базы данных.";

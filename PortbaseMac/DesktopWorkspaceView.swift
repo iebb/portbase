@@ -203,7 +203,7 @@ struct DesktopWorkspaceView: View {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Search", text: $search).textFieldStyle(.plain)
                 if !search.isEmpty {
-                    Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }.buttonStyle(.plain)
+                    Button { search = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(PortSQLPalette.muted) }.buttonStyle(.plain)
                         .accessibilityLabel("Clear search")
                 }
             }
@@ -246,7 +246,7 @@ struct DesktopWorkspaceView: View {
                                             .help(profile.environment.title)
                                     }
                                     Spacer(minLength: Spacing.xxs)
-                                    if profile.isReadOnly { Image(systemName: "lock.fill").font(.captionText).foregroundStyle(.secondary) }
+                                    if profile.isReadOnly { Image(systemName: "lock.fill").font(.captionText).foregroundStyle(PortSQLPalette.muted) }
                                     if profile.transportSecurityMode == .plaintext && !profile.engine.isLocal {
                                         Image(systemName: "lock.open.fill").foregroundStyle(Color(red: 0.90, green: 0.25, blue: 0.24)).help(L10n.text("Unencrypted"))
                                     }
@@ -326,7 +326,7 @@ struct DesktopWorkspaceView: View {
                 Spacer(minLength: Spacing.xxs)
                 if active, !workspace.schemaCatalog.isEmpty {
                     Text(workspace.schemaCatalog.count.formatted())
-                        .font(.captionText.monospacedDigit()).foregroundStyle(.tertiary)
+                        .font(.captionText.monospacedDigit()).foregroundStyle(PortSQLPalette.muted)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
@@ -352,7 +352,7 @@ struct DesktopWorkspaceView: View {
                 Spacer(minLength: Spacing.xxs)
                 if let estimate = table.rowCountEstimate {
                     Text(estimate.formatted(.number.notation(.compactName)))
-                        .font(.captionText.monospacedDigit()).foregroundStyle(.tertiary)
+                        .font(.captionText.monospacedDigit()).foregroundStyle(PortSQLPalette.muted)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
@@ -626,15 +626,17 @@ private struct DesktopResultsView: View {
     @ViewBuilder private var modeControls: some View {
         HStack(spacing: Spacing.s) {
             if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
-                Picker("Results", selection: $tableMode) {
-                    if queryPlan != nil { Text("Plan").tag("plan") }
-                    Text("Table").tag("table")
-                    Text("Insights").tag("insights")
-                }.labelsHidden().pickerStyle(.segmented).fixedSize()
+                PortbaseSegmentedPicker(selection: $tableMode, options:
+                    (queryPlan != nil ? [PortbaseChoice(value: "plan", title: L10n.text("Plan"))] : [])
+                    + [PortbaseChoice(value: "table", title: L10n.text("Table")), PortbaseChoice(value: "insights", title: L10n.text("Insights"))])
+                    .accessibilityLabel("Results")
             }
             if workspace.result.documents != nil {
-                Picker("Results", selection: $presentation) { Text("Table").tag("table"); Text("Documents").tag("documents"); Text("Chart").tag("chart"); Text("Insights").tag("insights") }
-                    .labelsHidden().pickerStyle(.segmented).fixedSize()
+                PortbaseSegmentedPicker(selection: $presentation, options: [
+                    PortbaseChoice(value: "table", title: L10n.text("Table")), PortbaseChoice(value: "documents", title: L10n.text("Documents")),
+                    PortbaseChoice(value: "chart", title: L10n.text("Chart")), PortbaseChoice(value: "insights", title: L10n.text("Insights")),
+                ])
+                .accessibilityLabel("Results")
             }
             if workspace.resultSets.count > 1 {
                 Picker("Result Set", selection: Binding(get: { workspace.selectedResultIndex }, set: { workspace.selectResult($0) })) {
@@ -903,50 +905,64 @@ struct DesktopSettingsView: View {
 private struct DesktopRowEditor: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @Environment(\.dismiss) private var dismiss
+
+    private func close() { workspace.dismissDataEditor(); dismiss() }
+
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(workspace.dataEditorDraft?.mode.title ?? L10n.text("Data Editor")).font(.sectionTitle)
-                    Text(workspace.dataEditorDraft?.table.displayName ?? "").font(.codeText).foregroundStyle(.secondary)
-                }
-                Spacer()
-            }.padding(Spacing.l)
-            Divider()
+        PortbaseSheet(workspace.dataEditorDraft?.mode.title ?? L10n.text("Data Editor"),
+                      subtitle: workspace.dataEditorDraft?.table.displayName, onClose: close) {
             ScrollView {
                 if let draft = Binding($workspace.dataEditorDraft) {
                     VStack(spacing: Spacing.m) {
                         ForEach(draft.fields) { field in
-                            HStack(alignment: .top, spacing: Spacing.l) {
-                                VStack(alignment: .leading, spacing: Spacing.xxs) {
+                            HStack(alignment: .firstTextBaseline, spacing: Spacing.l) {
+                                VStack(alignment: .leading, spacing: Spacing.xxxs) {
                                     HStack(spacing: Spacing.xxs) {
-                                        Text(field.wrappedValue.column.name).font(.rowTitle)
-                                        if field.wrappedValue.column.isPrimaryKey { Image(systemName: "key.fill").font(.captionText).help("Primary key") }
+                                        Text(verbatim: field.wrappedValue.column.name).font(.codeDetail).foregroundStyle(PortSQLPalette.ink)
+                                        if field.wrappedValue.column.isPrimaryKey {
+                                            Image(systemName: "key.fill").font(.microText).foregroundStyle(PortSQLPalette.accent).help("Primary key")
+                                        }
                                     }
-                                    Text(field.wrappedValue.column.type).font(.codeDetail).foregroundStyle(.secondary)
-                                }.frame(width: 140, alignment: .leading)
+                                    Text(field.wrappedValue.column.type.lowercased()).font(.codeCaption).foregroundStyle(PortSQLPalette.muted)
+                                }
+                                .frame(width: 160, alignment: .leading)
                                 VStack(alignment: .leading, spacing: Spacing.xxs) {
                                     DesktopRowValue(field: field)
-                                    if let error = workspace.dataEditorValidation[field.wrappedValue.id] { Text(error).font(.captionText).foregroundStyle(.red) }
-                                }.frame(maxWidth: .infinity)
+                                    if let error = workspace.dataEditorValidation[field.wrappedValue.id] {
+                                        Label(error, systemImage: "exclamationmark.circle").font(.captionText).foregroundStyle(.red)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
                                 if field.wrappedValue.column.isNullable && field.wrappedValue.isEditable {
-                                    Toggle("NULL", isOn: field.isNull).toggleStyle(.checkbox).frame(width: 62)
+                                    Toggle("NULL", isOn: field.isNull).toggleStyle(.checkbox).font(.captionText).frame(width: 62)
                                         .accessibilityHint("Stores a database NULL instead of a value")
                                 } else { Spacer().frame(width: 62) }
                             }
                         }
-                    }.padding(Spacing.l)
+                    }
+                    .padding(.horizontal, Spacing.xl)
+                    .padding(.bottom, Spacing.l)
                 }
-            }.frame(maxHeight: 600)
-            if let error = workspace.dataEditorErrorMessage { Text(error).font(.captionText).foregroundStyle(.red).textSelection(.enabled).padding(Spacing.m) }
-            Divider()
-            HStack {
-                if workspace.isSavingMutation { ProgressView().controlSize(.small) }
-                Spacer()
-                Button(workspace.dataEditorDraft?.mode == .view ? "Done" : "Cancel") { workspace.dismissDataEditor(); dismiss() }.keyboardShortcut(.cancelAction).disabled(workspace.isSavingMutation)
-                if workspace.dataEditorDraft?.mode != .view { Button("Save") { workspace.saveDataEditor() }.keyboardShortcut(.defaultAction).disabled(workspace.isSavingMutation) }
-            }.padding(Spacing.m)
-        }.interactiveDismissDisabled(workspace.isSavingMutation)
+            }
+            .frame(maxHeight: 600)
+            if let error = workspace.dataEditorErrorMessage {
+                StatusBanner(title: L10n.text("Save failed"), message: error, tint: .red)
+                    .padding(.horizontal, Spacing.xl).padding(.bottom, Spacing.m)
+            }
+        } footer: {
+            if workspace.isSavingMutation { ProgressView().controlSize(.small) }
+            Spacer(minLength: 0)
+            if workspace.dataEditorDraft?.mode == .view {
+                Button("Done", action: close).buttonStyle(.portbasePrimary).keyboardShortcut(.defaultAction)
+            } else {
+                Button("Cancel", action: close).buttonStyle(.portbaseSecondary).disabled(workspace.isSavingMutation)
+                Button("Save") { workspace.saveDataEditor() }
+                    .buttonStyle(.portbasePrimary)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(workspace.isSavingMutation)
+            }
+        }
+        .interactiveDismissDisabled(workspace.isSavingMutation)
         .onChange(of: workspace.dataEditorDraft == nil) { _, empty in if empty { dismiss() } }
     }
 }
@@ -968,9 +984,12 @@ private struct DesktopRowValue: View {
                         Button("Format") { if let formatted = DataEditorValidationService.formattedJSON(field.value) { field.value = formatted } }.buttonStyle(.borderless)
                     }.font(.rowDetail).padding(Spacing.xxs)
                     HighlightedQueryEditor(text: $field.value, cursorOffset: $cursor, selectionLength: $selection, colorScheme: colorScheme, isJSON: true).frame(height: 120)
-                }.border(Color(nsColor: .separatorColor))
+                }
+                .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+                .overlay { RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
             } else {
-                TextField(DataEditorValidationService.placeholder(for: field.column), text: $field.value).labelsHidden().textFieldStyle(.roundedBorder).autocorrectionDisabled()
+                TextField(DataEditorValidationService.placeholder(for: field.column), text: $field.value).labelsHidden().textFieldStyle(.plain).autocorrectionDisabled()
+                    .portbaseFieldChrome()
                     .accessibilityLabel(field.column.name)
             }
         }.font(.codeText)

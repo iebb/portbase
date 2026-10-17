@@ -81,6 +81,15 @@ extension View {
         self
 #endif
     }
+    /// Keeps a navigation stack under a Portbase sheet on iOS, where form pickers push their options,
+    /// with the system bar hidden because the sheet draws its own title. Mac sheets need neither.
+    @ViewBuilder func portbaseSheetNavigation() -> some View {
+#if canImport(UIKit)
+        NavigationStack { toolbar(.hidden, for: .navigationBar) }
+#else
+        self
+#endif
+    }
     @ViewBuilder func portbaseEditorPresentation<Content: View>(isPresented: Binding<Bool>, @ViewBuilder content: @escaping () -> Content) -> some View {
 #if os(macOS)
         sheet(isPresented: isPresented, content: content)

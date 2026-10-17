@@ -81,7 +81,7 @@ struct ConnectionsHubView: View {
                     .onChange(of: query) { _, _ in importError = nil }
                 if isConnectionString {
                     Button("Import", action: importQuery)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.portbasePrimary)
                         .accessibilityHint("Opens the connection form with these details")
                 } else if !query.isEmpty {
                     Button { query = "" } label: {
@@ -122,7 +122,7 @@ struct ConnectionsHubView: View {
         Button { workspace.createBookmark() } label: {
             Label("New Connection", systemImage: "plus").frame(minHeight: Sizes.buttonContent)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.portbasePrimary)
         Button(action: onCreateSQLite) {
             Label("New SQLite Database", systemImage: "externaldrive.badge.plus").frame(minHeight: Sizes.buttonContent)
         }
@@ -419,7 +419,7 @@ private struct ConnectionInspector: View {
                 Button(action: onOpenConsole) {
                     Label("Open Console", systemImage: "terminal").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.portbasePrimary)
             }
             HStack(spacing: Spacing.s) {
                 Button { workspace.selectedProfileForEdit = profile } label: {

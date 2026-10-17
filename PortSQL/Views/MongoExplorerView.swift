@@ -94,14 +94,13 @@ struct MongoDocumentInspector: View {
     @State private var editing: MongoDocumentEditorSelection?
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.format("Document %d", selection.index + 1)) {
             VStack(spacing: 0) {
-                Picker("Results", selection: $showsJSON) {
-                    Text("Document").tag(false)
-                    Text("JSON").tag(true)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
+                PortbaseTabs(selection: $showsJSON, options: [
+                    PortbaseChoice(value: false, title: L10n.text("Document")), PortbaseChoice(value: true, title: L10n.text("JSON")),
+                ])
+                .padding(.horizontal, Spacing.xl)
+                .overlay(alignment: .bottom) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
                 ScrollView {
                     if showsJSON {
                         Text(MongoQueryService.formattedJSON(selection.json))
@@ -114,22 +113,6 @@ struct MongoDocumentInspector: View {
                     }
                 }
             }
-            .navigationTitle(L10n.format("Document %d", selection.index + 1))
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
-            }
-            .portbaseSheetActions {
-                    Menu {
-                        ShareLink(item: selection.json) { Label("JSON", systemImage: "square.and.arrow.up") }
-                        if selection.context != nil, (try? MongoExtendedJSON.decode(selection.json, maximumBytes: 128 * 1_024 * 1_024)["_id"]) != nil {
-                            Button("Edit Document", systemImage: "pencil") { editing = .init(mode: .edit) }
-                            Button("Duplicate Document", systemImage: "plus.square.on.square") { editing = .init(mode: .duplicate) }
-                            Button("Delete Document", systemImage: "trash", role: .destructive) { editing = .init(mode: .delete) }
-                        }
-                    } label: { Label("Document Actions", systemImage: "ellipsis.circle") }
-                        .fixedSize()
-            }
             .sheet(item: $editing) { editing in
                 if let context = selection.context {
                     MongoDocumentEditor(context: context, mode: editing.mode, originalJSON: selection.json) {
@@ -140,6 +123,23 @@ struct MongoDocumentInspector: View {
                     }
                 }
             }
+        } footer: {
+            Menu {
+                ShareLink(item: selection.json) { Label("JSON", systemImage: "square.and.arrow.up") }
+                if selection.context != nil, (try? MongoExtendedJSON.decode(selection.json, maximumBytes: 128 * 1_024 * 1_024)["_id"]) != nil {
+                    Button("Edit Document", systemImage: "pencil") { editing = .init(mode: .edit) }
+                    Button("Duplicate Document", systemImage: "plus.square.on.square") { editing = .init(mode: .duplicate) }
+                    Button("Delete Document", systemImage: "trash", role: .destructive) { editing = .init(mode: .delete) }
+                }
+            } label: { Label("Document Actions", systemImage: "ellipsis.circle") }
+                .fixedSize()
+                .menuStyle(.button)
+                .buttonStyle(.portbaseToolbar)
+
+            Spacer(minLength: 0)
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 }

@@ -761,6 +761,260 @@ struct PortbaseBackdrop: View {
     }
 }
 
+// MARK: - Termius-style primitives
+//
+// Sheets, tabs, choices, and primary actions share these so every screen reads the same way: one
+// themed surface, a title with a close button, underline tabs, a sunken segmented track, and a single
+// accent-filled primary action.
+
+/// The main action of a screen or sheet: an accent fill with white text. Used once per surface.
+struct PortbasePrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        PortbasePrimaryButton(configuration: configuration)
+    }
+}
+
+private struct PortbasePrimaryButton: View {
+    let configuration: ButtonStyleConfiguration
+    @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+        configuration.label
+            .font(.captionStrong)
+            .foregroundStyle(.white)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.xxs)
+            .frame(minHeight: Sizes.control)
+            .background(shape.fill(PortSQLPalette.accent))
+            .background(shape.fill(Color.black.opacity(configuration.isPressed ? 0.18 : 0)).blendMode(.multiply))
+            .overlay(shape.fill(Color.white.opacity(isHovering && isEnabled && !configuration.isPressed ? 0.08 : 0)))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
+            .contentShape(shape)
+            .onHover { isHovering = $0 }
+    }
+}
+
+extension ButtonStyle where Self == PortbasePrimaryButtonStyle {
+    static var portbasePrimary: PortbasePrimaryButtonStyle { PortbasePrimaryButtonStyle() }
+}
+
+/// One option of a segmented choice or tab strip.
+struct PortbaseChoice<Value: Hashable>: Identifiable {
+    let value: Value
+    let title: String
+    var systemImage: String?
+    /// A count shown beside the title, such as the number of items in a tab.
+    var count: Int?
+    var id: Value { value }
+}
+
+/// A choice among a few options: a sunken track with the selected option raised, in place of the
+/// system segmented control, whose tinted fill clashes with the themes.
+struct PortbaseSegmentedPicker<Value: Hashable>: View {
+    @Binding var selection: Value
+    let options: [PortbaseChoice<Value>]
+    /// Stretch the options to fill the available width, as on phone forms.
+    var fills = false
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options) { option in
+                let selected = option.value == selection
+                Button { selection = option.value } label: {
+                    HStack(spacing: Spacing.xxs) {
+                        if let symbol = option.systemImage { Image(systemName: symbol).imageScale(.small) }
+                        Text(option.title).lineLimit(1)
+                    }
+                    .font(.captionStrong)
+                    .foregroundStyle(selected ? PortSQLPalette.ink : PortSQLPalette.muted)
+                    .padding(.horizontal, Spacing.s)
+                    .frame(maxWidth: fills ? .infinity : nil, minHeight: Sizes.control - 4)
+                    .background {
+                        if selected {
+                            RoundedRectangle(cornerRadius: Radius.s, style: .continuous)
+                                .fill(PortSQLPalette.tertiarySurface)
+                                .shadow(color: PortSQLPalette.shadow, radius: 1, y: 1)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
+            }
+        }
+        .padding(2)
+        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: Radius.button, style: .continuous).strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+        .fixedSize(horizontal: !fills, vertical: false)
+    }
+}
+
+/// Underline tabs for switching between views of one surface, with optional counts.
+struct PortbaseTabs<Value: Hashable>: View {
+    @Binding var selection: Value
+    let options: [PortbaseChoice<Value>]
+
+    var body: some View {
+        HStack(spacing: Spacing.xl) {
+            ForEach(options) { option in
+                let selected = option.value == selection
+                Button { selection = option.value } label: {
+                    VStack(spacing: Spacing.s) {
+                        HStack(spacing: Spacing.xs) {
+                            if let symbol = option.systemImage { Image(systemName: symbol).imageScale(.small) }
+                            Text(option.title).font(.rowTitle)
+                            if let count = option.count {
+                                Text(verbatim: "\(count)").font(.captionText.monospacedDigit()).foregroundStyle(PortSQLPalette.muted)
+                            }
+                        }
+                        .foregroundStyle(selected ? PortSQLPalette.ink : PortSQLPalette.muted)
+                        Rectangle().fill(selected ? PortSQLPalette.accent : Color.clear).frame(height: 2)
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// The close button at the top trailing corner of a sheet. Escape triggers it on a keyboard.
+struct PortbaseCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.toolSymbol)
+                .foregroundStyle(PortSQLPalette.muted)
+                .frame(width: Sizes.tool, height: Sizes.tool)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.portbaseToolbar)
+        .keyboardShortcut(.cancelAction)
+        .accessibilityLabel("Close")
+    }
+}
+
+/// A sheet laid out like Termius's panels: a title with a close button, content on the theme canvas,
+/// and an optional footer for actions. Replaces navigation bars, which render as gray system strips
+/// in Mac sheets and differ between platforms.
+struct PortbaseSheet<Content: View, Footer: View>: View {
+    let title: String
+    var subtitle: String?
+    /// Runs instead of dismissing, for sheets whose presenter clears its own state.
+    var onClose: (() -> Void)?
+    @ViewBuilder var content: () -> Content
+    @ViewBuilder var footer: () -> Footer
+    @Environment(\.dismiss) private var dismiss
+
+    init(_ title: String, subtitle: String? = nil, onClose: (() -> Void)? = nil,
+         @ViewBuilder content: @escaping () -> Content, @ViewBuilder footer: @escaping () -> Footer) {
+        self.title = title
+        self.subtitle = subtitle
+        self.onClose = onClose
+        self.content = content
+        self.footer = footer
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: Spacing.m) {
+                VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                    Text(title).font(.pageTitle).foregroundStyle(PortSQLPalette.ink).lineLimit(2)
+                        .accessibilityAddTraits(.isHeader)
+                    if let subtitle, !subtitle.isEmpty {
+                        Text(subtitle).font(.captionText).foregroundStyle(PortSQLPalette.muted).lineLimit(2)
+                    }
+                }
+                Spacer(minLength: Spacing.m)
+                PortbaseCloseButton { if let onClose { onClose() } else { dismiss() } }
+                    .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 6 }
+            }
+            .padding(.horizontal, Spacing.xl)
+            .padding(.top, Spacing.l)
+            .padding(.bottom, Spacing.m)
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            if Footer.self != EmptyView.self {
+                HStack(spacing: Spacing.s) { footer() }
+                    .padding(.horizontal, Spacing.xl)
+                    .padding(.vertical, Spacing.m)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .overlay(alignment: .top) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
+            }
+        }
+        .background(PortSQLPalette.canvasTop.ignoresSafeArea())
+    }
+}
+
+extension PortbaseSheet where Footer == EmptyView {
+    init(_ title: String, subtitle: String? = nil, onClose: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) {
+        self.init(title, subtitle: subtitle, onClose: onClose, content: content, footer: { EmptyView() })
+    }
+}
+
+/// A search field on a sunken inset, with a clear button, shared by lists and pickers.
+struct PortbaseSearchField: View {
+    var prompt: String = L10n.text("Search")
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: "magnifyingglass").foregroundStyle(PortSQLPalette.muted).accessibilityHidden(true)
+            TextField(prompt, text: $text)
+                .textFieldStyle(.plain)
+                .autocorrectionDisabled()
+                .portbaseTextCapitalization(.never)
+            if !text.isEmpty {
+                Button { text = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(PortSQLPalette.muted) }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
+            }
+        }
+        .font(.bodyText)
+        .portbaseFieldChrome()
+    }
+}
+
+/// A small label above a field, as in Termius's host editor.
+struct PortbaseFieldLabel: View {
+    let title: String
+    init(_ title: String) { self.title = title }
+
+    var body: some View {
+        Text(title).font(.captionStrong).foregroundStyle(PortSQLPalette.muted)
+    }
+}
+
+/// Read-only code, such as a SQL preview, in a sunken box.
+struct PortbaseCodeBlock: View {
+    let text: String
+
+    var body: some View {
+        Text(verbatim: text)
+            .font(.codeCaption)
+            .foregroundStyle(PortSQLPalette.ink)
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Spacing.m)
+            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(PortSQLPalette.stroke, lineWidth: 1) }
+    }
+}
+
+extension View {
+    /// A grouped form on the sheet's themed canvas instead of the system's gray form background.
+    func portbaseForm() -> some View {
+        formStyle(.grouped).scrollContentBackground(.hidden)
+    }
+}
+
 // MARK: - Components
 
 /// A rounded-square tool button that keeps a 44-point target on touch devices.
@@ -938,7 +1192,7 @@ struct PortbaseEmptyState: View {
                 Button(action: action) {
                     Text(actionTitle).lineLimit(1).padding(.horizontal, Spacing.s).frame(minHeight: Sizes.buttonContent)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.portbasePrimary)
                 .padding(.top, Spacing.xxs)
             }
             if let secondaryTitle, let secondaryAction {

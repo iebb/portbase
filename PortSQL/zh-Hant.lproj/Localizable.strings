@@ -1284,3 +1284,6 @@
 "No queries yet" = "尚無查詢";
 "No saved queries" = "沒有已儲存的查詢";
 "Saved Queries: %d" = "已儲存的查詢：%d";
+"Couldn't load database objects" = "無法載入資料庫物件";
+"No database objects" = "沒有資料庫物件";
+"Tables, views, and routines in this database appear here." = "此資料庫中的表格、視圖和常式會顯示在這裡。";

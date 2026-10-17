@@ -89,7 +89,7 @@ struct HomeView: View {
                     Button { onNavigate(.console) } label: {
                         Label("Open Console", systemImage: "terminal").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.portbasePrimary)
                     Button { onNavigate(.explorer) } label: {
                         Label("Browse Data", systemImage: "tablecells").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
                     }
@@ -149,7 +149,7 @@ struct HomeView: View {
                 .fixedSize(horizontal: true, vertical: false)
                 .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.portbasePrimary)
         Button { createsSQLite = true } label: {
             Label("New SQLite Database", systemImage: "internaldrive")
                 .lineLimit(1)

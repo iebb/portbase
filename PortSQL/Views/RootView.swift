@@ -49,6 +49,7 @@ struct RootView: View {
     @State private var showsLibrary = false
     @State private var showsSettings = false
     @State private var createsSQLite = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var hasConnectionProblem: Bool {
         workspace.selectedBookmark != nil
@@ -56,6 +57,10 @@ struct RootView: View {
     }
 
     var body: some View {
+        // On iPad the system's floating tab bar sits over each page's navigation bar and hides its
+        // controls, so the destinations move to a strip of underline tabs above the workspace.
+        VStack(spacing: 0) {
+        if horizontalSizeClass == .regular { destinationStrip }
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: RootTab.home) {
                 NavigationStack {
@@ -72,32 +77,38 @@ struct RootView: View {
                             }
                         }
                 }
+                .portbaseHidesTabBarWhenRegular()
             }
 
             Tab("Explorer", systemImage: "square.stack.3d.up.fill", value: RootTab.explorer) {
                 ExplorerWorkspaceView()
+                    .portbaseHidesTabBarWhenRegular()
             }
 
             Tab("Console", systemImage: "terminal.fill", value: RootTab.studio) {
                 ExplorerWorkspaceView(showsConsole: true)
+                    .portbaseHidesTabBarWhenRegular()
             }
 
             Tab("Charts", systemImage: "chart.bar.xaxis", value: RootTab.charts) {
                 NavigationStack {
                     VisualizerView()
                 }
+                .portbaseHidesTabBarWhenRegular()
             }
 
             Tab("Servers", systemImage: "server.rack", value: RootTab.servers) {
                 NavigationStack {
                     BookmarksView(onOpenConsole: { navigate(.console) })
                 }
+                .portbaseHidesTabBarWhenRegular()
             }
             .badge(hasConnectionProblem ? Text(verbatim: "!") : nil)
 
         }
         .tabViewStyle(.sidebarAdaptable)
         .portbaseMinimizingTabBar()
+        }
         .certificateTrustPrompt(workspace)
         .portbaseTheme()
         .background {
@@ -122,7 +133,7 @@ struct RootView: View {
                     .foregroundStyle(.red)
                     .padding(Spacing.m)
                     .frame(maxWidth: .infinity)
-                    .background(.bar)
+                    .background(PortSQLPalette.panel)
             }
         }
         .sheet(isPresented: $showsPalette) {
@@ -167,6 +178,31 @@ struct RootView: View {
         }
     }
 
+    /// The iPad destination tabs, in place of the floating system tab bar.
+    private var destinationStrip: some View {
+        HStack(spacing: Spacing.m) {
+            PortbaseTabs(selection: $selectedTab, options: [
+                PortbaseChoice(value: RootTab.home, title: L10n.text("Home"), systemImage: "house"),
+                PortbaseChoice(value: RootTab.explorer, title: L10n.text("Explorer"), systemImage: "square.stack.3d.up"),
+                PortbaseChoice(value: RootTab.studio, title: L10n.text("Console"), systemImage: "terminal"),
+                PortbaseChoice(value: RootTab.charts, title: L10n.text("Charts"), systemImage: "chart.bar.xaxis"),
+                PortbaseChoice(value: RootTab.servers, title: L10n.text("Servers"),
+                               systemImage: hasConnectionProblem ? "exclamationmark.triangle.fill" : "server.rack"),
+            ])
+            .padding(.top, Spacing.s)
+            searchButton
+                .buttonStyle(.portbaseToolbar)
+            Button { showsSettings = true } label: {
+                Image(systemName: "gearshape").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
+            }
+            .buttonStyle(.portbaseToolbar)
+            .accessibilityLabel("Settings")
+        }
+        .padding(.horizontal, Spacing.xl)
+        .background(PortSQLPalette.panel.ignoresSafeArea(edges: .top))
+        .overlay(alignment: .bottom) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
+    }
+
     private var searchButton: some View {
         Button { showsPalette = true } label: {
             Image(systemName: "magnifyingglass").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
@@ -189,12 +225,22 @@ struct RootView: View {
 }
 
 private extension View {
+    /// Hides the system tab bar on iPad, where the root view draws its own destination strip.
+    func portbaseHidesTabBarWhenRegular() -> some View { modifier(HidesTabBarWhenRegular()) }
+
     @ViewBuilder func portbaseMinimizingTabBar() -> some View {
         if #available(iOS 26.0, *) {
             self.tabBarMinimizeBehavior(.onScrollDown)
         } else {
             self
         }
+    }
+}
+
+private struct HidesTabBarWhenRegular: ViewModifier {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    func body(content: Content) -> some View {
+        content.toolbarVisibility(horizontalSizeClass == .regular ? .hidden : .automatic, for: .tabBar)
     }
 }
 
@@ -473,7 +519,7 @@ struct QueryEditorCard: View {
             Label("Add Connection", systemImage: "plus")
                 .frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.portbasePrimary)
     }
 
     private var actionSection: some View {
@@ -798,10 +844,9 @@ struct ResultsCard: View {
     var body: some View {
         PanelCard {
             VStack(alignment: .leading, spacing: Spacing.m) {
+                // The view switcher leads the header, as on the Mac, instead of a separate full-width row.
                 HStack(alignment: .center, spacing: Spacing.m) {
-                    Text("Results")
-                        .font(.sectionTitle)
-                        .accessibilityAddTraits(.isHeader)
+                    resultModeSwitcher
                     Spacer(minLength: 0)
                     HStack(spacing: Spacing.s) {
                         if workspace.isDocumentDatabase { MongoInsertDocumentButton() }
@@ -836,23 +881,6 @@ struct ResultsCard: View {
                     }
                     .pickerStyle(.menu)
                     .frame(minHeight: Sizes.touchTarget)
-                }
-
-                if workspace.result.documents != nil {
-                    Picker("Results", selection: $mongoResultView) {
-                        Text("Documents").tag("documents")
-                        Text("Table").tag("table")
-                        Text("Chart").tag("chart")
-                        Text("Insights").tag("insights")
-                    }
-                    .pickerStyle(.segmented)
-                } else if hasTabularResult && !workspace.isRunning {
-                    Picker("Results", selection: $tableResultView) {
-                        if queryPlan != nil { Label("Plan", systemImage: "list.bullet.indent").tag("plan") }
-                        Label("Table", systemImage: "tablecells").tag("table")
-                        Label("Insights", systemImage: "sparkles").tag("insights")
-                    }
-                    .pickerStyle(.segmented)
                 }
 
                 if let errorMessage = workspace.errorMessage {
@@ -985,6 +1013,28 @@ struct ResultsCard: View {
                 },
                 secondaryButton: .cancel()
             )
+        }
+    }
+
+    @ViewBuilder private var resultModeSwitcher: some View {
+        if workspace.result.documents != nil {
+            PortbaseSegmentedPicker(selection: $mongoResultView, options: [
+                PortbaseChoice(value: "documents", title: L10n.text("Documents")),
+                PortbaseChoice(value: "table", title: L10n.text("Table")),
+                PortbaseChoice(value: "chart", title: L10n.text("Chart")),
+                PortbaseChoice(value: "insights", title: L10n.text("Insights")),
+            ])
+            .accessibilityLabel("Results")
+        } else if hasTabularResult && !workspace.isRunning {
+            PortbaseSegmentedPicker(selection: $tableResultView, options:
+                (queryPlan != nil ? [PortbaseChoice(value: "plan", title: L10n.text("Plan"), systemImage: "list.bullet.indent")] : [])
+                + [PortbaseChoice(value: "table", title: L10n.text("Table"), systemImage: "tablecells"),
+                   PortbaseChoice(value: "insights", title: L10n.text("Insights"), systemImage: "sparkles")])
+            .accessibilityLabel("Results")
+        } else {
+            Text("Results")
+                .font(.sectionTitle)
+                .accessibilityAddTraits(.isHeader)
         }
     }
 
@@ -1133,7 +1183,7 @@ struct ResultsCard: View {
     }
 
     private var schemaSheet: some View {
-        NavigationStack {
+        PortbaseSheet(workspace.selectedExplorerTable?.name ?? L10n.text("Structure"), onClose: { isShowingSchemaSheet = false }) {
             Group {
                 if let selectedTable = workspace.selectedExplorerTable {
                     List(selectedTable.columns) { column in
@@ -1167,11 +1217,10 @@ struct ResultsCard: View {
                             } label: {
                                 Image(systemName: "pencil")
                                     .font(.captionStrong)
-                                    .foregroundStyle(PortSQLPalette.accent)
+                                    .foregroundStyle(PortSQLPalette.muted)
                                     .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-                                    .background(Color.secondary.opacity(0.08), in: Circle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(.portbaseToolbar)
                             .disabled(workspace.selectedBookmark?.isReadOnly == true || workspace.selectedBookmark?.engine.supportsSchemaEditing != true)
                             .accessibilityLabel("Edit column \(column.name)")
                         }
@@ -1186,23 +1235,7 @@ struct ResultsCard: View {
                         }
                     }
                     .listStyle(.portbaseGrouped)
-                    .navigationTitle(selectedTable.name)
-                    .portbaseTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: PortbaseToolbar.leading) {
-                            Button {
-                                schemaColumnDraft = .add(to: selectedTable)
-                            } label: {
-                                Label("Add", systemImage: "plus")
-                            }
-                            .disabled(workspace.selectedBookmark?.isReadOnly == true || workspace.selectedBookmark?.engine.supportsSchemaEditing != true)
-                        }
-                        ToolbarItem(placement: PortbaseToolbar.trailing) {
-                            Button("Done") {
-                                isShowingSchemaSheet = false
-                            }
-                        }
-                    }
+                    .scrollContentBackground(.hidden)
                 } else {
                     ContentUnavailableView(
                         "No table selected",
@@ -1211,6 +1244,16 @@ struct ResultsCard: View {
                     )
                 }
             }
+        } footer: {
+            if let selectedTable = workspace.selectedExplorerTable {
+                Button { schemaColumnDraft = .add(to: selectedTable) } label: { Label("Add", systemImage: "plus") }
+                    .buttonStyle(.portbaseSecondary)
+                    .disabled(workspace.selectedBookmark?.isReadOnly == true || workspace.selectedBookmark?.engine.supportsSchemaEditing != true)
+            }
+            Spacer(minLength: 0)
+            Button("Done") { isShowingSchemaSheet = false }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
         .presentationDetents([.medium, .large])
     }
@@ -1234,13 +1277,10 @@ private struct SchemaColumnEditorSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(draft.mode.title, subtitle: draft.table.displayName) {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
-                        Text(draft.table.displayName)
-                            .font(.rowTitle)
-                            .foregroundStyle(PortSQLPalette.ink)
                         if let originalName = draft.originalName, draft.mode == .edit {
                             Text(L10n.format("Editing `%@`", originalName))
                                 .font(.captionText)
@@ -1296,19 +1336,15 @@ private struct SchemaColumnEditorSheet: View {
                     }
                 }
             }
-            .navigationTitle(draft.mode.title)
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(draft.mode.confirmationTitle) {
-                        reviewSchemaChange()
-                    }
-                    .disabled(isSaving)
-                }
-            }
+            .listStyle(.portbaseGrouped)
+            .scrollContentBackground(.hidden)
+        } footer: {
+            Button("Cancel") { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button(draft.mode.confirmationTitle) { reviewSchemaChange() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(isSaving)
         }
         .presentationDetents([.medium, .large])
         .alert("Apply schema change?", isPresented: $isConfirmingSchemaChange, presenting: pendingPlan) { _ in
@@ -1506,7 +1542,7 @@ struct BookmarkEditorView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Connection"), subtitle: profile.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : profile.name) {
             Form {
                 ConnectionStringImportSection(profile: $profile, willChangeEngine: { keepsImportedEndpoint = true })
 
@@ -1704,69 +1740,62 @@ struct BookmarkEditorView: View {
                     TextField("Notes", text: $profile.notes, axis: .vertical)
                 }
             }
-#if os(macOS)
-            .formStyle(.grouped)
-            .navigationTitle("Connection")
-#else
-            .navigationTitle("Connection")
-            .portbaseTitleDisplayMode(.inline)
-#endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        if workspace.saveBookmark(profile) { dismiss() }
-                        else { saveError = workspace.errorMessage }
-                    }
-                    .disabled(!canSave)
-                }
+            .portbaseForm()
+        } footer: {
+            Button("Cancel") { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button("Save") {
+                if workspace.saveBookmark(profile) { dismiss() }
+                else { saveError = workspace.errorMessage }
             }
-            .sheet(isPresented: $isShowingIconPicker) {
-                BookmarkIconPicker(profile: $profile)
-            }
-            .sheet(item: $certificateTrustRequest) { request in
-                CertificateTrustSheet(request: request, onTrust: {
-                    // The CA joins the unsaved form; saving stores it in the Keychain.
-                    profile.privateCACertificate = request.authority.pem
-                    profile.transportSecurityMode = .privateCA
-                    certificateTrustRequest = nil
-                    runConnectionTest()
-                }, onCancel: {
-                    declinedFingerprints.insert(request.authority.sha256Fingerprint)
-                    certificateTrustRequest = nil
-                })
+            .buttonStyle(.portbasePrimary)
+            .keyboardShortcut(.defaultAction)
+            .disabled(!canSave)
+        }
+        .portbaseSheetNavigation()
+        .sheet(isPresented: $isShowingIconPicker) {
+            BookmarkIconPicker(profile: $profile)
+        }
+        .sheet(item: $certificateTrustRequest) { request in
+            CertificateTrustSheet(request: request, onTrust: {
+                // The CA joins the unsaved form; saving stores it in the Keychain.
+                profile.privateCACertificate = request.authority.pem
+                profile.transportSecurityMode = .privateCA
+                certificateTrustRequest = nil
+                runConnectionTest()
+            }, onCancel: {
+                declinedFingerprints.insert(request.authority.sha256Fingerprint)
+                certificateTrustRequest = nil
+            })
 #if os(iOS)
-                .presentationDetents([.medium, .large])
+            .presentationDetents([.medium, .large])
 #endif
-                .interactiveDismissDisabled()
-            }
-            .onDisappear { testTask?.cancel() }
-            .fileImporter(
-                isPresented: $isImportingPrivateCA,
-                allowedContentTypes: Self.certificateContentTypes,
-                allowsMultipleSelection: false
-            ) { result in
-                do {
-                    guard let url = try result.get().first else { return }
-                    let accessedSecurityScopedResource = url.startAccessingSecurityScopedResource()
-                    defer {
-                        if accessedSecurityScopedResource {
-                            url.stopAccessingSecurityScopedResource()
-                        }
+            .interactiveDismissDisabled()
+        }
+        .onDisappear { testTask?.cancel() }
+        .fileImporter(
+            isPresented: $isImportingPrivateCA,
+            allowedContentTypes: Self.certificateContentTypes,
+            allowsMultipleSelection: false
+        ) { result in
+            do {
+                guard let url = try result.get().first else { return }
+                let accessedSecurityScopedResource = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessedSecurityScopedResource {
+                        url.stopAccessingSecurityScopedResource()
                     }
-
-                    let data = try Data(contentsOf: url, options: .mappedIfSafe)
-                    guard let pem = TransportSecurityEditorState.pemEncodedCertificate(from: data) else {
-                        privateCAImportError = L10n.text("The selected file does not contain a valid X.509 certificate.")
-                        return
-                    }
-                    profile.privateCACertificate = pem
-                    privateCAImportError = nil
-                } catch {
-                    privateCAImportError = L10n.text("Portbase could not read this certificate file.")
                 }
+
+                let data = try Data(contentsOf: url, options: .mappedIfSafe)
+                guard let pem = TransportSecurityEditorState.pemEncodedCertificate(from: data) else {
+                    privateCAImportError = L10n.text("The selected file does not contain a valid X.509 certificate.")
+                    return
+                }
+                profile.privateCACertificate = pem
+                privateCAImportError = nil
+            } catch {
+                privateCAImportError = L10n.text("Portbase could not read this certificate file.")
             }
         }
     }
@@ -1962,24 +1991,10 @@ private struct BookmarkIconPicker: View {
     ]
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Choose Icon")) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
-                    HStack(spacing: Spacing.m) {
-                        Label("Search", systemImage: "magnifyingglass")
-                            .font(.rowTitle)
-                            .foregroundStyle(.secondary)
-                        TextField("server, chart, folder", text: $searchText)
-                            .portbaseTextCapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
-                    .padding(.horizontal, Spacing.l)
-                    .padding(.vertical, Spacing.m)
-                    .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                            .stroke(PortSQLPalette.stroke, lineWidth: 1)
-                    }
+                    PortbaseSearchField(prompt: L10n.text("server, chart, folder"), text: $searchText)
 
                     LazyVGrid(columns: columns, spacing: Spacing.l) {
                         ForEach(filteredIcons, id: \.self) { iconName in
@@ -2015,22 +2030,15 @@ private struct BookmarkIconPicker: View {
                         }
                     }
                 }
-                .padding(.horizontal, Spacing.m)
+                .padding(.horizontal, Spacing.xl)
                 .padding(.vertical, Spacing.l)
             }
-            .background(WorkbenchBackground().ignoresSafeArea())
-            .navigationTitle("Choose Icon")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Use Initials") {
-                        profile.iconName = nil
-                    }
-                }
-            }
+        } footer: {
+            Button("Use Initials") { profile.iconName = nil }
+                .buttonStyle(.portbaseSecondary)
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 
@@ -2050,66 +2058,66 @@ struct QueryParameterSheet: View {
         _draft = State(initialValue: draft)
     }
 
+    private var preview: String {
+        QueryParameterService.render(
+            sql: draft.sourceSQL,
+            values: draft.values,
+            nullParameters: draft.nullParameters,
+            engine: workspace.selectedBookmark?.engine ?? .postgresql
+        )
+    }
+
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Parameters") {
+        PortbaseSheet(L10n.text("Query Parameters"), onClose: { workspace.cancelParameters(); dismiss() }) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Spacing.l) {
                     ForEach(draft.names, id: \.self) { name in
-                        VStack(alignment: .leading, spacing: Spacing.s) {
-                            TextField(name, text: Binding(
+                        let isNull = draft.nullParameters.contains(name)
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
+                            HStack {
+                                Text(verbatim: name).font(.codeCaption).foregroundStyle(PortSQLPalette.muted)
+                                Spacer(minLength: Spacing.s)
+                                Toggle("NULL", isOn: Binding(
+                                    get: { isNull },
+                                    set: { enabled in
+                                        if enabled { draft.nullParameters.insert(name) }
+                                        else { draft.nullParameters.remove(name) }
+                                    }
+                                ))
+                                .font(.captionText)
+                            }
+                            TextField(isNull ? "NULL" : L10n.text("Value"), text: Binding(
                                 get: { draft.values[name] ?? "" },
                                 set: { draft.values[name] = $0 }
                             ))
-                            .disabled(draft.nullParameters.contains(name))
+                            .textFieldStyle(.plain)
+                            .font(.codeText)
+                            .disabled(isNull)
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
-
-                            Toggle("NULL", isOn: Binding(
-                                get: { draft.nullParameters.contains(name) },
-                                set: { enabled in
-                                    if enabled { draft.nullParameters.insert(name) }
-                                    else { draft.nullParameters.remove(name) }
-                                }
-                            ))
+                            .portbaseFieldChrome()
+                            .accessibilityLabel(name)
                         }
                     }
-                }
-
-                if let parameterErrorMessage = workspace.parameterErrorMessage {
-                    Section {
-                        Text(parameterErrorMessage)
+                    if let parameterErrorMessage = workspace.parameterErrorMessage {
+                        Label(parameterErrorMessage, systemImage: "exclamationmark.circle")
+                            .font(.captionText)
                             .foregroundStyle(.red)
                     }
-                }
-
-                Section("Preview") {
-                    Text(QueryParameterService.render(
-                        sql: draft.sourceSQL,
-                        values: draft.values,
-                        nullParameters: draft.nullParameters,
-                        engine: workspace.selectedBookmark?.engine ?? .postgresql
-                    ))
-                        .font(.codeCaption)
-                        .textSelection(.enabled)
-                }
-            }
-            .navigationTitle("Query Parameters")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        workspace.cancelParameters()
-                        dismiss()
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        PortbaseFieldLabel(L10n.text("Preview"))
+                        PortbaseCodeBlock(text: preview)
                     }
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Apply") {
-                        if workspace.applyParameters(draft) {
-                            dismiss()
-                        }
-                    }
-                }
+                .padding(.horizontal, Spacing.xl)
+                .padding(.bottom, Spacing.l)
             }
+        } footer: {
+            Button("Cancel") { workspace.cancelParameters(); dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button("Apply") { if workspace.applyParameters(draft) { dismiss() } }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 }
@@ -2119,100 +2127,70 @@ struct DataEditorSheet: View {
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject private var workspace: WorkspaceViewModel
 
+    private func close() {
+        workspace.dismissDataEditor()
+        dismiss()
+    }
+
     var body: some View {
-        NavigationStack {
-            Group {
-                if let binding = Binding($workspace.dataEditorDraft) {
-                    Form {
-                        Section {
-                            VStack(alignment: .leading, spacing: Spacing.xs) {
-                                Text(binding.wrappedValue.table.displayName)
-                                    .font(.cardTitle)
-                                Text(editorSubtitle(for: binding.wrappedValue.mode))
-                                    .font(.footnoteText)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Section("Columns") {
-                            ForEach(binding.fields) { fieldBinding in
-                                VStack(alignment: .leading, spacing: Spacing.xs) {
-                                    HStack(spacing: Spacing.s) {
-                                        Text(fieldBinding.wrappedValue.column.name)
-                                            .font(.rowTitle)
-                                        if fieldBinding.wrappedValue.column.isPrimaryKey {
-                                            Text("PK")
-                                                .font(.captionStrong)
-                                                .foregroundStyle(.white)
-                                                .padding(.horizontal, Spacing.s)
-                                                .padding(.vertical, Spacing.xxs)
-                                                .background(PortSQLPalette.accent, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
-                                        }
-                                        Spacer()
-                                        Text(L10n.format(
-                                            "%@ • %@",
-                                            fieldBinding.wrappedValue.column.type,
-                                            L10n.text(fieldBinding.wrappedValue.column.isNullable ? "nullable" : "required")
-                                        ))
-                                            .font(.captionText)
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    fieldValueEditor(fieldBinding)
-
-                                    if fieldBinding.wrappedValue.column.isNullable,
-                                       fieldBinding.wrappedValue.isEditable {
-                                        Toggle("NULL", isOn: fieldBinding.isNull)
-                                            .accessibilityHint("Stores a database NULL instead of a value")
-                                    }
-
-                                    if let validationMessage = workspace.dataEditorValidation[fieldBinding.wrappedValue.id] {
-                                        Text(validationMessage)
-                                            .font(.captionText)
-                                            .foregroundStyle(.red)
-                                    }
-                                }
-                                .padding(.vertical, Spacing.xxs)
-                            }
-                        }
-
+        PortbaseSheet(L10n.text(workspace.dataEditorDraft?.mode.title ?? "Data Editor"),
+                      subtitle: workspace.dataEditorDraft?.table.displayName,
+                      onClose: close) {
+            if let binding = Binding($workspace.dataEditorDraft) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Spacing.l) {
+                        Text(editorSubtitle(for: binding.wrappedValue.mode))
+                            .font(.captionText)
+                            .foregroundStyle(PortSQLPalette.muted)
                         if let errorMessage = workspace.dataEditorErrorMessage {
-                            Section {
-                                StatusBanner(
-                                    title: "Save failed",
-                                    message: errorMessage,
-                                    tint: .red
-                                )
+                            StatusBanner(title: "Save failed", message: errorMessage, tint: .red)
+                        }
+                        ForEach(binding.fields) { fieldBinding in
+                            let field = fieldBinding.wrappedValue
+                            VStack(alignment: .leading, spacing: Spacing.xs) {
+                                HStack(spacing: Spacing.s) {
+                                    Text(verbatim: field.column.name).font(.codeDetail).foregroundStyle(PortSQLPalette.ink)
+                                    if field.column.isPrimaryKey {
+                                        PortbaseChip(title: L10n.text("PK"), systemImage: "key.fill", tint: PortSQLPalette.accent)
+                                    }
+                                    Spacer(minLength: Spacing.s)
+                                    Text(L10n.format("%@ • %@", field.column.type, L10n.text(field.column.isNullable ? "nullable" : "required")))
+                                        .font(.captionText)
+                                        .foregroundStyle(PortSQLPalette.muted)
+                                }
+                                fieldValueEditor(fieldBinding)
+                                if field.column.isNullable, field.isEditable {
+                                    Toggle("NULL", isOn: fieldBinding.isNull)
+                                        .font(.captionText)
+                                        .accessibilityHint("Stores a database NULL instead of a value")
+                                }
+                                if let validationMessage = workspace.dataEditorValidation[field.id] {
+                                    Label(validationMessage, systemImage: "exclamationmark.circle")
+                                        .font(.captionText)
+                                        .foregroundStyle(.red)
+                                }
                             }
                         }
                     }
-                } else {
-                    ProgressView()
+                    .padding(.horizontal, Spacing.xl)
+                    .padding(.bottom, Spacing.l)
                 }
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .navigationTitle(workspace.dataEditorDraft?.mode.title ?? "Data Editor")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        workspace.dismissDataEditor()
-                        dismiss()
-                    }
+        } footer: {
+            if workspace.dataEditorDraft?.mode == .view {
+                Button("Done", action: close)
+                    .buttonStyle(.portbasePrimary)
+                    .keyboardShortcut(.defaultAction)
+            } else {
+                Button("Cancel", action: close)
+                    .buttonStyle(.portbaseSecondary)
                     .disabled(workspace.isSavingMutation)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    if workspace.dataEditorDraft?.mode == .view {
-                        Button("Done") {
-                            workspace.dismissDataEditor()
-                            dismiss()
-                        }
-                    } else {
-                        Button("Save") {
-                            workspace.saveDataEditor()
-                        }
-                        .disabled(workspace.isSavingMutation)
-                    }
-                }
+                Button("Save") { workspace.saveDataEditor() }
+                    .buttonStyle(.portbasePrimary)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(workspace.isSavingMutation)
             }
         }
         .interactiveDismissDisabled(workspace.isSavingMutation)
@@ -2242,14 +2220,18 @@ struct DataEditorSheet: View {
                 DataEditorValidationService.placeholder(for: fieldBinding.wrappedValue.column),
                 text: fieldBinding.value
             )
+            .textFieldStyle(.plain)
             .portbaseTextCapitalization(.never)
             .autocorrectionDisabled()
             .font(.codeText)
             .portbaseKeyboardType(DataEditorValidationService.keyboardType(for: fieldBinding.wrappedValue.column))
+            .portbaseFieldChrome()
         } else {
             Text(fieldBinding.wrappedValue.value.isEmpty ? "\"\"" : fieldBinding.wrappedValue.value)
                 .font(.codeText)
                 .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .portbaseFieldChrome()
         }
     }
 

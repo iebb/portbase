@@ -22,7 +22,8 @@ struct ConnectionStatusLine: View {
                     }
                     .padding(.horizontal, Spacing.m)
                     .padding(.vertical, Spacing.xs)
-                    .background(.bar)
+                    .background(PortSQLPalette.panel)
+                    .overlay(alignment: .bottom) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
                 }
             }
         }

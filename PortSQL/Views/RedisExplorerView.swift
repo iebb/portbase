@@ -71,7 +71,7 @@ struct RedisExplorerView: View {
                             } label: {
                                 Label(L10n.text(isLoading ? "Stop" : "Scan"), systemImage: isLoading ? "stop.fill" : "arrow.clockwise")
                                     .frame(minHeight: Sizes.control)
-                            }.buttonStyle(.borderedProminent).disabled(workspace.selectedBookmark == nil)
+                            }.buttonStyle(.portbasePrimary).disabled(workspace.selectedBookmark == nil)
                         }
                         if let error { Text(error).font(.captionText).foregroundStyle(.red).textSelection(.enabled) }
                     }
@@ -82,10 +82,10 @@ struct RedisExplorerView: View {
                             HStack {
                                 Text(L10n.format("Loaded keys: %d", keys.count)).font(.rowDetail.monospacedDigit())
                                 Spacer()
-                                Picker("Display", selection: $tableMode) {
-                                    Text("Keys").tag(false)
-                                    Text("Table").tag(true)
-                                }.pickerStyle(.segmented).frame(maxWidth: 180)
+                                PortbaseSegmentedPicker(selection: $tableMode, options: [
+                                    PortbaseChoice(value: false, title: L10n.text("Keys")), PortbaseChoice(value: true, title: L10n.text("Table")),
+                                ])
+                                .accessibilityLabel("Display")
                             }
                             if tableMode {
                                 ResultGridView(result: table, persistenceKey: "redis.keys", onOpenRow: { index in
@@ -211,7 +211,7 @@ struct RedisKeyInspector: View {
     @State private var generation = UUID()
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Redis value")) {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.m) {
                     PanelCard {
@@ -252,19 +252,18 @@ struct RedisKeyInspector: View {
                     if isLoading { ProgressView() }
                 }.padding()
             }
-            .navigationTitle("Redis value")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
-            }
-            .portbaseSheetActions {
-                Button {
-                    if isLoading { task?.cancel() } else { load(cursor: "0") }
-                } label: { Label(L10n.text(isLoading ? "Stop" : "Refresh"), systemImage: isLoading ? "stop.fill" : "arrow.clockwise") }
-            }
             .task { load(cursor: "0") }
             .onDisappear { task?.cancel() }
             .sheet(item: $mutation) { value in RedisMutationEditor(selection: value) { load(cursor: "0") } }
+        } footer: {
+            Button {
+                if isLoading { task?.cancel() } else { load(cursor: "0") }
+            } label: { Label(L10n.text(isLoading ? "Stop" : "Refresh"), systemImage: isLoading ? "stop.fill" : "arrow.clockwise") }
+            .buttonStyle(.portbaseToolbar)
+            Spacer(minLength: 0)
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 
@@ -334,7 +333,7 @@ private struct RedisMutationEditor: View {
     @State private var task: Task<Void, Never>?
 
     var body: some View {
-        NavigationStack {
+        PortbaseSheet(selection.action == .delete ? L10n.text("Delete Key") : L10n.text("Review Redis Write")) {
             Form {
                 Section {
                     LabeledContent("Connection", value: selection.profile.name)
@@ -368,20 +367,7 @@ private struct RedisMutationEditor: View {
                 if isRunning { ProgressView("Saving") }
             }
             .disabled(isRunning)
-            .navigationTitle(selection.action == .delete ? L10n.text("Delete Key") : L10n.text("Review Redis Write"))
-            .portbaseTitleDisplayMode(.inline)
             .interactiveDismissDisabled(isRunning)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.text(isRunning ? "Stop" : "Cancel")) {
-                        if isRunning { task?.cancel() } else { dismiss() }
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Run") { run() }
-                        .disabled(isRunning || outcomeUnknown || selection.profile.isReadOnly || (try? command()) == nil)
-                }
-            }
             .onAppear {
                 type = selection.type
                 if let bytes = selection.value {
@@ -390,7 +376,17 @@ private struct RedisMutationEditor: View {
                 }
             }
             .onDisappear { task?.cancel() }
+        } footer: {
+            Button(L10n.text(isRunning ? "Stop" : "Cancel")) {
+                if isRunning { task?.cancel() } else { dismiss() }
+            }
+            .buttonStyle(.portbaseSecondary)
+            Button("Run") { run() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
+                .disabled(isRunning || outcomeUnknown || selection.profile.isReadOnly || (try? command()) == nil)
         }
+        .portbaseSheetNavigation()
     }
 
     private func byteField(_ title: String, text: Binding<String>, encoding: Binding<RedisByteEncoding>) -> some View {
@@ -398,7 +394,7 @@ private struct RedisMutationEditor: View {
             HStack {
                 Text(L10n.text(title)).font(.rowDetail)
                 Spacer()
-                Picker("Encoding", selection: Binding(get: { encoding.wrappedValue }, set: { next in
+                PortbaseSegmentedPicker(selection: Binding(get: { encoding.wrappedValue }, set: { next in
                     do {
                         let current = try bytes(text.wrappedValue, encoding.wrappedValue)
                         if next == .base64 { text.wrappedValue = current.base64EncodedString() }
@@ -409,9 +405,8 @@ private struct RedisMutationEditor: View {
                         encoding.wrappedValue = next
                         error = nil
                     } catch { self.error = error.localizedDescription }
-                })) {
-                    ForEach(RedisByteEncoding.allCases, id: \.self) { Text(L10n.text($0.rawValue)).tag($0) }
-                }.pickerStyle(.segmented).frame(maxWidth: 200)
+                }), options: RedisByteEncoding.allCases.map { PortbaseChoice(value: $0, title: L10n.text($0.rawValue)) })
+                .accessibilityLabel("Encoding")
             }
             TextField(L10n.text(title), text: text, axis: .vertical)
                 .font(.codeText).portbaseTextCapitalization(.never).autocorrectionDisabled()

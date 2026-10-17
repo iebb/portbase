@@ -1284,3 +1284,6 @@
 "No queries yet" = "아직 쿼리가 없습니다";
 "No saved queries" = "저장된 쿼리가 없습니다";
 "Saved Queries: %d" = "저장된 쿼리: %d";
+"Couldn't load database objects" = "데이터베이스 개체를 불러올 수 없습니다";
+"No database objects" = "데이터베이스 개체가 없습니다";
+"Tables, views, and routines in this database appear here." = "이 데이터베이스의 테이블, 뷰, 루틴이 여기에 표시됩니다.";

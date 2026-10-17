@@ -342,7 +342,7 @@ struct ResultGridView: View {
     }
 
     private var filterSettings: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Filter Loaded Rows"), subtitle: L10n.text("Filters apply to loaded rows only."), onClose: { showsFilter = false }) {
             Form {
                 Picker("Column", selection: $filter.column) {
                     Text("All Columns").tag(Optional<Int>.none)
@@ -355,17 +355,22 @@ struct ResultGridView: View {
                     TextField("Value", text: $filter.text).portbaseTextCapitalization(.never).autocorrectionDisabled()
                 }
                 Text(L10n.format("Loaded rows: %d / %d", rowIndices.count, result.rows.count))
-                Text("Filters apply to loaded rows only.").font(.footnoteText).foregroundStyle(.secondary)
-                Button("Clear Filter") { filter = LoadedResultFilter() }
+                    .foregroundStyle(PortSQLPalette.muted)
             }
-            .navigationTitle("Filter Loaded Rows")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showsFilter = false } } }
+            .portbaseForm()
+        } footer: {
+            Button("Clear Filter") { filter = LoadedResultFilter() }
+                .buttonStyle(.portbaseSecondary)
+                .disabled(!filter.isActive)
+            Button("Done") { showsFilter = false }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
+        .portbaseSheetNavigation()
     }
 
     private var columnSettings: some View {
-        NavigationStack {
+        PortbaseSheet(L10n.text("Columns"), onClose: { showsColumns = false }) {
             ScrollViewReader { proxy in
                 List {
                     ForEach(Array(result.columns.enumerated()), id: \.offset) { index, column in
@@ -402,13 +407,17 @@ struct ResultGridView: View {
                         }
                         .id(index)
                     }
-                    Button("Reset Columns") { configuration = ResultGridConfiguration(); selection = nil }
                 }
+                .listStyle(.portbaseGrouped)
+                .scrollContentBackground(.hidden)
                 .onAppear { if let focusedColumn { proxy.scrollTo(focusedColumn, anchor: .top) } }
             }
-            .navigationTitle("Columns")
-            .portbaseTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showsColumns = false } } }
+        } footer: {
+            Button("Reset Columns") { configuration = ResultGridConfiguration(); selection = nil }
+                .buttonStyle(.portbaseSecondary)
+            Button("Done") { showsColumns = false }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
         }
     }
 
@@ -592,7 +601,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
     func makeUIView(context: Context) -> ResultCollectionView {
         let layout = FrozenGridLayout()
         let view = ResultCollectionView(frame: .zero, collectionViewLayout: layout)
-        view.backgroundColor = .secondarySystemGroupedBackground
+        view.backgroundColor = UIColor(PortSQLPalette.surface)
         view.register(ResultCollectionCell.self, forCellWithReuseIdentifier: "cell")
         view.dataSource = context.coordinator
         view.delegate = context.coordinator

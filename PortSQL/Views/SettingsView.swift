@@ -88,15 +88,10 @@ struct AppearanceSettingsSection: View {
 
     var body: some View {
         Section {
-            Picker("Appearance", selection: $appearance) {
-                ForEach(PortbaseAppearance.allCases) { option in
-                    Label(option.title, systemImage: option.symbolName).tag(option.rawValue)
-                }
+            LabeledContent("Appearance") {
+                PortbaseSegmentedPicker(selection: $appearance,
+                                        options: PortbaseAppearance.allCases.map { PortbaseChoice(value: $0.rawValue, title: $0.title, systemImage: $0.symbolName) })
             }
-#if os(iOS)
-            .pickerStyle(.segmented)
-            .labelsHidden()
-#endif
 
             VStack(alignment: .leading, spacing: Spacing.m) {
                 Text("Accent Color").font(.rowDetail)

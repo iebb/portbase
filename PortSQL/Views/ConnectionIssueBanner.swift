@@ -123,7 +123,7 @@ struct ConnectionIssueBanner: View {
             Button(action: onReviewCertificate) {
                 Label("Review Certificate", systemImage: "lock.shield").frame(minHeight: Sizes.control - 12)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.portbasePrimary)
         }
         if let onReconnect {
             Button(action: onReconnect) {
@@ -135,7 +135,7 @@ struct ConnectionIssueBanner: View {
             Button(action: onEdit) {
                 Label("Edit Connection", systemImage: "slider.horizontal.3").frame(minHeight: Sizes.control - 12)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.portbasePrimary)
         }
     }
 }
