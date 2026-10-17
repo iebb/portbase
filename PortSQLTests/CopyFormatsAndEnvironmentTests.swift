@@ -192,6 +192,18 @@ final class PinnedTablesAndTesterTests: XCTestCase {
         XCTAssertEqual(workspace.explorerWhereClause, "total > 100")
     }
 
+    func testBrowsingSelectsEveryColumn() {
+        let workspace = WorkspaceViewModel()
+        let names = (1...9).map { "column_\($0)" }
+        let table = SchemaTableDescriptor(schemaName: "public", name: "wide",
+                                          columns: names.map { SchemaColumnDescriptor(name: $0, type: "text", isNullable: true, isPrimaryKey: false, isUnique: false) },
+                                          rowCountEstimate: nil)
+        let sql = workspace.defaultQuery(for: table)
+        for name in names { XCTAssertTrue(sql.contains(name), "\(name) is selected: \(sql)") }
+        let template = SQLTemplateService.templates(table: table, engine: .postgresql).first { $0.kind == .select }?.sql ?? ""
+        XCTAssertTrue(template.contains("column_9"), "The SELECT template lists every column too")
+    }
+
     func testConnectionTestSummaries() {
         XCTAssertTrue(ConnectionTester.summary(.init(duration: 0.084, databaseCount: 3)).contains("3"))
         XCTAssertFalse(ConnectionTester.summary(.init(duration: 0.2, databaseCount: nil)).isEmpty)

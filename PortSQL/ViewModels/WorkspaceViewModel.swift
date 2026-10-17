@@ -1354,8 +1354,8 @@ final class WorkspaceViewModel: ObservableObject {
             return ElasticsearchQueryService.browse(index: table.name, limit: explorerPageSize, offset: explorerPageIndex * explorerPageSize)
         }
         guard isSQLDatabase else { return "SCAN 0 COUNT 100" }
+        // Every column, in table order; the grid's column settings hide any the user doesn't want.
         let projection = table.columns
-            .prefix(6)
             .map { sqlIdentifier($0.name, engine: selectedBookmark?.engine ?? .postgresql) }
             .joined(separator: ", ")
         let selectList = projection.isEmpty ? "*" : projection

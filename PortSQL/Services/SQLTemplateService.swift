@@ -21,7 +21,7 @@ enum SQLTemplateService {
         let first = columns.first ?? "id"
         let second = columns.dropFirst().first ?? "name"
         let key = table?.primaryKeyColumns.first.map { identifier($0.name, engine: engine) } ?? first
-        let list = columns.isEmpty ? "*" : columns.prefix(6).joined(separator: ", ")
+        let list = columns.isEmpty ? "*" : columns.joined(separator: ", ")
         let limit = engine == .sqlite || engine == .postgresql || engine.isMySQLFamily || engine == .clickhouse ? "\nLIMIT 100" : ""
 
         return [
