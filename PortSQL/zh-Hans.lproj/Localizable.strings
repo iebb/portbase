@@ -1288,3 +1288,5 @@
 "No database objects" = "没有数据库对象";
 "Tables, views, and routines in this database appear here." = "此数据库中的表、视图和例程会显示在这里。";
 "Refresh Database List" = "刷新数据库列表";
+"Statement executed" = "语句已执行";
+"Choose a table or run a query to see rows here." = "选择一个表或运行查询，即可在此查看行。";

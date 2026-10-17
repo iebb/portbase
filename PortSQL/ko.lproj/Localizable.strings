@@ -1288,3 +1288,5 @@
 "No database objects" = "데이터베이스 개체가 없습니다";
 "Tables, views, and routines in this database appear here." = "이 데이터베이스의 테이블, 뷰, 루틴이 여기에 표시됩니다.";
 "Refresh Database List" = "데이터베이스 목록 새로 고침";
+"Statement executed" = "문이 실행되었습니다";
+"Choose a table or run a query to see rows here." = "테이블을 선택하거나 쿼리를 실행하면 여기에 행이 표시됩니다.";

@@ -1010,6 +1010,16 @@ struct PortbaseCodeBlock: View {
 }
 
 extension View {
+    /// A menu drawn like the toolbar buttons around it. The Mac's borderless menu style tints its label
+    /// with the accent color, which made menus look like links beside ordinary tools.
+    @ViewBuilder func portbaseToolbarMenu() -> some View {
+#if os(macOS)
+        menuStyle(.button).buttonStyle(.portbaseToolbar).menuIndicator(.hidden).fixedSize()
+#else
+        menuIndicator(.hidden).fixedSize()
+#endif
+    }
+
     /// A grouped form on the sheet's themed canvas instead of the system's gray form background.
     func portbaseForm() -> some View {
         formStyle(.grouped)

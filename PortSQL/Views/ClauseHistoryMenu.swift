@@ -45,11 +45,7 @@ struct ClauseHistoryMenu: View {
                 .frame(minWidth: Sizes.control, minHeight: Sizes.control)
                 .contentShape(Rectangle())
         }
-        .menuIndicator(.hidden)
-#if os(macOS)
-        .menuStyle(.borderlessButton)
-#endif
-        .fixedSize()
+        .portbaseToolbarMenu()
         .disabled(entries.isEmpty)
         .help(kind == .filter ? L10n.text("Recent filters") : L10n.text("Recent sorts"))
         .accessibilityLabel(kind == .filter ? L10n.text("Recent filters") : L10n.text("Recent sorts"))

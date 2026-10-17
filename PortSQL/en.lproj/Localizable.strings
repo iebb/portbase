@@ -1288,3 +1288,5 @@
 "No database objects" = "No database objects";
 "Tables, views, and routines in this database appear here." = "Tables, views, and routines in this database appear here.";
 "Refresh Database List" = "Refresh Database List";
+"Statement executed" = "Statement executed";
+"Choose a table or run a query to see rows here." = "Choose a table or run a query to see rows here.";

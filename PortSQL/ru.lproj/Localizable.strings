@@ -1288,3 +1288,5 @@
 "No database objects" = "Нет объектов базы данных";
 "Tables, views, and routines in this database appear here." = "Здесь отображаются таблицы, представления и процедуры этой базы данных.";
 "Refresh Database List" = "Обновить список баз данных";
+"Statement executed" = "Инструкция выполнена";
+"Choose a table or run a query to see rows here." = "Выберите таблицу или выполните запрос, чтобы увидеть здесь строки.";

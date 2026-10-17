@@ -500,7 +500,7 @@ private struct DesktopSQLEditor: View {
                     Divider().frame(height: Spacing.l)
                     Button("Format", systemImage: "text.alignleft") { workspace.formatQuery() }
                     Button("Explain", systemImage: "waveform.path.ecg") { workspace.runExplain() }.disabled(workspace.selectedBookmark == nil || workspace.isRunning)
-                    SQLTemplateMenu(compact: false).menuStyle(.borderlessButton).fixedSize()
+                    SQLTemplateMenu(compact: false).portbaseToolbarMenu()
                 }
                 Spacer(minLength: 0)
                 Menu {
@@ -513,7 +513,7 @@ private struct DesktopSQLEditor: View {
                             }
                         }
                     }
-                } label: { Label("Editor", systemImage: "ellipsis") }.labelStyle(.iconOnly).menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: Sizes.iconTileSmall)
+                } label: { Label("Editor", systemImage: "ellipsis") }.labelStyle(.iconOnly).portbaseToolbarMenu()
                 DesktopTransactions()
             }.buttonStyle(.portbaseToolbar).font(.bodyText).portbaseBar(Sizes.toolbar)
             Divider()
@@ -728,7 +728,13 @@ private struct DesktopResultsView: View {
                         }
                     } else { grid }
                 }
-                else { Text(workspace.result.affectedRowCount != nil ? workspace.result.executionSummary : L10n.text("No live rows yet")).font(.rowDetail).foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity) }
+                else if workspace.result.affectedRowCount != nil {
+                    PortbaseEmptyState(title: L10n.text("Statement executed"), message: workspace.result.executionSummary, systemImage: "checkmark.circle")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    PortbaseEmptyState(title: L10n.text("No live rows yet"), message: L10n.text("Choose a table or run a query to see rows here."), systemImage: "tablecells")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
             HStack(spacing: Spacing.s) {

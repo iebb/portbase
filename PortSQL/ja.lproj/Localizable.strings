@@ -1288,3 +1288,5 @@
 "No database objects" = "データベースオブジェクトはありません";
 "Tables, views, and routines in this database appear here." = "このデータベースのテーブル、ビュー、ルーチンがここに表示されます。";
 "Refresh Database List" = "データベース一覧を更新";
+"Statement executed" = "ステートメントを実行しました";
+"Choose a table or run a query to see rows here." = "テーブルを選ぶかクエリを実行すると、ここに行が表示されます。";

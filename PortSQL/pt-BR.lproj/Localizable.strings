@@ -1288,3 +1288,5 @@
 "No database objects" = "Nenhum objeto de banco de dados";
 "Tables, views, and routines in this database appear here." = "Tabelas, visualizações e rotinas deste banco de dados aparecem aqui.";
 "Refresh Database List" = "Atualizar lista de bancos de dados";
+"Statement executed" = "Instrução executada";
+"Choose a table or run a query to see rows here." = "Escolha uma tabela ou execute uma consulta para ver linhas aqui.";

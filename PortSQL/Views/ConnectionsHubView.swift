@@ -228,11 +228,7 @@ struct ConnectionsHubView: View {
                 .font(.toolSymbol)
                 .frame(minWidth: Sizes.control, minHeight: Sizes.control)
         }
-        .menuIndicator(.hidden)
-#if os(macOS)
-        .menuStyle(.borderlessButton)
-#endif
-        .fixedSize()
+        .portbaseToolbarMenu()
         .accessibilityLabel("Filter servers")
     }
 }
