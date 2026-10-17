@@ -172,6 +172,26 @@ final class PinnedTablesAndTesterTests: XCTestCase {
         XCTAssertTrue(store.entries.isEmpty)
     }
 
+    func testWhereAndOrderByStayWithTheirTable() {
+        let workspace = WorkspaceViewModel()
+        let users = SchemaTableDescriptor(schemaName: "public", name: "users", columns: [], rowCountEstimate: nil)
+        let orders = SchemaTableDescriptor(schemaName: "public", name: "orders", columns: [], rowCountEstimate: nil)
+        workspace.schemaCatalog = [users, orders]
+
+        workspace.selectedExplorerTableID = users.id
+        workspace.explorerWhereClause = "active = 1"
+        workspace.explorerOrderByClause = "id DESC"
+        workspace.selectedExplorerTableID = orders.id
+        XCTAssertEqual(workspace.explorerWhereClause, "", "Another table starts without the first table's filter")
+        XCTAssertEqual(workspace.explorerOrderByClause, "")
+        workspace.explorerWhereClause = "total > 100"
+        workspace.selectedExplorerTableID = users.id
+        XCTAssertEqual(workspace.explorerWhereClause, "active = 1", "Returning to a table restores its own filter")
+        XCTAssertEqual(workspace.explorerOrderByClause, "id DESC")
+        workspace.selectedExplorerTableID = orders.id
+        XCTAssertEqual(workspace.explorerWhereClause, "total > 100")
+    }
+
     func testConnectionTestSummaries() {
         XCTAssertTrue(ConnectionTester.summary(.init(duration: 0.084, databaseCount: 3)).contains("3"))
         XCTAssertFalse(ConnectionTester.summary(.init(duration: 0.2, databaseCount: nil)).isEmpty)

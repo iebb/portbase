@@ -48,7 +48,13 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var dataEditorValidation: [UUID: String] = [:]
     @Published var dataEditorErrorMessage: String?
     @Published var isSavingMutation = false
-    @Published var selectedExplorerTableID: UUID?
+    @Published var selectedExplorerTableID: UUID? {
+        didSet { if oldValue != selectedExplorerTableID { swapExplorerClauses() } }
+    }
+    /// WHERE and ORDER BY text for each table this session, so a filter stays with its table.
+    private var explorerClausesByTable: [String: (filter: String, sort: String)] = [:]
+    /// The table whose clauses are in the fields now.
+    private var explorerClauseScope: String?
     @Published var pendingSafetyConfirmation: PendingSQLExecution?
     @Published var parameterDraft: QueryParameterDraft?
     @Published var parameterErrorMessage: String?
@@ -67,7 +73,7 @@ final class WorkspaceViewModel: ObservableObject {
     private var mutationTask: Task<Void, Never>?
     private var mutationToken: UUID?
     var activeBoundQuery: BoundQuery?
-    private var engineDrafts: [DatabaseEngine: (query: String, filter: String, sort: String)] = [:]
+    private var engineDrafts: [DatabaseEngine: String] = [:]
     private let schemaCacheStore = SchemaCacheStore.shared
 
     func configure(
@@ -580,6 +586,8 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func selectExplorerTable(_ table: SchemaTableDescriptor) {
+        // Selecting first swaps in this table's own filter and sort before they're used below.
+        selectedExplorerTableID = table.id
         if isDocumentDatabase {
             mongoDraft.collection = table.name
             mongoDraft.mode = .find
@@ -589,7 +597,6 @@ final class WorkspaceViewModel: ObservableObject {
             mongoDraft.skip = "0"
             mongoDraft.limit = String(explorerPageSize)
         }
-        selectedExplorerTableID = table.id
         explorerPageIndex = 0
         browse(table: table)
     }
@@ -628,6 +635,17 @@ final class WorkspaceViewModel: ObservableObject {
             ClauseHistoryStore.shared.record(explorerOrderByClause, kind: .sort, in: scope)
         }
         browse()
+    }
+
+    /// Keeps the outgoing table's WHERE and ORDER BY and restores the incoming table's (empty if it has none).
+    private func swapExplorerClauses() {
+        if let scope = explorerClauseScope {
+            explorerClausesByTable[scope] = (explorerWhereClause, explorerOrderByClause)
+        }
+        explorerClauseScope = clauseHistoryScope
+        let restored = explorerClauseScope.flatMap { explorerClausesByTable[$0] }
+        explorerWhereClause = restored?.filter ?? ""
+        explorerOrderByClause = restored?.sort ?? ""
     }
 
     var clauseHistoryScope: String? {
@@ -1264,17 +1282,14 @@ final class WorkspaceViewModel: ObservableObject {
         queryTask?.cancel()
         queryTask = nil
         if let previousEngine {
-            engineDrafts[previousEngine] = (queryText, explorerWhereClause, explorerOrderByClause)
+            engineDrafts[previousEngine] = queryText
         }
         selectedBookmarkID = id
         if selectedBookmark?.engine.supportsConsoleTransactions != true { manualCommit = false }
         mongoDraft.collection = ""
         querySelectionLength = 0
         if previousEngine != selectedBookmark?.engine {
-            let draft = selectedBookmark.flatMap { engineDrafts[$0.engine] }
-            queryText = draft?.query ?? ""
-            explorerWhereClause = draft?.filter ?? ""
-            explorerOrderByClause = draft?.sort ?? ""
+            queryText = selectedBookmark.flatMap { engineDrafts[$0.engine] } ?? ""
         }
         selectedDatabaseName = bookmarkStore?.bookmark(with: id)?.trimmedDefaultDatabase ?? ""
         explorerPageIndex = 0
