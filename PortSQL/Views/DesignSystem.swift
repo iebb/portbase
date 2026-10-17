@@ -781,8 +781,9 @@ private struct PortbasePrimaryButton: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: Radius.button, style: .continuous)
+        // Keeps the surrounding text size so it matches secondary buttons beside it.
         configuration.label
-            .font(.captionStrong)
+            .fontWeight(.semibold)
             .foregroundStyle(.white)
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xxs)
@@ -1011,7 +1012,10 @@ struct PortbaseCodeBlock: View {
 extension View {
     /// A grouped form on the sheet's themed canvas instead of the system's gray form background.
     func portbaseForm() -> some View {
-        formStyle(.grouped).scrollContentBackground(.hidden)
+        formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            // The sheet header already provides the space above the first section.
+            .contentMargins(.top, Spacing.xs, for: .scrollContent)
     }
 }
 

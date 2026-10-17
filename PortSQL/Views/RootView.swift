@@ -68,12 +68,15 @@ struct RootView: View {
                         .navigationTitle("Home")
                         .portbaseTitleDisplayMode(.large)
                         .toolbar {
+                            // On iPad the destination strip already has search and settings.
                             ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
-                                searchButton
-                                Button { navigate(.settings) } label: {
-                                    Image(systemName: "gearshape").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
+                                if horizontalSizeClass != .regular {
+                                    searchButton
+                                    Button { navigate(.settings) } label: {
+                                        Image(systemName: "gearshape").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
+                                    }
+                                    .accessibilityLabel("Settings")
                                 }
-                                .accessibilityLabel("Settings")
                             }
                         }
                 }
@@ -106,7 +109,9 @@ struct RootView: View {
             .badge(hasConnectionProblem ? Text(verbatim: "!") : nil)
 
         }
-        .tabViewStyle(.sidebarAdaptable)
+        // Tab bar only: the adaptable style put a sidebar toggle on every iPad page, but the iPad
+        // destinations live in the strip above instead.
+        .tabViewStyle(.tabBarOnly)
         .portbaseMinimizingTabBar()
         }
         .certificateTrustPrompt(workspace)
@@ -146,12 +151,10 @@ struct RootView: View {
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showsSettings) {
-            NavigationStack {
-                SettingsView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) { Button("Done") { showsSettings = false } }
-                    }
+            PortbaseSheet(L10n.text("Settings"), onClose: { showsSettings = false }) {
+                SettingsView().portbaseForm()
             }
+            .portbaseSheetNavigation()
             .portbaseTheme()
         }
         .sheet(item: $workspace.dataEditorDraft) { _ in
