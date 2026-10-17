@@ -1,4 +1,8 @@
-# Portbase 1.5.0 screenshots
+# Portbase screenshots
+
+[Current 2.0 gallery — iPhone, iPad, and Mac](2.0.0/README.md)
+
+## Portbase 1.5.0 screenshots
 
 Native simulator captures with fictional Commerce data on iPhone 18 Pro Max and iPad Pro 13-inch (M5), iOS 27.0. The SQL, library, server, MongoDB, and Redis captures are new; the unchanged chart screen retains its previous capture.
 

@@ -1,31 +1,41 @@
-# App Review Notes
+# Portbase 2.0 App Review notes
 
-## Demo Server
-The build includes a development server profile named `Railway Dev` for review and screenshots.
+Portbase is a user-controlled database client for iPhone, iPad, and native macOS.
+No Portbase account or sign-in is required. Review does not require access to a
+real database server or any private credentials.
 
-## Primary Test Flow
-1. Open `Explorer`.
-2. Browse the included demo tables such as:
-   - `chart_doc_sales_daily`
-   - `chart_doc_marketing_attribution`
-   - `chart_doc_service_latency`
-   - `chart_doc_support_satisfaction`
-3. Tap rows to view or edit live data.
-4. Use the schema button in the Results header to inspect or edit table columns.
-5. Open `Studio` to run highlighted SQL manually.
-6. Open `Charts` to run saved chart presets from their stored SQL.
+## Offline review
 
-## Chart Review Scenarios
-- `Sales by Channel`: bar chart
-- `Daily Sales Area`: area chart with date axis
-- `Conversions by Device`: donut chart
-- `Latency Trend`: line chart
-- `Error Rate Scatter`: point chart
+1. On Home, choose **New SQLite Database** and name it `Review Demo`.
+2. In Console, run the following read-only query:
 
-## iCloud Usage
-- Saved server profiles sync through iCloud key-value storage.
-- Saved chart presets are stored as YAML and mirrored through iCloud Documents when available.
+```sql
+SELECT 'Japan' AS region, 1240.50 AS revenue
+UNION ALL SELECT 'Germany', 980.25
+UNION ALL SELECT 'Canada', 760.00;
+```
 
-## Notes
-- The app connects to real MySQL and PostgreSQL servers.
-- The app supports schema browsing, row editing, chart presets, and schema column editing.
+3. Inspect the typed results, copy or export them, and use the chart button in
+   Results to configure and save a chart with `region` on X and `revenue` on Y.
+4. To review table browsing, primary keys, row editing, indexes, and saved charts
+   with a larger fictional dataset, import this optional local SQLite file:
+   https://raw.githubusercontent.com/iebb/portbase/master/AppStore/2.0.0/Northstar_Demo.sqlite
+
+The `Northstar Demo` store and all customers, products, orders, and totals shown
+in the screenshots are fictional. The sample is a local SQLite file; it has no
+server endpoint, account, password, or external service dependency. It is a
+review fixture, not a database automatically included on first launch.
+
+## Other engines and safety
+
+Users may add their own MySQL, MariaDB, PostgreSQL, MongoDB, Redis, ClickHouse,
+or Elasticsearch server. Engine capabilities differ, as described in the listing.
+Database operations require an explicit user action. Writes use the app's normal
+confirmation and execution policies; saved charts do not run automatically.
+
+Connection passwords, SSH secrets, and private CA material stay in this device's
+Keychain. iCloud syncs connection settings with secrets redacted, saved queries,
+and chart configurations. Query history, results, and local SQLite files remain
+on this device.
+
+The Mac build is a native universal app for Apple Silicon and Intel.

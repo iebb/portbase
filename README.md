@@ -42,7 +42,7 @@ relational row editor. See [database support and limits](Docs/portbase.md).
 - Label connections by environment and use read-only profiles when browsing
   production data.
 
-![Portbase native Mac workspace](ReviewScreenshots/1.6.0-macOS/01-sql-console.jpg)
+![Portbase native Mac workspace](ReviewScreenshots/2.0.0/macOS/02-sql-console.png)
 
 The interface supports English, German, Spanish, French, Japanese, Korean,
 Brazilian Portuguese, Russian, Simplified Chinese, and Traditional Chinese.

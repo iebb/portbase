@@ -8,4 +8,4 @@
 - Paste review guidance from `AppStore/review-notes.md`.
 - Verify privacy answers for server credentials and iCloud sync usage.
 - Confirm support URL, marketing URL, and privacy policy URL in App Store Connect.
-- Validate that `Railway Dev` or another safe review server is available for App Review.
+- Validate the offline SQLite review flow and the fictional Northstar sample; do not require private database access.

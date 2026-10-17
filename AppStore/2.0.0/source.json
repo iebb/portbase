@@ -1,0 +1,35 @@
+{
+  "version": "2.0.0",
+  "appID": "6762447018",
+  "bundleID": "ad.neko.portsql",
+  "branch": "master",
+  "sourceCommit": "a48680b324a12ef2ca7dc69636195e931f9f8b90",
+  "workflowRun": "https://github.com/iebb/portbase/actions/runs/39059686434",
+  "validation": {
+    "iOS": {
+      "executed": 197,
+      "skippedExternalIntegration": 11,
+      "failures": 0
+    },
+    "vendoredMySQL": {
+      "xctest": 25,
+      "swiftTesting": 23,
+      "failures": 0
+    },
+    "releaseAutomation": {
+      "tests": 21,
+      "assertions": 76,
+      "failures": 0
+    },
+    "localization": {
+      "locales": 10,
+      "keysEach": 1154,
+      "catalogSyntax": true,
+      "placeholderParity": true
+    },
+    "projectGenerationSettingsMatch": true,
+    "macBuild": "passed",
+    "physicalDeviceTesting": false
+  },
+  "screenshots": "../../ReviewScreenshots/2.0.0/manifest.json"
+}
