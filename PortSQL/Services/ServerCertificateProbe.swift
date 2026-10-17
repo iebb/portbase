@@ -111,6 +111,15 @@ enum ServerCertificateProbe {
         )
     }
 
+    /// SHA-256 fingerprints, in the same form as `ServerCertificateAuthority.sha256Fingerprint`, of every
+    /// certificate in a PEM bundle such as a connection's saved private CA.
+    static func fingerprints(ofPEM pem: String) -> Set<String> {
+        guard let certificates = try? NIOSSLCertificate.fromPEMBytes(Array(pem.utf8)) else { return [] }
+        return Set(certificates.compactMap { certificate in
+            (try? certificate.toDERBytes()).map { SHA256.hash(data: Data($0)).map { String(format: "%02X", $0) }.joined(separator: ":") }
+        })
+    }
+
     static func pem(fromDER der: Data) -> String {
         let base64 = der.base64EncodedString()
         var lines: [String] = []

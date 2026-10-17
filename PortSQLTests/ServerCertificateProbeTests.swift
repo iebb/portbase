@@ -42,6 +42,30 @@ kRQzkBnzLj24wGTEbyg0iOUb28ihRANCAARxT3hEAeG8pCa7RTcut4KWeYnGRc6s
 LKG+cnRw0y5470wlUcdH9fmrc+XGcAekWPz6uFBW0cwWKWh7rD4fPbZw
 -----END PRIVATE KEY-----
 """
+    /// A server certificate shaped like DigitalOcean's: signed by the test CA, with key usage but no
+    /// extended key usage, which Apple's verifier rejects even under a trusted private CA. It names only
+    /// DNS:localhost (no IP address), so connecting to 127.0.0.1 under another name must fail.
+    static let managedLeafPEM = """
+-----BEGIN CERTIFICATE-----
+MIIBwTCCAWagAwIBAgIUFitaw3fl46123XGafnOUWTuj/e4wCgYIKoZIzj0EAwIw
+IzEhMB8GA1UEAwwYUG9ydGJhc2UgVGVzdCBQcm9qZWN0IENBMB4XDTI2MTAxNzAz
+MDUwNFoXDTI4MTIyNTAzMDUwNFowNjEWMBQGA1UECgwNcG9ydGJhc2UtdGVzdDEc
+MBoGA1UEAwwTcG9ydGJhc2UtbWFuYWdlZC1kYjBZMBMGByqGSM49AgEGCCqGSM49
+AwEHA0IABDnu4pLG6ttu5l8eJY6XYzXeYvzij9s9tRtE82izFaKUt5i4SFpAmlcL
+0eLqf1RBhOrvgXddhxRt5rBKnCLkjoijZTBjMBQGA1UdEQQNMAuCCWxvY2FsaG9z
+dDALBgNVHQ8EBAMCBaAwHQYDVR0OBBYEFM24tNy7ARuSMv3bBfWzBd83T5SxMB8G
+A1UdIwQYMBaAFHct/P1oeMjNMEfKsvp7HlVOXVZTMAoGCCqGSM49BAMCA0kAMEYC
+IQCF18nzrcyauC4o0EJE8S9Q0ynuO59pSsvHclUTgdxd9AIhAJ8lCd5tv207YJka
+C8H/ivWVi6smVhTyoPbJ9CCYGmYM
+-----END CERTIFICATE-----
+"""
+    static let managedLeafKeyPEM = """
+-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgGsqjqdapsRuzLavo
+RoplB/OQ26hbfqgBMr/N6TQtnquhRANCAAQ57uKSxurbbuZfHiWOl2M13mL84o/b
+PbUbRPNosxWilLeYuEhaQJpXC9Hi6n9UQYTq74F3XYcUbeawSpwi5I6I
+-----END PRIVATE KEY-----
+"""
     static let caFingerprint = "6C:34:0E:39:98:99:2F:1C:B2:25:C1:7C:5A:BF:D9:16:F3:88:9B:61:8A:AD:4C:AB:EC:B5:92:1E:77:90:8F:10"
 }
 
@@ -117,6 +141,50 @@ final class ServerCertificateProbeTests: XCTestCase {
         }
     }
 
+    /// Trusting a managed database's CA must actually let the connection through. Apple's verifier
+    /// rejects this certificate shape, so private-CA mode verifies with BoringSSL and still checks the name.
+    func testTrustedPrivateCAAcceptsManagedDatabaseCertificatesAndStillChecksTheHost() async throws {
+        let server = try await FakeServer.start(mode: .direct, managedLeaf: true)
+        var profile = ConnectionProfile(name: "Managed", engine: .redis, host: "localhost", port: server.port,
+                                        username: "", password: "", defaultDatabase: "")
+        profile.transportSecurityMode = .privateCA
+        profile.privateCACertificate = TestPKI.caPEM
+        let context = try NIOSSLContext(configuration: DatabaseService.tlsConfiguration(for: profile))
+
+        let trusted = try await Self.completesHandshake(port: server.port, context: context, serverHostname: "localhost", server: server)
+        XCTAssertTrue(trusted)
+        let otherHost = try await Self.completesHandshake(port: server.port, context: context, serverHostname: "other.example.test", server: server)
+        XCTAssertFalse(otherHost, "A trusted CA doesn't excuse a certificate for a different host")
+        profile.transportSecurityMode = .systemCA
+        let systemContext = try NIOSSLContext(configuration: DatabaseService.tlsConfiguration(for: profile))
+        let untrusted = try await Self.completesHandshake(port: server.port, context: systemContext, serverHostname: "localhost", server: server)
+        XCTAssertFalse(untrusted, "Without trusting the CA, the certificate is refused")
+        try await server.stop()
+    }
+
+    /// Connects, sends a byte once TLS is up, and reports whether the server received it.
+    private static func completesHandshake(port: Int, context: NIOSSLContext, serverHostname: String, server: FakeServer) async throws -> Bool {
+        server.reset()
+        let failed = NIOLockedValueBoxFlag()
+        let channel = try await ClientBootstrap(group: MultiThreadedEventLoopGroup.singleton)
+            .channelInitializer { channel in
+                channel.eventLoop.makeCompletedFuture {
+                    try channel.pipeline.syncOperations.addHandler(NIOSSLClientHandler(context: context, serverHostname: serverHostname))
+                    try channel.pipeline.syncOperations.addHandler(FailureWatcher(state: failed))
+                }
+            }
+            .connect(host: "127.0.0.1", port: port)
+            .get()
+        var ping = channel.allocator.buffer(capacity: 1)
+        ping.writeInteger(UInt8(1))
+        channel.writeAndFlush(ping, promise: nil)
+        for _ in 0..<40 where !server.receivedApplicationData && !failed.value {
+            try await Task.sleep(nanoseconds: 50_000_000)
+        }
+        try? await channel.close()
+        return server.receivedApplicationData && !failed.value
+    }
+
     func testServersWithoutTLSAreReported() async throws {
         for mode in [FakeServer.Mode.postgresWithoutTLS, .mysqlWithoutTLS] {
             let server = try await FakeServer.start(mode: mode)
@@ -149,12 +217,15 @@ private final class FakeServer: @unchecked Sendable {
     }
 
     var receivedApplicationData: Bool { state.value }
+    func reset() { state.reset() }
 
-    static func start(mode: Mode) async throws -> FakeServer {
+    static func start(mode: Mode, managedLeaf: Bool = false) async throws -> FakeServer {
+        let leaf = managedLeaf ? TestPKI.managedLeafPEM : TestPKI.leafPEM
+        let key = managedLeaf ? TestPKI.managedLeafKeyPEM : TestPKI.leafKeyPEM
         var configuration = TLSConfiguration.makeServerConfiguration(
-            certificateChain: [.certificate(try NIOSSLCertificate(bytes: Array(TestPKI.leafPEM.utf8), format: .pem)),
+            certificateChain: [.certificate(try NIOSSLCertificate(bytes: Array(leaf.utf8), format: .pem)),
                                .certificate(try NIOSSLCertificate(bytes: Array(TestPKI.caPEM.utf8), format: .pem))],
-            privateKey: .privateKey(try NIOSSLPrivateKey(bytes: Array(TestPKI.leafKeyPEM.utf8), format: .pem)))
+            privateKey: .privateKey(try NIOSSLPrivateKey(bytes: Array(key.utf8), format: .pem)))
         configuration.minimumTLSVersion = .tlsv12
         let context = try NIOSSLContext(configuration: configuration)
         let state = NIOLockedValueBoxFlag()
@@ -183,6 +254,14 @@ private final class NIOLockedValueBoxFlag: @unchecked Sendable {
     private var flag = false
     var value: Bool { lock.withLock { flag } }
     func set() { lock.withLock { flag = true } }
+    func reset() { lock.withLock { flag = false } }
+}
+
+private final class FailureWatcher: ChannelInboundHandler {
+    typealias InboundIn = ByteBuffer
+    let state: NIOLockedValueBoxFlag
+    init(state: NIOLockedValueBoxFlag) { self.state = state }
+    func errorCaught(context: ChannelHandlerContext, error: Error) { state.set(); context.close(promise: nil) }
 }
 
 private final class ApplicationDataWatcher: ChannelInboundHandler {

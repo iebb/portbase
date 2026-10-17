@@ -1629,7 +1629,12 @@ actor DatabaseService {
         do {
             let certificates = try NIOSSLCertificate.fromPEMBytes(Array(pem.utf8))
             guard !certificates.isEmpty else { throw DatabaseServiceError.privateCACertificateInvalid }
-            configuration.additionalTrustRoots = [.certificates(certificates)]
+            // The private CA replaces the system roots, as with libpq's sslrootcert or MySQL's --ssl-ca.
+            // Explicit roots make NIOSSL verify with BoringSSL; adding them to the system roots would hand
+            // verification to Apple's verifier, which rejects private-CA server certificates without the
+            // serverAuth extended key usage, including DigitalOcean's managed-database certificates.
+            // NIOSSL still validates the hostname after the handshake under full verification.
+            configuration.trustRoots = .certificates(certificates)
             return configuration
         } catch let error as DatabaseServiceError {
             throw error

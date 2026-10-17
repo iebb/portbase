@@ -1212,3 +1212,5 @@
 "Trust this server’s certificate authority?" = "Der Zertifizierungsstelle dieses Servers vertrauen?";
 "Unnamed authority" = "Unbenannte Zertifizierungsstelle";
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "Verwendet ein Server eine eigene Zertifizierungsstelle, wie es bei verwalteten Datenbanken üblich ist, zeigt Portbase sie bei der ersten Verbindung an und fragt nach, bevor es ihr für diese Verbindung vertraut.";
+"This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "Diese Verbindung vertraut der Zertifizierungsstelle des Servers bereits, die Verbindung ist also aus einem anderen Grund fehlgeschlagen. Prüfen Sie die Verbindungsdetails.";
+"TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "TLS bleibt erforderlich. Das Serverzertifikat muss auf dieses private CA zurückgehen, und der Hostname wird weiterhin geprüft.";

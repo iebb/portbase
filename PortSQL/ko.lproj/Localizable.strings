@@ -1212,3 +1212,5 @@
 "Trust this server’s certificate authority?" = "이 서버의 인증 기관을 신뢰하시겠습니까?";
 "Unnamed authority" = "이름 없는 인증 기관";
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "관리형 데이터베이스처럼 서버가 자체 인증 기관을 사용하면, Portbase는 처음 연결할 때 이를 보여 주고 이 연결에서 신뢰하기 전에 확인을 요청합니다.";
+"This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "이 연결은 이미 서버의 인증 기관을 신뢰하므로 다른 이유로 실패했습니다. 연결 세부 정보를 확인하세요.";
+"TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "TLS는 계속 필수입니다. 서버 인증서는 이 사설 CA로 연결되어야 하며, 호스트 이름도 계속 확인됩니다.";

@@ -1789,12 +1789,11 @@ struct BookmarkEditorView: View {
             do {
                 let authority = try await ServerCertificateProbe.authority(for: candidate)
                 if automatic, declinedFingerprints.contains(authority.sha256Fingerprint) { return }
-                certificateTrustRequest = CertificateTrustRequest(
-                    profileID: candidate.id,
-                    connectionName: candidate.displayTitle,
-                    authority: authority,
-                    replacesExistingAuthority: candidate.transportSecurityMode == .privateCA
-                        && !candidate.privateCACertificate.isEmpty && candidate.privateCACertificate != "<keychain>")
+                guard let request = CertificateTrustRequest(profile: candidate, authority: authority) else {
+                    if !automatic { certificateReviewError = L10n.text("This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details.") }
+                    return
+                }
+                certificateTrustRequest = request
             } catch {
                 certificateReviewError = DatabaseErrorFormatter.message(for: error)
             }
@@ -1818,7 +1817,7 @@ struct BookmarkEditorView: View {
                 .foregroundStyle(.secondary)
 
         case .privateCA:
-            Text("TLS remains required. The private CA is added to the trusted system certificate authorities.")
+            Text("TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified.")
                 .font(.captionText)
                 .foregroundStyle(.secondary)
 

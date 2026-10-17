@@ -60,7 +60,7 @@ final class DatabaseSafetyTests: XCTestCase {
     }
 
     #if canImport(NIOSSL)
-    func testPrivateCATLSAddsParsedCertificateToSystemRoots() throws {
+    func testPrivateCATLSVerifiesAgainstTheParsedCertificateAlone() throws {
         let profile = ConnectionProfile(
             name: "Private CA",
             engine: .postgresql,
@@ -74,9 +74,14 @@ final class DatabaseSafetyTests: XCTestCase {
         )
 
         let configuration = try DatabaseService.tlsConfiguration(for: profile)
-        XCTAssertEqual(configuration.certificateVerification, .fullVerification)
-        XCTAssertEqual(configuration.trustRoots, .default)
-        XCTAssertEqual(configuration.additionalTrustRoots.count, 1)
+        XCTAssertEqual(configuration.certificateVerification, .fullVerification, "Chain and hostname stay verified")
+        // Explicit roots keep verification in BoringSSL; Apple's verifier rejects managed-database
+        // certificates without the serverAuth extended key usage even under a trusted private CA.
+        guard case .certificates(let roots) = configuration.trustRoots else {
+            return XCTFail("The private CA must be the trust roots, not an addition to the system roots")
+        }
+        XCTAssertEqual(roots.count, 1)
+        XCTAssertTrue(configuration.additionalTrustRoots.isEmpty)
     }
 
     func testPrivateCATLSRejectsMissingInvalidAndPrivateKeyMaterial() {

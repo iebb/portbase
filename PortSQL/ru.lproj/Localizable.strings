@@ -1212,3 +1212,5 @@
 "Trust this server’s certificate authority?" = "Доверять центру сертификации этого сервера?";
 "Unnamed authority" = "Безымянный ЦС";
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "Если сервер использует собственный центр сертификации, как часто бывает у управляемых баз данных, Portbase покажет его при первом подключении и спросит, прежде чем доверять ему для этого подключения.";
+"This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "Это подключение уже доверяет центру сертификации сервера, значит, сбой вызван другой причиной. Проверьте параметры подключения.";
+"TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "TLS по-прежнему обязателен. Сертификат сервера должен быть выпущен этим частным ЦС, а имя хоста по-прежнему проверяется.";

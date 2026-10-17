@@ -10,6 +10,17 @@ struct CertificateTrustRequest: Identifiable, Equatable {
     var id: String { profileID.uuidString + authority.id }
 }
 
+extension CertificateTrustRequest {
+    /// A request to trust `authority` for `profile`, or nil when the profile already trusts it.
+    init?(profile: ConnectionProfile, authority: ServerCertificateAuthority) {
+        let saved = profile.transportSecurityMode == .privateCA && profile.privateCACertificate != "<keychain>"
+            ? ServerCertificateProbe.fingerprints(ofPEM: profile.privateCACertificate) : []
+        guard !saved.contains(authority.sha256Fingerprint) else { return nil }
+        self.init(profileID: profile.id, connectionName: profile.displayTitle, authority: authority,
+                  replacesExistingAuthority: !saved.isEmpty)
+    }
+}
+
 extension WorkspaceViewModel {
     /// Whether a connection failure can be resolved by trusting the CA the server presents: an
     /// untrusted certificate, or a private-CA connection whose CA isn't on this device (it stays in
@@ -39,10 +50,12 @@ extension WorkspaceViewModel {
                 guard let self, !Task.isCancelled else { return }
                 self.certificateProbeTask = nil
                 if automatic, self.declinedCertificateAuthorities.contains(Self.declineKey(profile.id, authority)) { return }
-                self.certificateTrustRequest = CertificateTrustRequest(
-                    profileID: profile.id, connectionName: profile.displayTitle, authority: authority,
-                    replacesExistingAuthority: profile.transportSecurityMode == .privateCA
-                        && !profile.privateCACertificate.isEmpty && profile.privateCACertificate != "<keychain>")
+                guard let request = CertificateTrustRequest(profile: profile, authority: authority) else {
+                    // The connection already trusts this CA, so trusting it again can't help.
+                    if !automatic { self.certificateReviewError = L10n.text("This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details.") }
+                    return
+                }
+                self.certificateTrustRequest = request
             } catch {
                 guard let self, !Task.isCancelled else { return }
                 self.certificateProbeTask = nil

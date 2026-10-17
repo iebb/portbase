@@ -1212,3 +1212,5 @@
 "Trust this server’s certificate authority?" = "Trust this server’s certificate authority?";
 "Unnamed authority" = "Unnamed authority";
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection.";
+"This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details.";
+"TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified.";

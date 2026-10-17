@@ -1212,3 +1212,5 @@
 "Trust this server’s certificate authority?" = "要信任此伺服器的憑證頒發機構嗎？";
 "Unnamed authority" = "未命名的頒發機構";
 "When a server uses its own certificate authority, as managed databases often do, Portbase shows it on the first connection and asks before trusting it for this connection." = "當伺服器使用自有憑證頒發機構時（託管資料庫常這樣做），Portbase 會在首次連線時顯示它，並在為此連線信任它之前徵求確認。";
+"This connection already trusts the server’s certificate authority, so the connection failed for another reason. Check the connection details." = "此連線已信任伺服器的憑證頒發機構，因此失敗另有原因。請檢查連線詳細資料。";
+"TLS remains required. The server certificate must chain to this private CA, and the hostname is still verified." = "仍需使用 TLS。伺服器憑證必須鏈結到此私有 CA，主機名稱也仍會驗證。";
