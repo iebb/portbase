@@ -32,6 +32,8 @@ struct GridCollectionBridge: NSViewRepresentable {
     let onHideColumn: (Int) -> Void
     var copyFormats: [ResultCopyFormat] = []
     var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
+    var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
+    var cellMenu: (Int, Int) -> [ResultGridMenuItem] = { _, _ in [] }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
@@ -50,7 +52,9 @@ struct GridCollectionBridge: NSViewRepresentable {
             coordinator?.select(row: row, column: column, extend: extend)
         }
         table.onCopy = { [weak coordinator = context.coordinator] in coordinator?.copySelection() }
-        let menu = NSMenu(); menu.delegate = context.coordinator; table.menu = menu
+        let menu = NSMenu(); menu.delegate = context.coordinator; menu.autoenablesItems = false; table.menu = menu
+        let headerMenu = NSMenu(); headerMenu.delegate = context.coordinator; headerMenu.autoenablesItems = false; table.headerView?.menu = headerMenu
+        context.coordinator.headerMenu = headerMenu
         table.setAccessibilityLabel(L10n.text("Query results table"))
         scroll.documentView = table
         context.coordinator.table = table
@@ -161,32 +165,35 @@ struct GridCollectionBridge: NSViewRepresentable {
             guard let table, table.clickedRow >= 0, parent.visibleColumns.indices.contains(table.clickedColumn) else { return }
             parent.onInspectCell(table.clickedRow, parent.visibleColumns[table.clickedColumn])
         }
+        weak var headerMenu: NSMenu?
         func menuNeedsUpdate(_ menu: NSMenu) {
             menu.removeAllItems(); actions = []
-            guard let table, table.clickedRow >= 0, parent.visibleColumns.indices.contains(table.clickedColumn) else { return }
-            let row = table.clickedRow, column = parent.visibleColumns[table.clickedColumn]
-            select(row: row, column: table.clickedColumn, extend: parent.extendsSelection)
-            add("Inspect Cell", to: menu) { self.parent.onInspectCell(row, column) }
-            add("Copy Selected Cells", to: menu) { self.copySelection() }
-            add("Copy with Headers", to: menu) { self.copySelection(headers: true) }
-            if !parent.copyFormats.isEmpty {
-                let copyAs = NSMenuItem(title: L10n.text("Copy As"), action: nil, keyEquivalent: "")
-                let submenu = NSMenu()
-                for format in parent.copyFormats {
-                    let item = NSMenuItem(title: format.title, action: #selector(performAction(_:)), keyEquivalent: "")
-                    item.target = self; item.tag = actions.count
-                    actions.append { self.parent.onCopyAs(format) }
-                    submenu.addItem(item)
-                }
-                copyAs.submenu = submenu
-                menu.addItem(copyAs)
+            guard let table else { return }
+            if menu === headerMenu, let header = table.headerView, let event = NSApp.currentEvent {
+                let position = header.column(at: header.convert(event.locationInWindow, from: nil))
+                guard parent.visibleColumns.indices.contains(position) else { return }
+                build(parent.headerMenu(parent.visibleColumns[position]), into: menu)
+                return
             }
-            if let onOpenRow = parent.onOpenRow { add("Open Row", to: menu) { onOpenRow(row) } }
-            for action in parent.actionsForCell?(row, column) ?? [] { add(action.title, to: menu, action: action.perform) }
-            menu.addItem(.separator())
-            add("Configure Column", to: menu) { self.parent.onConfigureColumn(column) }
-            add(parent.configuration.pinned.contains(column) ? "Unpin Column" : "Pin Column", to: menu) { self.parent.onPinColumn(column) }
-            if parent.visibleColumns.count > 1 { add("Hide Column", to: menu) { self.parent.onHideColumn(column) } }
+            guard table.clickedRow >= 0, parent.visibleColumns.indices.contains(table.clickedColumn) else { return }
+            select(row: table.clickedRow, column: table.clickedColumn, extend: parent.extendsSelection)
+            build(parent.cellMenu(table.clickedRow, parent.visibleColumns[table.clickedColumn]), into: menu)
+        }
+        private func build(_ items: [ResultGridMenuItem], into menu: NSMenu) {
+            for item in items {
+                switch item.kind {
+                case .separator: menu.addItem(.separator())
+                case .submenu(let children):
+                    let entry = NSMenuItem(title: item.title, action: nil, keyEquivalent: "")
+                    let submenu = NSMenu(); build(children, into: submenu); entry.submenu = submenu
+                    menu.addItem(entry)
+                case .action(let perform):
+                    let entry = NSMenuItem(title: item.title, action: #selector(performAction(_:)), keyEquivalent: "")
+                    entry.target = self; entry.tag = actions.count; entry.isEnabled = item.isEnabled
+                    if let symbol = item.systemImage { entry.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
+                    actions.append(perform); menu.addItem(entry)
+                }
+            }
         }
         private func add(_ title: String, to menu: NSMenu, action: @escaping () -> Void) {
             let item = NSMenuItem(title: L10n.text(title), action: #selector(performAction(_:)), keyEquivalent: "")

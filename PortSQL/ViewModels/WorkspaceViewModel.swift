@@ -702,6 +702,18 @@ final class WorkspaceViewModel: ObservableObject {
         browse()
     }
 
+    /// Sorts the Explorer by one column in a given direction, or clears the sort when `descending` is nil.
+    func sortExplorer(by columnName: String, descending: Bool?) {
+        if let descending {
+            explorerOrderByClause = isDocumentDatabase
+                ? MongoQueryService.pretty([columnName: descending ? -1 : 1])
+                : "\(sqlIdentifier(columnName, engine: selectedBookmark?.engine ?? .postgresql)) \(descending ? "DESC" : "ASC")"
+        } else {
+            explorerOrderByClause = ""
+        }
+        restartBrowse()
+    }
+
     func insertColumn(_ column: SchemaColumnDescriptor, from table: SchemaTableDescriptor) {
         let reference = "\(table.name).\(column.name)"
         if queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {

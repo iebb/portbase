@@ -34,6 +34,33 @@ struct ResultGridConfiguration: Codable, Equatable {
     }
 }
 
+/// A quick action in a result grid's header or cell menu. Both platforms' grids draw the same items
+/// natively (an NSMenu on the Mac, a UIMenu on iOS), so the actions stay identical everywhere.
+struct ResultGridMenuItem {
+    enum Kind {
+        case action(() -> Void)
+        case submenu([ResultGridMenuItem])
+        case separator
+    }
+
+    var title = ""
+    var systemImage: String?
+    var isEnabled = true
+    var isDestructive = false
+    var kind: Kind
+
+    static func action(_ title: String, _ systemImage: String? = nil, enabled: Bool = true,
+                       destructive: Bool = false, _ perform: @escaping () -> Void) -> Self {
+        Self(title: title, systemImage: systemImage, isEnabled: enabled, isDestructive: destructive, kind: .action(perform))
+    }
+
+    static func submenu(_ title: String, _ systemImage: String?, _ items: [Self]) -> Self {
+        Self(title: title, systemImage: systemImage, kind: .submenu(items))
+    }
+
+    static var separator: Self { Self(kind: .separator) }
+}
+
 struct ResultGridRowAction {
     let title: String
     var symbolName: String = "arrowshape.turn.up.right"
@@ -95,6 +122,8 @@ struct ResultGridView: View {
     /// Controls placed before and after the grid's own tools, so a host can share one toolbar row.
     var leadingAccessory: AnyView?
     var trailingAccessory: AnyView?
+    /// Sorts by a column in a direction (true is descending), or clears the sort with nil.
+    var onSortDirection: ((String, Bool?) -> Void)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var configuration = ResultGridConfiguration()
@@ -223,7 +252,9 @@ struct ResultGridView: View {
                 onPinColumn: { index in togglePinned(index) },
                 onHideColumn: { index in hideColumn(index) },
                 copyFormats: ResultCopyFormat.available(for: copyEngine),
-                onCopyAs: { copy(as: $0) }
+                onCopyAs: { copy(as: $0) },
+                headerMenu: { headerMenu(for: $0) },
+                cellMenu: { cellMenu(row: $0, column: $1) }
             )
             .frame(height: gridHeight)
 #if os(macOS)
@@ -346,6 +377,108 @@ struct ResultGridView: View {
         configuration.widths[index] ?? Double(GridCollectionBridge.naturalWidth(result: result, column: index))
     }
 
+    // MARK: Quick actions
+
+    private func cellValue(row: Int, column: Int) -> QueryCell {
+        guard rowIndices.indices.contains(row) else { return .null }
+        let cells = result.rows[rowIndices[row]].cells
+        return cells.indices.contains(column) ? cells[column] : .null
+    }
+
+    /// Actions for a column header: copy, sort, layout, and settings.
+    func headerMenu(for column: Int) -> [ResultGridMenuItem] {
+        guard result.columns.indices.contains(column) else { return [] }
+        let name = result.columns[column].name
+        var items: [ResultGridMenuItem] = [
+            .action(L10n.text("Copy Column Name"), "doc.on.doc") { PortbaseClipboard.copy(name) },
+        ]
+        if let onSortDirection {
+            items += [
+                .separator,
+                .action(L10n.text("Sort Ascending"), "arrow.up") { onSortDirection(name, false) },
+                .action(L10n.text("Sort Descending"), "arrow.down") { onSortDirection(name, true) },
+                .action(L10n.text("Clear Sort"), "arrow.up.arrow.down", enabled: sortedColumn != nil) { onSortDirection(name, nil) },
+            ]
+        }
+        items += [
+            .separator,
+            .action(configuration.pinned.contains(column) ? L10n.text("Unpin Column") : L10n.text("Pin Column"), "pin") { togglePinned(column) },
+            .action(L10n.text("Hide Column"), "eye.slash", enabled: visibleColumns.count > 1) { hideColumn(column) },
+            .action(L10n.text("Hide Other Columns"), "eye.slash.circle", enabled: visibleColumns.count > 1) {
+                configuration.hidden = Set(result.columns.indices).subtracting([column])
+                configuration.pinned = configuration.pinned.intersection([column])
+                selection = nil
+            },
+            .action(L10n.text("Show All Columns"), "eye", enabled: !configuration.hidden.isEmpty) {
+                configuration.hidden = []
+                selection = nil
+            },
+            .separator,
+            .action(L10n.text("Fit Column Width"), "arrow.left.and.right") {
+                configuration.widths[column] = Double(GridCollectionBridge.naturalWidth(result: result, column: column))
+            },
+            .action(L10n.text("Reset Column Widths"), "arrow.uturn.backward", enabled: !configuration.widths.isEmpty) {
+                configuration.widths = [:]
+            },
+            .action(L10n.text("Column Settings…"), "slider.horizontal.3") { focusedColumn = column; showsColumns = true },
+        ]
+        return items
+    }
+
+    /// Actions for a cell: open, copy, filter the loaded rows by its value, and the host's row actions.
+    func cellMenu(row: Int, column: Int) -> [ResultGridMenuItem] {
+        guard rowIndices.indices.contains(row), result.columns.indices.contains(column) else { return [] }
+        let value = cellValue(row: row, column: column)
+        let name = result.columns[column].name
+        var items: [ResultGridMenuItem] = [
+            .action(L10n.text("Open in Value Editor"), "arrow.up.left.and.arrow.down.right") { inspect(row: row, column: column) },
+        ]
+        if let onOpenRow {
+            items.append(.action(L10n.text("Open Row"), "rectangle.and.pencil.and.ellipsis") { onOpenRow(rowIndices[row]) })
+        }
+        items += [
+            .separator,
+            .action(L10n.text("Copy Value"), "doc.on.doc") { PortbaseClipboard.copy(value.isNull ? "NULL" : value.displayValue) },
+            .action(L10n.text("Copy Row"), "list.bullet.rectangle") {
+                guard !visibleColumns.isEmpty else { return }
+                ResultGridClipboard.copy(result: displayedResult, visibleColumns: visibleColumns,
+                                         selection: ResultGridSelection(anchor: .init(row: row, column: 0), end: .init(row: row, column: visibleColumns.count - 1)),
+                                         headers: true)
+            },
+        ]
+        if let selection, selection.count > 1 {
+            items.append(.action(L10n.text("Copy Selected Cells"), "square.on.square") { copySelection() })
+            items.append(.action(L10n.text("Copy with Headers"), "tablecells") { copySelection(headers: true) })
+        }
+        let formats = ResultCopyFormat.available(for: copyEngine)
+        if !formats.isEmpty {
+            items.append(.submenu(L10n.text("Copy As"), "doc.on.clipboard", formats.map { format in
+                .action(format.title, format.systemImage) { copy(as: format) }
+            }))
+        }
+        var filterItems: [ResultGridMenuItem] = value.isNull
+            ? [.action(L10n.text("Only NULL"), "circle.slash") { filter = LoadedResultFilter(column: column, mode: .null) }]
+            : [.action(L10n.format("Equal to “%@”", String(value.displayValue.prefix(40))), "equal") {
+                filter = LoadedResultFilter(column: column, mode: .equals, text: value.displayValue)
+            }]
+        if filter.isActive {
+            filterItems.append(.action(L10n.text("Clear Filter"), "xmark.circle") { filter = LoadedResultFilter() })
+        }
+        items += [.separator, .submenu(L10n.text("Filter Loaded Rows"), "line.3.horizontal.decrease.circle", filterItems)]
+        let rowActions = actionsForCell?(rowIndices[row], column) ?? []
+        if !rowActions.isEmpty {
+            items.append(.separator)
+            items += rowActions.map { action in .action(action.title, action.symbolName, action.perform) }
+        }
+        if let onSortDirection {
+            items += [.separator, .submenu(L10n.format("Sort by %@", name), "arrow.up.arrow.down", [
+                .action(L10n.text("Sort Ascending"), "arrow.up") { onSortDirection(name, false) },
+                .action(L10n.text("Sort Descending"), "arrow.down") { onSortDirection(name, true) },
+            ])]
+        }
+        return items
+    }
+
     private func togglePinned(_ index: Int) {
         if configuration.pinned.contains(index) { configuration.pinned.remove(index) }
         else { configuration.pinned.insert(index) }
@@ -399,6 +532,8 @@ private struct GridCollectionBridge: UIViewRepresentable {
     let onHideColumn: (Int) -> Void
     var copyFormats: [ResultCopyFormat] = []
     var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
+    var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
+    var cellMenu: (Int, Int) -> [ResultGridMenuItem] = { _, _ in [] }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -596,43 +731,32 @@ private struct GridCollectionBridge: UIViewRepresentable {
             collectionView.setContentOffset(offset, animated: false)
         }
 
+        /// Draws the shared quick actions as UIKit menu elements; separators become inline groups.
+        static func menuElements(_ items: [ResultGridMenuItem]) -> [UIMenuElement] {
+            var groups: [[UIMenuElement]] = [[]]
+            for item in items {
+                switch item.kind {
+                case .separator: groups.append([])
+                case .submenu(let children):
+                    groups[groups.count - 1].append(UIMenu(title: item.title, image: item.systemImage.flatMap { UIImage(systemName: $0) }, children: menuElements(children)))
+                case .action(let perform):
+                    var attributes: UIMenuElement.Attributes = []
+                    if !item.isEnabled { attributes.insert(.disabled) }
+                    if item.isDestructive { attributes.insert(.destructive) }
+                    groups[groups.count - 1].append(UIAction(title: item.title, image: item.systemImage.flatMap { UIImage(systemName: $0) }, attributes: attributes) { _ in perform() })
+                }
+            }
+            return groups.filter { !$0.isEmpty }.map { UIMenu(options: .displayInline, children: $0) }
+        }
+
         func collectionView(_ collectionView: UICollectionView, contextMenuConfigurationForItemAt indexPath: IndexPath, point: CGPoint) -> UIContextMenuConfiguration? {
             guard indexPath.item > 0 else { return nil }
             let index = parent.visibleColumns[indexPath.item - 1]
             return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
                 guard let self else { return UIMenu() }
-                if indexPath.section == 0 {
-                    return UIMenu(children: [
-                        UIAction(title: L10n.text("Configure Column"), image: UIImage(systemName: "slider.horizontal.3")) { _ in self.parent.onConfigureColumn(index) },
-                        UIAction(title: self.parent.configuration.pinned.contains(index) ? L10n.text("Unpin Column") : L10n.text("Pin Column"), image: UIImage(systemName: "pin")) { _ in self.parent.onPinColumn(index) },
-                        UIAction(title: L10n.text("Hide Column"), image: UIImage(systemName: "eye.slash"), attributes: self.parent.visibleColumns.count == 1 ? .disabled : []) { _ in self.parent.onHideColumn(index) }
-                    ])
-                }
-                var actions: [UIMenuElement] = [
-                    UIAction(title: L10n.text("Inspect Cell"), image: UIImage(systemName: "arrow.up.left.and.arrow.down.right")) { _ in
-                        self.parent.onInspectCell(indexPath.section - 1, index)
-                    },
-                    UIAction(title: L10n.text("Copy Selected Cells"), image: UIImage(systemName: "doc.on.doc")) { _ in
-                        if self.parent.selection?.contains(row: indexPath.section - 1, column: indexPath.item - 1) != true { self.parent.extendsSelection = false; self.select(indexPath) }
-                        self.copySelectedCells()
-                    },
-                    UIAction(title: L10n.text("Extend cell selection"), image: UIImage(systemName: "rectangle.dashed")) { _ in self.parent.extendsSelection = true; self.select(indexPath) }
-                ]
-                if !self.parent.copyFormats.isEmpty {
-                    actions.append(UIMenu(title: L10n.text("Copy As"), image: UIImage(systemName: "doc.on.clipboard"), children: self.parent.copyFormats.map { format in
-                        UIAction(title: format.title, image: UIImage(systemName: format.systemImage)) { _ in
-                            if self.parent.selection?.contains(row: indexPath.section - 1, column: indexPath.item - 1) != true { self.parent.extendsSelection = false; self.select(indexPath) }
-                            self.parent.onCopyAs(format)
-                        }
-                    }))
-                }
-                if self.parent.onOpenRow != nil {
-                    actions.append(UIAction(title: L10n.text("Open Row"), image: UIImage(systemName: "arrow.up.left.and.arrow.down.right")) { _ in self.parent.onOpenRow?(indexPath.section - 1) })
-                }
-                for action in self.parent.actionsForCell?(indexPath.section - 1, index) ?? [] {
-                    actions.append(UIAction(title: action.title, image: UIImage(systemName: action.symbolName)) { _ in action.perform() })
-                }
-                return UIMenu(children: actions)
+                if indexPath.section == 0 { return UIMenu(children: Self.menuElements(self.parent.headerMenu(index))) }
+                self.select(indexPath)
+                return UIMenu(children: Self.menuElements(self.parent.cellMenu(indexPath.section - 1, index)))
             }
         }
     }

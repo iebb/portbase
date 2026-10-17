@@ -757,7 +757,8 @@ private struct DesktopResultsView: View {
             copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName,
             onSelectRow: { focusedRow = $0 },
             leadingAccessory: AnyView(modeControls.font(.bodyText)),
-            trailingAccessory: AnyView(resultActions.font(.bodyText)))
+            trailingAccessory: AnyView(resultActions.font(.bodyText)),
+            onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil)
     }
 }
 
