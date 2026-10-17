@@ -869,8 +869,16 @@ struct ResultsCard: View {
                     }
                 }
 
-                if hasTabularResult || workspace.result.documents != nil {
-                    resultChips
+                // Counts on the left and paging on the right share one row.
+                let showsPager = !workspace.isRunning && workspace.isShowingExplorerResult
+                if hasTabularResult || workspace.result.documents != nil || showsPager {
+                    HStack(spacing: Spacing.s) {
+                        if hasTabularResult || workspace.result.documents != nil { resultChips }
+                        if showsPager {
+                            Spacer(minLength: Spacing.s)
+                            pager
+                        }
+                    }
                 }
 
                 if workspace.resultSets.count > 1 {
@@ -915,31 +923,6 @@ struct ResultsCard: View {
                     .padding(Spacing.l)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                }
-
-                if !workspace.isRunning && workspace.isShowingExplorerResult {
-                    HStack(spacing: 0) {
-                        pageStatusMenu
-                        Spacer(minLength: Spacing.s)
-                        Button {
-                            workspace.goToPreviousExplorerPage()
-                        } label: {
-                            Image(systemName: "chevron.left").toolIconChrome()
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!workspace.canGoToPreviousExplorerPage)
-                        .accessibilityLabel("Previous results page")
-                        .accessibilityHint("Loads the preceding page of rows")
-                        Button {
-                            workspace.goToNextExplorerPage()
-                        } label: {
-                            Image(systemName: "chevron.right").toolIconChrome()
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(!workspace.canGoToNextExplorerPage)
-                        .accessibilityLabel("Next results page")
-                        .accessibilityHint("Loads the following page of rows")
-                    }
                 }
 
                 if workspace.isRunning {
@@ -1014,6 +997,32 @@ struct ResultsCard: View {
                 secondaryButton: .cancel()
             )
         }
+    }
+
+    /// The page size menu and previous/next buttons for an Explorer browse.
+    private var pager: some View {
+        HStack(spacing: 0) {
+            pageStatusMenu
+            Button {
+                workspace.goToPreviousExplorerPage()
+            } label: {
+                Image(systemName: "chevron.left").toolIconChrome()
+            }
+            .buttonStyle(.plain)
+            .disabled(!workspace.canGoToPreviousExplorerPage)
+            .accessibilityLabel("Previous results page")
+            .accessibilityHint("Loads the preceding page of rows")
+            Button {
+                workspace.goToNextExplorerPage()
+            } label: {
+                Image(systemName: "chevron.right").toolIconChrome()
+            }
+            .buttonStyle(.plain)
+            .disabled(!workspace.canGoToNextExplorerPage)
+            .accessibilityLabel("Next results page")
+            .accessibilityHint("Loads the following page of rows")
+        }
+        .fixedSize()
     }
 
     @ViewBuilder private var resultModeSwitcher: some View {
