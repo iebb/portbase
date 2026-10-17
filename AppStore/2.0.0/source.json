@@ -3,8 +3,8 @@
   "appID": "6762447018",
   "bundleID": "ad.neko.portsql",
   "branch": "master",
-  "sourceCommit": "a48680b324a12ef2ca7dc69636195e931f9f8b90",
-  "workflowRun": "https://github.com/iebb/portbase/actions/runs/39059686434",
+  "sourceCommit": "e6dccd71ac93537df435bb0ffbf06fe4dd02681e",
+  "workflowRun": "https://github.com/iebb/portbase/actions/runs/39061465894",
   "validation": {
     "iOS": {
       "executed": 197,
@@ -23,13 +23,24 @@
     },
     "localization": {
       "locales": 10,
-      "keysEach": 1154,
+      "keysEach": 1156,
       "catalogSyntax": true,
       "placeholderParity": true
     },
     "projectGenerationSettingsMatch": true,
     "macBuild": "passed",
-    "physicalDeviceTesting": false
+    "physicalDeviceTesting": false,
+    "ui": {
+      "iPhone": {
+        "locale": "ja-JP",
+        "aboutRepositoryLink": true,
+        "chartAxisTranslations": true
+      },
+      "macOS": {
+        "locale": "ja-JP",
+        "aboutRepositoryLink": true
+      }
+    }
   },
   "screenshots": "../../ReviewScreenshots/2.0.0/manifest.json"
 }
