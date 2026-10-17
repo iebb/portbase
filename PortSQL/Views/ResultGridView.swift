@@ -805,7 +805,9 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let column = parent.result.columns[index]
             // Exactly over the cell, with the cell's background and the label's padding, so editing reads
             // as the cell itself becoming editable rather than a box inside it.
-            let field = UITextField(frame: attributes.frame)
+            let field = GridCellEditorField(frame: attributes.frame)
+            field.onMove = { [weak self] step in self?.moveEditing(by: step) }
+            field.onCancel = { [weak self] in self?.endEditing(commit: false) }
             field.font = PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
             field.adjustsFontForContentSizeCategory = true
             field.text = text
@@ -845,6 +847,23 @@ private struct GridCollectionBridge: UIViewRepresentable {
             editor.removeFromSuperview()
             if commit, text != editing.original { _ = parent.onCommitEdit(editing.row, editing.column, text) }
             collectionView?.becomeFirstResponder()
+        }
+
+        /// Moves the editor to the next editable cell in the row, keeping what was typed in this one.
+        func moveEditing(by step: Int) {
+            guard let editing, let position = parent.visibleColumns.firstIndex(of: editing.column) else { return }
+            let row = editing.row
+            endEditing(commit: true)
+            var next = position + step
+            while parent.visibleColumns.indices.contains(next) {
+                if parent.canEditCell(row, parent.visibleColumns[next]) {
+                    parent.selection = ResultGridSelection(anchor: .init(row: row, column: next), end: .init(row: row, column: next))
+                    // Let the update from the staged value settle before placing the next editor.
+                    DispatchQueue.main.async { [weak self] in self?.beginEditing(IndexPath(item: next + 1, section: row + 1)) }
+                    return
+                }
+                next += step
+            }
         }
 
         func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -1017,6 +1036,25 @@ private final class ResultCollectionCell: UICollectionViewCell {
         bottom.frame = CGRect(x: 0, y: bounds.height - 0.5, width: bounds.width, height: 0.5)
         trailing.frame = CGRect(x: bounds.width - 0.5, y: 0, width: 0.5, height: bounds.height)
     }
+}
+
+/// The in-place cell editor. With a hardware keyboard, Tab and Shift-Tab move to the neighboring editable
+/// cell and Escape cancels, as in desktop SQL clients.
+private final class GridCellEditorField: UITextField {
+    var onMove: ((Int) -> Void)?
+    var onCancel: (() -> Void)?
+
+    override var keyCommands: [UIKeyCommand]? {
+        let next = UIKeyCommand(input: "\t", modifierFlags: [], action: #selector(moveNext))
+        let previous = UIKeyCommand(input: "\t", modifierFlags: .shift, action: #selector(movePrevious))
+        let cancel = UIKeyCommand(input: UIKeyCommand.inputEscape, modifierFlags: [], action: #selector(cancel))
+        for command in [next, previous, cancel] { command.wantsPriorityOverSystemBehavior = true }
+        return [next, previous, cancel] + (super.keyCommands ?? [])
+    }
+
+    @objc private func moveNext() { onMove?(1) }
+    @objc private func movePrevious() { onMove?(-1) }
+    @objc private func cancel() { onCancel?() }
 }
 
 private final class ResultCollectionView: UICollectionView {
