@@ -1559,7 +1559,7 @@
 			};
 			name = Debug;
 		};
-		35469339B72B1DC622BDD8D3 /* Release-Cloud */ = {
+		35469339B72B1DC622BDD8D3 /* Release-CI */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -1576,9 +1576,9 @@
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Portbase.app/Contents/MacOS/Portbase";
 			};
-			name = "Release-Cloud";
+			name = "Release-CI";
 		};
-		4382874C094BF20921058386 /* Release-Cloud */ = {
+		4382874C094BF20921058386 /* Release-CI */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -1630,7 +1630,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 			};
-			name = "Release-Cloud";
+			name = "Release-CI";
 		};
 		53551872415442FCA7A5F45F /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1771,7 +1771,7 @@
 			};
 			name = Release;
 		};
-		9D8DD7E9810480554F45DCF0 /* Release-Cloud */ = {
+		9D8DD7E9810480554F45DCF0 /* Release-CI */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1804,9 +1804,9 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "PortSQL/PortSQL-Bridging-Header.h";
 				SWIFT_VERSION = 6.0;
 			};
-			name = "Release-Cloud";
+			name = "Release-CI";
 		};
-		AFF2AF6E9062855626C83C36 /* Release-Cloud */ = {
+		AFF2AF6E9062855626C83C36 /* Release-CI */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -1821,7 +1821,7 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PortSQL.app/PortSQL";
 			};
-			name = "Release-Cloud";
+			name = "Release-CI";
 		};
 		B2F750BB72C0B5C66E78B555 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -1842,7 +1842,7 @@
 			};
 			name = Debug;
 		};
-		CDA29896C2B44D877ACA4814 /* Release-Cloud */ = {
+		CDA29896C2B44D877ACA4814 /* Release-CI */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -1874,7 +1874,7 @@
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
-			name = "Release-Cloud";
+			name = "Release-CI";
 		};
 		D7324858302ECB3F18A4402E /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -1999,7 +1999,7 @@
 			buildConfigurations = (
 				65635D8B0DA85667E20F2284 /* Debug */,
 				7508B4F4AD28B8D533737433 /* Release */,
-				AFF2AF6E9062855626C83C36 /* Release-Cloud */,
+				AFF2AF6E9062855626C83C36 /* Release-CI */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -2009,7 +2009,7 @@
 			buildConfigurations = (
 				F8674E9DEFC13473A9C113ED /* Debug */,
 				D7324858302ECB3F18A4402E /* Release */,
-				4382874C094BF20921058386 /* Release-Cloud */,
+				4382874C094BF20921058386 /* Release-CI */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -2019,7 +2019,7 @@
 			buildConfigurations = (
 				09E0BB43A54229EAD1B65685 /* Debug */,
 				685484A5C07AC43FC400C98B /* Release */,
-				9D8DD7E9810480554F45DCF0 /* Release-Cloud */,
+				9D8DD7E9810480554F45DCF0 /* Release-CI */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -2029,7 +2029,7 @@
 			buildConfigurations = (
 				B2F750BB72C0B5C66E78B555 /* Debug */,
 				00A1FDA7721EFD1AED288338 /* Release */,
-				35469339B72B1DC622BDD8D3 /* Release-Cloud */,
+				35469339B72B1DC622BDD8D3 /* Release-CI */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -2039,7 +2039,7 @@
 			buildConfigurations = (
 				53551872415442FCA7A5F45F /* Debug */,
 				6B800A6BFAF28634FD5C634F /* Release */,
-				CDA29896C2B44D877ACA4814 /* Release-Cloud */,
+				CDA29896C2B44D877ACA4814 /* Release-CI */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

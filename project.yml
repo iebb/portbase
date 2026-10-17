@@ -2,20 +2,20 @@ name: PortSQL
 configs:
   Debug: debug
   Release: release
-  Release-Cloud: release
+  Release-CI: release
 schemes:
-  PortbaseMacCloud:
+  PortbaseMacCI:
     build:
       targets:
         PortbaseMac: all
     archive:
-      config: Release-Cloud
-  PortSQLCloud:
+      config: Release-CI
+  PortSQLCI:
     build:
       targets:
         PortSQL: all
     archive:
-      config: Release-Cloud
+      config: Release-CI
   PortbaseMac:
     build:
       targets:
@@ -176,7 +176,7 @@ targets:
           CODE_SIGN_IDENTITY: Apple Distribution
           PROVISIONING_PROFILE_SPECIFIER: Portbase Mac App Store
           ONLY_ACTIVE_ARCH: NO
-        Release-Cloud:
+        Release-CI:
           CODE_SIGN_STYLE: Automatic
           ONLY_ACTIVE_ARCH: NO
     dependencies:

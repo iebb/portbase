@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-repository_path="${CI_PRIMARY_REPOSITORY_PATH:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
+repository_path="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 cd "$repository_path"
 
 # Build the committed project and lockfile; do not regenerate or upgrade packages.

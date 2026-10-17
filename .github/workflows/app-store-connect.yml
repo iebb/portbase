@@ -1,0 +1,182 @@
+name: App Store Connect
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portbase-app-store-connect
+  cancel-in-progress: false
+
+jobs:
+  release-checks:
+    name: Release automation checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Test version selection and nonblocking Beta App Review
+        run: ruby -Itests/ci -e 'Dir["tests/ci/*_test.rb"].sort.each { |file| require File.expand_path(file) }'
+
+  archive-upload:
+    name: Archive and upload ${{ matrix.platform }}
+    needs: release-checks
+    if: github.ref == 'refs/heads/master'
+    runs-on: macos-26
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: IOS
+            scheme: PortSQLCI
+            destination: generic/platform=iOS
+            app: PortSQL.app
+          - platform: MAC_OS
+            scheme: PortbaseMacCI
+            destination: generic/platform=macOS
+            app: Portbase.app
+    env:
+      APP_STORE_ID: '6762447018'
+      DEVELOPMENT_TEAM: 7P8CLHDH5G
+      ASC_PLATFORM: ${{ matrix.platform }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+    steps:
+      - name: Check out the triggering commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate committed build inputs
+        run: |
+          xcodebuild -version
+          sh scripts/validate-release-inputs.sh
+
+      - name: Prepare App Store Connect credentials
+        env:
+          ASC_PRIVATE_KEY_BASE64: ${{ secrets.ASC_PRIVATE_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+          : "${ASC_KEY_ID:?missing ASC_KEY_ID}"
+          : "${ASC_ISSUER_ID:?missing ASC_ISSUER_ID}"
+          : "${ASC_PRIVATE_KEY_BASE64:?missing ASC_PRIVATE_KEY_BASE64}"
+          umask 077
+          key_path="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$key_path" >> "$GITHUB_ENV"
+          printf '%s' "$ASC_PRIVATE_KEY_BASE64" | /usr/bin/base64 -D > "$key_path"
+          /usr/bin/openssl pkey -in "$key_path" -noout >/dev/null
+
+      - name: Select an open version and unused build number
+        env:
+          PORTBASE_MARKETING_VERSION: ${{ vars.PORTBASE_MARKETING_VERSION }}
+        run: ruby scripts/select-release-version.rb
+
+      - name: Import existing Apple signing identities
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          : "${CERTIFICATE_BASE64:?missing APPLE_DISTRIBUTION_CERTIFICATE_BASE64}"
+          : "${CERTIFICATE_PASSWORD:?missing APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD}"
+          umask 077
+          certificate_path="$RUNNER_TEMP/PortbaseSigning.p12"
+          keychain_path="$RUNNER_TEMP/portbase-signing.keychain-db"
+          keychain_password="$(/usr/bin/openssl rand -hex 32)"
+          {
+            echo "SIGNING_CERTIFICATE_PATH=$certificate_path"
+            echo "SIGNING_KEYCHAIN_PATH=$keychain_path"
+          } >> "$GITHUB_ENV"
+          printf '%s' "$CERTIFICATE_BASE64" | /usr/bin/base64 -D > "$certificate_path"
+          /usr/bin/security create-keychain -p "$keychain_password" "$keychain_path"
+          /usr/bin/security set-keychain-settings -lut 21600 "$keychain_path"
+          /usr/bin/security unlock-keychain -p "$keychain_password" "$keychain_path"
+          /usr/bin/security import "$certificate_path" -k "$keychain_path" \
+            -P "$CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/productbuild
+          /usr/bin/security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain_path" >/dev/null
+          /usr/bin/security list-keychains -d user -s "$keychain_path"
+          /usr/bin/security find-identity -v -p codesigning "$keychain_path" | grep -q 'Apple Distribution:'
+
+      - name: Archive the app for App Store distribution
+        env:
+          SCHEME: ${{ matrix.scheme }}
+          DESTINATION: ${{ matrix.destination }}
+        run: |
+          set -euo pipefail
+          xcodebuild archive -project PortSQL.xcodeproj -scheme "$SCHEME" \
+            -configuration Release-CI -destination "$DESTINATION" \
+            -archivePath "$RUNNER_TEMP/Portbase.xcarchive" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            -onlyUsePackageVersionsFromResolvedFile \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            MARKETING_VERSION="$CI_MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$CI_BUILD_NUMBER" \
+            CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
+            PROVISIONING_PROFILE_SPECIFIER= ONLY_ACTIVE_ARCH=NO
+
+      - name: Verify the archived build identity
+        env:
+          APP_NAME: ${{ matrix.app }}
+        run: |
+          set -euo pipefail
+          info="$RUNNER_TEMP/Portbase.xcarchive/Products/Applications/$APP_NAME/Info.plist"
+          if [[ "$ASC_PLATFORM" == MAC_OS ]]; then
+            info="$RUNNER_TEMP/Portbase.xcarchive/Products/Applications/$APP_NAME/Contents/Info.plist"
+            /usr/bin/lipo -verify_arch arm64 x86_64 "${info%/Info.plist}/MacOS/Portbase"
+          fi
+          test "$(/usr/bin/plutil -extract CFBundleIdentifier raw "$info")" = ad.neko.portsql
+          test "$(/usr/bin/plutil -extract CFBundleShortVersionString raw "$info")" = "$CI_MARKETING_VERSION"
+          test "$(/usr/bin/plutil -extract CFBundleVersion raw "$info")" = "$CI_BUILD_NUMBER"
+          printf 'CI_COMMIT: %s\nCI_BUILD_NUMBER: %s\nMARKETING_VERSION: %s\n' "$CI_COMMIT" "$CI_BUILD_NUMBER" "$CI_MARKETING_VERSION"
+
+      - name: Export and upload to App Store Connect
+        run: |
+          set -euo pipefail
+          export_options="$RUNNER_TEMP/ExportOptions.plist"
+          /usr/bin/plutil -create xml1 "$export_options"
+          /usr/bin/plutil -insert method -string app-store-connect "$export_options"
+          /usr/bin/plutil -insert destination -string upload "$export_options"
+          /usr/bin/plutil -insert signingStyle -string automatic "$export_options"
+          /usr/bin/plutil -insert teamID -string "$DEVELOPMENT_TEAM" "$export_options"
+          /usr/bin/plutil -insert manageAppVersionAndBuildNumber -bool NO "$export_options"
+          /usr/bin/plutil -insert testFlightInternalTestingOnly -bool NO "$export_options"
+          /usr/bin/plutil -insert uploadSymbols -bool YES "$export_options"
+          PATH=/usr/bin:/bin:/usr/sbin:/sbin /usr/bin/xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Portbase.xcarchive" \
+            -exportPath "$RUNNER_TEMP/AppStoreUpload" \
+            -exportOptionsPlist "$export_options" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          echo "Uploaded $ASC_PLATFORM $CI_MARKETING_VERSION ($CI_BUILD_NUMBER) from $CI_COMMIT." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify internal TestFlight and request external Beta App Review
+        env:
+          INTERNAL_GROUP: ${{ vars.TESTFLIGHT_INTERNAL_GROUP || 'internal' }}
+          EXTERNAL_GROUP: ${{ vars.TESTFLIGHT_EXTERNAL_GROUP || 'external' }}
+        run: |
+          set -euo pipefail
+          ruby scripts/distribute_testflight_groups.rb \
+            --key-id "$ASC_KEY_ID" --issuer-id "$ASC_ISSUER_ID" --key-path "$ASC_KEY_PATH" \
+            --app-id "$APP_STORE_ID" --platform "$ASC_PLATFORM" \
+            --marketing-version "$CI_MARKETING_VERSION" --build-number "$CI_BUILD_NUMBER" \
+            --internal-group "$INTERNAL_GROUP" --external-group "$EXTERNAL_GROUP" | tee "$RUNNER_TEMP/distribution.txt"
+          cat "$RUNNER_TEMP/distribution.txt" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove temporary signing credentials
+        if: always()
+        run: |
+          if [[ -n "${ASC_KEY_PATH:-}" ]]; then rm -f "$ASC_KEY_PATH"; fi
+          if [[ -n "${SIGNING_KEYCHAIN_PATH:-}" ]]; then security delete-keychain "$SIGNING_KEYCHAIN_PATH" || true; fi
+          if [[ -n "${SIGNING_CERTIFICATE_PATH:-}" ]]; then rm -f "$SIGNING_CERTIFICATE_PATH"; fi

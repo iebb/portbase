@@ -7,7 +7,7 @@ This repository is archived. If work resumes, treat the decisions below as proje
 - Use `master`; do not create or refer to a `main` branch.
 - PortSQL targets iOS 18 with Swift 6 on iPhone and iPad. Mac Catalyst is not supported.
 - `project.yml` is the intended XcodeGen source of truth. Keep it and `PortSQL.xcodeproj` aligned when adding sources, resources, or dependencies.
-- Do not run XcodeGen blindly: the committed project has a configuration-specific signing split in which Release uses `PortSQLRelease.entitlements`. Reconcile that override into `project.yml` and verify the generated Release setting before replacing the project file. Preserve the transferred app's iCloud KVS entitlement unless an explicit release decision changes it.
+- Do not run XcodeGen blindly: inspect the committed configuration-specific signing and entitlement settings first. Reconcile them into `project.yml` and verify the generated Release settings before replacing the project file. Preserve the transferred app's iCloud KVS entitlement unless an explicit release decision changes it.
 - Inspect `git status` before every change and stage exact paths or hunks. Never discard or absorb unrelated metadata, version, signing, entitlement, Fastlane, or handoff work.
 - Never commit generated archives or local build products, including `build/`, `.deriveddata*`, IPAs, xcarchives, dSYMs, code signatures, provisioning profiles, or package `.build` directories.
 - The vendored `Packages/mysql-nio` code contains intentional transport and data-correctness fixes. Do not replace or upgrade it without porting its TLS fallback controls, result metadata handling, temporal decoding, typed-value behavior, and regression tests.
@@ -53,7 +53,7 @@ This repository is archived. If work resumes, treat the decisions below as proje
 
 ## Release automation
 
-- Xcode Cloud follows changes to `master`, builds the triggering commit, and uses the shared `PortSQLCloud` and `PortbaseMacCloud` schemes. Keep Cloud actions limited to archives with internal and external TestFlight delivery; do not restore the retired GitHub Actions upload workflow.
-- Xcode Cloud manages signing for `Release-Cloud`. Preserve existing local Debug/Release signing settings and entitlements. Do not manually create, revoke, or replace certificates as part of routine CI repair, or copy signing keys into the repository.
+- GitHub Actions follows changes to `master`, builds the triggering commit, and uses the shared `PortSQLCI` and `PortbaseMacCI` schemes. Xcode Cloud is retired; do not reconnect it. Use repository secrets without environment reviewer gates. Upload App Store-eligible builds before TestFlight distribution; external Beta App Review must not block successful uploads or internal testing.
+- GitHub Actions imports the existing signing bundle into a temporary keychain and uses automatic provisioning for `Release-CI`. Preserve existing local Debug/Release signing settings and entitlements. Do not manually create, revoke, or replace certificates as part of routine CI repair, or copy signing keys into the repository.
 - Choose an App Store-compatible marketing version at runtime rather than uploading into a closed or lower version train.
 - Keep the system export tool path (`/usr/bin:/bin:/usr/sbin:/sbin`) for archive export to avoid Homebrew `rsync` incompatibilities.
