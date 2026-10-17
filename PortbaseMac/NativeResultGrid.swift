@@ -4,13 +4,23 @@ import SwiftUI
 private final class ResultTableView: NSTableView {
     var onSelectCell: ((Int, Int, Bool) -> Void)?
     var onCopy: (() -> Void)?
+    var onEditSelection: (() -> Bool)?
     override func mouseDown(with event: NSEvent) {
         super.mouseDown(with: event)
+        // The double-click action runs inside super and starts in-place editing; selecting again on
+        // the second click would end that edit immediately, so only single clicks select.
+        guard event.clickCount == 1 else { return }
         let point = convert(event.locationInWindow, from: nil)
         let row = row(at: point), column = column(at: point)
         if row >= 0, column >= 0 { onSelectCell?(row, column, event.modifierFlags.contains(.shift)) }
     }
     @objc func copy(_ sender: Any?) { onCopy?() }
+    /// Return edits the selected cell, as in spreadsheet-style database clients.
+    override func keyDown(with event: NSEvent) {
+        if [36, 76].contains(event.keyCode), event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
+           onEditSelection?() == true { return }
+        super.keyDown(with: event)
+    }
 }
 
 struct GridCollectionBridge: NSViewRepresentable {
@@ -55,6 +65,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             coordinator?.select(row: row, column: column, extend: extend)
         }
         table.onCopy = { [weak coordinator = context.coordinator] in coordinator?.copySelection() }
+        table.onEditSelection = { [weak coordinator = context.coordinator] in coordinator?.editSelection() ?? false }
         let menu = NSMenu(); menu.delegate = context.coordinator; menu.autoenablesItems = false; table.menu = menu
         let headerMenu = NSMenu(); headerMenu.delegate = context.coordinator; headerMenu.autoenablesItems = false; table.headerView?.menu = headerMenu
         context.coordinator.headerMenu = headerMenu
@@ -213,6 +224,32 @@ struct GridCollectionBridge: NSViewRepresentable {
             field.currentEditor()?.selectAll(nil)
         }
 
+        /// Starts editing the single selected cell; returns false when there is nothing editable selected.
+        func editSelection() -> Bool {
+            guard let selection = parent.selection, selection.anchor == selection.end,
+                  parent.visibleColumns.indices.contains(selection.end.column),
+                  parent.canEditCell(selection.end.row, parent.visibleColumns[selection.end.column]) else { return false }
+            beginEditing(row: selection.end.row, position: selection.end.column)
+            return true
+        }
+
+        /// Moves the editor to the next editable cell in the row, keeping what was typed in this one.
+        private func moveEditing(by step: Int) {
+            guard let editing, let position = parent.visibleColumns.firstIndex(of: editing.column) else { return }
+            let row = editing.row
+            finishEditing(commit: true)
+            var next = position + step
+            while parent.visibleColumns.indices.contains(next) {
+                if parent.canEditCell(row, parent.visibleColumns[next]) {
+                    parent.selection = ResultGridSelection(anchor: .init(row: row, column: next), end: .init(row: row, column: next))
+                    // Let the reload from the commit settle before placing the next editor.
+                    DispatchQueue.main.async { [weak self] in self?.beginEditing(row: row, position: next) }
+                    return
+                }
+                next += step
+            }
+        }
+
         private func finishEditing(commit: Bool) {
             guard let editing else { return }
             self.editing = nil
@@ -231,7 +268,10 @@ struct GridCollectionBridge: NSViewRepresentable {
         }
 
         func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
-            guard control === editing?.field, selector == #selector(NSResponder.cancelOperation(_:)) else { return false }
+            guard control === editing?.field else { return false }
+            if selector == #selector(NSResponder.insertTab(_:)) { moveEditing(by: 1); return true }
+            if selector == #selector(NSResponder.insertBacktab(_:)) { moveEditing(by: -1); return true }
+            guard selector == #selector(NSResponder.cancelOperation(_:)) else { return false }
             // Escape restores the loaded or staged value without staging anything.
             editing?.field.abortEditing()
             finishEditing(commit: false)

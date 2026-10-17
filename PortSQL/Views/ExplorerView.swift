@@ -11,6 +11,7 @@ struct ExplorerView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var clauseEditorHeight: CGFloat = 32
     @State private var focusedClause: ClauseField?
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         GeometryReader { proxy in
@@ -53,23 +54,31 @@ struct ExplorerView: View {
                                         }
                                     }
 
-                                    clauseRow(
-                                        field: .whereClause,
-                                        title: "WHERE",
-                                        text: $workspace.explorerWhereClause,
-                                        placeholder: L10n.text("Filter"),
-                                        suggestions: whereSuggestions(for: selectedTable),
-                                        apply: applyWhereSuggestion
-                                    )
+                                    // Side by side where there's room, as on the Mac; stacked on phones.
+                                    let clauses = horizontalSizeClass == .regular
+                                        ? AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.s))
+                                        : AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.m))
+                                    clauses {
+                                        clauseRow(
+                                            field: .whereClause,
+                                            title: "WHERE",
+                                            text: $workspace.explorerWhereClause,
+                                            placeholder: L10n.text("Filter"),
+                                            suggestions: whereSuggestions(for: selectedTable),
+                                            apply: applyWhereSuggestion
+                                        )
+                                        .frame(maxWidth: .infinity)
 
-                                    clauseRow(
-                                        field: .orderByClause,
-                                        title: "ORDER",
-                                        text: $workspace.explorerOrderByClause,
-                                        placeholder: L10n.text("Sort"),
-                                        suggestions: orderBySuggestions(for: selectedTable),
-                                        apply: applyOrderSuggestion
-                                    )
+                                        clauseRow(
+                                            field: .orderByClause,
+                                            title: "ORDER",
+                                            text: $workspace.explorerOrderByClause,
+                                            placeholder: L10n.text("Sort"),
+                                            suggestions: orderBySuggestions(for: selectedTable),
+                                            apply: applyOrderSuggestion
+                                        )
+                                        .frame(maxWidth: .infinity)
+                                    }
                                 } else {
                                     HStack(spacing: Spacing.s) {
                                         Image(systemName: "tablecells")
@@ -130,11 +139,10 @@ struct ExplorerView: View {
                 }
                 .padding(Spacing.l)
                 .frame(width: proxy.size.width, alignment: .topLeading)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    dismissClauseFocus()
-                }
             }
+            // A page-wide tap gesture to dismiss the clause keyboard cancelled taps on the result grid,
+            // so cells couldn't be selected or edited. Scrolling, or selecting a cell, dismisses it instead.
+            .scrollDismissesKeyboard(.interactively)
         }
         .background(WorkbenchBackground().ignoresSafeArea())
         .navigationTitle("Explorer")
@@ -160,14 +168,6 @@ struct ExplorerView: View {
         return L10n.format("%@ • approximately %@", columnSummary, L10n.plural("row_count", count: rowCountEstimate))
     }
 
-    private func dismissClauseFocus() {
-        focusedClause = nil
-        #if canImport(UIKit)
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-#else
-        NSApp.keyWindow?.makeFirstResponder(nil)
-#endif
-    }
 
     @ViewBuilder
     private var tableMenu: some View {

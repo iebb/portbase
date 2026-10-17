@@ -630,7 +630,9 @@ private struct GridCollectionBridge: UIViewRepresentable {
         let layoutChanged = dataChanged || previous.configuration != configuration || layout.widths.isEmpty
             || layout.rowHeight != rowHeight
         if layoutChanged {
-            layout.widths = [44] + visibleColumns.map { CGFloat(configuration.widths[$0] ?? Double(Self.naturalWidth(result: result, column: $0))) }
+            layout.widths = [44] + visibleColumns.map {
+                CGFloat(configuration.widths[$0] ?? Double(Self.naturalWidth(result: result, column: $0, isKey: primaryKeys.contains(result.columns[$0].name))))
+            }
             layout.fixedWidthColumns = Set(visibleColumns.enumerated().compactMap { configuration.widths[$0.element] != nil ? $0.offset + 1 : nil })
             layout.requestedPinnedCount = visibleColumns.prefix { configuration.pinned.contains($0) }.count + 1
             layout.rowHeight = rowHeight
@@ -646,14 +648,21 @@ private struct GridCollectionBridge: UIViewRepresentable {
         }
     }
 
-    static func naturalWidth(result: QueryResultTable, column: Int) -> CGFloat {
+    static func naturalWidth(result: QueryResultTable, column: Int, isKey: Bool = false) -> CGFloat {
         let font = PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
-        let samples = [result.columns[column].name] + result.rows.prefix(40).map { row in
+        // Headers are drawn bold, with a key symbol for primary keys, so measure them that way.
+        let item = result.columns[column]
+        let headerFont = PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1)
+        let typeFont = PortbaseFonts.codeFont(TypeSize.micro, textStyle: .caption2)
+        let header = max((item.name as NSString).size(withAttributes: [.font: headerFont]).width,
+                         (item.type.lowercased() as NSString).size(withAttributes: [.font: typeFont]).width) + (isKey ? 16 : 0) + 20
+        let samples = result.rows.prefix(40).map { row in
             guard row.cells.indices.contains(column) else { return "NULL" }
             let value = row.cells[column]
             return value.isNull ? "NULL" : (value.displayValue.isEmpty ? "\"\"" : String(value.displayValue.prefix(100)))
         }
-        return min(208, max(64, ceil(samples.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 64) + 24))
+        let widest = ceil(samples.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0) + 24
+        return min(240, max(64, ceil(header), widest))
     }
 
     @MainActor final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegate, UITextFieldDelegate {
