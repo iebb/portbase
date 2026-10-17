@@ -19,8 +19,9 @@ struct DesktopWorkspaceView: View {
         }
         var symbol: String {
             switch self {
-            case .home: "house"; case .connections: "server.rack"; case .console: "terminal"; case .explorer: "tablecells"
-            case .structure: "list.bullet.rectangle"; case .charts: "chart.xyaxis.line"
+            // The same symbols as the iOS destinations.
+            case .home: "house"; case .connections: "server.rack"; case .console: "terminal"; case .explorer: "square.stack.3d.up"
+            case .structure: "list.bullet.rectangle"; case .charts: "chart.bar.xaxis"
             }
         }
         /// Destinations in the switcher above the workspace; Connections lives in the sidebar.
@@ -160,13 +161,8 @@ struct DesktopWorkspaceView: View {
     }
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
-            ToolbarItem(placement: .principal) {
-            Picker("View", selection: $destination) {
-                ForEach(Destination.switcherCases, id: \.self) { item in Text(L10n.text(item.title)).tag(item) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
+        ToolbarItem(placement: .principal) {
+            DestinationSwitcher(selection: $destination)
         }
         ToolbarItemGroup(placement: .primaryAction) {
             if workspace.selectedBookmark != nil {
@@ -404,6 +400,17 @@ struct DesktopWorkspaceView: View {
     }
 }
 
+/// The destination switcher in the window toolbar, with the same symbols as the iOS destinations.
+struct DestinationSwitcher: View {
+    @Binding var selection: DesktopWorkspaceView.Destination
+
+    var body: some View {
+        PortbasePillTabs(selection: $selection, options: DesktopWorkspaceView.Destination.switcherCases.map {
+            PortbaseChoice(value: $0, title: L10n.text($0.title), systemImage: $0.symbol)
+        })
+    }
+}
+
 private struct DesktopConsoleTabs: View {
     @EnvironmentObject private var consoles: ConsoleStore
     @State private var renamingID: UUID?
@@ -631,6 +638,13 @@ private struct DesktopResultsView: View {
         return tableMode != "insights"
     }
 
+    /// Whether the bar above non-grid results has anything to offer; with no result it would hold only a
+    /// disabled Export button.
+    private var showsResultBar: Bool {
+        !workspace.result.columns.isEmpty || workspace.result.documents != nil || workspace.isRunning
+            || workspace.isDocumentDatabase || workspace.resultSets.count > 1
+    }
+
     @ViewBuilder private var modeControls: some View {
         HStack(spacing: Spacing.s) {
             if !workspace.result.columns.isEmpty && workspace.result.documents == nil {
@@ -684,7 +698,7 @@ private struct DesktopResultsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if !showsGrid {
+            if !showsGrid && showsResultBar {
                 HStack(spacing: Spacing.s) {
                     modeControls
                     Spacer()

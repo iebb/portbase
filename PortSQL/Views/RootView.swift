@@ -184,7 +184,7 @@ struct RootView: View {
     /// The iPad destination tabs, in place of the floating system tab bar.
     private var destinationStrip: some View {
         HStack(spacing: Spacing.m) {
-            PortbaseTabs(selection: $selectedTab, options: [
+            PortbasePillTabs(selection: $selectedTab, options: [
                 PortbaseChoice(value: RootTab.home, title: L10n.text("Home"), systemImage: "house"),
                 PortbaseChoice(value: RootTab.explorer, title: L10n.text("Explorer"), systemImage: "square.stack.3d.up"),
                 PortbaseChoice(value: RootTab.studio, title: L10n.text("Console"), systemImage: "terminal"),
@@ -192,7 +192,8 @@ struct RootView: View {
                 PortbaseChoice(value: RootTab.servers, title: L10n.text("Servers"),
                                systemImage: hasConnectionProblem ? "exclamationmark.triangle.fill" : "server.rack"),
             ])
-            .padding(.top, Spacing.s)
+            .padding(.vertical, Spacing.xs)
+            Spacer(minLength: Spacing.m)
             searchButton
                 .buttonStyle(.portbaseToolbar)
             Button { showsSettings = true } label: {

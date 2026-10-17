@@ -884,6 +884,59 @@ struct PortbaseTabs<Value: Hashable>: View {
     }
 }
 
+/// Top-level navigation: icon-and-title items with a soft accent highlight that slides to the selected
+/// one, used for the Mac window toolbar and the iPad destination strip.
+struct PortbasePillTabs<Value: Hashable>: View {
+    @Binding var selection: Value
+    let options: [PortbaseChoice<Value>]
+    @Namespace private var highlight
+    @State private var hovered: Value?
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options) { option in
+                let selected = option.value == selection
+                Button {
+                    withAnimation(.snappy(duration: 0.22)) { selection = option.value }
+                } label: {
+                    HStack(spacing: Spacing.xs) {
+                        if let symbol = option.systemImage {
+                            Image(systemName: symbol)
+                                .font(.system(size: TypeSize.detail, weight: .semibold))
+                                .frame(width: TypeSize.detail + 4)
+                        }
+                        Text(option.title)
+                            .font(PortbaseFonts.ui(TypeSize.detail, selected ? .semibold : .medium))
+                    }
+                    .foregroundStyle(selected ? PortSQLPalette.accent : (hovered == option.value ? PortSQLPalette.ink : PortSQLPalette.muted))
+                    .padding(.horizontal, Spacing.s + 2)
+                    .frame(minHeight: Sizes.control)
+                    .background {
+                        if selected {
+                            RoundedRectangle(cornerRadius: Radius.button + 1, style: .continuous)
+                                .fill(PortSQLPalette.accentSoft)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: Radius.button + 1, style: .continuous)
+                                        .strokeBorder(PortSQLPalette.accent.opacity(0.25), lineWidth: 1)
+                                }
+                                .matchedGeometryEffect(id: "selection", in: highlight)
+                        } else if hovered == option.value {
+                            RoundedRectangle(cornerRadius: Radius.button + 1, style: .continuous).fill(PortSQLPalette.ink.opacity(0.06))
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { hovered = $0 ? option.value : (hovered == option.value ? nil : hovered) }
+                .accessibilityLabel(option.title)
+                .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
+            }
+        }
+        .padding(3)
+        .fixedSize()
+    }
+}
+
 /// The close button at the top trailing corner of a sheet. Escape triggers it on a keyboard.
 struct PortbaseCloseButton: View {
     let action: () -> Void
