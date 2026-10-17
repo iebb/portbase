@@ -803,15 +803,19 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let value = cells.indices.contains(index) ? cells[index] : .null
             let text = value.isNull ? "" : value.displayValue
             let column = parent.result.columns[index]
-            let field = UITextField(frame: attributes.frame.insetBy(dx: 1, dy: 1))
+            // Exactly over the cell, with the cell's background and the label's padding, so editing reads
+            // as the cell itself becoming editable rather than a box inside it.
+            let field = UITextField(frame: attributes.frame)
             field.font = PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
             field.adjustsFontForContentSizeCategory = true
             field.text = text
             field.placeholder = value.isNull ? "NULL" : nil
-            field.backgroundColor = .systemBackground
+            field.backgroundColor = UIColor(PortSQLPalette.surface)
+            field.textColor = UIColor(PortSQLPalette.ink)
             field.layer.borderColor = UIColor(PortSQLPalette.accent).cgColor
             field.layer.borderWidth = 2
-            field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 7, height: 1))
+            field.layer.cornerRadius = 2
+            field.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: 1))
             field.leftViewMode = .always
             field.clearButtonMode = .whileEditing
             field.autocorrectionType = .no

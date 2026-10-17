@@ -60,6 +60,8 @@ struct GridCollectionBridge: NSViewRepresentable {
         table.rowHeight = rowHeight; table.intercellSpacing = NSSize(width: 1, height: 1)
         // Flat, edge-to-edge rows like a spreadsheet rather than the inset style's rounded rows.
         table.style = .fullWidth
+        // Selection is drawn per cell; the system's full-row highlight fought with it and with the editor.
+        table.selectionHighlightStyle = .none
         table.target = context.coordinator; table.doubleAction = #selector(Coordinator.openCell)
         table.onSelectCell = { [weak coordinator = context.coordinator] row, column, extend in
             coordinator?.select(row: row, column: column, extend: extend)
@@ -133,7 +135,7 @@ struct GridCollectionBridge: NSViewRepresentable {
     @MainActor final class Coordinator: NSObject, @preconcurrency NSTableViewDataSource, @preconcurrency NSTableViewDelegate, @preconcurrency NSMenuDelegate, @preconcurrency NSTextFieldDelegate {
         var parent: GridCollectionBridge
         fileprivate weak var table: ResultTableView?
-        private var editing: (row: Int, column: Int, original: String, field: NSTextField)?
+        private var editing: (row: Int, column: Int, original: String, field: NSTextField, box: NSView)?
         var isEditing: Bool { editing != nil }
         private var actions: [() -> Void] = []
         init(_ parent: GridCollectionBridge) { self.parent = parent }
@@ -203,23 +205,49 @@ struct GridCollectionBridge: NSViewRepresentable {
             else { parent.onInspectCell(row, index) }
         }
 
+        /// Lays an editor exactly over the cell: the cell's own background, one accent border, and the
+        /// grid's font and padding, so editing looks like the cell itself became editable.
         func beginEditing(row: Int, position: Int) {
-            guard let table, parent.result.rows.indices.contains(row), parent.visibleColumns.indices.contains(position),
-                  let view = table.view(atColumn: position, row: row, makeIfNecessary: true) as? NSTableCellView,
-                  let field = view.textField else { return }
+            guard let table, parent.result.rows.indices.contains(row), parent.visibleColumns.indices.contains(position) else { return }
+            table.scrollRowToVisible(row)
+            table.scrollColumnToVisible(position)
             let index = parent.visibleColumns[position]
             let cells = parent.result.rows[row].cells
             let value = cells.indices.contains(index) ? cells[index] : .null
             let text = value.isNull ? "" : value.displayValue
-            field.stringValue = text
+
+            let box = NSView(frame: table.frameOfCell(atColumn: position, row: row))
+            box.wantsLayer = true
+            box.layer?.backgroundColor = NSColor(PortSQLPalette.surface).cgColor
+            box.layer?.borderColor = NSColor(PortSQLPalette.accent).cgColor
+            box.layer?.borderWidth = 2
+            box.layer?.cornerRadius = 2
+            box.autoresizingMask = []
+
+            let field = NSTextField(string: text)
+            field.isBordered = false
+            field.isBezeled = false
+            field.drawsBackground = false
+            field.focusRingType = .none
+            field.font = PortbaseFonts.codeFont(TypeSize.code)
+            field.textColor = NSColor(PortSQLPalette.ink)
             field.placeholderString = value.isNull ? "NULL" : nil
-            field.textColor = .labelColor
-            field.isEditable = true
-            field.isSelectable = true
-            field.drawsBackground = true
-            field.backgroundColor = .textBackgroundColor
+            field.usesSingleLineMode = true
+            field.cell?.isScrollable = true
+            field.cell?.wraps = false
+            field.alignment = .left
             field.delegate = self
-            editing = (row, index, text, field)
+            field.setAccessibilityLabel(parent.result.columns[index].name)
+            field.translatesAutoresizingMaskIntoConstraints = false
+            box.addSubview(field)
+            NSLayoutConstraint.activate([
+                // Matches the cell label's insets, so the text doesn't shift when editing starts.
+                field.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 6),
+                field.trailingAnchor.constraint(equalTo: box.trailingAnchor, constant: -8),
+                field.centerYAnchor.constraint(equalTo: box.centerYAnchor),
+            ])
+            table.addSubview(box)
+            editing = (row, index, text, field, box)
             table.window?.makeFirstResponder(field)
             field.currentEditor()?.selectAll(nil)
         }
@@ -255,8 +283,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             self.editing = nil
             let text = editing.field.stringValue
             editing.field.delegate = nil
-            editing.field.isEditable = false
-            editing.field.placeholderString = nil
+            editing.box.removeFromSuperview()
             if commit, text != editing.original, parent.onCommitEdit(editing.row, editing.column, text) != nil { NSSound.beep() }
             table?.reloadData()
             table?.window?.makeFirstResponder(table)
