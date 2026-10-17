@@ -134,7 +134,7 @@ jobs:
           info="$RUNNER_TEMP/Portbase.xcarchive/Products/Applications/$APP_NAME/Info.plist"
           if [[ "$ASC_PLATFORM" == MAC_OS ]]; then
             info="$RUNNER_TEMP/Portbase.xcarchive/Products/Applications/$APP_NAME/Contents/Info.plist"
-            /usr/bin/lipo -verify_arch arm64 x86_64 "${info%/Info.plist}/MacOS/Portbase"
+            /usr/bin/lipo "${info%/Info.plist}/MacOS/Portbase" -verify_arch arm64 x86_64
           fi
           test "$(/usr/bin/plutil -extract CFBundleIdentifier raw "$info")" = ad.neko.portsql
           test "$(/usr/bin/plutil -extract CFBundleShortVersionString raw "$info")" = "$CI_MARKETING_VERSION"
