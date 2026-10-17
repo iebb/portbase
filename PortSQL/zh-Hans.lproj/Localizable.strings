@@ -1248,3 +1248,12 @@
 "Only NULL" = "仅 NULL";
 "Equal to “%@”" = "等于“%@”";
 "Sort by %@" = "按 %@ 排序";
+"Edit Value…" = "编辑值…";
+"Choose a server first." = "请先选择服务器。";
+"Compact" = "压缩";
+"Decrease" = "减少";
+"Increase" = "增加";
+"Generate UUID" = "生成 UUID";
+"Now" = "现在";
+"Set to NULL" = "设为 NULL";
+"This row is no longer loaded. Reload the table and try again." = "此行已不再加载。请重新加载表后重试。";

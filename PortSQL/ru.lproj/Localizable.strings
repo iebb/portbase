@@ -1248,3 +1248,12 @@
 "Only NULL" = "Только NULL";
 "Equal to “%@”" = "Равно «%@»";
 "Sort by %@" = "Сортировать по %@";
+"Edit Value…" = "Изменить значение…";
+"Choose a server first." = "Сначала выберите сервер.";
+"Compact" = "Сжать";
+"Decrease" = "Уменьшить";
+"Increase" = "Увеличить";
+"Generate UUID" = "Создать UUID";
+"Now" = "Сейчас";
+"Set to NULL" = "Установить NULL";
+"This row is no longer loaded. Reload the table and try again." = "Эта строка больше не загружена. Перезагрузите таблицу и повторите попытку.";

@@ -1248,3 +1248,12 @@
 "Only NULL" = "僅 NULL";
 "Equal to “%@”" = "等於「%@」";
 "Sort by %@" = "依 %@ 排序";
+"Edit Value…" = "編輯值…";
+"Choose a server first." = "請先選擇伺服器。";
+"Compact" = "壓縮";
+"Decrease" = "減少";
+"Increase" = "增加";
+"Generate UUID" = "產生 UUID";
+"Now" = "現在";
+"Set to NULL" = "設為 NULL";
+"This row is no longer loaded. Reload the table and try again." = "此列已不再載入。請重新載入表格後再試一次。";

@@ -758,7 +758,8 @@ private struct DesktopResultsView: View {
             onSelectRow: { focusedRow = $0 },
             leadingAccessory: AnyView(modeControls.font(.bodyText)),
             trailingAccessory: AnyView(resultActions.font(.bodyText)),
-            onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil)
+            onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil,
+            editCell: { workspace.cellEdit(rowIndex: $0, columnIndex: $1) })
     }
 }
 

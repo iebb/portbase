@@ -1045,7 +1045,9 @@ struct ResultsCard: View {
                 return actions
             },
             copyEngine: workspace.selectedBookmark?.engine,
-            copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName
+            copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName,
+            onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil,
+            editCell: { workspace.cellEdit(rowIndex: $0, columnIndex: $1) }
         )
     }
 

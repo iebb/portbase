@@ -230,3 +230,56 @@ final class DataEditorValidationServiceTests: XCTestCase {
         )
     }
 }
+
+final class CellValueEditorTests: XCTestCase {
+    private func column(_ type: String) -> SchemaColumnDescriptor {
+        SchemaColumnDescriptor(name: "value", type: type, isNullable: true, isPrimaryKey: false, isUnique: false)
+    }
+
+    func testValueKindPicksAnEditorForEachType() {
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("boolean")), .boolean)
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("bigint")), .integer)
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("decimal(12,4)")), .decimal)
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("date")), .date)
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("datetime(6)")), .dateTime(hasTimeZone: false))
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("timestamp with time zone")), .dateTime(hasTimeZone: true))
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("time")), .time(hasTimeZone: false))
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("uuid")), .uuid)
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("jsonb")), .json)
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("bytea")), .binary)
+        XCTAssertEqual(DataEditorValidationService.valueKind(for: column("varchar(255)")), .text)
+    }
+
+    func testTemporalValueRoundTripsItsOriginalShape() throws {
+        for (text, kind) in [
+            ("2024-02-29", DataEditorValueKind.date),
+            ("2024-02-29T23:59:58.123456+05:30", .dateTime(hasTimeZone: true)),
+            ("2024-02-29 01:02:03+00", .dateTime(hasTimeZone: true)),
+            ("2024-02-29 01:02:03", .dateTime(hasTimeZone: false)),
+            ("07:08:09.5", .time(hasTimeZone: false)),
+        ] {
+            XCTAssertEqual(try XCTUnwrap(TemporalEditValue(text, kind: kind)).text, text)
+        }
+    }
+
+    func testPickerChangesOnlyShownPartsAndKeepsSecondsFractionAndZone() throws {
+        var value = try XCTUnwrap(TemporalEditValue("2024-01-15T10:20:30.000123+09:00", kind: .dateTime(hasTimeZone: true)))
+        let picked = try XCTUnwrap(TemporalEditValue.calendar.date(from: DateComponents(year: 2025, month: 6, day: 1, hour: 4, minute: 5, second: 0)))
+        value.apply(picked)
+        XCTAssertEqual(value.text, "2025-06-01T04:05:30.000123+09:00")
+    }
+
+    func testDurationsAndImpossibleDatesStayTextOnly() {
+        XCTAssertNil(TemporalEditValue("838:59:59", kind: .time(hasTimeZone: false)))
+        XCTAssertNil(TemporalEditValue("-01:00:00", kind: .time(hasTimeZone: false)))
+        XCTAssertNil(TemporalEditValue("2023-02-29", kind: .date))
+        XCTAssertNil(TemporalEditValue("not a date", kind: .date))
+    }
+
+    func testNowUsesLocalWallClockAndOffsetForZonedColumns() throws {
+        var value = try XCTUnwrap(TemporalEditValue("2000-01-01 00:00:00.5+00", kind: .dateTime(hasTimeZone: true)))
+        let zone = try XCTUnwrap(TimeZone(secondsFromGMT: -(3 * 3600 + 30 * 60)))
+        value.setNow(Date(timeIntervalSince1970: 0), timeZone: zone)
+        XCTAssertEqual(value.text, "1969-12-31 20:30:00-03:30")
+    }
+}

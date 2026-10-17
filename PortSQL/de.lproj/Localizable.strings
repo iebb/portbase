@@ -1248,3 +1248,12 @@
 "Only NULL" = "Nur NULL";
 "Equal to “%@”" = "Gleich „%@“";
 "Sort by %@" = "Nach %@ sortieren";
+"Edit Value…" = "Wert bearbeiten…";
+"Choose a server first." = "Wähle zuerst einen Server.";
+"Compact" = "Kompakt";
+"Decrease" = "Verringern";
+"Increase" = "Erhöhen";
+"Generate UUID" = "UUID erzeugen";
+"Now" = "Jetzt";
+"Set to NULL" = "Auf NULL setzen";
+"This row is no longer loaded. Reload the table and try again." = "Diese Zeile ist nicht mehr geladen. Lade die Tabelle neu und versuche es erneut.";

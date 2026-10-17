@@ -124,6 +124,8 @@ struct ResultGridView: View {
     var trailingAccessory: AnyView?
     /// Sorts by a column in a direction (true is descending), or clears the sort with nil.
     var onSortDirection: ((String, Bool?) -> Void)?
+    /// Makes a loaded cell editable in the value editor; return nil for cells that can't be updated safely.
+    var editCell: ((Int, Int) -> ResultCellEdit?)?
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var configuration = ResultGridConfiguration()
@@ -293,7 +295,7 @@ struct ResultGridView: View {
         guard rowIndices.indices.contains(row), result.columns.indices.contains(column) else { return }
         let original = rowIndices[row]
         let value = result.rows[original].cells.indices.contains(column) ? result.rows[original].cells[column] : .null
-        inspectedCell = ResultCellSelection(column: result.columns[column], cell: value, row: original)
+        inspectedCell = ResultCellSelection(column: result.columns[column], cell: value, row: original, edit: editCell?(original, column))
     }
 
     private func updateFilter() {
@@ -431,7 +433,7 @@ struct ResultGridView: View {
         let value = cellValue(row: row, column: column)
         let name = result.columns[column].name
         var items: [ResultGridMenuItem] = [
-            .action(L10n.text("Open in Value Editor"), "arrow.up.left.and.arrow.down.right") { inspect(row: row, column: column) },
+            .action(L10n.text(editCell?(rowIndices[row], column) == nil ? "Open in Value Editor" : "Edit Value…"), editCell?(rowIndices[row], column) == nil ? "arrow.up.left.and.arrow.down.right" : "pencil") { inspect(row: row, column: column) },
         ]
         if let onOpenRow {
             items.append(.action(L10n.text("Open Row"), "rectangle.and.pencil.and.ellipsis") { onOpenRow(rowIndices[row]) })

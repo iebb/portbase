@@ -10,6 +10,15 @@ struct ResultCellSelection: Identifiable {
     let column: QueryColumn
     let cell: QueryCell
     let row: Int
+    /// Present when the cell's row can be updated safely, which makes the value editable.
+    var edit: ResultCellEdit?
+}
+
+/// What the value editor needs to change one cell: the field to edit and a save that writes only that row.
+struct ResultCellEdit {
+    let field: DataEditorField
+    let engine: DatabaseEngine
+    let save: @MainActor (DataEditorField) async throws -> Void
 }
 
 struct ResultCellInspector: View {
@@ -19,6 +28,8 @@ struct ResultCellInspector: View {
     @State private var base64 = false
     @State private var file: URL?
     @State private var error: String?
+    @State private var draft: DataEditorField?
+    @State private var isSaving = false
 
     private var preview: String {
         switch selection.cell {
@@ -31,6 +42,17 @@ struct ResultCellInspector: View {
         }
     }
 
+    private var hasChanges: Bool {
+        guard let draft else { return false }
+        let originalIsNull = draft.originalIsNull ?? false
+        return draft.isNull != originalIsNull || (!draft.isNull && draft.value != (draft.originalValue ?? ""))
+    }
+
+    private var validationMessage: String? {
+        guard let draft, let edit = selection.edit, hasChanges else { return nil }
+        return DataEditorValidationService.validate(fields: [draft], mode: .update, engine: edit.engine).values.first
+    }
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: Spacing.m) {
@@ -39,23 +61,29 @@ struct ResultCellInspector: View {
                     Spacer()
                     Text(L10n.format("Row %d", selection.row + 1)).font(.captionText).foregroundStyle(.secondary)
                 }
-                if case .json = selection.cell { Toggle("Format JSON", isOn: $formatted).frame(minHeight: Sizes.touchTarget) }
-                if case .binary(let bytes) = selection.cell {
-                    Picker("Encoding", selection: $base64) { Text("Hex").tag(false); Text("Base64").tag(true) }.pickerStyle(.segmented)
-                    Text(ByteCountFormatter.string(fromByteCount: Int64(bytes.count), countStyle: .file)).font(.captionText)
-                    if bytes.count > 4_096 { Text("Preview: first 4096 bytes. Share exports the complete value.").font(.captionText).foregroundStyle(.secondary) }
+                if draft != nil {
+                    CellValueEditor(field: Binding(get: { draft! }, set: { draft = $0 }))
+                    if let validationMessage {
+                        Label(validationMessage, systemImage: "exclamationmark.circle").font(.captionText).foregroundStyle(.red)
+                    }
+                } else {
+                    readOnlyPreview
                 }
-                if selection.cell == .text("") { Text("Empty text").foregroundStyle(.secondary) }
-                CellValueTextView(value: preview)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .accessibilityLabel("Cell value")
                 if let error { Text(error).font(.captionText).foregroundStyle(.red) }
             }
             .padding()
             .navigationTitle(selection.column.name)
             .portbaseTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(hasChanges ? "Cancel" : "Done") { dismiss() }.disabled(isSaving)
+                }
+                if draft != nil {
+                    ToolbarItem(placement: .confirmationAction) {
+                        if isSaving { ProgressView().controlSize(.small) }
+                        else { Button("Save") { save() }.disabled(!hasChanges || validationMessage != nil) }
+                    }
+                }
             }
             .portbaseSheetActions {
                     Button("Copy", systemImage: "doc.on.doc") {
@@ -68,12 +96,207 @@ struct ResultCellInspector: View {
                     }
                     if let file { ShareLink(item: file) { Label("Share Value", systemImage: "square.and.arrow.up") } }
             }
+            .interactiveDismissDisabled(hasChanges || isSaving)
+            .onAppear { if draft == nil { draft = selection.edit?.field } }
             .task {
                 do { file = try ResultInspectionService.export(selection.cell) }
                 catch { self.error = error.localizedDescription }
             }
             .onDisappear { if let file { try? FileManager.default.removeItem(at: file) } }
         }
+    }
+
+    @ViewBuilder private var readOnlyPreview: some View {
+        if case .json = selection.cell { Toggle("Format JSON", isOn: $formatted).frame(minHeight: Sizes.touchTarget) }
+        if case .binary(let bytes) = selection.cell {
+            Picker("Encoding", selection: $base64) { Text("Hex").tag(false); Text("Base64").tag(true) }.pickerStyle(.segmented)
+            Text(ByteCountFormatter.string(fromByteCount: Int64(bytes.count), countStyle: .file)).font(.captionText)
+            if bytes.count > 4_096 { Text("Preview: first 4096 bytes. Share exports the complete value.").font(.captionText).foregroundStyle(.secondary) }
+        }
+        if selection.cell == .text("") { Text("Empty text").foregroundStyle(.secondary) }
+        CellValueTextView(value: preview)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityLabel("Cell value")
+    }
+
+    private func save() {
+        guard let draft, let edit = selection.edit else { return }
+        isSaving = true
+        error = nil
+        Task {
+            do {
+                try await edit.save(draft)
+                isSaving = false
+                dismiss()
+            } catch {
+                isSaving = false
+                self.error = DatabaseErrorFormatter.message(for: error)
+            }
+        }
+    }
+}
+
+/// Edits one value with a control that fits its column type. The text stays the source of truth,
+/// so pickers and buttons only rewrite the parts they show.
+private struct CellValueEditor: View {
+    @Binding var field: DataEditorField
+    @State private var lastValue = ""
+
+    private var kind: DataEditorValueKind { DataEditorValidationService.valueKind(for: field.column) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            if field.column.isNullable {
+                Toggle(L10n.text("Set to NULL"), isOn: Binding(
+                    get: { field.isNull },
+                    set: { isNull in
+                        if isNull { lastValue = field.value } else if field.value.isEmpty { field.value = lastValue }
+                        field.isNull = isNull
+                    }
+                ))
+                .frame(minHeight: Sizes.touchTarget)
+            }
+            if field.isNull {
+                Text(verbatim: "NULL").font(.codeText).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else {
+                editor
+            }
+        }
+    }
+
+    @ViewBuilder private var editor: some View {
+        switch kind {
+        case .boolean: booleanEditor
+        case .integer, .decimal: numberEditor
+        case .date, .dateTime, .time: temporalEditor
+        case .uuid: uuidEditor
+        case .json: jsonEditor
+        case .text, .binary: textEditor
+        }
+    }
+
+    private var booleanEditor: some View {
+        let usesDigits = ["0", "1"].contains(field.originalValue ?? "")
+        let isTrue = ["1", "true", "yes"].contains(field.value.trimmingCharacters(in: .whitespaces).lowercased())
+        return VStack(alignment: .leading, spacing: Spacing.m) {
+            Picker("Value", selection: Binding(
+                get: { isTrue },
+                set: { field.value = usesDigits ? ($0 ? "1" : "0") : ($0 ? "true" : "false") }
+            )) {
+                Text(verbatim: "true").tag(true)
+                Text(verbatim: "false").tag(false)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var numberEditor: some View {
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            singleLineField
+                .portbaseKeyboardType(DataEditorValidationService.keyboardType(for: field.column))
+            if kind == .integer, let number = Int64(field.value.trimmingCharacters(in: .whitespaces)) {
+                HStack(spacing: Spacing.s) {
+                    Button(L10n.text("Decrease"), systemImage: "minus") { if number > .min { field.value = String(number - 1) } }
+                    Button(L10n.text("Increase"), systemImage: "plus") { if number < .max { field.value = String(number + 1) } }
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.portbaseSecondary)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var temporalEditor: some View {
+        let value = TemporalEditValue(field.value, kind: kind)
+        let components: DatePickerComponents = value.map { $0.hasDate && $0.hasTime ? [.date, .hourAndMinute] : $0.hasDate ? .date : .hourAndMinute } ?? .date
+        return VStack(alignment: .leading, spacing: Spacing.m) {
+            singleLineField.portbaseKeyboardType(.numbersAndPunctuation)
+            HStack(spacing: Spacing.s) {
+                if let value, let date = value.date {
+                    DatePicker("Value", selection: Binding(
+                        get: { date },
+                        set: { var updated = value; updated.apply($0); field.value = updated.text }
+                    ), displayedComponents: components)
+                    .labelsHidden()
+                    .environment(\.timeZone, TemporalEditValue.calendar.timeZone)
+                    .environment(\.calendar, TemporalEditValue.calendar)
+                }
+                Spacer(minLength: 0)
+                Button("Now", systemImage: "clock") { setNow() }.buttonStyle(.portbaseSecondary)
+            }
+            Text(DataEditorValidationService.placeholder(for: field.column)).font(.captionText).foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var uuidEditor: some View {
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            singleLineField
+            Button("Generate UUID", systemImage: "wand.and.stars") { field.value = UUID().uuidString.lowercased() }
+                .buttonStyle(.portbaseSecondary)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var jsonEditor: some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(spacing: Spacing.s) {
+                Button("Format", systemImage: "text.alignleft") {
+                    if let text = DataEditorValidationService.formattedJSON(field.value) { field.value = text }
+                }
+                Button("Compact", systemImage: "arrow.down.right.and.arrow.up.left") {
+                    if let text = DataEditorValidationService.formattedJSON(field.value, prettyPrinted: false) { field.value = text }
+                }
+                Spacer(minLength: 0)
+            }
+            .buttonStyle(.portbaseSecondary)
+            multiLineField
+        }
+    }
+
+    private var textEditor: some View {
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            if field.value.isEmpty { Text("Empty text").font(.captionText).foregroundStyle(.secondary) }
+            multiLineField
+        }
+    }
+
+    private var singleLineField: some View {
+        TextField(DataEditorValidationService.placeholder(for: field.column), text: $field.value)
+            .font(.codeText)
+            .textFieldStyle(.plain)
+            .autocorrectionDisabled()
+            .portbaseTextCapitalization(.never)
+            .portbaseFieldChrome()
+            .accessibilityLabel("Cell value")
+    }
+
+    private var multiLineField: some View {
+        TextEditor(text: $field.value)
+            .font(.codeText)
+            .autocorrectionDisabled()
+            .portbaseTextCapitalization(.never)
+            .scrollContentBackground(.hidden)
+            .padding(Spacing.s)
+            .background(PortSQLPalette.panel, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityLabel("Cell value")
+    }
+
+    private func setNow() {
+        let template: String
+        switch kind {
+        case .date: template = "2000-01-01"
+        case .dateTime(let zoned): template = "2000-01-01 00:00:00" + (zoned ? "+00:00" : "")
+        case .time(let zoned): template = "00:00:00" + (zoned ? "+00:00" : "")
+        default: return
+        }
+        guard var value = TemporalEditValue(field.value, kind: kind) ?? TemporalEditValue(template, kind: kind) else { return }
+        value.setNow()
+        field.value = value.text
     }
 }
 

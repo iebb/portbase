@@ -1087,6 +1087,12 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     func prepareEdit(row: QueryRow) {
+        dataEditorDraft = editDraft(for: row)
+        dataEditorValidation = [:]
+        dataEditorErrorMessage = nil
+    }
+
+    private func editDraft(for row: QueryRow) -> DataEditorDraft {
         let resultColumnNames = result.columns.map(\.name)
         let table = currentEditableTable ?? SchemaTableDescriptor(
             schemaName: "",
@@ -1136,9 +1142,62 @@ final class WorkspaceViewModel: ObservableObject {
             )
         }
 
-        dataEditorDraft = DataEditorDraft(mode: selectedBookmark?.isReadOnly == true ? .view : (canUpdateRow ? .update : .view), table: table, fields: fields, rowID: row.id)
-        dataEditorValidation = [:]
-        dataEditorErrorMessage = nil
+        return DataEditorDraft(mode: selectedBookmark?.isReadOnly == true ? .view : (canUpdateRow ? .update : .view), table: table, fields: fields, rowID: row.id)
+    }
+
+    /// The value editor's field for one loaded cell, or nil when that row can't be updated safely.
+    func editableField(rowIndex: Int, columnIndex: Int) -> DataEditorField? {
+        guard canEditCurrentRows, result.documents == nil,
+              result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return nil }
+        let draft = editDraft(for: result.rows[rowIndex])
+        guard draft.mode == .update else { return nil }
+        let name = normalizedIdentifier(result.columns[columnIndex].name)
+        return draft.fields.first { $0.isEditable && normalizedIdentifier($0.column.name) == name }
+    }
+
+    /// The value editor's edit hook for one loaded cell, bound to that row's identity.
+    func cellEdit(rowIndex: Int, columnIndex: Int) -> ResultCellEdit? {
+        guard let field = editableField(rowIndex: rowIndex, columnIndex: columnIndex),
+              let engine = selectedBookmark?.engine else { return nil }
+        let rowID = result.rows[rowIndex].id
+        return ResultCellEdit(field: field, engine: engine) { [weak self] field in
+            try await self?.saveCell(rowID: rowID, field: field)
+        }
+    }
+
+    /// Saves one value edited in the value editor as a single-row, transactional update, then reloads the result.
+    func saveCell(rowID: QueryRow.ID, field: DataEditorField) async throws {
+        func failure(_ message: String) -> NSError {
+            NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+        }
+        guard let bookmark = selectedBookmark else { throw failure(L10n.text("Choose a server first.")) }
+        try enforceWritableConnection(bookmark)
+        guard let row = result.rows.first(where: { $0.id == rowID }) else {
+            throw failure(L10n.text("This row is no longer loaded. Reload the table and try again."))
+        }
+        var draft = editDraft(for: row)
+        let name = normalizedIdentifier(field.column.name)
+        guard draft.mode == .update,
+              let index = draft.fields.firstIndex(where: { $0.isEditable && normalizedIdentifier($0.column.name) == name }) else {
+            throw failure(L10n.text("This row cannot be saved because the primary key context is missing."))
+        }
+        draft.fields[index].value = field.value
+        draft.fields[index].isNull = field.isNull
+        if let message = DataEditorValidationService.validate(fields: [draft.fields[index]], mode: .update, engine: bookmark.engine).values.first {
+            throw failure(message)
+        }
+        guard let mutation = mutationSQL(for: draft, engine: bookmark.engine) else {
+            throw failure(L10n.text("This row cannot be saved because the primary key context is missing."))
+        }
+        _ = try await DatabaseService.shared.execute(
+            query: mutation.sql,
+            values: mutation.values,
+            profile: bookmark,
+            database: activeDatabaseName,
+            policy: .mutation(expectedAffectedRows: 1)
+        )
+        result.generatedMutation = mutation.sql
+        runQuery()
     }
 
     func prepareInsert(for table: SchemaTableDescriptor? = nil) {

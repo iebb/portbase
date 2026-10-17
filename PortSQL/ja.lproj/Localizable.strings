@@ -1248,3 +1248,12 @@
 "Only NULL" = "NULL のみ";
 "Equal to “%@”" = "「%@」と等しい";
 "Sort by %@" = "%@ で並べ替え";
+"Edit Value…" = "値を編集…";
+"Choose a server first." = "先にサーバーを選択してください。";
+"Compact" = "圧縮";
+"Decrease" = "減らす";
+"Increase" = "増やす";
+"Generate UUID" = "UUIDを生成";
+"Now" = "現在";
+"Set to NULL" = "NULLに設定";
+"This row is no longer loaded. Reload the table and try again." = "この行はもう読み込まれていません。テーブルを再読み込みしてもう一度お試しください。";
