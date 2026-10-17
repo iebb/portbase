@@ -45,6 +45,23 @@ struct PortbaseMacApp: App {
 final class PortbaseAppDelegate: NSObject, NSApplicationDelegate {
     weak var consoles: ConsoleStore?
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Unsubmitted cell edits live only in memory, so quitting would lose them.
+        let edited = consoles?.consoles.filter { !$0.workspace.pendingCellEdits.isEmpty } ?? []
+        if let first = edited.first {
+            let count = edited.reduce(0) { $0 + $1.workspace.pendingCellEdits.count }
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = L10n.text("Quit Without Submitting?")
+            alert.informativeText = L10n.format("Pending changes: %d", count) + "\n" + L10n.text("Cell edits that haven't been submitted will be lost.")
+            alert.addButton(withTitle: L10n.text("Keep Editing"))
+            alert.addButton(withTitle: L10n.text("Discard Changes and Quit"))
+            alert.buttons.last?.hasDestructiveAction = true
+            guard alert.runModal() == .alertSecondButtonReturn else {
+                // Show the console whose edits are waiting.
+                consoles?.selectedID = first.id
+                return .terminateCancel
+            }
+        }
         if consoles?.consoles.contains(where: { $0.workspace.hasOpenTransaction }) == true {
             let alert = NSAlert()
             alert.messageText = L10n.text("Roll Back and Quit?")

@@ -401,6 +401,7 @@ private struct DesktopConsoleTabs: View {
     @State private var renamingID: UUID?
     @State private var title = ""
     @State private var closingID: UUID?
+    @State private var discardingID: UUID?
     var body: some View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
@@ -438,6 +439,12 @@ private struct DesktopConsoleTabs: View {
                 Button("Close Console") { close(consoles.selectedID) }
             } label: { Image(systemName: "chevron.down") }.menuStyle(.borderlessButton).menuIndicator(.hidden).frame(width: Sizes.iconTileSmall)
         }.background(PortSQLPalette.canvasAccent)
+        .confirmationDialog("Discard Changes and Close Console?", isPresented: Binding(get: { discardingID != nil }, set: { if !$0 { discardingID = nil } })) {
+            Button("Discard Changes", role: .destructive) { if let discardingID { close(discardingID, discardingEdits: true) }; discardingID = nil }
+            Button("Keep Editing", role: .cancel) { discardingID = nil }
+        } message: {
+            Text("Cell edits in this console haven't been submitted.")
+        }
         .confirmationDialog("Roll Back and Close Console?", isPresented: Binding(get: { closingID != nil }, set: { if !$0 { closingID = nil } })) {
             Button("Rollback and Close", role: .destructive) { if let closingID { consoles.close(closingID, rollback: true) }; closingID = nil }
             Button("Cancel", role: .cancel) { closingID = nil }
@@ -448,8 +455,11 @@ private struct DesktopConsoleTabs: View {
             Button("Cancel", role: .cancel) { renamingID = nil }
         }
     }
-    private func close(_ id: UUID) {
-        if consoles.consoles.first(where: { $0.id == id })?.workspace.hasOpenTransaction == true { closingID = id }
+    /// Asks before closing a console with unsubmitted cell edits, then before rolling back an open transaction.
+    private func close(_ id: UUID, discardingEdits: Bool = false) {
+        let workspace = consoles.consoles.first(where: { $0.id == id })?.workspace
+        if !discardingEdits, workspace?.pendingCellEdits.isEmpty == false { discardingID = id }
+        else if workspace?.hasOpenTransaction == true { closingID = id }
         else { consoles.close(id) }
     }
 }
