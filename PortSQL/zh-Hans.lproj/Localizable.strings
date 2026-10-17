@@ -1287,3 +1287,4 @@
 "Couldn't load database objects" = "无法载入数据库对象";
 "No database objects" = "没有数据库对象";
 "Tables, views, and routines in this database appear here." = "此数据库中的表、视图和例程会显示在这里。";
+"Refresh Database List" = "刷新数据库列表";

@@ -421,9 +421,12 @@ struct DatabaseSwitcherButton: View {
                         }
                     }
                 }
+                Divider()
+                Button("Refresh Database List", systemImage: "arrow.clockwise") { workspace.refreshDatabaseList() }
+                    .disabled(workspace.isRefreshingDatabases)
             } label: {
                 HStack(spacing: Spacing.xs) {
-                    if workspace.isLoadingSchema {
+                    if workspace.isLoadingSchema || workspace.isRefreshingDatabases {
                         ProgressView()
                             .controlSize(.small)
                     }
@@ -436,7 +439,8 @@ struct DatabaseSwitcherButton: View {
                 .foregroundStyle(PortSQLPalette.ink)
                 .frame(minHeight: Sizes.touchTarget)
             }
-            .disabled(workspace.availableDatabases.isEmpty || workspace.isLoadingSchema)
+            // Stays open with no databases listed, so the list can be refreshed.
+            .disabled(workspace.isLoadingSchema)
         }
     }
 }

@@ -457,23 +457,28 @@ struct DatabasePicker: View {
 
     var body: some View {
         HStack(spacing: Spacing.xs) {
-            if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
-            Picker(selection: Binding(
-                get: { workspace.activeDatabaseName ?? "" },
-                set: { if !$0.isEmpty { workspace.selectDatabase($0) } }
-            )) {
-                if workspace.availableDatabases.isEmpty {
-                    Text(workspace.activeDatabaseName ?? L10n.text("Database")).tag(workspace.activeDatabaseName ?? "")
+            if workspace.isLoadingSchema || workspace.isRefreshingDatabases { ProgressView().controlSize(.small) }
+            Menu {
+                Picker("Database", selection: Binding(
+                    get: { workspace.activeDatabaseName ?? "" },
+                    set: { if !$0.isEmpty { workspace.selectDatabase($0) } }
+                )) {
+                    if workspace.availableDatabases.isEmpty {
+                        Text(workspace.activeDatabaseName ?? L10n.text("Database")).tag(workspace.activeDatabaseName ?? "")
+                    }
+                    ForEach(workspace.availableDatabases, id: \.self) { database in
+                        Text(database).tag(database)
+                    }
                 }
-                ForEach(workspace.availableDatabases, id: \.self) { database in
-                    Text(database).tag(database)
-                }
+                .pickerStyle(.inline)
+                Divider()
+                Button("Refresh Database List", systemImage: "arrow.clockwise") { workspace.refreshDatabaseList() }
+                    .disabled(workspace.isRefreshingDatabases)
             } label: {
-                Label("Database", systemImage: "externaldrive")
+                Label(workspace.activeDatabaseName ?? L10n.text("Database"), systemImage: "externaldrive")
             }
-            .pickerStyle(.menu)
             .fixedSize()
-            .disabled(workspace.availableDatabases.isEmpty || workspace.isLoadingSchema)
+            .disabled(workspace.selectedBookmark == nil || workspace.isLoadingSchema)
             .accessibilityLabel("Choose database")
         }
     }

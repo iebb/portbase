@@ -1287,3 +1287,4 @@
 "Couldn't load database objects" = "Не удалось загрузить объекты базы данных";
 "No database objects" = "Нет объектов базы данных";
 "Tables, views, and routines in this database appear here." = "Здесь отображаются таблицы, представления и процедуры этой базы данных.";
+"Refresh Database List" = "Обновить список баз данных";

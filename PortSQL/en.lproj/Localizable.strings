@@ -1287,3 +1287,4 @@
 "Couldn't load database objects" = "Couldn't load database objects";
 "No database objects" = "No database objects";
 "Tables, views, and routines in this database appear here." = "Tables, views, and routines in this database appear here.";
+"Refresh Database List" = "Refresh Database List";

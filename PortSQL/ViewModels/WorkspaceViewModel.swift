@@ -6,6 +6,7 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var selectedBookmarkID: UUID?
     @Published var selectedDatabaseName = ""
     @Published private(set) var availableDatabases: [String] = []
+    @Published private(set) var isRefreshingDatabases = false
     @Published var queryText = "" {
         didSet { querySelectionLength = 0; queryErrorRange = nil }
     }
@@ -373,6 +374,28 @@ final class WorkspaceViewModel: ObservableObject {
 
     func refreshSchemaCatalog() {
         reloadSchema(forceRefresh: true)
+    }
+
+    /// Asks the server for its current databases, bypassing the schema cache, so databases created or
+    /// dropped elsewhere appear without reloading the active database's tables.
+    func refreshDatabaseList() {
+        guard let bookmark = selectedBookmark, !isRefreshingDatabases else { return }
+        isRefreshingDatabases = true
+        let requestedDatabase = activeDatabaseName
+        Task {
+            defer { isRefreshingDatabases = false }
+            do {
+                let databases = try await DatabaseService.shared.listDatabases(profile: bookmark)
+                guard selectedBookmarkID == bookmark.id else { return }
+                availableDatabases = databases
+                if bookmark.schemaCachingEnabled, let requestedDatabase {
+                    schemaCacheStore.updateDatabases(databases, for: bookmark, requestedDatabase: requestedDatabase)
+                }
+            } catch {
+                guard selectedBookmarkID == bookmark.id else { return }
+                schemaErrorMessage = DatabaseErrorFormatter.message(for: error)
+            }
+        }
     }
 
     func reloadSchema(forceRefresh: Bool = false) {

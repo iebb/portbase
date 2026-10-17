@@ -263,6 +263,14 @@ struct DesktopWorkspaceView: View {
                                 Button("Edit Connection") { workspace.selectedProfileForEdit = profile }
                                 Button("Duplicate Connection") { workspace.selectedProfileForEdit = profile.duplicate() }
                                 Button("New Console") { consoles.add(); consoles.active.workspace.selectBookmark(profile.id) }
+                                Button("Refresh Database List") {
+                                    if workspace.selectedBookmarkID != profile.id { workspace.selectBookmark(profile.id) }
+                                    // Switching can wait on the unsubmitted-edits prompt; refresh only once it's this server.
+                                    guard workspace.selectedBookmarkID == profile.id else { return }
+                                    expandedConnections.insert(profile.id)
+                                    workspace.refreshDatabaseList()
+                                }
+                                Divider()
                                 Button("Delete Connection", role: .destructive) { deletingProfile = profile }
                             }
                         }

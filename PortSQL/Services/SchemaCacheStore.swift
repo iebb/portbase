@@ -57,6 +57,17 @@ final class SchemaCacheStore: @unchecked Sendable {
         try? data.write(to: cacheURL(for: profile, requestedDatabase: requestedDatabase), options: [.atomic])
     }
 
+    /// Replaces a cached entry's database list, keeping its catalog and age so the catalog doesn't look fresher.
+    func updateDatabases(_ databases: [String], for profile: ConnectionProfile, requestedDatabase: String) {
+        guard let cached = cachedCatalog(for: profile, requestedDatabase: requestedDatabase) else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        let updated = CachedSchemaCatalog(databases: databases, selectedDatabase: cached.selectedDatabase,
+                                          catalog: cached.catalog, cachedAt: cached.cachedAt)
+        guard let data = try? encoder.encode(updated) else { return }
+        try? data.write(to: cacheURL(for: profile, requestedDatabase: requestedDatabase), options: [.atomic])
+    }
+
     func removeCatalog(for profile: ConnectionProfile, requestedDatabase: String) {
         lock.lock()
         defer { lock.unlock() }

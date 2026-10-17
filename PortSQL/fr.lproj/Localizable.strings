@@ -1287,3 +1287,4 @@
 "Couldn't load database objects" = "Impossible de charger les objets de la base de données";
 "No database objects" = "Aucun objet de base de données";
 "Tables, views, and routines in this database appear here." = "Les tables, vues et routines de cette base de données apparaissent ici.";
+"Refresh Database List" = "Actualiser la liste des bases de données";

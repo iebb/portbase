@@ -1287,3 +1287,4 @@
 "Couldn't load database objects" = "데이터베이스 개체를 불러올 수 없습니다";
 "No database objects" = "데이터베이스 개체가 없습니다";
 "Tables, views, and routines in this database appear here." = "이 데이터베이스의 테이블, 뷰, 루틴이 여기에 표시됩니다.";
+"Refresh Database List" = "데이터베이스 목록 새로 고침";
