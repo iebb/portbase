@@ -36,6 +36,7 @@ struct DesktopWorkspaceView: View {
     @State private var destination = Destination.home
     @State private var search = ""
     @State private var expandedConnections: Set<UUID> = []
+    @State private var expandedDatabases: Set<String> = []
     @State private var showsLibrary = false
     @State private var showsPalette = false
     @State private var deletingProfile: ConnectionProfile?
@@ -127,6 +128,7 @@ struct DesktopWorkspaceView: View {
                     for console in consoles.consoles where console.workspace.selectedBookmarkID == profile.id { console.workspace.disconnectConsole() }
                     bookmarks.delete(at: IndexSet(integer: index))
                     pinnedTables.removeAll(for: profile.id)
+                    ClauseHistoryStore.shared.removeAll(for: profile.id)
                     for console in consoles.consoles where console.workspace.selectedBookmarkID == profile.id { console.workspace.selectBookmark(bookmarks.bookmarks.first?.id) }
                 }
                 deletingProfile = nil
@@ -150,7 +152,10 @@ struct DesktopWorkspaceView: View {
             if !destination.isOverview { destination = .console }
         }
         .onAppear { if let id = workspace.selectedBookmarkID { expandedConnections.insert(id) } }
-        .onChange(of: workspace.activeDatabaseName) { _, _ in if !destination.isOverview { destination = .console } }
+        .onChange(of: workspace.activeDatabaseName, initial: true) { _, database in
+            // The active database opens in the sidebar; switching databases keeps the current destination.
+            if let id = workspace.selectedBookmarkID, let database { expandedDatabases.insert(databaseKey(id, database)) }
+        }
     }
 
     @ToolbarContentBuilder private var toolbarContent: some ToolbarContent {
@@ -212,53 +217,18 @@ struct DesktopWorkspaceView: View {
                     ForEach(bookmarks.bookmarks.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) || $0.id == workspace.selectedBookmarkID }) { profile in
                         DisclosureGroup(isExpanded: Binding(get: { expandedConnections.contains(profile.id) }, set: { if $0 { expandedConnections.insert(profile.id) } else { expandedConnections.remove(profile.id) } })) {
                             if profile.id == workspace.selectedBookmarkID {
-                                if let database = workspace.activeDatabaseName {
-                                    // Same icon column and spacing as the table rows below, so names line up.
-                                    HStack(spacing: Spacing.xs) {
-                                        Image(systemName: "cylinder")
-                                            .foregroundStyle(PortSQLPalette.muted)
-                                            .frame(width: Sizes.symbolColumn)
-                                        Text(database).lineLimit(1).foregroundStyle(PortSQLPalette.muted).fontWeight(.medium)
-                                        Spacer(minLength: 0)
-                                    }
-                                    .accessibilityElement(children: .combine)
-                                    .accessibilityLabel(L10n.format("Database %@", database))
-                                }
-                                if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
-                                if let error = workspace.schemaErrorMessage {
-                                    SidebarConnectionIssueRow(message: error)
-                                }
-                                ForEach(sidebarTables(for: profile)) { table in
-                                    let selected = workspace.selectedExplorerTableID == table.id && destination == .explorer
-                                    let pinned = pinnedTables.isPinned(table.displayName, in: pinScope)
-                                    Button { workspace.selectExplorerTable(table); destination = .explorer } label: {
-                                        HStack(spacing: Spacing.xs) {
-                                            Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc" : table.objectKind?.symbol ?? "tablecells")
-                                                .foregroundStyle(selected ? PortSQLPalette.accent : PortSQLPalette.muted)
-                                                .frame(width: Sizes.symbolColumn)
-                                            Text(table.name).lineLimit(1)
-                                            if pinned {
-                                                Image(systemName: "pin.fill").font(.badgeText).foregroundStyle(Color(red: 0.96, green: 0.62, blue: 0.04))
-                                                    .accessibilityLabel(L10n.text("Pinned"))
+                                // Each database is its own collapsible group; the expanded one is active and lists its tables.
+                                ForEach(sidebarDatabases, id: \.self) { database in
+                                    DisclosureGroup(isExpanded: databaseExpansion(profile.id, database)) {
+                                        if database == workspace.activeDatabaseName {
+                                            if workspace.isLoadingSchema { ProgressView().controlSize(.small) }
+                                            if let error = workspace.schemaErrorMessage {
+                                                SidebarConnectionIssueRow(message: error)
                                             }
-                                            Spacer(minLength: Spacing.xxs)
-                                            if let estimate = table.rowCountEstimate {
-                                                Text(estimate.formatted(.number.notation(.compactName)))
-                                                    .font(.captionText.monospacedDigit()).foregroundStyle(.tertiary)
-                                            }
+                                            ForEach(sidebarTables(for: profile)) { table in tableRow(table) }
                                         }
-                                        .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
-                                    }.buttonStyle(.plain)
-                                    .foregroundStyle(selected ? PortSQLPalette.accent : PortSQLPalette.ink)
-                                    .fontWeight(selected ? .semibold : .regular)
-                                    .contextMenu {
-                                        Button("Query") { workspace.queryText = workspace.defaultQuery(for: table); destination = .console }
-                                        Button("Structure") { workspace.selectedExplorerTableID = table.id; destination = .structure }
-                                        Button("Copy") { PortbaseClipboard.copy(table.displayName) }
-                                        Divider()
-                                        Button(pinned ? L10n.text("Unpin") : L10n.text("Pin")) {
-                                            withAnimation { pinnedTables.toggle(table.displayName, in: pinScope) }
-                                        }
+                                    } label: {
+                                        databaseRow(profile.id, database)
                                     }
                                 }
                             } else {
@@ -316,6 +286,87 @@ struct DesktopWorkspaceView: View {
             .scrollContentBackground(.hidden)
         }
         .background(PortSQLPalette.sunken)
+    }
+
+    private var sidebarDatabases: [String] {
+        var names = workspace.availableDatabases
+        if let active = workspace.activeDatabaseName, !names.contains(active) { names.insert(active, at: 0) }
+        return names
+    }
+
+    private func databaseKey(_ profileID: UUID, _ database: String) -> String { profileID.uuidString + "/" + database }
+
+    /// Expanding a database makes it the active one (only the active database's tables are loaded) and
+    /// collapses the server's other databases.
+    private func databaseExpansion(_ profileID: UUID, _ database: String) -> Binding<Bool> {
+        Binding(get: { expandedDatabases.contains(databaseKey(profileID, database)) }, set: { expanded in
+            if expanded {
+                expandedDatabases = expandedDatabases.filter { !$0.hasPrefix(profileID.uuidString + "/") }
+                expandedDatabases.insert(databaseKey(profileID, database))
+                if database != workspace.activeDatabaseName { workspace.selectDatabase(database) }
+            } else {
+                expandedDatabases.remove(databaseKey(profileID, database))
+            }
+        })
+    }
+
+    private func databaseRow(_ profileID: UUID, _ database: String) -> some View {
+        let active = database == workspace.activeDatabaseName
+        return Button {
+            databaseExpansion(profileID, database).wrappedValue = true
+        } label: {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: active ? "cylinder.fill" : "cylinder")
+                    .foregroundStyle(active ? PortSQLPalette.accent : PortSQLPalette.muted)
+                    .frame(width: Sizes.symbolColumn)
+                Text(database).lineLimit(1)
+                    .foregroundStyle(active ? PortSQLPalette.ink : PortSQLPalette.muted)
+                    .fontWeight(active ? .semibold : .medium)
+                Spacer(minLength: Spacing.xxs)
+                if active, !workspace.schemaCatalog.isEmpty {
+                    Text(workspace.schemaCatalog.count.formatted())
+                        .font(.captionText.monospacedDigit()).foregroundStyle(.tertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.format("Database %@", database))
+        .accessibilityAddTraits(active ? .isSelected : [])
+    }
+
+    private func tableRow(_ table: SchemaTableDescriptor) -> some View {
+        let selected = workspace.selectedExplorerTableID == table.id && destination == .explorer
+        let pinned = pinnedTables.isPinned(table.displayName, in: pinScope)
+        return Button { workspace.selectExplorerTable(table); destination = .explorer } label: {
+            HStack(spacing: Spacing.xs) {
+                Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc" : table.objectKind?.symbol ?? "tablecells")
+                    .foregroundStyle(selected ? PortSQLPalette.accent : PortSQLPalette.muted)
+                    .frame(width: Sizes.symbolColumn)
+                Text(table.name).lineLimit(1)
+                if pinned {
+                    Image(systemName: "pin.fill").font(.badgeText).foregroundStyle(Color(red: 0.96, green: 0.62, blue: 0.04))
+                        .accessibilityLabel(L10n.text("Pinned"))
+                }
+                Spacer(minLength: Spacing.xxs)
+                if let estimate = table.rowCountEstimate {
+                    Text(estimate.formatted(.number.notation(.compactName)))
+                        .font(.captionText.monospacedDigit()).foregroundStyle(.tertiary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
+        }.buttonStyle(.plain)
+        .foregroundStyle(selected ? PortSQLPalette.accent : PortSQLPalette.ink)
+        .fontWeight(selected ? .semibold : .regular)
+        .contextMenu {
+            Button("Query") { workspace.queryText = workspace.defaultQuery(for: table); destination = .console }
+            Button("Structure") { workspace.selectedExplorerTableID = table.id; destination = .structure }
+            Button("Copy") { PortbaseClipboard.copy(table.displayName) }
+            Divider()
+            Button(pinned ? L10n.text("Unpin") : L10n.text("Pin")) {
+                withAnimation { pinnedTables.toggle(table.displayName, in: pinScope) }
+            }
+        }
     }
 
     private func sidebarLink(_ title: LocalizedStringKey, systemImage: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -502,8 +553,8 @@ private struct DesktopTableBrowser: View {
                          table.rowCountEstimate.map { L10n.plural("row_count", count: $0) }].compactMap { $0 }.joined(separator: " · ")
                     } ?? "")
                     .layoutPriority(1)
-                clauseField(workspace.isDocumentDatabase ? L10n.text("Filter") : "WHERE", text: $workspace.explorerWhereClause, prompt: L10n.text("Filter"))
-                clauseField(workspace.isDocumentDatabase ? L10n.text("Sort") : "ORDER BY", text: $workspace.explorerOrderByClause, prompt: L10n.text("Sort"))
+                clauseField(workspace.isDocumentDatabase ? L10n.text("Filter") : "WHERE", text: $workspace.explorerWhereClause, prompt: L10n.text("Filter"), kind: .filter)
+                clauseField(workspace.isDocumentDatabase ? L10n.text("Sort") : "ORDER BY", text: $workspace.explorerOrderByClause, prompt: L10n.text("Sort"), kind: .sort)
                     .frame(maxWidth: 260)
                 Button("Refresh", systemImage: "arrow.clockwise") { workspace.restartBrowse() }
                     .labelStyle(.iconOnly)
@@ -519,15 +570,23 @@ private struct DesktopTableBrowser: View {
             Divider()
             DesktopResultsView()
         }
+        // A table selected for us (the first one after a database loads) is browsed like a clicked one,
+        // instead of showing its name over an empty grid.
+        .task(id: workspace.selectedExplorerTableID) {
+            guard let table = workspace.selectedExplorerTable, !workspace.isRunning,
+                  workspace.result.sourceTableReference != table.displayName else { return }
+            workspace.selectExplorerTable(table)
+        }
     }
 }
 
 extension DesktopTableBrowser {
     /// A clause keyword and its field, styled like the sidebar's search field.
-    func clauseField(_ keyword: String, text: Binding<String>, prompt: String) -> some View {
+    func clauseField(_ keyword: String, text: Binding<String>, prompt: String, kind: ClauseHistoryStore.Kind) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(keyword).font(.codeCaption.weight(.semibold)).foregroundStyle(PortSQLPalette.muted).fixedSize()
             TextField(prompt, text: text).textFieldStyle(.plain).font(.codeDetail).onSubmit { workspace.restartBrowse() }
+            ClauseHistoryMenu(kind: kind, text: text)
         }
         .portbaseFieldChrome()
     }

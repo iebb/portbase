@@ -1087,6 +1087,13 @@ actor DatabaseService {
             }
             if let value = data.int64 { return .integer(String(value)) }
         case .decimal, .newdecimal:
+            // MySQL sends DECIMAL as exact text in both protocols. Keep it, so the column's scale shows
+            // (0.0000, 12.5000) instead of the shortest form a Decimal conversion produces (0, 12.5).
+            if let buffer = data.buffer,
+               let text = String(bytes: buffer.readableBytesView, encoding: .utf8),
+               Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")) != nil {
+                return .decimal(text)
+            }
             if let value = data.decimal {
                 return .decimal(NSDecimalNumber(decimal: value).stringValue)
             }

@@ -277,6 +277,7 @@ struct ExplorerView: View {
                             .allowsHitTesting(false)
                     }
                 }
+                ClauseHistoryMenu(kind: field == .whereClause ? .filter : .sort, text: text)
             }
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xs)

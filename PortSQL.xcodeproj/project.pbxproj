@@ -85,6 +85,7 @@
 		345DFC6BED4439E0FF46D1C0 /* WorkspaceCloudSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 660C54E07DFDB131EF53BD67 /* WorkspaceCloudSyncTests.swift */; };
 		352BE4DBFFFAD88F18CF88A6 /* SQLQueryDiagnostic.swift in Sources */ = {isa = PBXBuildFile; fileRef = 785CBF772127810438B159B0 /* SQLQueryDiagnostic.swift */; };
 		35B3DD117ACDFB9225DAE912 /* NativeQueryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20E16F7D18FC41671E52E3C4 /* NativeQueryEditor.swift */; };
+		37B00AEF06F42750C94F5141 /* ClauseHistoryMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F2CF1F2E6D73FD45B3DB7C /* ClauseHistoryMenu.swift */; };
 		3853916D35A952BEB34F3986 /* ElasticsearchExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C56566958B819CACCAFF882 /* ElasticsearchExplorerView.swift */; };
 		39230DF30593C803A07C49AD /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = C325888189767A996734E33C /* OFL.txt */; };
 		395FE4D4FD140F35542C5D3C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C635AF9BA9BDBE927890DBA3 /* SettingsView.swift */; };
@@ -189,6 +190,7 @@
 		81FF78AEEE680E2361086F4A /* WorkspaceActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934A946D9B49098CF15CE03C /* WorkspaceActivityService.swift */; };
 		840D1CEF920D56AB08F43F45 /* QueryParameterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C0B78E00C4985082E65410 /* QueryParameterService.swift */; };
 		844E54BB7106AD53815C2890 /* ExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C43FD9CD8FFE98EA50A6AFE /* ExplorerView.swift */; };
+		86A9C00E017CE67722C80EC0 /* ClauseHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC84B2175B057E0A17E9C30 /* ClauseHistoryStore.swift */; };
 		86EDEB93300F512693176EF1 /* CommandPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */; };
 		8711D518313BB446FC280F8B /* NIOHTTP1 in Frameworks */ = {isa = PBXBuildFile; productRef = 03FADCDDCCAE0BDA655ECA72 /* NIOHTTP1 */; };
 		884192A7C374801C0C5DAF65 /* QueryPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */; };
@@ -265,6 +267,7 @@
 		BFAB685F6C704AA5704A4DA3 /* QueryPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7ED5BC215AA4E7222335938 /* QueryPlanView.swift */; };
 		C057ACAD8C4CDECB0263AD2E /* EditorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9031C5697CDA58F9C4079CA2 /* EditorTheme.swift */; };
 		C1BA6039F0763AA690AC652E /* MySQLNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 18736417DDF51B6ABD0DAF72 /* MySQLNIO */; };
+		C1CF2A49FC94BC000FD33D9C /* ClauseHistoryMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F2CF1F2E6D73FD45B3DB7C /* ClauseHistoryMenu.swift */; };
 		C1E934566FFF6E7AE1DA4BB9 /* MongoDocumentEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5386C3FB749D9E3C6F4B50C /* MongoDocumentEditingTests.swift */; };
 		C3F3ED3E74B9DB7DF2567548 /* LibraryStorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80D99AFAC60FFE164F781B1 /* LibraryStorageView.swift */; };
 		C4EC0D8244FAF1E7CA2429F2 /* PostgresNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 56B3EF1577F803D848C96A88 /* PostgresNIO */; };
@@ -302,6 +305,7 @@
 		E3521C50B3314D049466E6AA /* MongoExtendedJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F929B764AFC3E50D32F5F4 /* MongoExtendedJSON.swift */; };
 		E35BB1AE51050F1416F559BE /* HTTPDatabaseAuthenticationSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D0276E9870FCF05D930284 /* HTTPDatabaseAuthenticationSection.swift */; };
 		E3A85CBB5D3050090EADF467 /* ElasticsearchQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EC42D2DAA16F628F2609972 /* ElasticsearchQueryEditorCard.swift */; };
+		E570D9094A0F3A316CEA6B77 /* ClauseHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DC84B2175B057E0A17E9C30 /* ClauseHistoryStore.swift */; };
 		E746A0C0F17C4AF28156826E /* MongoIndexService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35BA3BA56679DF34258707B8 /* MongoIndexService.swift */; };
 		E79B5A4B936F8AD8DA023B57 /* MongoQueryDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6BFC06791ABF93966E200632 /* MongoQueryDraft.swift */; };
 		E823378806EC20D5CBF2AA4A /* ScriptFilesButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325B57CEA6AB5C9B70261FEC /* ScriptFilesButton.swift */; };
@@ -444,6 +448,7 @@
 		69C2A6265712AA4B565B1EE2 /* pt-BR */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = "pt-BR"; path = "pt-BR.lproj/Localizable.stringsdict"; sourceTree = "<group>"; };
 		6B6DDF5B5000E1B223BE00A6 /* PortSQLRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PortSQLRelease.entitlements; sourceTree = "<group>"; };
 		6BFC06791ABF93966E200632 /* MongoQueryDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoQueryDraft.swift; sourceTree = "<group>"; };
+		6DC84B2175B057E0A17E9C30 /* ClauseHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClauseHistoryStore.swift; sourceTree = "<group>"; };
 		6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.otf"; sourceTree = "<group>"; };
 		6E9A7C5E143A8778D2CB27A8 /* ResultGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultGridView.swift; sourceTree = "<group>"; };
 		6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookmarkIconCatalog.swift; sourceTree = "<group>"; };
@@ -502,6 +507,7 @@
 		C2F929B764AFC3E50D32F5F4 /* MongoExtendedJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoExtendedJSON.swift; sourceTree = "<group>"; };
 		C325888189767A996734E33C /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		C635AF9BA9BDBE927890DBA3 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C9F2CF1F2E6D73FD45B3DB7C /* ClauseHistoryMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClauseHistoryMenu.swift; sourceTree = "<group>"; };
 		C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParameterAndExportServiceTests.swift; sourceTree = "<group>"; };
 		CA37ABF0B4F735A4AE66464B /* DatabaseService+DataTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DatabaseService+DataTransfer.swift"; sourceTree = "<group>"; };
 		CA673F1C8FB7ADB6B7FA6BB4 /* SchemaBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaBrowserView.swift; sourceTree = "<group>"; };
@@ -658,6 +664,7 @@
 			isa = PBXGroup;
 			children = (
 				A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */,
+				6DC84B2175B057E0A17E9C30 /* ClauseHistoryStore.swift */,
 				22AFD3BD8AC9A13A7B595C68 /* ClickHouseDatabaseClient.swift */,
 				5C1A047C32455B83058889ED /* ClickHouseQueryService.swift */,
 				F4EC061D73A95B541269B3CA /* ConnectionIssue.swift */,
@@ -816,6 +823,7 @@
 			children = (
 				1B3D1D9A7E8AFEDFE1F4E1A9 /* AdaptiveWorkspaceView.swift */,
 				4347DEE88530446E7D272A81 /* CertificateTrustSheet.swift */,
+				C9F2CF1F2E6D73FD45B3DB7C /* ClauseHistoryMenu.swift */,
 				77D53FDF56628EF6D9F49159 /* CommandPaletteView.swift */,
 				49CC6419D07FB098F5FC5171 /* ConnectionIssueBanner.swift */,
 				9C1A7CF6209A3E784768B757 /* ConnectionsHubView.swift */,
@@ -1088,6 +1096,8 @@
 				BAF1A917DE7EFEBD71C31664 /* BookmarkIconCatalog.swift in Sources */,
 				45E5890A451EF53BDB4FD33A /* BookmarkStore.swift in Sources */,
 				DD3C41B87E7D3F09D90C8278 /* CertificateTrustSheet.swift in Sources */,
+				C1CF2A49FC94BC000FD33D9C /* ClauseHistoryMenu.swift in Sources */,
+				E570D9094A0F3A316CEA6B77 /* ClauseHistoryStore.swift in Sources */,
 				A0547DCA7D0CF35F67391B88 /* ClickHouseDatabaseClient.swift in Sources */,
 				FD71A9BE44BD55F69553FE3D /* ClickHouseQueryService.swift in Sources */,
 				86EDEB93300F512693176EF1 /* CommandPaletteView.swift in Sources */,
@@ -1276,6 +1286,8 @@
 				0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */,
 				22A06DB93DF8644C3D8CCF05 /* BookmarkStore.swift in Sources */,
 				9B86CAA3380D7F1A640BFC25 /* CertificateTrustSheet.swift in Sources */,
+				37B00AEF06F42750C94F5141 /* ClauseHistoryMenu.swift in Sources */,
+				86A9C00E017CE67722C80EC0 /* ClauseHistoryStore.swift in Sources */,
 				3F61C3333F9BF9AD20846B40 /* ClickHouseDatabaseClient.swift in Sources */,
 				587D9D01F4F76251218B8D26 /* ClickHouseQueryService.swift in Sources */,
 				7F3D87C7B22E662289397548 /* CommandPaletteView.swift in Sources */,

@@ -149,6 +149,29 @@ final class PinnedTablesAndTesterTests: XCTestCase {
         XCTAssertEqual(reloaded.bookmarks.count, 2, "The removal is saved")
     }
 
+    func testClauseHistoryKeepsRecentDistinctClausesPerTable() throws {
+        let suite = "ClauseHistoryTests-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let profile = UUID()
+        let users = ClauseHistoryStore.scope(profileID: profile, database: "app", table: "public.users")
+        let orders = ClauseHistoryStore.scope(profileID: profile, database: "app", table: "public.orders")
+        let store = ClauseHistoryStore(defaults: defaults)
+        store.record("id > 5", kind: .filter, in: users)
+        store.record("  ", kind: .filter, in: users)
+        store.record("name LIKE 'a%'", kind: .filter, in: users)
+        store.record(" id > 5 ", kind: .filter, in: users)
+        store.record("id DESC", kind: .sort, in: users)
+        XCTAssertEqual(store.history(.filter, in: users), ["id > 5", "name LIKE 'a%'"], "Most recent first, trimmed, without duplicates or blanks")
+        XCTAssertEqual(store.history(.sort, in: users), ["id DESC"])
+        XCTAssertTrue(store.history(.filter, in: orders).isEmpty, "History is per table")
+        for index in 0..<20 { store.record("id = \(index)", kind: .filter, in: orders) }
+        XCTAssertEqual(store.history(.filter, in: orders).count, ClauseHistoryStore.limit)
+        XCTAssertEqual(ClauseHistoryStore(defaults: defaults).history(.sort, in: users), ["id DESC"], "History persists")
+        store.removeAll(for: profile)
+        XCTAssertTrue(store.entries.isEmpty)
+    }
+
     func testConnectionTestSummaries() {
         XCTAssertTrue(ConnectionTester.summary(.init(duration: 0.084, databaseCount: 3)).contains("3"))
         XCTAssertFalse(ConnectionTester.summary(.init(duration: 0.2, databaseCount: nil)).isEmpty)

@@ -23,6 +23,15 @@ final class MySQLValueMappingTests: XCTestCase {
         XCTAssertEqual(DatabaseService.cell(mysql: MySQLData(type: .json, format: .binary, buffer: nil), columnType: .json, flags: [], characterSet: .binary), .null)
     }
 
+    func testDecimalsKeepTheirScale() {
+        for format in [MySQLData.Format.binary, .text] {
+            for text in ["0.0000", "12.5000", "-0.0100", "1234567890.123456789"] {
+                let data = MySQLData(type: .newdecimal, format: format, buffer: buffer(text))
+                XCTAssertEqual(DatabaseService.cell(mysql: data, columnType: .newdecimal, flags: [], characterSet: .binary), .decimal(text), "\(format) \(text)")
+            }
+        }
+    }
+
     func testColumnTypesReadAsDDLNames() {
         let utf8: MySQLProtocol.CharacterSet = .utf8mb4
         XCTAssertEqual(DatabaseService.mysqlTypeName(columnType: .varString, flags: [], characterSet: utf8), "varchar")

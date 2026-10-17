@@ -621,7 +621,17 @@ final class WorkspaceViewModel: ObservableObject {
 
     func restartBrowse() {
         explorerPageIndex = 0
+        if let table = selectedExplorerTable {
+            // Applied clauses join the table's filter and sort history.
+            let scope = ClauseHistoryStore.scope(profileID: selectedBookmarkID, database: activeDatabaseName, table: table.displayName)
+            ClauseHistoryStore.shared.record(explorerWhereClause, kind: .filter, in: scope)
+            ClauseHistoryStore.shared.record(explorerOrderByClause, kind: .sort, in: scope)
+        }
         browse()
+    }
+
+    var clauseHistoryScope: String? {
+        selectedExplorerTable.map { ClauseHistoryStore.scope(profileID: selectedBookmarkID, database: activeDatabaseName, table: $0.displayName) }
     }
 
     func goToPreviousExplorerPage() {

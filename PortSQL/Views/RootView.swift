@@ -1367,6 +1367,7 @@ struct BookmarksView: View {
                     if let profile = pendingDeletion, let index = bookmarks.bookmarks.firstIndex(where: { $0.id == profile.id }) {
                         bookmarks.delete(at: IndexSet(integer: index))
                         PinnedTableStore.shared.removeAll(for: profile.id)
+                        ClauseHistoryStore.shared.removeAll(for: profile.id)
                     }
                     pendingDeletion = nil
                 }
