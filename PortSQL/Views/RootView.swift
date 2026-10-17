@@ -473,6 +473,7 @@ struct QueryEditorCard: View {
     @EnvironmentObject private var bookmarks: BookmarkStore
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ScaledMetric(relativeTo: .body) private var editorMinimumHeight: CGFloat = 160
     @State private var isShowingExpandedEditor = false
     @State private var isShowingLibrarySheet = false
@@ -535,15 +536,15 @@ struct QueryEditorCard: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.s) {
                     if workspace.isSQLDatabase {
-                        actionButton("Run All", systemImage: "play.rectangle", disabled: workspace.isRunning || workspace.selectedBookmark == nil) {
+                        actionButton("Run All", systemImage: "play.rectangle", labeled: true, disabled: workspace.isRunning || workspace.selectedBookmark == nil) {
                             workspace.runQuery(entireBuffer: true)
                         }
                     }
-                    actionButton("FORMAT", systemImage: "text.alignleft", disabled: trimmedQuery.isEmpty) {
+                    actionButton("Format", systemImage: "text.alignleft", labeled: true, disabled: trimmedQuery.isEmpty) {
                         workspace.formatQuery()
                     }
                     if workspace.isSQLDatabase || workspace.isDocumentDatabase {
-                        actionButton("EXPLAIN", systemImage: "waveform.path.ecg", disabled: workspace.selectedBookmark == nil || trimmedQuery.isEmpty) {
+                        actionButton("Explain", systemImage: "waveform.path.ecg", labeled: true, disabled: workspace.selectedBookmark == nil || trimmedQuery.isEmpty) {
                             workspace.runExplain()
                         }
                     }
@@ -733,15 +734,28 @@ struct QueryEditorCard: View {
         !workspace.isRunning && (workspace.selectedBookmark == nil || trimmedQuery.isEmpty)
     }
 
-    private func actionButton(_ title: String, systemImage: String, disabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(L10n.text(title), systemImage: systemImage)
-                .labelStyle(.iconOnly)
-                .toolIconChrome()
+    /// A console tool. The core actions show their names where there's room, as on the Mac; the rest
+    /// stay icons with their name as help and accessibility label.
+    @ViewBuilder
+    private func actionButton(_ title: String, systemImage: String, labeled: Bool = false, disabled: Bool, action: @escaping () -> Void) -> some View {
+        if labeled && horizontalSizeClass == .regular {
+            Button(action: action) {
+                Label(L10n.text(title), systemImage: systemImage)
+                    .font(.rowDetail)
+            }
+            .buttonStyle(.portbaseToolbar)
+            .disabled(disabled)
+            .help(L10n.text(title))
+        } else {
+            Button(action: action) {
+                Label(L10n.text(title), systemImage: systemImage)
+                    .labelStyle(.iconOnly)
+                    .toolIconChrome()
+            }
+            .buttonStyle(.plain)
+            .disabled(disabled)
+            .help(L10n.text(title))
         }
-        .buttonStyle(.plain)
-        .disabled(disabled)
-        .help(L10n.text(title))
     }
 
 }
