@@ -160,9 +160,9 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
         let hash: ByteBuffer
         switch authPluginName {
         case "caching_sha2_password":
-            let seed = authPluginData
-            hash = xor(sha256(password), sha256(sha256(sha256(password)), seed))
-            saveSeed = seed.getBytes(at: 0, length: seed.readableBytes) ?? []
+            let scramble = Self.cachingSha2Scramble(password: passwordInput, authPluginData: authPluginData)
+            hash = scramble.response
+            saveSeed = scramble.nonce
             self.logger.trace("Generated scrambled hash for caching_sha2_password")
         case "mysql_native_password":
             if let passwordValue = passwordInput, !passwordValue.isEmpty {
@@ -190,6 +190,25 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
             done: done
         ))
         return hash
+    }
+
+    /// The `caching_sha2_password` fast-auth response, `XOR(SHA256(password), SHA256(SHA256(SHA256(password)), nonce))`,
+    /// and the nonce it used.
+    ///
+    /// The nonce is exactly 20 bytes. The handshake's auth-plugin data carries a trailing NUL after it
+    /// (MySQL 8 reports 21 bytes), which must not be hashed: a scramble over 21 bytes looks right only
+    /// while the user isn't in the server's authentication cache, because the server then falls back to
+    /// full authentication. Once the user is cached, the server checks the scramble and denies access.
+    /// An empty password sends an empty response, as libmysqlclient does.
+    static func cachingSha2Scramble(password: String?, authPluginData: ByteBuffer) -> (response: ByteBuffer, nonce: [UInt8]) {
+        let nonceBytes = Array((authPluginData.getBytes(at: authPluginData.readerIndex, length: authPluginData.readableBytes) ?? []).prefix(20))
+        guard let password, !password.isEmpty else {
+            return (ByteBuffer(), nonceBytes)
+        }
+        var passwordBuffer = ByteBufferAllocator().buffer(capacity: password.utf8.count)
+        passwordBuffer.writeString(password)
+        let nonce = ByteBuffer(bytes: nonceBytes)
+        return (xor(sha256(passwordBuffer), sha256(sha256(sha256(passwordBuffer)), nonce)), nonceBytes)
     }
 
     func writeHandshakeResponse(
