@@ -1745,7 +1745,7 @@ struct BookmarkEditorView: View {
                         .autocorrectionDisabled()
                     SecureField("Password", text: $profile.password)
 #if !os(macOS)
-                    Text("Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data.")
+                    Text(ConnectionSecretLocation.passwordNote)
                         .font(.captionText)
                         .foregroundStyle(.secondary)
 #endif
@@ -1970,10 +1970,7 @@ struct BookmarkEditorView: View {
                 )
             }
 
-            Label(
-                "Private CA certificates are stored in this device’s Keychain and do not sync through iCloud.",
-                systemImage: "iphone.and.arrow.forward"
-            )
+            Label(ConnectionSecretLocation.certificateNote, systemImage: "iphone.and.arrow.forward")
             .font(.captionText)
             .foregroundStyle(.secondary)
 

@@ -23,7 +23,8 @@ struct PortSQLApp: App {
                     consoles.configure(bookmarks: bookmarkStore, library: libraryStore)
                 }
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .background { consoles.suspend() }
+                    if phase == .active { bookmarkStore.refreshSecrets() }
+                    else if phase == .background { consoles.suspend() }
                     else if phase == .inactive { consoles.save() }
                 }
         }

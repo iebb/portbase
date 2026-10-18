@@ -932,7 +932,6 @@
 
 // macOS workspace and iCloud synchronization
 "Connections are saved on this device. The library exceeds the iCloud sync limit." = "Les connexions sont enregistrées sur cet appareil. La bibliothèque dépasse la limite de synchronisation iCloud.";
-"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "Les connexions, requêtes enregistrées et configurations de graphiques sont synchronisées avec iCloud. Les mots de passe, clés, historique des requêtes, résultats et fichiers SQLite restent sur cet appareil.";
 "Decrease Text Size" = "Réduire le texte";
 "Delete Connection" = "Supprimer la connexion";
 "Delete Connection?" = "Supprimer la connexion ?";
@@ -1557,3 +1556,14 @@
 "Open a Tab" = "Ouvrir un onglet";
 "Open in New Tab" = "Ouvrir dans un nouvel onglet";
 "Table not found" = "Table introuvable";
+"Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device." = "Les connexions, les requêtes enregistrées et les configurations de graphiques se synchronisent avec iCloud. L’historique des requêtes, les résultats et les fichiers SQLite restent sur cet appareil.";
+"Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain." = "Les mots de passe de base de données, les clés et phrases secrètes SSH et les certificats d’AC privée restent dans le trousseau de cet appareil.";
+"Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain." = "Les mots de passe de base de données, les clés et phrases secrètes SSH et les certificats d’AC privée se synchronisent avec un chiffrement de bout en bout via le trousseau iCloud.";
+"Keep Them in iCloud Keychain" = "Les garder dans le trousseau iCloud";
+"Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them." = "Les mots de passe sont stockés dans le trousseau et se synchronisent avec un chiffrement de bout en bout via le trousseau iCloud. Les données des signets ne les contiennent jamais.";
+"Private CA certificates are stored in Keychain and sync through iCloud Keychain." = "Les certificats d’AC privée sont stockés dans le trousseau et se synchronisent via le trousseau iCloud.";
+"Remove Them from iCloud Keychain" = "Les supprimer du trousseau iCloud";
+"Server settings sync through iCloud. Passwords sync through iCloud Keychain." = "Les réglages des serveurs se synchronisent via iCloud. Les mots de passe, via le trousseau iCloud.";
+"Stop Syncing Passwords and Keys?" = "Arrêter de synchroniser les mots de passe et les clés ?";
+"Sync Passwords and Keys" = "Synchroniser les mots de passe et les clés";
+"This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too." = "Cet appareil garde sa propre copie dans les deux cas. La suppression efface les copies du trousseau iCloud, mais un appareil qui synchronise encore y remet les siennes : désactivez aussi la synchronisation sur celui-ci.";

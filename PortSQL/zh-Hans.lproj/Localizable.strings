@@ -932,7 +932,6 @@
 
 // macOS workspace and iCloud synchronization
 "Connections are saved on this device. The library exceeds the iCloud sync limit." = "连接已保存在此设备上。资料库超出了 iCloud 同步限制。";
-"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "连接、已保存的查询和图表配置通过 iCloud 同步。密码、密钥、查询历史、结果和 SQLite 文件保留在此设备上。";
 "Decrease Text Size" = "缩小文字";
 "Delete Connection" = "删除连接";
 "Delete Connection?" = "删除连接？";
@@ -1557,3 +1556,14 @@
 "Open a Tab" = "打开标签页";
 "Open in New Tab" = "在新标签页中打开";
 "Table not found" = "找不到表";
+"Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device." = "连接、已存储的查询和图表配置通过 iCloud 同步。查询历史、结果和 SQLite 文件保留在此设备上。";
+"Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain." = "数据库密码、SSH 密钥和密码短语以及私有 CA 证书保留在此设备的钥匙串中。";
+"Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain." = "数据库密码、SSH 密钥和密码短语以及私有 CA 证书通过 iCloud 钥匙串以端到端加密方式同步。";
+"Keep Them in iCloud Keychain" = "保留在 iCloud 钥匙串中";
+"Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them." = "密码存储在钥匙串中，并通过 iCloud 钥匙串以端到端加密方式同步。书签数据从不包含密码。";
+"Private CA certificates are stored in Keychain and sync through iCloud Keychain." = "私有 CA 证书存储在钥匙串中，并通过 iCloud 钥匙串同步。";
+"Remove Them from iCloud Keychain" = "从 iCloud 钥匙串中移除";
+"Server settings sync through iCloud. Passwords sync through iCloud Keychain." = "服务器设置通过 iCloud 同步，密码通过 iCloud 钥匙串同步。";
+"Stop Syncing Passwords and Keys?" = "停止同步密码和密钥？";
+"Sync Passwords and Keys" = "同步密码和密钥";
+"This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too." = "无论哪种方式，此设备都会保留自己的副本。移除会删除 iCloud 钥匙串中的副本，但仍在同步的设备会重新添加它的副本，因此也请在那台设备上关闭同步。";

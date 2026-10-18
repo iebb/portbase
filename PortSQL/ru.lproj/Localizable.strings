@@ -932,7 +932,6 @@
 
 // macOS workspace and iCloud synchronization
 "Connections are saved on this device. The library exceeds the iCloud sync limit." = "Подключения сохранены на этом устройстве. Библиотека превышает лимит синхронизации iCloud.";
-"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "Подключения, сохранённые запросы и настройки диаграмм синхронизируются через iCloud. Пароли, ключи, история запросов, результаты и файлы SQLite остаются на этом устройстве.";
 "Decrease Text Size" = "Уменьшить текст";
 "Delete Connection" = "Удалить подключение";
 "Delete Connection?" = "Удалить подключение?";
@@ -1557,3 +1556,14 @@
 "Open a Tab" = "Открыть вкладку";
 "Open in New Tab" = "Открыть в новой вкладке";
 "Table not found" = "Таблица не найдена";
+"Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device." = "Подключения, сохранённые запросы и настройки диаграмм синхронизируются с iCloud. История запросов, результаты и файлы SQLite остаются на этом устройстве.";
+"Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain." = "Пароли баз данных, ключи и парольные фразы SSH и сертификаты частного ЦС остаются в связке ключей этого устройства.";
+"Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain." = "Пароли баз данных, ключи и парольные фразы SSH и сертификаты частного ЦС синхронизируются со сквозным шифрованием через связку ключей iCloud.";
+"Keep Them in iCloud Keychain" = "Оставить в связке ключей iCloud";
+"Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them." = "Пароли хранятся в связке ключей и синхронизируются со сквозным шифрованием через связку ключей iCloud. Данные закладок их никогда не содержат.";
+"Private CA certificates are stored in Keychain and sync through iCloud Keychain." = "Сертификаты частного ЦС хранятся в связке ключей и синхронизируются через связку ключей iCloud.";
+"Remove Them from iCloud Keychain" = "Удалить из связки ключей iCloud";
+"Server settings sync through iCloud. Passwords sync through iCloud Keychain." = "Настройки серверов синхронизируются через iCloud, пароли — через связку ключей iCloud.";
+"Stop Syncing Passwords and Keys?" = "Прекратить синхронизацию паролей и ключей?";
+"Sync Passwords and Keys" = "Синхронизировать пароли и ключи";
+"This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too." = "Это устройство в любом случае сохранит свою копию. Удаление стирает копии в связке ключей iCloud, но устройство, которое продолжает синхронизацию, добавит свои обратно, поэтому отключите синхронизацию и там.";

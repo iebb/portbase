@@ -225,6 +225,8 @@ struct DesktopWorkspaceView: View {
         .onReceive(NotificationCenter.default.publisher(for: .portbaseSelectAdjacentTab)) { note in
             selectAdjacentTab(by: note.object as? Int ?? 1)
         }
+        // Secrets changed on another device arrive through iCloud Keychain without a notification.
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in bookmarks.refreshSecrets() }
         .onChange(of: workspace.queryText) { _, _ in workspace.refreshAssist() }
         .onChange(of: workspace.queryCursorOffset) { _, _ in workspace.refreshAssist() }
         .onChange(of: consoles.selectedID) { _, _ in showsHome = false }
@@ -1523,7 +1525,8 @@ struct DesktopSettingsView: View {
                 Section { AboutHeader() }
                 Section("iCloud") {
                     LabeledContent("Status", value: FileManager.default.ubiquityIdentityToken == nil ? L10n.text("Sign in to iCloud in System Settings.") : L10n.text("iCloud available"))
-                    Text("Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device.").font(.footnoteText).foregroundStyle(.secondary)
+                    ConnectionSecretSyncToggle()
+                    Text("Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device.").font(.footnoteText).foregroundStyle(.secondary)
                     if let error = bookmarks.cloudSyncError ?? library.cloudSyncError { Text(error).foregroundStyle(.red) }
                     Button("Sync Now") { bookmarks.synchronizeCloud(); library.synchronizeCloud() }
                 }

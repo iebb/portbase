@@ -932,7 +932,6 @@
 
 // macOS workspace and iCloud synchronization
 "Connections are saved on this device. The library exceeds the iCloud sync limit." = "接続はこのデバイスに保存されています。ライブラリがiCloudの同期上限を超えています。";
-"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "接続、保存したクエリ、グラフ設定はiCloudで同期されます。パスワード、鍵、クエリ履歴、結果、SQLiteファイルはこのデバイスに保存されます。";
 "Decrease Text Size" = "文字を小さくする";
 "Delete Connection" = "接続を削除";
 "Delete Connection?" = "接続を削除しますか？";
@@ -1557,3 +1556,14 @@
 "Open a Tab" = "タブを開く";
 "Open in New Tab" = "新規タブで開く";
 "Table not found" = "テーブルが見つかりません";
+"Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device." = "接続、保存したクエリ、チャートの設定はiCloudで同期されます。クエリ履歴、結果、SQLiteファイルはこのデバイスに残ります。";
+"Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain." = "データベースのパスワード、SSHの鍵とパスフレーズ、プライベートCA証明書はこのデバイスのキーチェーンに残ります。";
+"Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain." = "データベースのパスワード、SSHの鍵とパスフレーズ、プライベートCA証明書は、iCloudキーチェーンでエンドツーエンド暗号化されて同期されます。";
+"Keep Them in iCloud Keychain" = "iCloudキーチェーンに残す";
+"Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them." = "パスワードはキーチェーンに保存され、iCloudキーチェーンでエンドツーエンド暗号化されて同期されます。ブックマークデータには含まれません。";
+"Private CA certificates are stored in Keychain and sync through iCloud Keychain." = "プライベートCA証明書はキーチェーンに保存され、iCloudキーチェーンで同期されます。";
+"Remove Them from iCloud Keychain" = "iCloudキーチェーンから削除";
+"Server settings sync through iCloud. Passwords sync through iCloud Keychain." = "サーバ設定はiCloudで、パスワードはiCloudキーチェーンで同期されます。";
+"Stop Syncing Passwords and Keys?" = "パスワードと鍵の同期を停止しますか？";
+"Sync Passwords and Keys" = "パスワードと鍵を同期";
+"This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too." = "どちらの場合もこのデバイスには独自のコピーが残ります。削除するとiCloudキーチェーンのコピーは消えますが、同期を続けているデバイスが自分のコピーを再び追加するため、そちらでも同期をオフにしてください。";

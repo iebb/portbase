@@ -932,7 +932,6 @@
 
 // macOS workspace and iCloud synchronization
 "Connections are saved on this device. The library exceeds the iCloud sync limit." = "연결이 이 기기에 저장되어 있습니다. 라이브러리가 iCloud 동기화 한도를 초과합니다.";
-"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "연결, 저장된 쿼리, 차트 설정은 iCloud로 동기화됩니다. 암호, 키, 쿼리 기록, 결과, SQLite 파일은 이 기기에 보관됩니다.";
 "Decrease Text Size" = "텍스트 작게";
 "Delete Connection" = "연결 삭제";
 "Delete Connection?" = "연결을 삭제할까요?";
@@ -1557,3 +1556,14 @@
 "Open a Tab" = "탭 열기";
 "Open in New Tab" = "새 탭에서 열기";
 "Table not found" = "테이블을 찾을 수 없음";
+"Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device." = "연결, 저장된 쿼리, 차트 구성은 iCloud와 동기화됩니다. 쿼리 기록, 결과, SQLite 파일은 이 기기에 남습니다.";
+"Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain." = "데이터베이스 암호, SSH 키와 암호문, 사설 CA 인증서는 이 기기의 키체인에 남습니다.";
+"Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain." = "데이터베이스 암호, SSH 키와 암호문, 사설 CA 인증서는 iCloud 키체인을 통해 종단 간 암호화되어 동기화됩니다.";
+"Keep Them in iCloud Keychain" = "iCloud 키체인에 유지";
+"Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them." = "암호는 키체인에 저장되며 iCloud 키체인을 통해 종단 간 암호화되어 동기화됩니다. 북마크 데이터에는 포함되지 않습니다.";
+"Private CA certificates are stored in Keychain and sync through iCloud Keychain." = "사설 CA 인증서는 키체인에 저장되며 iCloud 키체인을 통해 동기화됩니다.";
+"Remove Them from iCloud Keychain" = "iCloud 키체인에서 제거";
+"Server settings sync through iCloud. Passwords sync through iCloud Keychain." = "서버 설정은 iCloud로, 암호는 iCloud 키체인으로 동기화됩니다.";
+"Stop Syncing Passwords and Keys?" = "암호와 키 동기화를 중단하시겠습니까?";
+"Sync Passwords and Keys" = "암호와 키 동기화";
+"This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too." = "어느 쪽이든 이 기기는 자체 사본을 유지합니다. 제거하면 iCloud 키체인의 사본이 삭제되지만, 계속 동기화하는 기기가 자신의 사본을 다시 추가하므로 그 기기에서도 동기화를 끄십시오.";

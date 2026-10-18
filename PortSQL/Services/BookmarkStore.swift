@@ -29,6 +29,8 @@ final class BookmarkStore: ObservableObject {
                 url: directory.appendingPathComponent("bookmark-sync.json"), initial: bookmarks, initialDate: { $0.createdAt },
                 quotaMessage: L10n.text("Connections are saved on this device. The library exceeds the iCloud sync limit."))
             mergeFromCloud()
+            // Secrets saved before syncing existed, or while it was off, go to iCloud Keychain.
+            KeychainService.uploadMissingConnectionSecrets()
         }
         removeLegacySampleConnections()
         NotificationCenter.default.addObserver(
@@ -59,7 +61,7 @@ final class BookmarkStore: ObservableObject {
             return false
         }
         errorMessage = nil
-        let secured = secure(profile, persistPrivateCAInput: true)
+        let secured = secure(profile, fromEditor: true)
         if let index = bookmarks.firstIndex(where: { $0.id == secured.id }) {
             Task { await SSHTunnelService.shared.close(profileID: secured.id) }
             bookmarks[index] = secured
@@ -141,6 +143,8 @@ final class BookmarkStore: ObservableObject {
         guard cloudSyncEnabled else { return }
         keyValueStore.synchronize()
         mergeFromCloud()
+        KeychainService.uploadMissingConnectionSecrets()
+        refreshSecrets()
     }
 
     private func mergeFromCloud() {
@@ -151,6 +155,9 @@ final class BookmarkStore: ObservableObject {
             let values = legacy.map { profileCloudCollection.ingestLegacy(normalized($0).map { secure($0) }, initialDate: { $0.createdAt }) }
                 ?? profileCloudCollection.state.values
             let merged = normalized(values).map { secure($0) }
+            // A connection deleted on another device takes this device's copies of its secrets with it.
+            let mergedIDs = Set(merged.map(\.id))
+            bookmarks.filter { !mergedIDs.contains($0.id) }.forEach { KeychainService.deleteLocalSecrets(for: $0.id) }
             if merged != bookmarks {
                 bookmarks = merged
                 if let payload = try? encoder.encode(bookmarks) { try? payload.write(to: fileURL, options: [.atomic]) }
@@ -191,45 +198,42 @@ final class BookmarkStore: ObservableObject {
         }
     }
 
-    private func secure(_ profile: ConnectionProfile, persistPrivateCAInput: Bool = false) -> ConnectionProfile {
+    /// Saves a profile's secrets to Keychain and fills it with what Keychain holds. Secrets typed in the
+    /// editor are saved as given. Ones that come from storage, such as plaintext in old bookmark data or a
+    /// profile already filled in memory, only fill an empty Keychain slot: syncing devices may have
+    /// changed or cleared the secret since, and an old copy must not overwrite that.
+    private func secure(_ profile: ConnectionProfile, fromEditor: Bool = false) -> ConnectionProfile {
         var secured = profile
         if profile.host.hasPrefix("mongodb://") || profile.host.hasPrefix("mongodb+srv://"),
            let parsed = try? MongoConnectionURI.parse(profile.host) {
             secured = parsed.applying(to: profile)
         }
 
-        if !secured.password.isEmpty || secured.passwordWasExplicitlySet {
-            KeychainService.setPassword(secured.password, for: secured.id)
-        }
-        secured.passwordWasExplicitlySet = false
-        secured.password = KeychainService.password(for: secured.id)
-
-        if !secured.sshPassword.isEmpty {
-            KeychainService.setSecret(secured.sshPassword, kind: .sshPassword, for: secured.id)
-        }
-        secured.sshPassword = KeychainService.secret(.sshPassword, for: secured.id)
-
-        if !secured.sshPrivateKey.isEmpty, secured.sshPrivateKey != "<keychain>" {
-            KeychainService.setSecret(secured.sshPrivateKey, kind: .sshPrivateKey, for: secured.id)
-        }
-        secured.sshPrivateKey = KeychainService.secret(.sshPrivateKey, for: secured.id)
-
-        if !secured.sshPassphrase.isEmpty {
-            KeychainService.setSecret(secured.sshPassphrase, kind: .sshPassphrase, for: secured.id)
-        }
-        secured.sshPassphrase = KeychainService.secret(.sshPassphrase, for: secured.id)
-
-        if persistPrivateCAInput {
-            if secured.privateCACertificate.isEmpty {
-                KeychainService.deleteSecret(.privateCACertificate, for: secured.id)
-            } else if secured.privateCACertificate != "<keychain>" {
-                KeychainService.setSecret(secured.privateCACertificate, kind: .privateCACertificate, for: secured.id)
+        func save(_ value: String, _ kind: KeychainService.SecretKind, clears: Bool = false) -> String {
+            let given = value == "<keychain>" ? "" : value
+            if fromEditor {
+                if !given.isEmpty || clears { KeychainService.setSecret(given, kind: kind, for: secured.id) }
+            } else if !given.isEmpty, KeychainService.storedSecret(kind, for: secured.id) == nil {
+                KeychainService.setSecret(given, kind: kind, for: secured.id)
             }
-        } else if !secured.privateCACertificate.isEmpty, secured.privateCACertificate != "<keychain>" {
-            KeychainService.setSecret(secured.privateCACertificate, kind: .privateCACertificate, for: secured.id)
+            return KeychainService.secret(kind, for: secured.id)
         }
-        secured.privateCACertificate = KeychainService.secret(.privateCACertificate, for: secured.id)
 
+        secured.password = save(secured.password, .databasePassword, clears: secured.passwordWasExplicitlySet)
+        secured.passwordWasExplicitlySet = false
+        secured.sshPassword = save(secured.sshPassword, .sshPassword)
+        secured.sshPrivateKey = save(secured.sshPrivateKey, .sshPrivateKey)
+        secured.sshPassphrase = save(secured.sshPassphrase, .sshPassphrase)
+        // The editor clears the certificate by emptying it; "<keychain>" keeps the saved one.
+        secured.privateCACertificate = save(secured.privateCACertificate, .privateCACertificate,
+                                            clears: secured.privateCACertificate.isEmpty)
         return secured
+    }
+
+    /// Fills the profiles again from Keychain, after syncing is turned on or off, or when secrets
+    /// may have arrived from iCloud Keychain.
+    func refreshSecrets() {
+        let refreshed = bookmarks.map { secure($0) }
+        if refreshed != bookmarks { bookmarks = refreshed }
     }
 }

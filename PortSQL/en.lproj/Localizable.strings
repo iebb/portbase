@@ -932,7 +932,6 @@
 
 // macOS workspace and iCloud synchronization
 "Connections are saved on this device. The library exceeds the iCloud sync limit." = "Connections are saved on this device. The library exceeds the iCloud sync limit.";
-"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device.";
 "Decrease Text Size" = "Decrease Text Size";
 "Delete Connection" = "Delete Connection";
 "Delete Connection?" = "Delete Connection?";
@@ -1557,3 +1556,14 @@
 "Open a Tab" = "Open a Tab";
 "Open in New Tab" = "Open in New Tab";
 "Table not found" = "Table not found";
+"Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device." = "Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device.";
+"Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain." = "Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain.";
+"Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain." = "Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain.";
+"Keep Them in iCloud Keychain" = "Keep Them in iCloud Keychain";
+"Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them." = "Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them.";
+"Private CA certificates are stored in Keychain and sync through iCloud Keychain." = "Private CA certificates are stored in Keychain and sync through iCloud Keychain.";
+"Remove Them from iCloud Keychain" = "Remove Them from iCloud Keychain";
+"Server settings sync through iCloud. Passwords sync through iCloud Keychain." = "Server settings sync through iCloud. Passwords sync through iCloud Keychain.";
+"Stop Syncing Passwords and Keys?" = "Stop Syncing Passwords and Keys?";
+"Sync Passwords and Keys" = "Sync Passwords and Keys";
+"This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too." = "This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too.";

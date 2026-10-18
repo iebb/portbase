@@ -932,7 +932,6 @@
 
 // macOS workspace and iCloud synchronization
 "Connections are saved on this device. The library exceeds the iCloud sync limit." = "Las conexiones se guardan en este dispositivo. La biblioteca supera el límite de sincronización de iCloud.";
-"Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device." = "Las conexiones, consultas guardadas y configuraciones de gráficos se sincronizan con iCloud. Las contraseñas, claves, historial de consultas, resultados y archivos SQLite permanecen en este dispositivo.";
 "Decrease Text Size" = "Reducir tamaño del texto";
 "Delete Connection" = "Eliminar conexión";
 "Delete Connection?" = "¿Eliminar conexión?";
@@ -1557,3 +1556,14 @@
 "Open a Tab" = "Abrir una pestaña";
 "Open in New Tab" = "Abrir en una pestaña nueva";
 "Table not found" = "No se encontró la tabla";
+"Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device." = "Las conexiones, las consultas guardadas y las configuraciones de gráficos se sincronizan con iCloud. El historial de consultas, los resultados y los archivos SQLite se quedan en este dispositivo.";
+"Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain." = "Las contraseñas de bases de datos, las claves y frases de contraseña SSH y los certificados de CA privada se quedan en el llavero de este dispositivo.";
+"Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain." = "Las contraseñas de bases de datos, las claves y frases de contraseña SSH y los certificados de CA privada se sincronizan con cifrado de extremo a extremo mediante el Llavero de iCloud.";
+"Keep Them in iCloud Keychain" = "Mantenerlos en el Llavero de iCloud";
+"Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them." = "Las contraseñas se guardan en el llavero y se sincronizan con cifrado de extremo a extremo mediante el Llavero de iCloud. Los datos de marcadores nunca las contienen.";
+"Private CA certificates are stored in Keychain and sync through iCloud Keychain." = "Los certificados de CA privada se guardan en el llavero y se sincronizan mediante el Llavero de iCloud.";
+"Remove Them from iCloud Keychain" = "Eliminarlos del Llavero de iCloud";
+"Server settings sync through iCloud. Passwords sync through iCloud Keychain." = "Los ajustes del servidor se sincronizan con iCloud. Las contraseñas, mediante el Llavero de iCloud.";
+"Stop Syncing Passwords and Keys?" = "¿Dejar de sincronizar contraseñas y claves?";
+"Sync Passwords and Keys" = "Sincronizar contraseñas y claves";
+"This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too." = "Este dispositivo conserva su propia copia en ambos casos. Eliminar borra las copias del Llavero de iCloud, pero un dispositivo que siga sincronizando vuelve a añadir las suyas, así que desactiva la sincronización también allí.";

@@ -65,7 +65,7 @@ struct ConnectionsHubView: View {
                         if !groups.isEmpty { groupsSection }
                         connectionsSection
                     }
-                    Label("Server settings sync through iCloud. Passwords stay in this device’s Keychain.", systemImage: "icloud")
+                    Label(ConnectionSecretLocation.serverListNote, systemImage: "icloud")
                         .font(.footnoteText)
                         .foregroundStyle(.secondary)
                 }

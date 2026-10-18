@@ -17,6 +17,7 @@ struct SettingsView: View {
 
             Section {
                 CloudStatusRow()
+                ConnectionSecretSyncToggle()
                 Button {
                     bookmarks.synchronizeCloud()
                     library.synchronizeCloud()
@@ -29,7 +30,7 @@ struct SettingsView: View {
             } header: {
                 Text("iCloud")
             } footer: {
-                Text("Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device.")
+                Text("Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device.")
             }
 
             Section("Assistant") {
@@ -261,6 +262,63 @@ struct EditorThemeSettingsSection: View {
         } header: {
             Text("Editor Theme")
         }
+    }
+}
+
+/// Whether database passwords, SSH keys, and private CA certificates sync through iCloud Keychain.
+/// Turning it off asks whether to also remove them from iCloud Keychain.
+struct ConnectionSecretSyncToggle: View {
+    @EnvironmentObject private var bookmarks: BookmarkStore
+    @AppStorage(KeychainService.syncsConnectionSecretsKey) private var syncs = true
+    @State private var confirmsTurningOff = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Toggle(isOn: Binding(get: { syncs }, set: { on in
+                if on { apply(true) } else { confirmsTurningOff = true }
+            })) {
+                Label("Sync Passwords and Keys", systemImage: "key.icloud")
+            }
+            Text(syncs
+                 ? L10n.text("Database passwords, SSH keys and passphrases, and private CA certificates sync end-to-end encrypted through iCloud Keychain.")
+                 : L10n.text("Database passwords, SSH keys and passphrases, and private CA certificates stay in this device’s Keychain."))
+                .font(.footnoteText)
+                .foregroundStyle(.secondary)
+        }
+        .confirmationDialog("Stop Syncing Passwords and Keys?", isPresented: $confirmsTurningOff, titleVisibility: .visible) {
+            Button("Keep Them in iCloud Keychain") { apply(false) }
+            Button("Remove Them from iCloud Keychain", role: .destructive) { apply(false, removing: true) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This device keeps its own copy either way. Removing deletes the copies in iCloud Keychain, but a device that still syncs adds its own back, so turn syncing off there too.")
+        }
+    }
+
+    private func apply(_ on: Bool, removing: Bool = false) {
+        KeychainService.setSyncsConnectionSecrets(on, removingFromICloud: removing)
+        syncs = on
+        bookmarks.refreshSecrets()
+    }
+}
+
+/// Says where connection secrets are kept, for the editor and the connection list.
+enum ConnectionSecretLocation {
+    static var passwordNote: String {
+        KeychainService.syncsConnectionSecrets
+            ? L10n.text("Passwords are stored in Keychain and sync end-to-end encrypted through iCloud Keychain. Bookmark data never contains them.")
+            : L10n.text("Database passwords are stored in Keychain on this device and are no longer written to iCloud bookmark data.")
+    }
+
+    static var serverListNote: String {
+        KeychainService.syncsConnectionSecrets
+            ? L10n.text("Server settings sync through iCloud. Passwords sync through iCloud Keychain.")
+            : L10n.text("Server settings sync through iCloud. Passwords stay in this device’s Keychain.")
+    }
+
+    static var certificateNote: String {
+        KeychainService.syncsConnectionSecrets
+            ? L10n.text("Private CA certificates are stored in Keychain and sync through iCloud Keychain.")
+            : L10n.text("Private CA certificates are stored in this device’s Keychain and do not sync through iCloud.")
     }
 }
 
