@@ -1465,3 +1465,11 @@
 "Show Previous Tab" = "Afficher l’onglet précédent";
 "Show Sidebar" = "Afficher la barre latérale";
 "This tab connects to the server you choose." = "Cet onglet se connecte au serveur choisi.";
+"All" = "Tout";
+"Display As" = "Afficher comme";
+"Keeps the K largest categories or series; the rest are combined into Other." = "Conserve les K catégories ou séries les plus grandes ; le reste est regroupé dans Autres.";
+"No rows" = "Aucune ligne";
+"Show" = "Afficher";
+"Shows the first K rows." = "Affiche les K premières lignes.";
+"Top %d" = "Les %d premiers";
+"Top K" = "K premiers";

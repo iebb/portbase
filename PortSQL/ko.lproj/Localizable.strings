@@ -1465,3 +1465,11 @@
 "Show Previous Tab" = "이전 탭 보기";
 "Show Sidebar" = "사이드바 보기";
 "This tab connects to the server you choose." = "이 탭은 선택한 서버에 연결됩니다.";
+"All" = "전체";
+"Display As" = "표시 형식";
+"Keeps the K largest categories or series; the rest are combined into Other." = "가장 큰 K개의 범주 또는 계열을 유지하고 나머지는 기타로 합칩니다.";
+"No rows" = "행 없음";
+"Show" = "표시";
+"Shows the first K rows." = "처음 K개 행을 표시합니다.";
+"Top %d" = "상위 %d";
+"Top K" = "상위 K";

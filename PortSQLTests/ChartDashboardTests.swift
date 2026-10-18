@@ -6,18 +6,73 @@ final class ChartDashboardTests: XCTestCase {
         VisualizationPlotPoint(id: name, xText: name, xNumber: nil, xDate: nil, yValue: value, group: nil, label: nil, metric: "users", sourceRowIDs: [UUID()])
     }
 
-    func testPieKeepsLargestSlicesAndCombinesTheTailIntoOther() {
+    func testNothingIsGroupedUnlessTheChartSetsTopK() {
         let points = [point("China", 37_305), point("Japan", 900), point("Korea", 600)] + (0..<40).map { point("Country \($0)", 10) }
-        let slices = ChartRenderData.sectorPoints(points)
-        XCTAssertLessThanOrEqual(slices.count, ChartRenderData.maximumSlices)
-        XCTAssertEqual(slices.first?.xText, "China")
-        let other = try? XCTUnwrap(slices.last)
-        XCTAssertEqual(other?.id, "portbase.other")
-        XCTAssertEqual(slices.reduce(0) { $0 + $1.yValue }, points.reduce(0) { $0 + $1.yValue }, accuracy: 0.001, "Nothing is dropped")
-        XCTAssertEqual(other?.sourceRowIDs.count, 41, "Korea (1.5%) and the 40 small countries combine")
+        XCTAssertEqual(ChartRenderData.topLimited(points, limit: 100, xMode: .category).count, points.count)
 
-        let single = ChartRenderData.sectorPoints([point("A", 50), point("B", 0.5)])
-        XCTAssertEqual(single.map(\.xText), ["A", "B"], "A single small slice stays itself rather than becoming Other")
+        let top = ChartRenderData.topLimited(points, limit: 2, xMode: .category)
+        XCTAssertEqual(top.map(\.xText), ["China", "Japan", "Other"], "The K largest, then Other")
+        let other = try? XCTUnwrap(top.last)
+        XCTAssertTrue(other.map(ChartRenderData.isOther) ?? false)
+        XCTAssertEqual(top.reduce(0) { $0 + $1.yValue }, points.reduce(0) { $0 + $1.yValue }, accuracy: 0.001, "Nothing is dropped")
+        XCTAssertEqual(other?.sourceRowIDs.count, 41)
+    }
+
+    func testPieSlicesPutOtherLastEvenWhenItIsLargest() {
+        var preset = VisualizationService.defaultPreset(for: .empty, connectionProfileID: nil, connectionName: "", databaseName: nil, sourceTableReference: nil)
+        preset.chartType = .donut
+        preset.topLimit = 1
+        let result = QueryResultTable(
+            columns: [QueryColumn(name: "region", type: "text"), QueryColumn(name: "n", type: "integer")],
+            rows: [("A", "50"), ("B", "30"), ("C", "40")].map { QueryRow(cells: [.text($0.0), .integer($0.1)]) },
+            executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: nil, sourceQuery: nil)
+        preset.xField = "region"; preset.yField = "n"; preset.yFields = ["n"]; preset.xAxisMode = .category
+        let slices = ChartRenderData.build(result: result, preset: preset, dateFilter: nil).points
+        XCTAssertEqual(slices.map(\.xText), ["A", "Other"])
+        XCTAssertEqual(slices.last?.yValue, 70)
+    }
+
+    func testTopKOnADateAxisKeepsTheLargestPointsWithoutOther() {
+        let points = (0..<10).map { index in
+            VisualizationPlotPoint(id: "d\(index)", xText: "day \(index)", xNumber: nil, xDate: Date(timeIntervalSince1970: Double(index) * 86_400),
+                                   yValue: Double(index), group: nil, label: nil, metric: "n", sourceRowIDs: [])
+        }
+        let top = ChartRenderData.topLimited(points, limit: 3, xMode: .date)
+        XCTAssertEqual(top.map(\.yValue), [7, 8, 9], "A date axis has no place for Other, so the rest are left out")
+    }
+
+    func testTopKOnGroupedChartsKeepsTheLargestSeries() {
+        let points = ["A": 100.0, "B": 50, "C": 5, "D": 1].flatMap { group, value in
+            (0..<3).map { day in
+                VisualizationPlotPoint(id: "\(group)\(day)", xText: "day \(day)", xNumber: nil, xDate: nil, yValue: value,
+                                       group: group, label: nil, metric: "n", sourceRowIDs: [])
+            }
+        }
+        let top = ChartRenderData.topLimited(points, limit: 2, xMode: .category)
+        XCTAssertEqual(Set(top.compactMap(\.group)), ["A", "B", "Other"])
+        XCTAssertEqual(top.filter { $0.group == "Other" }.map(\.yValue), [6, 6, 6], "C and D sum per day")
+    }
+
+    func testTilesSnapToTwentyFourthsAndStayReadable() {
+        let layout = ChartTileLayout(spacing: 16)
+        XCTAssertEqual(ChartTileLayout.effectiveSpan(4, width: 1_200, spacing: 16), 6, "Narrow tiles widen to the minimum width")
+        XCTAssertEqual(ChartTileLayout.effectiveSpan(4, width: 360, spacing: 16), 24, "On a phone every tile is full width")
+        let frames = layout.arrange(width: 1_184, spans: [12, 12, 8, 16, 24], heights: [300, 200, 300, 300, 300])
+        XCTAssertEqual(frames.map { Int($0.minX) }, [0, 600, 0, 400, 0])
+        XCTAssertEqual(frames.map { Int($0.minY) }, [0, 0, 316, 316, 632], "A row is as tall as its tallest tile")
+        XCTAssertEqual(Int(frames[0].width), 584)
+    }
+
+    func testSizesFromEarlierVersionsAndUnknownPresentationsDecode() throws {
+        let template = VisualizationService.defaultPreset(for: .empty, connectionProfileID: nil, connectionName: "", databaseName: nil, sourceTableReference: nil)
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(template)) as? [String: Any])
+        object["gridSpan"] = nil
+        object["tileSpan"] = 2
+        object["presentation"] = "heatmap"
+        let decoded = try JSONDecoder().decode(SavedVisualizationPreset.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertEqual(decoded.gridSpan, 16, "Two of three columns become two thirds of the page")
+        XCTAssertNil(decoded.presentation, "A presentation from a newer version falls back to the plot")
+        XCTAssertNil(decoded.topLimit)
     }
 
     func testThinningKeepsEndpointsAndPeaks() {
@@ -117,7 +172,9 @@ final class ChartDashboardTests: XCTestCase {
         XCTAssertEqual(store.displayedChartPages.map(\.title), ["Overview", "Growth"])
         XCTAssertEqual(store.currentChartPageID, growth.id)
         store.moveChart(ids[1], toPage: growth.id, before: nil)
-        store.resizeChart(ids[1], height: 5_000, span: 7)
+        store.resizeChart(ids[1], height: 5_000, span: 99)
+        store.setChartTopLimit(ids[1], 5)
+        store.setChartDisplay(ids[1], chartType: nil, presentation: .table)
         store.setChartPageFilters(growth.id, dateRange: ChartDateRange(preset: .last30Days), values: ["region": "EU"])
 
         let reopened = WorkspaceLibraryStore(directory: directory, cloudSyncEnabled: false)
@@ -125,7 +182,9 @@ final class ChartDashboardTests: XCTestCase {
         let moved = try XCTUnwrap(reopened.charts(onPage: growth.id).first)
         XCTAssertEqual(moved.id, ids[1])
         XCTAssertEqual(moved.tileHeight, SavedVisualizationPreset.tileHeightRange.upperBound, "Sizes are clamped")
-        XCTAssertEqual(moved.tileSpan, 3)
+        XCTAssertEqual(moved.gridSpan, SavedVisualizationPreset.gridColumns)
+        XCTAssertEqual(moved.topLimit, 5)
+        XCTAssertEqual(moved.presentation, .table)
         let page = try XCTUnwrap(reopened.displayedChartPages.first { $0.id == growth.id })
         XCTAssertEqual(page.dateRange?.preset, .last30Days)
         XCTAssertEqual(page.parameterValues, ["region": "EU"])

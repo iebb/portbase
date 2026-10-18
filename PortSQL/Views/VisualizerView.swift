@@ -172,17 +172,23 @@ struct VisualizerComposerSheet: View {
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
                                 VisualizationControlMenu(
                                     title: L10n.text("Chart"),
-                                    value: draft.chartType.title,
-                                    systemImage: draft.chartType.symbolName
+                                    value: draft.displayKindTitle,
+                                    systemImage: draft.displayKindSymbol
                                 ) {
                                     ForEach(VisualizationChartType.allCases) { chartType in
                                         Button {
                                             draft.chartType = chartType
+                                            draft.presentation = nil
                                         } label: {
-                                            Label(
-                                                chartType.title,
-                                                systemImage: chartType.symbolName
-                                            )
+                                            Label(chartType.title, systemImage: chartType.symbolName)
+                                        }
+                                    }
+                                    Divider()
+                                    ForEach(ChartPresentation.allCases) { presentation in
+                                        Button {
+                                            draft.presentation = presentation
+                                        } label: {
+                                            Label(presentation.title, systemImage: presentation.symbolName)
                                         }
                                     }
                                 }
@@ -314,6 +320,26 @@ struct VisualizerComposerSheet: View {
                             Toggle("Show Legend", isOn: $draft.showsLegend)
                                 .font(.rowTitle)
                                 .foregroundStyle(PortSQLPalette.ink)
+
+                            VStack(alignment: .leading, spacing: Spacing.xs) {
+                                Toggle("Top K", isOn: Binding(
+                                    get: { draft.topLimit != nil },
+                                    set: { draft.topLimit = $0 ? (draft.topLimit ?? 10) : nil }
+                                ))
+                                .font(.rowTitle)
+                                .foregroundStyle(PortSQLPalette.ink)
+                                if let limit = draft.topLimit {
+                                    Stepper(value: Binding(get: { limit }, set: { draft.topLimit = SavedVisualizationPreset.clampedTopLimit($0) }),
+                                            in: 1...1_000) {
+                                        Text(L10n.format("Top %d", limit)).monospacedDigit()
+                                    }
+                                }
+                                Text(draft.presentation == .table
+                                     ? L10n.text("Shows the first K rows.")
+                                     : L10n.text("Keeps the K largest categories or series; the rest are combined into Other."))
+                                    .font(.captionText)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
 
@@ -372,7 +398,8 @@ struct VisualizerComposerSheet: View {
             Button("Save") { saveChart() }
                 .buttonStyle(.portbasePrimary)
                 .keyboardShortcut(.defaultAction)
-                .disabled(draft.xField.isEmpty || draft.resolvedYFields.isEmpty || numericFields.isEmpty)
+                // A table shows rows as they are; plots and numbers need a numeric metric.
+                .disabled(draft.presentation == .table ? fields.isEmpty : (draft.xField.isEmpty || draft.resolvedYFields.isEmpty || numericFields.isEmpty))
         }
         .portbaseSheetNavigation()
         .task {

@@ -1465,3 +1465,11 @@
 "Show Previous Tab" = "Mostrar pestaña anterior";
 "Show Sidebar" = "Mostrar barra lateral";
 "This tab connects to the server you choose." = "Esta pestaña se conecta al servidor que elijas.";
+"All" = "Todo";
+"Display As" = "Mostrar como";
+"Keeps the K largest categories or series; the rest are combined into Other." = "Mantiene las K categorías o series más grandes; el resto se agrupa en Otros.";
+"No rows" = "No hay filas";
+"Show" = "Mostrar";
+"Shows the first K rows." = "Muestra las primeras K filas.";
+"Top %d" = "Los %d mayores";
+"Top K" = "K mayores";

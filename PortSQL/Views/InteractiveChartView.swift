@@ -6,6 +6,118 @@ import UIKit
 import AppKit
 #endif
 
+/// A chart's rows as a plain, scrolling table: the query's columns, NULLs marked, the first K rows
+/// when the chart has a Top K.
+struct ChartTableView: View {
+    let result: QueryResultTable
+    var rowLimit: Int?
+
+    private var rows: ArraySlice<QueryRow> { rowLimit.map { result.rows.prefix($0) } ?? result.rows[...] }
+
+    /// Widths from the header and the first rows, so columns fit their values without measuring every cell.
+    private var widths: [CGFloat] {
+        result.columns.indices.map { index in
+            let values = result.rows.prefix(50).map { $0.cells.indices.contains(index) ? $0.cells[index].displayValue.count : 4 }
+            let characters = max(result.columns[index].name.count, values.max() ?? 0)
+            return min(260, max(72, CGFloat(characters) * 7.4 + 20))
+        }
+    }
+
+    var body: some View {
+        let widths = widths
+        ScrollView([.vertical, .horizontal]) {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                Section {
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { offset, row in
+                        HStack(spacing: 0) {
+                            ForEach(result.columns.indices, id: \.self) { index in
+                                let cell = row.cells.indices.contains(index) ? row.cells[index] : .null
+                                Text(cell.isNull ? "NULL" : cell.displayValue)
+                                    .font(.codeCaption)
+                                    .italic(cell.isNull)
+                                    .foregroundStyle(cell.isNull ? PortSQLPalette.muted : PortSQLPalette.ink)
+                                    .lineLimit(1)
+                                    .frame(width: widths[index], alignment: .leading)
+                                    .padding(.horizontal, Spacing.s)
+                            }
+                        }
+                        .frame(height: 26)
+                        .background(offset.isMultiple(of: 2) ? Color.clear : PortSQLPalette.sunken.opacity(0.5))
+                    }
+                } header: {
+                    HStack(spacing: 0) {
+                        ForEach(Array(result.columns.enumerated()), id: \.offset) { index, column in
+                            Text(column.name)
+                                .font(.captionStrong)
+                                .foregroundStyle(PortSQLPalette.muted)
+                                .lineLimit(1)
+                                .frame(width: widths[index], alignment: .leading)
+                                .padding(.horizontal, Spacing.s)
+                        }
+                    }
+                    .frame(height: 28)
+                    .background(PortSQLPalette.sunken)
+                }
+            }
+        }
+        .overlay {
+            if result.rows.isEmpty { Text("No rows").font(.rowDetail).foregroundStyle(.secondary) }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(PortSQLPalette.stroke) }
+    }
+}
+
+/// A chart as one headline number: the total of its first metric, with a sparkline over a date axis.
+struct ChartNumberView: View {
+    let preset: SavedVisualizationPreset
+    let data: ChartRenderData
+
+    private var metric: String? { preset.resolvedYFields.first }
+    private var values: [VisualizationPlotPoint] {
+        data.points.filter { $0.metric == nil || $0.metric == metric }
+    }
+
+    var body: some View {
+        let values = values
+        let total = values.reduce(0) { $0 + $1.yValue }
+        VStack(spacing: Spacing.s) {
+            Spacer(minLength: 0)
+            Text(values.isEmpty ? "—" : total.formatted(.number.precision(.significantDigits(1...10))))
+                .font(.system(size: 48, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(PortSQLPalette.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.35)
+                .textSelection(.enabled)
+            Text(preset.yAxisTitle.isEmpty ? (metric ?? "") : preset.yAxisTitle)
+                .font(.rowDetail)
+                .foregroundStyle(PortSQLPalette.muted)
+                .lineLimit(1)
+            if data.xMode == .date, values.count > 1 {
+                Chart(values) { point in
+                    if let date = point.xDate {
+                        AreaMark(x: .value("x", date), y: .value("y", point.yValue))
+                            .foregroundStyle(LinearGradient(colors: [PortSQLPalette.accent.opacity(0.3), PortSQLPalette.accent.opacity(0.02)],
+                                                            startPoint: .top, endPoint: .bottom))
+                            .interpolationMethod(.monotone)
+                        LineMark(x: .value("x", date), y: .value("y", point.yValue))
+                            .foregroundStyle(PortSQLPalette.accent)
+                            .interpolationMethod(.monotone)
+                    }
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+                .frame(maxHeight: 64)
+                .accessibilityHidden(true)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// Actions a dashboard tile's menu sends to its chart.
 enum ChartPreviewAction: Equatable {
     case inspect
@@ -72,7 +184,18 @@ struct VisualizationChartPreview: View {
     }
 
     @ViewBuilder private var chart: some View {
-        if let data {
+        if let data, let presentation = preset.presentation {
+            switch presentation {
+            case .table:
+                ChartTableView(result: data.result, rowLimit: preset.topLimit)
+                    .frame(height: compact ? nil : 300)
+                    .frame(maxHeight: compact ? .infinity : nil)
+            case .number:
+                ChartNumberView(preset: preset, data: data)
+                    .frame(height: compact ? nil : 300)
+                    .frame(maxHeight: compact ? .infinity : nil)
+            }
+        } else if let data {
             if data.points.isEmpty {
                 ContentUnavailableView("No plottable rows", systemImage: "chart.bar.doc.horizontal")
                     .frame(maxWidth: .infinity)

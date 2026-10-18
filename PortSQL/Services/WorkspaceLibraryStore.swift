@@ -337,6 +337,22 @@ final class WorkspaceLibraryStore: ObservableObject {
         setChartPages(pages)
     }
 
+    func setChartTopLimit(_ id: UUID, _ limit: Int?) {
+        guard var chart = visualizations.first(where: { $0.id == id }) else { return }
+        let limit = limit.map(SavedVisualizationPreset.clampedTopLimit)
+        guard chart.topLimit != limit else { return }
+        chart.topLimit = limit
+        updateVisualizations([chart])
+    }
+
+    /// Shows a chart as another chart type, or as a table or number.
+    func setChartDisplay(_ id: UUID, chartType: VisualizationChartType?, presentation: ChartPresentation?) {
+        guard var chart = visualizations.first(where: { $0.id == id }) else { return }
+        if let chartType { chart.chartType = chartType }
+        chart.presentation = presentation
+        updateVisualizations([chart])
+    }
+
     func setChartShowsLegend(_ id: UUID, _ showsLegend: Bool) {
         guard var chart = visualizations.first(where: { $0.id == id }), chart.showsLegend != showsLegend else { return }
         chart.showsLegend = showsLegend
@@ -346,10 +362,10 @@ final class WorkspaceLibraryStore: ObservableObject {
     func resizeChart(_ id: UUID, height: Double?, span: Int) {
         guard var chart = visualizations.first(where: { $0.id == id }) else { return }
         let height = height.map(SavedVisualizationPreset.clampedTileHeight)
-        let span = SavedVisualizationPreset.clampedTileSpan(span)
-        guard chart.tileHeight != height || chart.tileSpan != span else { return }
+        let span = SavedVisualizationPreset.clampedGridSpan(span)
+        guard chart.tileHeight != height || chart.gridSpan != span else { return }
         chart.tileHeight = height
-        chart.tileSpan = span
+        chart.gridSpan = span
         updateVisualizations([chart])
     }
 
@@ -567,8 +583,11 @@ final class WorkspaceLibraryStore: ObservableObject {
                 "  pageID: \(yamlOptional(preset.pageID?.uuidString))",
                 "  position: \(yamlQuoted(String(preset.position)))",
                 "  tileHeight: \(yamlOptional(preset.tileHeight.map { String($0) }))",
-                "  tileSpan: \(yamlQuoted(String(preset.tileSpan)))",
+                "  gridSpan: \(yamlQuoted(String(preset.gridSpan)))",
+                "  tileSpan: \(yamlQuoted(String(preset.legacyTileSpan)))",
                 "  showsLegend: \(preset.showsLegend ? "true" : "false")",
+                "  topLimit: \(yamlOptional(preset.topLimit.map { String($0) }))",
+                "  presentation: \(yamlOptional(preset.presentation?.rawValue))",
                 "  createdAt: \(yamlQuoted(formatter.string(from: preset.createdAt)))",
                 "  updatedAt: \(yamlQuoted(formatter.string(from: preset.updatedAt)))"
             ].joined(separator: "\n")
@@ -669,8 +688,11 @@ final class WorkspaceLibraryStore: ObservableObject {
                 pageID: (try? yamlDecoded(item["pageID"])).flatMap { $0 }.flatMap(UUID.init(uuidString:)),
                 position: (try? yamlDecoded(item["position"])).flatMap { $0 }.flatMap(Double.init) ?? 0,
                 tileHeight: (try? yamlDecoded(item["tileHeight"])).flatMap { $0 }.flatMap(Double.init),
-                tileSpan: (try? yamlDecoded(item["tileSpan"])).flatMap { $0 }.flatMap(Int.init) ?? 1,
+                gridSpan: (try? yamlDecoded(item["gridSpan"])).flatMap { $0 }.flatMap(Int.init)
+                    ?? SavedVisualizationPreset.gridSpan(fromLegacyTileSpan: (try? yamlDecoded(item["tileSpan"])).flatMap { $0 }.flatMap(Int.init) ?? 1),
                 showsLegend: yamlBool(item["showsLegend"]) ?? true,
+                topLimit: (try? yamlDecoded(item["topLimit"])).flatMap { $0 }.flatMap(Int.init),
+                presentation: (try? yamlDecoded(item["presentation"])).flatMap { $0 }.flatMap(ChartPresentation.init(rawValue:)),
                 createdAt: createdAt,
                 updatedAt: updatedAt
             )

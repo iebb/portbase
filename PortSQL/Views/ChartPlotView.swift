@@ -319,7 +319,7 @@ struct VisualizationChartPlot: View {
 
     private var sectorColors: [Color] {
         points.enumerated().map { index, point in
-            point.id == "portbase.other" ? ChartPalette.other : ChartPalette.colors[index % ChartPalette.colors.count]
+            ChartRenderData.isOther(point) ? ChartPalette.other : ChartPalette.colors[index % ChartPalette.colors.count]
         }
     }
 

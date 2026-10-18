@@ -12,8 +12,6 @@ struct ChartRenderData: Sendable {
 
     static let empty = ChartRenderData(result: .empty, points: [], xMode: .category, dateFields: [], plottedPointCount: 0)
 
-    /// Pie and donut charts show this many slices at most; the rest become "Other".
-    static let maximumSlices = 7
     /// Line, area, and point series are thinned to this many points, keeping their shape.
     static let maximumSeriesPoints = 600
 
@@ -22,64 +20,78 @@ struct ChartRenderData: Sendable {
         let filtered = VisualizationService.filteredResult(result, dateFilter: dateFilter)
         let xMode = VisualizationService.resolvedXMode(for: preset, fields: fields)
         let points = VisualizationService.chartPoints(for: filtered, preset: preset, fields: fields)
-        let drawn: [VisualizationPlotPoint] = switch preset.chartType {
-        case .pie, .donut: sectorPoints(points)
-        case .line, .area, .point: thinned(limitedSeries(points), xMode: xMode, limit: maximumSeriesPoints)
-        case .bar, .rule: limitedSeries(points)
+        var drawn = preset.topLimit.map { topLimited(points, limit: $0, xMode: xMode) } ?? points
+        if preset.presentation == nil {
+            switch preset.chartType {
+            // Largest slice first, with "Other" always last whatever its size.
+            case .pie, .donut:
+                drawn = drawn.filter { $0.yValue > 0 }.sorted { lhs, rhs in
+                    isOther(lhs) != isOther(rhs) ? isOther(rhs) : lhs.yValue > rhs.yValue
+                }
+            case .line, .area, .point: drawn = thinned(drawn, xMode: xMode, limit: maximumSeriesPoints)
+            case .bar, .rule: break
+            }
         }
         return ChartRenderData(result: filtered, points: drawn, xMode: xMode, dateFields: fields.filter(\.supportsDate),
                                plottedPointCount: points.count)
     }
 
-    /// Grouped charts show this many series at most; the rest are summed into "Other".
-    static let maximumSeries = 8
+    static func isOther(_ point: VisualizationPlotPoint) -> Bool { point.id.hasPrefix("portbase.other") }
 
-    /// Keeps the largest groups and sums the rest per x value, so a high-cardinality group field
-    /// draws a readable chart and legend instead of hundreds of series.
-    static func limitedSeries(_ points: [VisualizationPlotPoint]) -> [VisualizationPlotPoint] {
+    /// The chart's Top K: with a group field, the K largest series; otherwise the K largest x values.
+    /// The rest are summed into "Other" where the x axis has categories; a date or number axis has no
+    /// place for "Other", so there the rest are left out.
+    static func topLimited(_ points: [VisualizationPlotPoint], limit: Int, xMode: VisualizationFieldMode) -> [VisualizationPlotPoint] {
+        guard limit > 0 else { return points }
+        if points.contains(where: { $0.group != nil }) { return limitedSeries(points, keep: limit) }
+        var totals: [String: Double] = [:]
+        for point in points { totals[xKey(point), default: 0] += abs(point.yValue) }
+        guard totals.count > limit else { return points }
+        let kept = Set(totals.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.prefix(limit).map(\.key))
+        let keptPoints = points.filter { kept.contains(xKey($0)) }
+        guard xMode == .category || xMode == .automatic else { return keptPoints }
+        var others: [String: VisualizationPlotPoint] = [:]
+        var order: [String] = []
+        for point in points where !kept.contains(xKey(point)) {
+            let metric = point.metric ?? ""
+            if others[metric] == nil {
+                order.append(metric)
+                others[metric] = VisualizationPlotPoint(id: "portbase.other|" + metric, xText: L10n.text("Other"), xNumber: nil, xDate: nil,
+                                                        yValue: 0, group: nil, label: nil, metric: point.metric, sourceRowIDs: [])
+            }
+            others[metric]!.yValue += point.yValue
+            others[metric]!.sourceRowIDs += point.sourceRowIDs
+        }
+        return keptPoints + order.compactMap { others[$0] }
+    }
+
+    private static func xKey(_ point: VisualizationPlotPoint) -> String {
+        [point.xText, point.xNumber.map { String($0) } ?? "", point.xDate.map { String($0.timeIntervalSince1970) } ?? ""].joined(separator: "\u{1F}")
+    }
+
+    /// Keeps the K largest groups and sums the rest into an "Other" series at each x value.
+    static func limitedSeries(_ points: [VisualizationPlotPoint], keep limit: Int) -> [VisualizationPlotPoint] {
         var totals: [String: Double] = [:]
         for point in points { if let group = point.group { totals[group, default: 0] += abs(point.yValue) } }
-        guard totals.count > maximumSeries else { return points }
-        let kept = Set(totals.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.prefix(maximumSeries - 1).map(\.key))
+        guard totals.count > limit else { return points }
+        let kept = Set(totals.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.prefix(limit).map(\.key))
         let otherName = L10n.text("Other")
         var result: [VisualizationPlotPoint] = []
         var others: [String: Int] = [:]
         for point in points {
             guard let group = point.group, !kept.contains(group) else { result.append(point); continue }
-            let xKey = [point.xText, point.xNumber.map { String($0) } ?? "", point.xDate.map { String($0.timeIntervalSince1970) } ?? ""].joined(separator: "\u{1F}")
-            if let index = others[xKey] {
+            let key = xKey(point)
+            if let index = others[key] {
                 result[index].yValue += point.yValue
                 result[index].sourceRowIDs += point.sourceRowIDs
             } else {
-                others[xKey] = result.count
-                result.append(VisualizationPlotPoint(id: "portbase.other|" + xKey, xText: point.xText, xNumber: point.xNumber, xDate: point.xDate,
+                others[key] = result.count
+                result.append(VisualizationPlotPoint(id: "portbase.other|" + key, xText: point.xText, xNumber: point.xNumber, xDate: point.xDate,
                                                      yValue: point.yValue, group: otherName, label: nil, metric: point.metric,
                                                      sourceRowIDs: point.sourceRowIDs))
             }
         }
         return result
-    }
-
-    /// Keeps the largest slices and combines the rest, so a long tail reads as one "Other" slice
-    /// instead of a fringe of slivers.
-    static func sectorPoints(_ points: [VisualizationPlotPoint]) -> [VisualizationPlotPoint] {
-        let positive = points.filter { $0.yValue > 0 }.sorted { $0.yValue > $1.yValue }
-        let total = positive.reduce(0) { $0 + $1.yValue }
-        guard total > 0 else { return [] }
-        var kept: [VisualizationPlotPoint] = []
-        var rest: [VisualizationPlotPoint] = []
-        for point in positive {
-            // Slices under 2% are too thin to see or label.
-            if kept.count < maximumSlices - 1, point.yValue / total >= 0.02 { kept.append(point) } else { rest.append(point) }
-        }
-        if rest.count == 1 { kept.append(rest[0]) }
-        else if !rest.isEmpty {
-            kept.append(VisualizationPlotPoint(
-                id: "portbase.other", xText: L10n.text("Other"), xNumber: nil, xDate: nil,
-                yValue: rest.reduce(0) { $0 + $1.yValue }, group: nil, label: nil, metric: rest[0].metric,
-                sourceRowIDs: rest.flatMap(\.sourceRowIDs)))
-        }
-        return kept
     }
 
     /// Thins each series with largest-triangle-three-buckets, which keeps peaks and dips.
@@ -142,6 +154,8 @@ struct ChartRenderKey: Hashable, Sendable {
     let groupField: String?
     let labelField: String?
     let xAxisMode: VisualizationFieldMode
+    let topLimit: Int?
+    let presentation: ChartPresentation?
     let dateFilter: VisualizationDateFilter?
 
     init(result: QueryResultTable, preset: SavedVisualizationPreset, dateFilter: VisualizationDateFilter?) {
@@ -152,6 +166,8 @@ struct ChartRenderKey: Hashable, Sendable {
         groupField = preset.groupField
         labelField = preset.labelField
         xAxisMode = preset.xAxisMode
+        topLimit = preset.topLimit
+        presentation = preset.presentation
         self.dateFilter = dateFilter
     }
 }

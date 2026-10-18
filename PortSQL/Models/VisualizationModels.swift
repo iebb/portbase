@@ -46,6 +46,29 @@ enum VisualizationChartType: String, CaseIterable, Identifiable, Codable {
 
 }
 
+/// Ways to show a chart's data other than a plot. Kept apart from the chart type so versions that
+/// don't know them still read the chart and draw its plot.
+enum ChartPresentation: String, Codable, CaseIterable, Identifiable {
+    case table
+    case number
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .table: L10n.text("Table")
+        case .number: L10n.text("Number")
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .table: "tablecells"
+        case .number: "number.square"
+        }
+    }
+}
+
 enum VisualizationFieldMode: String, CaseIterable, Identifiable, Codable {
     case automatic
     case category
@@ -89,10 +112,14 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
     var position: Double = 0
     /// The tile's height on the dashboard; nil uses the default.
     var tileHeight: Double?
-    /// How many dashboard columns the tile spans, 1 to 3; extra columns are dropped on narrow screens.
-    var tileSpan: Int = 1
+    /// The tile's width in 24ths of the page, from 4 to 24. Narrow screens widen tiles to a minimum width.
+    var gridSpan: Int = 8
     /// Whether the chart lists its series or slices under the plot.
     var showsLegend = true
+    /// Keeps the largest K categories, series, or rows and combines the rest into "Other"; nil shows everything.
+    var topLimit: Int?
+    /// Shows the data as a table or a single number instead of the plot.
+    var presentation: ChartPresentation?
     var createdAt: Date = .now
     var updatedAt: Date = .now
 
@@ -147,8 +174,10 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         pageID: UUID? = nil,
         position: Double = 0,
         tileHeight: Double? = nil,
-        tileSpan: Int = 1,
+        gridSpan: Int = 8,
         showsLegend: Bool = true,
+        topLimit: Int? = nil,
+        presentation: ChartPresentation? = nil,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -173,8 +202,10 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         self.pageID = pageID
         self.position = position
         self.tileHeight = tileHeight.map(Self.clampedTileHeight)
-        self.tileSpan = Self.clampedTileSpan(tileSpan)
+        self.gridSpan = Self.clampedGridSpan(gridSpan)
         self.showsLegend = showsLegend
+        self.topLimit = topLimit.map(Self.clampedTopLimit)
+        self.presentation = presentation
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -202,8 +233,16 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         pageID = try? container.decodeIfPresent(UUID.self, forKey: .pageID)
         position = (try? container.decodeIfPresent(Double.self, forKey: .position)) ?? 0
         tileHeight = (try? container.decodeIfPresent(Double.self, forKey: .tileHeight)).flatMap { $0 }.map(Self.clampedTileHeight)
-        tileSpan = Self.clampedTileSpan((try? container.decodeIfPresent(Int.self, forKey: .tileSpan)) ?? 1)
+        if let span = try? container.decodeIfPresent(Int.self, forKey: .gridSpan) {
+            gridSpan = Self.clampedGridSpan(span)
+        } else {
+            let legacy = try? decoder.container(keyedBy: LegacyKeys.self)
+            gridSpan = Self.gridSpan(fromLegacyTileSpan: (try? legacy?.decodeIfPresent(Int.self, forKey: .tileSpan)).flatMap { $0 } ?? 1)
+        }
         showsLegend = (try? container.decodeIfPresent(Bool.self, forKey: .showsLegend)) ?? true
+        topLimit = (try? container.decodeIfPresent(Int.self, forKey: .topLimit)).flatMap { $0 }.map(Self.clampedTopLimit)
+        // An unknown presentation from a newer version falls back to the plot.
+        presentation = (try? container.decodeIfPresent(ChartPresentation.self, forKey: .presentation)).flatMap { $0 }
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
@@ -226,7 +265,23 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         min(max(height.isFinite ? height : defaultTileHeight, tileHeightRange.lowerBound), tileHeightRange.upperBound)
     }
 
-    static func clampedTileSpan(_ span: Int) -> Int { min(max(span, 1), 3) }
+    private enum LegacyKeys: String, CodingKey { case tileSpan }
+
+    static func clampedTopLimit(_ limit: Int) -> Int { min(max(limit, 1), 1_000) }
+
+    /// The title of how the chart is shown: its presentation, or its chart type.
+    var displayKindTitle: String { presentation?.title ?? chartType.title }
+    var displayKindSymbol: String { presentation?.symbolName ?? chartType.symbolName }
+
+    static let gridColumns = 24
+
+    static func clampedGridSpan(_ span: Int) -> Int { min(max(span, 4), gridColumns) }
+
+    /// Earlier versions stored one to three columns of a three-column page.
+    static func gridSpan(fromLegacyTileSpan span: Int) -> Int { clampedGridSpan(min(max(span, 1), 3) * 8) }
+
+    /// The nearest three-column width, still written for versions that read only that.
+    var legacyTileSpan: Int { min(3, max(1, Int((Double(gridSpan) / 8).rounded()))) }
 
     var resolvedTileHeight: Double { tileHeight ?? Self.defaultTileHeight }
 

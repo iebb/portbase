@@ -1465,3 +1465,11 @@
 "Show Previous Tab" = "Show Previous Tab";
 "Show Sidebar" = "Show Sidebar";
 "This tab connects to the server you choose." = "This tab connects to the server you choose.";
+"All" = "All";
+"Display As" = "Display As";
+"Keeps the K largest categories or series; the rest are combined into Other." = "Keeps the K largest categories or series; the rest are combined into Other.";
+"No rows" = "No rows";
+"Show" = "Show";
+"Shows the first K rows." = "Shows the first K rows.";
+"Top %d" = "Top %d";
+"Top K" = "Top K";

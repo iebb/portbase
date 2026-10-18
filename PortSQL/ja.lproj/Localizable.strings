@@ -1465,3 +1465,11 @@
 "Show Previous Tab" = "前のタブを表示";
 "Show Sidebar" = "サイドバーを表示";
 "This tab connects to the server you choose." = "このタブは選択したサーバに接続します。";
+"All" = "すべて";
+"Display As" = "表示形式";
+"Keeps the K largest categories or series; the rest are combined into Other." = "上位K個のカテゴリまたは系列を残し、残りは「その他」にまとめます。";
+"No rows" = "行がありません";
+"Show" = "表示";
+"Shows the first K rows." = "最初のK行を表示します。";
+"Top %d" = "上位%d";
+"Top K" = "上位K";

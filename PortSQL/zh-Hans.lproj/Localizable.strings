@@ -1465,3 +1465,11 @@
 "Show Previous Tab" = "显示上一个标签";
 "Show Sidebar" = "显示边栏";
 "This tab connects to the server you choose." = "此标签将连接到你选择的服务器。";
+"All" = "全部";
+"Display As" = "显示为";
+"Keeps the K largest categories or series; the rest are combined into Other." = "保留最大的 K 个类别或系列，其余合并为“其他”。";
+"No rows" = "没有行";
+"Show" = "显示";
+"Shows the first K rows." = "显示前 K 行。";
+"Top %d" = "前 %d";
+"Top K" = "前 K";

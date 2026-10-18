@@ -69,7 +69,6 @@ private struct ChartDashboard: View, @MainActor Equatable {
         return pages.first { $0.id == id } ?? pages[0]
     }
     private var charts: [SavedVisualizationPreset] { libraryStore.charts(onPage: currentPage.id) }
-    private var columns: Int { ChartTileLayout.columns(for: width) }
 
     var body: some View {
         ScrollView {
@@ -89,7 +88,7 @@ private struct ChartDashboard: View, @MainActor Equatable {
                     if charts.isEmpty {
                         emptyPage
                     } else {
-                        ChartTileLayout(columns: columns, spacing: Spacing.l) {
+                        ChartTileLayout(spacing: Spacing.l) {
                             ForEach(charts) { preset in
                                 ChartTile(
                                     preset: preset,
@@ -97,8 +96,7 @@ private struct ChartDashboard: View, @MainActor Equatable {
                                     page: currentPage,
                                     pages: pages,
                                     refreshToken: refreshToken,
-                                    columns: columns,
-                                    columnWidth: ChartTileLayout.columnWidth(for: width, columns: columns, spacing: Spacing.l),
+                                    pageWidth: width,
                                     onEdit: { onEdit(preset) }
                                 )
                             }
@@ -298,8 +296,8 @@ private struct ChartTile: View {
     let page: ChartPage
     let pages: [ChartPage]
     let refreshToken: Int
-    let columns: Int
-    let columnWidth: CGFloat
+    /// The page's width, to turn a drag into 24ths of the page.
+    let pageWidth: CGFloat
     let onEdit: () -> Void
 
     @State private var entry: CachedChartResult?
@@ -308,6 +306,7 @@ private struct ChartTile: View {
     @State private var runError: String?
     @State private var previewAction: ChartPreviewAction?
     @State private var resize: (height: Double, span: Int)?
+    private var resizeUnit: CGFloat { ChartTileLayout.unit(for: pageWidth, spacing: Spacing.l) }
     @State private var isTargeted = false
     @State private var isConfirmingDelete = false
 
@@ -351,8 +350,10 @@ private struct ChartTile: View {
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .strokeBorder(isTargeted ? PortSQLPalette.accent : PortSQLPalette.stroke, lineWidth: isTargeted ? 2 : 1)
         }
+        .overlay(alignment: .trailing) { resizeEdge(width: true, height: false) }
+        .overlay(alignment: .bottom) { resizeEdge(width: false, height: true) }
         .overlay(alignment: .bottomTrailing) { resizeGrip }
-        .layoutValue(key: ChartTileSpan.self, value: resize?.span ?? preset.tileSpan)
+        .layoutValue(key: ChartTileSpan.self, value: resize?.span ?? preset.gridSpan)
         .dropDestination(for: String.self) { items, _ in
             guard let id = items.first.flatMap(UUID.init(uuidString:)), id != preset.id else { return false }
             withAnimation(.easeOut(duration: 0.2)) { libraryStore.moveChart(id, toPage: page.id, before: preset.id) }
@@ -428,6 +429,37 @@ private struct ChartTile: View {
             }
             .disabled(entry == nil)
             Divider()
+            Menu("Display As", systemImage: preset.displayKindSymbol) {
+                ForEach(VisualizationChartType.allCases) { chartType in
+                    Button {
+                        libraryStore.setChartDisplay(preset.id, chartType: chartType, presentation: nil)
+                    } label: {
+                        if preset.presentation == nil && preset.chartType == chartType { Label(chartType.title, systemImage: "checkmark") }
+                        else { Label(chartType.title, systemImage: chartType.symbolName) }
+                    }
+                }
+                Divider()
+                ForEach(ChartPresentation.allCases) { presentation in
+                    Button {
+                        libraryStore.setChartDisplay(preset.id, chartType: nil, presentation: presentation)
+                    } label: {
+                        if preset.presentation == presentation { Label(presentation.title, systemImage: "checkmark") }
+                        else { Label(presentation.title, systemImage: presentation.symbolName) }
+                    }
+                }
+            }
+            Menu("Show", systemImage: "line.3.horizontal.decrease") {
+                Button { libraryStore.setChartTopLimit(preset.id, nil) } label: {
+                    if preset.topLimit == nil { Label("All", systemImage: "checkmark") } else { Text("All") }
+                }
+                // The common choices, plus the chart's own value when it was set to something else in the editor.
+                ForEach(Array(Set([3, 5, 10, 20, 50] + (preset.topLimit.map { [$0] } ?? []))).sorted(), id: \.self) { limit in
+                    Button { libraryStore.setChartTopLimit(preset.id, limit) } label: {
+                        if preset.topLimit == limit { Label(L10n.format("Top %d", limit), systemImage: "checkmark") }
+                        else { Text(L10n.format("Top %d", limit)) }
+                    }
+                }
+            }
             Toggle(isOn: Binding(get: { preset.showsLegend }, set: { libraryStore.setChartShowsLegend(preset.id, $0) })) {
                 Label("Show Legend", systemImage: "list.bullet.rectangle")
             }
@@ -542,28 +574,48 @@ private struct ChartTile: View {
 
     // MARK: Resizing
 
-    /// Drag the corner to change the tile's height and, on wide screens, how many columns it spans.
+    /// Drag the corner to resize freely: height in 10-point steps, width in 24ths of the page.
     private var resizeGrip: some View {
         Image(systemName: "arrow.down.right")
             .font(.system(size: 9, weight: .bold))
-            .foregroundStyle(PortSQLPalette.muted.opacity(0.7))
+            .foregroundStyle(PortSQLPalette.muted.opacity(resize == nil ? 0.7 : 1))
             .frame(width: 28, height: 28)
             .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 2, coordinateSpace: .global)
-                    .onChanged { drag in
-                        let height = SavedVisualizationPreset.clampedTileHeight(preset.resolvedTileHeight + drag.translation.height)
-                        let step = columnWidth + Spacing.l
-                        let span = step > 0 ? preset.tileSpan + Int((drag.translation.width / step).rounded()) : preset.tileSpan
-                        resize = (height, min(max(span, 1), max(columns, 1)))
-                    }
-                    .onEnded { _ in
-                        guard let resize else { return }
-                        libraryStore.resizeChart(preset.id, height: (resize.height / 10).rounded() * 10, span: resize.span)
-                        self.resize = nil
-                    }
-            )
+            .gesture(resizeGesture(width: true, height: true))
+            .resizePointer(.bottomTrailing)
             .accessibilityHidden(true)
+    }
+
+    /// The right edge resizes the width and the bottom edge the height.
+    private func resizeEdge(width: Bool, height: Bool) -> some View {
+        Color.clear
+            .frame(width: width ? 8 : nil, height: height ? 8 : nil)
+            .frame(maxWidth: height ? .infinity : nil, maxHeight: width ? .infinity : nil)
+            .padding(width ? .vertical : .horizontal, 28)
+            .contentShape(Rectangle())
+            .gesture(resizeGesture(width: width, height: height))
+            .resizePointer(width ? .trailing : .bottom)
+            .accessibilityHidden(true)
+    }
+
+    private func resizeGesture(width: Bool, height: Bool) -> some Gesture {
+        DragGesture(minimumDistance: 2, coordinateSpace: .global)
+            .onChanged { drag in
+                let newHeight = height
+                    ? SavedVisualizationPreset.clampedTileHeight(preset.resolvedTileHeight + drag.translation.height)
+                    : resize?.height ?? preset.resolvedTileHeight
+                // Start from the width the tile is drawn at, which narrow screens may have widened.
+                let start = ChartTileLayout.effectiveSpan(preset.gridSpan, width: pageWidth, spacing: Spacing.l)
+                let newSpan = width && resizeUnit > 0
+                    ? SavedVisualizationPreset.clampedGridSpan(start + Int((drag.translation.width / resizeUnit).rounded()))
+                    : resize?.span ?? preset.gridSpan
+                resize = (newHeight, newSpan)
+            }
+            .onEnded { _ in
+                guard let resize else { return }
+                libraryStore.resizeChart(preset.id, height: (resize.height / 10).rounded() * 10, span: resize.span)
+                self.resize = nil
+            }
     }
 
     // MARK: Running
@@ -606,40 +658,48 @@ private enum ChartTileSize: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Widths in 24ths of the page: a quarter, a third, a half, and the full width.
     var span: Int {
         switch self {
-        case .small, .medium: 1
-        case .large: 2
-        case .wide: 3
+        case .small: 6
+        case .medium: 8
+        case .large: 12
+        case .wide: 24
         }
     }
 
     func matches(_ preset: SavedVisualizationPreset) -> Bool {
-        preset.tileSpan == span && abs(preset.resolvedTileHeight - height) < 1
+        preset.gridSpan == span && abs(preset.resolvedTileHeight - height) < 1
     }
 }
 
 // MARK: - Layout
 
 struct ChartTileSpan: LayoutValueKey {
-    static let defaultValue = 1
+    static let defaultValue = 8
 }
 
-/// Rows of tiles across up to three columns; a tile spans as many columns as it asks for and the
-/// screen allows, and starts a new row when it doesn't fit beside the previous one.
+/// Rows of tiles on a 24-column grid. Each tile is as wide as its span asks, but never narrower than
+/// a readable minimum, and starts a new row when it doesn't fit beside the previous one.
 struct ChartTileLayout: Layout {
-    var columns: Int
     var spacing: CGFloat
 
-    static let minimumColumnWidth: CGFloat = 340
+    static let minimumTileWidth: CGFloat = 280
 
-    static func columns(for width: CGFloat) -> Int {
-        guard width > 0 else { return 1 }
-        return min(3, max(1, Int((width + Spacing.l) / (minimumColumnWidth + Spacing.l))))
+    /// The width of one 24th of the page, including its share of the gaps.
+    static func unit(for width: CGFloat, spacing: CGFloat) -> CGFloat {
+        max(0, (width + spacing) / CGFloat(SavedVisualizationPreset.gridColumns))
     }
 
-    static func columnWidth(for width: CGFloat, columns: Int, spacing: CGFloat) -> CGFloat {
-        max(0, (width - spacing * CGFloat(columns - 1)) / CGFloat(max(columns, 1)))
+    /// The span a tile is drawn at: its own, widened to the minimum width on narrow pages.
+    static func effectiveSpan(_ span: Int, width: CGFloat, spacing: CGFloat) -> Int {
+        let unit = unit(for: width, spacing: spacing)
+        guard unit > 0 else { return SavedVisualizationPreset.gridColumns }
+        let columns = SavedVisualizationPreset.gridColumns
+        let minimum = Int(((minimumTileWidth + spacing) / unit).rounded(.up))
+        let span = min(columns, max(span, minimum))
+        // A gap too narrow for another tile would stay empty, so the tile takes the whole row instead.
+        return columns - span < minimum ? columns : span
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
@@ -655,27 +715,52 @@ struct ChartTileLayout: Layout {
         }
     }
 
-    private func arrange(width: CGFloat, subviews: Subviews) -> [CGRect] {
-        let columns = max(columns, 1)
-        let columnWidth = Self.columnWidth(for: width, columns: columns, spacing: spacing)
+    func arrange(width: CGFloat, spans: [Int], heights: [CGFloat]) -> [CGRect] {
+        let columns = SavedVisualizationPreset.gridColumns
+        let unit = Self.unit(for: width, spacing: spacing)
         var frames: [CGRect] = []
         var column = 0
         var rowY: CGFloat = 0
         var rowHeight: CGFloat = 0
-        for subview in subviews {
-            let span = min(max(subview[ChartTileSpan.self], 1), columns)
-            if column + span > columns {
+        for (span, height) in zip(spans, heights) {
+            let span = Self.effectiveSpan(span, width: width, spacing: spacing)
+            if column + span > columns, column > 0 {
                 rowY += rowHeight + spacing
                 column = 0
                 rowHeight = 0
             }
-            let tileWidth = columnWidth * CGFloat(span) + spacing * CGFloat(span - 1)
-            let height = subview.sizeThatFits(ProposedViewSize(width: tileWidth, height: nil)).height
-            frames.append(CGRect(x: CGFloat(column) * (columnWidth + spacing), y: rowY, width: tileWidth, height: height))
+            frames.append(CGRect(x: CGFloat(column) * unit, y: rowY, width: max(0, CGFloat(span) * unit - spacing), height: height))
             rowHeight = max(rowHeight, height)
             column += span
         }
         return frames
+    }
+
+    private func arrange(width: CGFloat, subviews: Subviews) -> [CGRect] {
+        let unit = Self.unit(for: width, spacing: spacing)
+        let spans = subviews.map { $0[ChartTileSpan.self] }
+        let heights = subviews.indices.map { index in
+            let span = Self.effectiveSpan(spans[index], width: width, spacing: spacing)
+            return subviews[index].sizeThatFits(ProposedViewSize(width: CGFloat(span) * unit - spacing, height: nil)).height
+        }
+        return arrange(width: width, spans: spans, heights: heights)
+    }
+}
+
+private enum TileResizeEdge { case trailing, bottom, bottomTrailing }
+
+private extension View {
+    /// The Mac's resize cursor over a tile's edges and corner.
+    @ViewBuilder func resizePointer(_ edge: TileResizeEdge) -> some View {
+#if os(macOS)
+        switch edge {
+        case .trailing: pointerStyle(.frameResize(position: .trailing))
+        case .bottom: pointerStyle(.frameResize(position: .bottom))
+        case .bottomTrailing: pointerStyle(.frameResize(position: .bottomTrailing))
+        }
+#else
+        self
+#endif
     }
 }
 
