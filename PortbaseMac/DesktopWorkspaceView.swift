@@ -203,6 +203,10 @@ struct DesktopWorkspaceView: View {
             ToolbarItem(placement: .navigation) { tabStrip }
         }
         ToolbarItemGroup(placement: .primaryAction) {
+            // Works from any tab: it asks about the current connection tab's schema.
+            Button("Ask AI", systemImage: "sparkles") { workspace.isShowingAssistant = true }
+                .disabled(workspace.selectedBookmark == nil)
+                .help(L10n.text("Ask an AI model to write a query or design a chart") + " (⇧⌘A)")
             Button("Search", systemImage: "magnifyingglass") { showsPalette = true }
                 .help(L10n.text("Search actions, tables, and queries") + " (⌘K)")
             Button("Settings", systemImage: "gearshape") { openSettings() }
