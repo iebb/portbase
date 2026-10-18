@@ -1371,3 +1371,5 @@
 "Truncate" = "Truncate";
 "Type %@ to confirm" = "Type %@ to confirm";
 "You're connected to a production database." = "You're connected to a production database.";
+"Connection details imported. Review them above, then save." = "Connection details imported. Review them above, then save.";
+"Generated from the server details above, without the password. Paste a PostgreSQL, MySQL, MariaDB, Redis, ClickHouse, or Elasticsearch URL (JDBC prefixes work) and choose Apply to fill them in." = "Generated from the server details above, without the password. Paste a PostgreSQL, MySQL, MariaDB, Redis, ClickHouse, or Elasticsearch URL (JDBC prefixes work) and choose Apply to fill them in.";

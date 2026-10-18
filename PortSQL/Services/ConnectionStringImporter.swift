@@ -144,6 +144,54 @@ enum ConnectionStringImporter {
         return ConnectionStringImport(profile: profile, notices: notices)
     }
 
+    /// The connection string for a profile's current settings, never including the password. SQLite
+    /// (a file) and MongoDB (which has its own URI section) have none.
+    static func connectionString(for profile: ConnectionProfile) -> String? {
+        let host = profile.host.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !host.isEmpty, profile.engine != .sqlite, profile.engine != .mongodb else { return nil }
+        let tls = profile.transportSecurityMode != .plaintext
+        var components = URLComponents()
+        var query: [URLQueryItem] = []
+        switch profile.engine {
+        case .postgresql:
+            components.scheme = "postgresql"
+            query.append(URLQueryItem(name: "sslmode", value: {
+                switch profile.transportSecurityMode {
+                case .systemCA, .privateCA: "verify-full"
+                case .preferTLS: "prefer"
+                case .plaintext: "disable"
+                }
+            }()))
+        case .mysql, .mariadb:
+            components.scheme = profile.engine == .mariadb ? "mariadb" : "mysql"
+            query.append(URLQueryItem(name: "ssl-mode", value: {
+                switch profile.transportSecurityMode {
+                case .systemCA, .privateCA: "VERIFY_IDENTITY"
+                case .preferTLS: "PREFERRED"
+                case .plaintext: "DISABLED"
+                }
+            }()))
+        case .redis:
+            components.scheme = tls ? "rediss" : "redis"
+        case .clickhouse:
+            components.scheme = tls ? "clickhouses" : "http"
+        case .elasticsearch:
+            components.scheme = tls ? "https" : "http"
+        case .sqlite, .mongodb:
+            return nil
+        }
+        let user = profile.username.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !user.isEmpty { components.user = user }
+        components.percentEncodedHost = host.contains(":") ? "[" + host + "]" : (host.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? host)
+        if (1...65_535).contains(profile.port) { components.port = profile.port }
+        let database = profile.trimmedDefaultDatabase
+        if !database.isEmpty, profile.engine != .elasticsearch {
+            components.path = "/" + database
+        }
+        if !query.isEmpty { components.queryItems = query }
+        return components.string
+    }
+
     /// Recognizes a pasted string, so the editor can offer an import.
     static func looksLikeConnectionString(_ text: String) -> Bool {
         let value = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

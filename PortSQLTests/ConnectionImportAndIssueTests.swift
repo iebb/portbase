@@ -131,3 +131,44 @@ final class QuickConnectImportTests: XCTestCase {
         XCTAssertNil(workspace.selectedProfileForEdit)
     }
 }
+
+final class ConnectionStringGenerationTests: XCTestCase {
+    private func profile(_ engine: DatabaseEngine, host: String = "db.example.com", port: Int? = nil, user: String = "app",
+                         database: String = "shop", mode: TransportSecurityMode = .systemCA) -> ConnectionProfile {
+        var profile = ConnectionProfile(name: "x", engine: engine, host: host, port: port ?? engine.defaultPort,
+                                        username: user, password: "s3cret!", defaultDatabase: database)
+        profile.transportSecurityMode = mode
+        return profile
+    }
+
+    func testGeneratedStringsLeaveOutThePasswordAndDescribeTheTransport() throws {
+        XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.postgresql)), "postgresql://app@db.example.com:5432/shop?sslmode=verify-full")
+        XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.mysql, mode: .preferTLS)), "mysql://app@db.example.com:3306/shop?ssl-mode=PREFERRED")
+        XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.redis, database: "2", mode: .plaintext)), "redis://app@db.example.com:6379/2")
+        XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.postgresql, host: "::1")), "postgresql://app@[::1]:5432/shop?sslmode=verify-full")
+        for engine in [DatabaseEngine.postgresql, .mysql, .mariadb, .redis, .clickhouse, .elasticsearch] {
+            let string = try XCTUnwrap(ConnectionStringImporter.connectionString(for: profile(engine)))
+            XCTAssertFalse(string.contains("s3cret"), "\(engine) strings never include the password")
+        }
+        XCTAssertNil(ConnectionStringImporter.connectionString(for: profile(.sqlite)))
+        XCTAssertNil(ConnectionStringImporter.connectionString(for: profile(.mongodb)))
+        XCTAssertNil(ConnectionStringImporter.connectionString(for: profile(.postgresql, host: " ")))
+    }
+
+    func testGeneratedStringsImportBackToTheSameSettings() throws {
+        for original in [profile(.postgresql), profile(.mysql), profile(.mariadb, port: 3307), profile(.redis, database: "3"),
+                         profile(.clickhouse, port: 8443, database: "analytics"), profile(.elasticsearch, port: 9200, database: ""),
+                         profile(.postgresql, host: "::1", mode: .preferTLS)] {
+            let string = try XCTUnwrap(ConnectionStringImporter.connectionString(for: original))
+            var blank = original
+            blank.host = ""; blank.username = ""; blank.defaultDatabase = ""; blank.port = 1
+            let imported = try ConnectionStringImporter.apply(string, to: blank).profile
+            XCTAssertEqual(imported.engine, original.engine, string)
+            XCTAssertEqual(imported.host, original.host, string)
+            XCTAssertEqual(imported.port, original.port, string)
+            XCTAssertEqual(imported.username, original.username, string)
+            XCTAssertEqual(imported.trimmedDefaultDatabase, original.trimmedDefaultDatabase, string)
+            XCTAssertEqual(imported.transportSecurityMode, original.transportSecurityMode, string)
+        }
+    }
+}

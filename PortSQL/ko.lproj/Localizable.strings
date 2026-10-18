@@ -1371,3 +1371,5 @@
 "Truncate" = "비우기";
 "Type %@ to confirm" = "확인하려면 %@ 입력";
 "You're connected to a production database." = "프로덕션 데이터베이스에 연결되어 있습니다.";
+"Connection details imported. Review them above, then save." = "연결 정보를 가져왔습니다. 위에서 확인한 후 저장하세요.";
+"Generated from the server details above, without the password. Paste a PostgreSQL, MySQL, MariaDB, Redis, ClickHouse, or Elasticsearch URL (JDBC prefixes work) and choose Apply to fill them in." = "위의 서버 정보로 암호 없이 생성됩니다. PostgreSQL, MySQL, MariaDB, Redis, ClickHouse 또는 Elasticsearch URL(JDBC 접두사 지원)을 붙여넣고 적용을 선택하면 채워집니다.";

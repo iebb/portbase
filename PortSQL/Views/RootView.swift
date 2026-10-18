@@ -1579,7 +1579,6 @@ struct BookmarkEditorView: View {
     var body: some View {
         PortbaseSheet(L10n.text("Connection"), subtitle: profile.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : profile.name) {
             Form {
-                ConnectionStringImportSection(profile: $profile, willChangeEngine: { keepsImportedEndpoint = true })
 
                 Section("Engine") {
                     EngineChooser(selection: $profile.engine)
@@ -1635,6 +1634,11 @@ struct BookmarkEditorView: View {
                     }
                     }
                     Toggle("Read-only mode", isOn: $profile.isReadOnly)
+                }
+
+                // Under the server details it is generated from; SQLite is a file and MongoDB has its own URI section.
+                if !profile.engine.isLocal && profile.engine != .mongodb {
+                    ConnectionStringImportSection(profile: $profile, willChangeEngine: { keepsImportedEndpoint = true })
                 }
 
                 Section {

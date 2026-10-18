@@ -1371,3 +1371,5 @@
 "Truncate" = "清空";
 "Type %@ to confirm" = "输入 %@ 以确认";
 "You're connected to a production database." = "你已连接到生产数据库。";
+"Connection details imported. Review them above, then save." = "已导入连接信息。请在上方检查后保存。";
+"Generated from the server details above, without the password. Paste a PostgreSQL, MySQL, MariaDB, Redis, ClickHouse, or Elasticsearch URL (JDBC prefixes work) and choose Apply to fill them in." = "根据上方的服务器信息生成，不含密码。粘贴 PostgreSQL、MySQL、MariaDB、Redis、ClickHouse 或 Elasticsearch URL（支持 JDBC 前缀）并选择“应用”即可填入。";

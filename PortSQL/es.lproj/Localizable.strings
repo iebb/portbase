@@ -1371,3 +1371,5 @@
 "Truncate" = "Vaciar";
 "Type %@ to confirm" = "Escribe %@ para confirmar";
 "You're connected to a production database." = "Estás conectado a una base de datos de producción.";
+"Connection details imported. Review them above, then save." = "Datos de conexión importados. Revísalos arriba y guarda.";
+"Generated from the server details above, without the password. Paste a PostgreSQL, MySQL, MariaDB, Redis, ClickHouse, or Elasticsearch URL (JDBC prefixes work) and choose Apply to fill them in." = "Generado a partir de los datos del servidor de arriba, sin la contraseña. Pega una URL de PostgreSQL, MySQL, MariaDB, Redis, ClickHouse o Elasticsearch (admite prefijos JDBC) y elige Aplicar para rellenarlos.";

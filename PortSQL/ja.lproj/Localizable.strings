@@ -1371,3 +1371,5 @@
 "Truncate" = "空にする";
 "Type %@ to confirm" = "確認のため %@ と入力";
 "You're connected to a production database." = "本番データベースに接続しています。";
+"Connection details imported. Review them above, then save." = "接続情報を読み込みました。上で確認してから保存してください。";
+"Generated from the server details above, without the password. Paste a PostgreSQL, MySQL, MariaDB, Redis, ClickHouse, or Elasticsearch URL (JDBC prefixes work) and choose Apply to fill them in." = "上のサーバ情報からパスワードを除いて生成されます。PostgreSQL、MySQL、MariaDB、Redis、ClickHouse、ElasticsearchのURL（JDBC接頭辞も可）を貼り付けて「適用」を選ぶと入力されます。";
