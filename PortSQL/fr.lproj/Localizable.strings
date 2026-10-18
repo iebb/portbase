@@ -1633,3 +1633,8 @@
 "esc Close" = "esc Fermer";
 "↑↓ Choose" = "↑↓ Choisir";
 "↩ ⇥ Insert" = "↩ ⇥ Insérer";
+"It isn't in this database, or the table list needs refreshing." = "Elle n’est pas dans cette base de données, ou la liste des tables doit être actualisée.";
+"It isn't in this database. Did you mean “%@”?" = "Elle n’est pas dans cette base de données. Vouliez-vous dire « %@ » ?";
+"Parameter %@" = "Paramètre %@";
+"Suggestions: %d" = "Suggestions : %d";
+"Unknown table “%@”" = "Table inconnue « %@ »";

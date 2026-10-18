@@ -1164,6 +1164,14 @@ private struct DesktopSQLEditor: View {
                         .foregroundStyle(.red).lineLimit(1).truncationMode(.tail).help(error)
                         .layoutPriority(-1)
                 }
+                // Warnings about the text, like an unknown table, as DataGrip's inspections show; general tips stay quiet here.
+                if workspace.errorMessage == nil, isSQL, let hint = workspace.hints.first(where: { $0.severity != .info }) {
+                    let others = workspace.hints.filter { $0.severity != .info }.count - 1
+                    Label(others > 0 ? hint.title + "  +" + String(others) : hint.title, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(hint.severity.tint).lineLimit(1).truncationMode(.tail)
+                        .help(workspace.hints.filter { $0.severity != .info }.map { $0.title + " — " + $0.message }.joined(separator: "\n"))
+                        .layoutPriority(-1)
+                }
                 if let execution = workspace.lastExecution { ExecutionStatusChip(entry: execution) }
                 PortbaseChip(title: isSQL ? "SQL" : workspace.usesJSONEditor ? "JSON" : "Redis", tint: .secondary)
             }.font(.rowDetail).portbaseBar(Sizes.statusBar)

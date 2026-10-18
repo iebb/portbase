@@ -59,6 +59,36 @@ private final class QueryTextView: NSTextView {
             indentSelection(removing: true)
         } else { super.keyDown(with: event) }
     }
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        // Only typed characters pair; edits with an explicit range (indenting, completions) go through as they are.
+        guard !hasMarkedText(), replacementRange.location == NSNotFound,
+              let typed = (string as? String) ?? (string as? NSAttributedString)?.string, typed.count == 1, let character = typed.first else {
+            super.insertText(string, replacementRange: replacementRange)
+            return
+        }
+        let selection = selectedRange()
+        switch EditorAutoPairs.action(typing: character, in: self.string, selection: selection) {
+        case .insert:
+            super.insertText(string, replacementRange: replacementRange)
+        case .stepOver:
+            setSelectedRange(NSRange(location: selection.location + 1, length: 0))
+        case .pair(let pair):
+            super.insertText(pair, replacementRange: selection)
+            setSelectedRange(NSRange(location: selection.location + 1, length: 0))
+        case .wrap(let opener, let closer):
+            let selected = (self.string as NSString).substring(with: selection)
+            super.insertText(opener + selected + closer, replacementRange: selection)
+            setSelectedRange(NSRange(location: selection.location + 1, length: (selected as NSString).length))
+        }
+    }
+    override func deleteBackward(_ sender: Any?) {
+        let selection = selectedRange()
+        if selection.length == 0, EditorAutoPairs.deletesPair(in: string, at: selection.location) {
+            insertText("", replacementRange: NSRange(location: selection.location - 1, length: 2))
+            return
+        }
+        super.deleteBackward(sender)
+    }
     /// Esc, F5, and Control-Space open the completion list.
     override func complete(_ sender: Any?) {
         if let completionKeys { completionKeys.requestCompletion() } else { super.complete(sender) }
@@ -183,6 +213,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
     @MainActor final class Coordinator: NSObject, NSTextViewDelegate, SQLCompletionKeyHandling {
         var parent: HighlightedQueryEditor
         var applying = false
+        private lazy var signaturePopup = SQLSignaturePopup()
         private lazy var popup: SQLCompletionPopup = {
             let popup = SQLCompletionPopup()
             popup.onAccept = { [weak self] item in self?.accept(item) }
@@ -229,7 +260,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             lastString = view.string
             updateSelection(view)
         }
-        func textDidEndEditing(_ notification: Notification) { popup.hide() }
+        func textDidEndEditing(_ notification: Notification) { popup.hide(); signaturePopup.hide() }
 
         // MARK: Completion
 
@@ -241,6 +272,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             guard caret.length == 0, NSMaxRange(completion.fragmentRange) == caret.location, NSMaxRange(completion.fragmentRange) <= source.length,
                   source.substring(with: completion.fragmentRange) == completion.fragment else { return }
             self.completion = completion
+            updateSignature(in: view)
             if completion.items.isEmpty { popup.hide(); return }
             if popup.isVisible || (typing && completion.opensAutomatically) || requested {
                 requested = false
@@ -253,6 +285,13 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             let caret = view.firstRect(forCharacterRange: NSRange(location: completion.fragmentRange.location, length: 0), actualRange: nil)
             let typed = completion.fragment.split(separator: ".", omittingEmptySubsequences: false).last.map(String.init) ?? completion.fragment
             popup.show(completion.items, typed: typed.trimmingCharacters(in: CharacterSet(charactersIn: "\"`[]")), below: caret, in: window)
+        }
+
+        /// The parameter hint above the caret while it's inside a function call.
+        private func updateSignature(in view: NSTextView) {
+            guard let signature = completion.signature, let window = view.window, window.firstResponder === view else { signaturePopup.hide(); return }
+            let caret = view.firstRect(forCharacterRange: NSRange(location: NSMaxRange(completion.fragmentRange), length: 0), actualRange: nil)
+            signaturePopup.show(signature, above: caret, in: window)
         }
 
         func requestCompletion() {
@@ -281,6 +320,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         private func accept(_ item: SQLCompletionItem) {
             guard let view = completionView, let plan = SQLCompletionEngine.edits(for: item, in: view.string, result: completion) else { return }
             popup.hide()
+            SQLCompletionUsage.record(item)
             view.undoManager?.beginUndoGrouping()
             for edit in plan.edits where view.shouldChangeText(in: edit.range, replacementString: edit.text) {
                 view.textStorage?.replaceCharacters(in: edit.range, with: edit.text)

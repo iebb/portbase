@@ -125,6 +125,10 @@ extension SQLCompletionEngine {
 
         mutating func candidates() -> [SQLCompletionItem] {
             if let qualifier { return qualifiedCandidates(qualifier) }
+            // A type: after :: or CAST(… AS.
+            if previous?.text == "::" || (previous?.keyword == "AS" && SQLCompletionEngine.signature(in: tokens, engine: engine)?.name.uppercased() == "CAST") {
+                return typeItems()
+            }
             if isAtStatementStart { opensAutomatically = !typedName.isEmpty; return statementStarts() }
             let prev = previous
             let prevKeyword = prev?.keyword ?? ""
@@ -235,6 +239,8 @@ extension SQLCompletionEngine {
         private mutating func predicateCandidates(_ prev: Token?) -> [SQLCompletionItem] {
             let prevKeyword = prev?.keyword ?? ""
             if prev == nil || ["WHERE", "HAVING", "AND", "OR", "NOT", "(", "PREWHERE"].contains(prevKeyword) || prev?.text == "(" {
+                // HAVING filters groups, so aggregates come first there.
+                if clause == .having { return functionItems(aggregatesFirst: true) + columnItems() + selectAliasItems() }
                 return columnItems() + aliasItems() + functionItems() + keywordItems(["NOT", "EXISTS"], priority: 300)
             }
             if prevKeyword == "IS" { return keywordItems(["NULL", "NOT NULL"], priority: 900) }
@@ -426,14 +432,23 @@ extension SQLCompletionEngine {
             return items
         }
 
-        private func functionItems() -> [SQLCompletionItem] {
-            SQLFunctionCatalog.functions(for: engine).enumerated().map { index, function in
+        private func typeItems() -> [SQLCompletionItem] {
+            SQLFunctionCatalog.types(for: engine).enumerated().map { index, type in
+                let text = type == type.uppercased() ? keyword(type) : type
+                return SQLCompletionItem(kind: .keyword, label: text, detail: L10n.text("Type"), insertion: text, score: 800 - index)
+            }
+        }
+
+        private func functionItems(aggregatesFirst: Bool = false) -> [SQLCompletionItem] {
+            let aggregates: Set<String> = ["COUNT", "SUM", "AVG", "MIN", "MAX", "STRING_AGG", "ARRAY_AGG", "GROUP_CONCAT", "JSONB_AGG", "countIf", "sumIf", "uniq", "uniqExact", "groupArray"]
+            return SQLFunctionCatalog.functions(for: engine).enumerated().map { index, function in
                 // Mixed-case names, like ClickHouse's, are case-sensitive and keep their spelling.
                 let name = function.name == function.name.uppercased() ? keyword(function.name) : function.name
                 let insertion = function.takesArguments ? name + "()" : (function.parentheses ? name + "()" : name)
+                let boost = aggregatesFirst && aggregates.contains(function.name) ? 500 : 0
                 return SQLCompletionItem(kind: .function, label: name + (function.takesArguments ? "(…)" : (function.parentheses ? "()" : "")),
                                          detail: function.signature, insertion: insertion,
-                                         caretFromEnd: function.takesArguments ? 1 : 0, score: 400 - min(index, 40))
+                                         caretFromEnd: function.takesArguments ? 1 : 0, score: 400 - min(index, 40) + boost)
             }
         }
 
@@ -631,6 +646,42 @@ enum SQLFunctionCatalog {
         let signature: String
         var takesArguments = true
         var parentheses = true
+    }
+
+    /// The parameters in a signature like "DATE_TRUNC('day', timestamp)", split at top-level commas.
+    static func parameters(of signature: String) -> [String] {
+        guard let open = signature.firstIndex(of: "("), let close = signature.lastIndex(of: ")"), open < close else { return [] }
+        let body = signature[signature.index(after: open)..<close]
+        var parameters: [String] = []
+        var current = ""
+        var depth = 0
+        for character in body {
+            if character == "(" { depth += 1 }
+            if character == ")" { depth -= 1 }
+            if character == ",", depth == 0 {
+                parameters.append(current.trimmingCharacters(in: .whitespaces)); current = ""; continue
+            }
+            current.append(character)
+        }
+        let last = current.trimmingCharacters(in: .whitespaces)
+        if !last.isEmpty { parameters.append(last) }
+        return parameters
+    }
+
+    /// Column types for casts, by engine.
+    static func types(for engine: DatabaseEngine) -> [String] {
+        switch engine {
+        case .postgresql:
+            return ["INTEGER", "BIGINT", "NUMERIC", "TEXT", "VARCHAR", "BOOLEAN", "DATE", "TIMESTAMP", "TIMESTAMPTZ", "INTERVAL", "JSONB", "JSON", "UUID", "DOUBLE PRECISION", "SMALLINT", "BYTEA"]
+        case .mysql, .mariadb:
+            return ["SIGNED", "UNSIGNED", "DECIMAL", "CHAR", "DATE", "DATETIME", "TIME", "JSON", "BINARY", "DOUBLE"]
+        case .sqlite:
+            return ["INTEGER", "REAL", "TEXT", "NUMERIC", "BLOB"]
+        case .clickhouse:
+            return ["Int32", "Int64", "UInt32", "UInt64", "Float64", "Decimal(18, 2)", "String", "Date", "DateTime", "UUID", "Bool"]
+        default:
+            return ["INTEGER", "DECIMAL", "VARCHAR", "DATE", "TIMESTAMP"]
+        }
     }
 
     static func functions(for engine: DatabaseEngine) -> [Function] {

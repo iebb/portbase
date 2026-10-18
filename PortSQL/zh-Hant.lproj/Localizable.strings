@@ -1633,3 +1633,8 @@
 "esc Close" = "esc 關閉";
 "↑↓ Choose" = "↑↓ 選擇";
 "↩ ⇥ Insert" = "↩ ⇥ 插入";
+"It isn't in this database, or the table list needs refreshing." = "它不在此資料庫中，或者需要重新整理資料表列表。";
+"It isn't in this database. Did you mean “%@”?" = "它不在此資料庫中。你是指「%@」嗎？";
+"Parameter %@" = "參數 %@";
+"Suggestions: %d" = "建議：%d";
+"Unknown table “%@”" = "未知資料表「%@」";

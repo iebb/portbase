@@ -1633,3 +1633,8 @@
 "esc Close" = "esc Close";
 "↑↓ Choose" = "↑↓ Choose";
 "↩ ⇥ Insert" = "↩ ⇥ Insert";
+"It isn't in this database, or the table list needs refreshing." = "It isn't in this database, or the table list needs refreshing.";
+"It isn't in this database. Did you mean “%@”?" = "It isn't in this database. Did you mean “%@”?";
+"Parameter %@" = "Parameter %@";
+"Suggestions: %d" = "Suggestions: %d";
+"Unknown table “%@”" = "Unknown table “%@”";

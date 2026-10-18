@@ -120,6 +120,32 @@ enum SQLSymbolCompletion {
             tables[table.displayName] = table
         }
         var ctes: [(name: String, fields: [String])] = []
+        /// The column names a SELECT produces: aliases, plain column names, or a star's table columns.
+        func projectionFields(_ body: [SQLStructureToken]) -> [String] {
+            guard let select = body.firstIndex(where: { $0.keyword == "SELECT" }) else { return [] }
+            var fields: [String] = []
+            var depth = 0, projection: [SQLStructureToken] = []
+            func addField() {
+                if let asIndex = projection.lastIndex(where: { $0.keyword == "AS" }), asIndex + 1 < projection.count {
+                    fields.append(projection[asIndex + 1].text)
+                } else if let last = projection.last, last.isIdentifier { fields.append(last.text) }
+                else if projection.contains(where: { $0.text == "*" }) {
+                    if let from = body.firstIndex(where: { $0.keyword == "FROM" }), from + 1 < body.count {
+                        fields += sources[body[from + 1].text] ?? []
+                    }
+                }
+                projection = []
+            }
+            for token in body.dropFirst(select + 1) {
+                if token.keyword == "FROM", depth == 0 { addField(); break }
+                if token.text == ",", depth == 0 { addField(); continue }
+                if token.text == "(" { depth += 1 }
+                if token.text == ")" { depth -= 1 }
+                projection.append(token)
+            }
+            if !projection.isEmpty { addField() }
+            return fields
+        }
         func closing(_ start: Int) -> Int? {
             var depth = 0
             for i in start..<all.count {
@@ -139,31 +165,7 @@ enum SQLSymbolCompletion {
                 guard i < all.count, all[i].keyword == "AS" else { break }; i += 1
                 while i < all.count, ["NOT", "MATERIALIZED"].contains(all[i].keyword) { i += 1 }
                 guard i < all.count, all[i].text == "(", let end = closing(i) else { break }
-                if fields.isEmpty {
-                    let body = Array(all[(i + 1)..<end])
-                    if let select = body.firstIndex(where: { $0.keyword == "SELECT" }) {
-                        var depth = 0, projection: [SQLStructureToken] = []
-                        func addField() {
-                            if let asIndex = projection.lastIndex(where: { $0.keyword == "AS" }), asIndex + 1 < projection.count {
-                                fields.append(projection[asIndex + 1].text)
-                            } else if let last = projection.last, last.isIdentifier { fields.append(last.text) }
-                            else if projection.contains(where: { $0.text == "*" }) {
-                                if let from = body.firstIndex(where: { $0.keyword == "FROM" }), from + 1 < body.count {
-                                    fields += sources[body[from + 1].text] ?? []
-                                }
-                            }
-                            projection = []
-                        }
-                        for token in body.dropFirst(select + 1) {
-                            if token.keyword == "FROM", depth == 0 { addField(); break }
-                            if token.text == ",", depth == 0 { addField(); continue }
-                            if token.text == "(" { depth += 1 }
-                            if token.text == ")" { depth -= 1 }
-                            projection.append(token)
-                        }
-                        if !projection.isEmpty { addField() }
-                    }
-                }
+                if fields.isEmpty { fields = projectionFields(Array(all[(i + 1)..<end])) }
                 sources[name] = fields; ctes.append((name, fields))
                 tables[name] = nil
                 i = end + 1
@@ -177,6 +179,21 @@ enum SQLSymbolCompletion {
             // Tables listed after a comma in FROM are sources too.
             var j = i + 1
             while j < all.count {
+                // A derived table, (SELECT …) alias: its columns come from its SELECT list.
+                if all[j].text == "(", j + 1 < all.count, all[j + 1].keyword == "SELECT", let end = closing(j) {
+                    let position = j
+                    let fields = projectionFields(Array(all[(j + 1)..<end]))
+                    j = end + 1
+                    if j < all.count, all[j].keyword == "AS" { j += 1 }
+                    if j < all.count, all[j].isIdentifier, !reserved.contains(all[j].keyword) {
+                        bySource[scope.owners[i], default: [:]][all[j].text] = SQLScopeSource(
+                            name: all[j].text, reference: all[j].text, table: nil, fields: fields, isAlias: false, isCTE: true, position: position)
+                        j += 1
+                    }
+                    guard all[i].keyword == "FROM", j < all.count, all[j].text == "," else { break }
+                    j += 1
+                    continue
+                }
                 guard all[j].isIdentifier, !reserved.contains(all[j].keyword) else { break }
                 let position = j
                 var reference = all[j].text; let short = reference; j += 1

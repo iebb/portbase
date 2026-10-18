@@ -56,7 +56,9 @@ import SwiftUI
             window.addChildWindow(panel, ordered: .above)
             parentWindow = window
         }
+        let opening = !panel.isVisible
         panel.orderFront(nil)
+        if opening || keepSelection != selectedItem?.id { announceSelection(withCount: opening) }
     }
 
     func hide() {
@@ -69,11 +71,23 @@ import SwiftUI
     func move(by delta: Int) {
         guard !model.items.isEmpty else { return }
         model.selected = (model.selected + delta + model.items.count) % model.items.count
+        announceSelection(withCount: false)
     }
 
     func page(by delta: Int) {
         guard !model.items.isEmpty else { return }
         model.selected = max(0, min(model.items.count - 1, model.selected + delta * 8))
+        announceSelection(withCount: false)
+    }
+
+    /// The panel never takes focus, so VoiceOver hears the highlighted item instead of reading the list.
+    private func announceSelection(withCount: Bool) {
+        guard let item = selectedItem else { return }
+        var parts = [item.label, item.kind.title]
+        if let detail = item.detail { parts.append(detail) }
+        if withCount { parts.insert(L10n.format("Suggestions: %d", model.items.count), at: 0) }
+        NSAccessibility.post(element: NSApp.mainWindow ?? NSApp as Any, notification: .announcementRequested,
+                             userInfo: [.announcement: parts.joined(separator: ", "), .priority: NSAccessibilityPriorityLevel.medium.rawValue])
     }
 }
 
@@ -163,5 +177,59 @@ struct SQLCompletionList: View {
             }
         }
         return result
+    }
+}
+
+/// A parameter hint above the caret, as DataGrip shows inside a function call: the signature with the
+/// current argument in bold.
+@MainActor final class SQLSignaturePopup {
+    private let panel: NSPanel
+    private let host: NSHostingView<AnyView>
+    private weak var parentWindow: NSWindow?
+
+    init() {
+        panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 300, height: 26), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+        panel.isFloatingPanel = true
+        panel.hasShadow = true
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hidesOnDeactivate = true
+        host = NSHostingView(rootView: AnyView(EmptyView()))
+        panel.contentView = host
+    }
+
+    func show(_ signature: SQLSignatureHint, above caret: NSRect, in window: NSWindow) {
+        host.rootView = AnyView(SQLSignatureView(signature: signature).portbaseTheme())
+        let size = host.fittingSize
+        let origin = NSPoint(x: caret.minX - 12, y: caret.maxY + 6)
+        panel.setFrame(NSRect(origin: origin, size: NSSize(width: max(80, size.width), height: max(24, size.height))), display: true)
+        if parentWindow !== window {
+            parentWindow?.removeChildWindow(panel)
+            window.addChildWindow(panel, ordered: .above)
+            parentWindow = window
+        }
+        panel.orderFront(nil)
+    }
+
+    func hide() {
+        guard panel.isVisible else { return }
+        parentWindow?.removeChildWindow(panel)
+        parentWindow = nil
+        panel.orderOut(nil)
+    }
+}
+
+struct SQLSignatureView: View {
+    let signature: SQLSignatureHint
+
+    var body: some View {
+        SQLSignatureText(signature: signature)
+            .font(.codeDetail)
+            .lineLimit(1)
+            .padding(.horizontal, Spacing.s)
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .overlay { RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(PortSQLPalette.stroke) }
+            .fixedSize()
     }
 }

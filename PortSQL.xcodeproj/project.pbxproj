@@ -18,6 +18,7 @@
 		5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
 		7EAA524DCE70FC139D4C48D8 /* SchemaDDLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */; };
 		C014536B50F5C0D07D8EAE77 /* CloudEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */; };
+		DB4AE179333FD797BF04F4CE /* SQLInspection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B631F4D75ACC7AE44C08EAD /* SQLInspection.swift */; };
 		EDDA5F93A4B2F8F195ABD6F8 /* SQLCompletionContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20813A61C41E5996A0D9244 /* SQLCompletionContext.swift */; };
 		E4DA4337CD10F2D0695A6965 /* SQLCompletionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB84CB00F31DB8475CCB880B /* SQLCompletionEngine.swift */; };
 		57CACC3357B890A4041D8424 /* SyncedSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59833943293B28D19E467488 /* SyncedSlot.swift */; };
@@ -242,6 +243,7 @@
 		9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
 		F39772426FEA8E73F8B2D456 /* SchemaDDLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */; };
 		9E150FEE8C7A4545B7B8FEA6 /* CloudEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */; };
+		8CAF2857A10FDD98E4FE8FB4 /* SQLInspection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B631F4D75ACC7AE44C08EAD /* SQLInspection.swift */; };
 		3E0E3CFF921E8A2D3701EC4F /* SQLCompletionContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20813A61C41E5996A0D9244 /* SQLCompletionContext.swift */; };
 		73F5B1AF5D3C99AF54CD1A3B /* SQLCompletionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB84CB00F31DB8475CCB880B /* SQLCompletionEngine.swift */; };
 		1833A4472E1128C23C799D74 /* SyncedSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59833943293B28D19E467488 /* SyncedSlot.swift */; };
@@ -497,6 +499,7 @@
 		8C2D20E83571702A0436925F /* ChartQueryRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartQueryRunner.swift; sourceTree = "<group>"; };
 		54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaDDLBuilder.swift; sourceTree = "<group>"; };
 		89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudEncryption.swift; sourceTree = "<group>"; };
+		6B631F4D75ACC7AE44C08EAD /* SQLInspection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLInspection.swift; sourceTree = "<group>"; };
 		F20813A61C41E5996A0D9244 /* SQLCompletionContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLCompletionContext.swift; sourceTree = "<group>"; };
 		DB84CB00F31DB8475CCB880B /* SQLCompletionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLCompletionEngine.swift; sourceTree = "<group>"; };
 		59833943293B28D19E467488 /* SyncedSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncedSlot.swift; sourceTree = "<group>"; };
@@ -823,6 +826,7 @@
 				8C2D20E83571702A0436925F /* ChartQueryRunner.swift */,
 				54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */,
 				89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */,
+				6B631F4D75ACC7AE44C08EAD /* SQLInspection.swift */,
 				F20813A61C41E5996A0D9244 /* SQLCompletionContext.swift */,
 				DB84CB00F31DB8475CCB880B /* SQLCompletionEngine.swift */,
 				59833943293B28D19E467488 /* SyncedSlot.swift */,
@@ -1362,6 +1366,7 @@
 				9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */,
 				F39772426FEA8E73F8B2D456 /* SchemaDDLBuilder.swift in Sources */,
 				9E150FEE8C7A4545B7B8FEA6 /* CloudEncryption.swift in Sources */,
+				8CAF2857A10FDD98E4FE8FB4 /* SQLInspection.swift in Sources */,
 				3E0E3CFF921E8A2D3701EC4F /* SQLCompletionContext.swift in Sources */,
 				73F5B1AF5D3C99AF54CD1A3B /* SQLCompletionEngine.swift in Sources */,
 				1833A4472E1128C23C799D74 /* SyncedSlot.swift in Sources */,
@@ -1583,6 +1588,7 @@
 				5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */,
 				7EAA524DCE70FC139D4C48D8 /* SchemaDDLBuilder.swift in Sources */,
 				C014536B50F5C0D07D8EAE77 /* CloudEncryption.swift in Sources */,
+				DB4AE179333FD797BF04F4CE /* SQLInspection.swift in Sources */,
 				EDDA5F93A4B2F8F195ABD6F8 /* SQLCompletionContext.swift in Sources */,
 				E4DA4337CD10F2D0695A6965 /* SQLCompletionEngine.swift in Sources */,
 				57CACC3357B890A4041D8424 /* SyncedSlot.swift in Sources */,

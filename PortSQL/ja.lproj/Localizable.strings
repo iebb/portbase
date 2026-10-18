@@ -1633,3 +1633,8 @@
 "esc Close" = "esc 閉じる";
 "↑↓ Choose" = "↑↓ 選択";
 "↩ ⇥ Insert" = "↩ ⇥ 挿入";
+"It isn't in this database, or the table list needs refreshing." = "このデータベースにないか、テーブル一覧の更新が必要です。";
+"It isn't in this database. Did you mean “%@”?" = "このデータベースにありません。“%@”のことですか？";
+"Parameter %@" = "パラメータ %@";
+"Suggestions: %d" = "候補：%d";
+"Unknown table “%@”" = "不明なテーブル“%@”";

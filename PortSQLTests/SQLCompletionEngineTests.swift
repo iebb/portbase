@@ -138,3 +138,83 @@ final class SQLCompletionEngineTests: XCTestCase {
         XCTAssertEqual(SQLCompletionEngine.Context.alias(for: "orders", avoiding: ["o"]), "o2")
     }
 }
+
+final class SQLEditorSmartsTests: XCTestCase {
+    private func column(_ name: String, _ type: String, key: Bool = false) -> SchemaColumnDescriptor {
+        SchemaColumnDescriptor(name: name, type: type, isNullable: !key, isPrimaryKey: key, isUnique: key)
+    }
+
+    private lazy var catalog: [SchemaTableDescriptor] = [
+        SchemaTableDescriptor(schemaName: "public", name: "orders", columns: [column("id", "integer", key: true), column("total", "numeric"),
+            column("created_at", "timestamp")], rowCountEstimate: nil),
+        SchemaTableDescriptor(schemaName: "public", name: "customers", columns: [column("id", "integer", key: true), column("name", "text")], rowCountEstimate: nil),
+    ]
+
+    private func complete(_ marked: String, engine: DatabaseEngine = .postgresql, usage: [String: Int] = [:]) -> SQLCompletionResult {
+        let caret = (marked as NSString).range(of: "|").location
+        let text = (marked as NSString).replacingCharacters(in: NSRange(location: caret, length: 1), with: "")
+        return SQLCompletionEngine.complete(text, cursor: caret, catalog: catalog, activeDatabase: "shop", engine: engine, usage: usage)
+    }
+
+    func testDerivedTablesExposeTheirColumns() {
+        let labels = complete("SELECT t.| FROM (SELECT id, total AS amount FROM orders) t").items.map(\.label)
+        XCTAssertEqual(Set(labels), ["id", "amount"])
+    }
+
+    func testSignatureHintFollowsTheArgument() {
+        let first = complete("SELECT DATE_TRUNC(|) FROM orders").signature
+        XCTAssertEqual(first?.name, "DATE_TRUNC")
+        XCTAssertEqual(first?.argument, 0)
+        XCTAssertEqual(complete("SELECT DATE_TRUNC('day', |) FROM orders").signature?.argument, 1)
+        XCTAssertEqual(complete("SELECT COALESCE(LOWER(name), |) FROM customers").signature?.name, "COALESCE", "The innermost open call wins")
+        XCTAssertNil(complete("SELECT COUNT(*) |FROM orders").signature)
+    }
+
+    func testTypesAfterCastsFollowTheEngine() {
+        XCTAssertTrue(complete("SELECT total::|").items.contains { $0.label == "NUMERIC" })
+        XCTAssertTrue(complete("SELECT CAST(total AS |) FROM orders", engine: .mysql).items.contains { $0.label == "DECIMAL" })
+    }
+
+    func testHavingPutsAggregatesFirst() {
+        let first = complete("SELECT name, COUNT(*) FROM customers GROUP BY name HAVING |").items.first
+        XCTAssertEqual(first?.kind, .function)
+    }
+
+    func testOftenUsedItemsRiseWithinTheirKind() {
+        let plain = complete("SELECT | FROM orders").items.filter { $0.kind == .column }.map(\.label)
+        XCTAssertEqual(plain.first, "id")
+        let used = complete("SELECT | FROM orders", usage: ["column|created_at": 5]).items.filter { $0.kind == .column }.map(\.label)
+        XCTAssertEqual(used.first, "created_at")
+    }
+
+    func testUnknownTablesAreFlaggedWithTheClosestName() {
+        let unknown = SQLInspection.unknownTables(in: "SELECT * FROM ordres o JOIN custmers c ON c.id = o.id", catalog: catalog, engine: .postgresql)
+        XCTAssertEqual(unknown, [.init(name: "ordres", suggestion: "orders"), .init(name: "custmers", suggestion: "customers")])
+        XCTAssertTrue(SQLInspection.unknownTables(in: "WITH recent AS (SELECT * FROM orders) SELECT * FROM recent", catalog: catalog, engine: .postgresql).isEmpty,
+                      "CTEs aren't tables")
+        XCTAssertTrue(SQLInspection.unknownTables(in: "SELECT * FROM generate_series(1, 3); SELECT * FROM pg_catalog.pg_tables", catalog: catalog, engine: .postgresql).isEmpty,
+                      "Table functions and system schemas aren't checked")
+        XCTAssertTrue(SQLInspection.unknownTables(in: "SELECT * FROM ordres", catalog: [], engine: .postgresql).isEmpty, "Nothing to check against yet")
+        XCTAssertEqual(SQLInspection.distance("ordres", "orders"), 1, "A swap is one edit")
+    }
+
+    func testBracketsAndQuotesPairWhereTheyShould() {
+        func action(_ character: Character, _ marked: String, selecting length: Int = 0) -> EditorAutoPairs.Action {
+            let caret = (marked as NSString).range(of: "|").location
+            let text = (marked as NSString).replacingCharacters(in: NSRange(location: caret, length: 1), with: "")
+            return EditorAutoPairs.action(typing: character, in: text, selection: NSRange(location: caret, length: length))
+        }
+        XCTAssertEqual(action("(", "SELECT COUNT|"), .pair("()"))
+        XCTAssertEqual(action("'", "WHERE status = |"), .pair("''"))
+        XCTAssertEqual(action(")", "SELECT COUNT(*|)"), .stepOver)
+        XCTAssertEqual(action("'", "WHERE status = 'paid|'"), .stepOver)
+        XCTAssertEqual(action("(", "SELECT |total"), .insert, "Not right before a word")
+        XCTAssertEqual(action("'", "WHERE note = 'don|"), .insert, "Not an apostrophe inside a string")
+        XCTAssertEqual(action("'", "SELECT name|"), .insert, "Not right after a word")
+        XCTAssertEqual(action("(", "SELECT |total", selecting: 5), .wrap("(", ")"))
+        let script = "SELECT \"customer_id\", \"name\"\nFROM \"main\".\"customers\"\nLIMIT 100\nOFFSET 0;\nSELECT * FROM orders o JOIN customers c ON c.customer_id ;\nSELECT strftime| = o.customer_id WHERE c."
+        XCTAssertEqual(action("(", script), .pair("()"), "Mid-line, before a space")
+        XCTAssertTrue(EditorAutoPairs.deletesPair(in: "COUNT()", at: 6))
+        XCTAssertFalse(EditorAutoPairs.deletesPair(in: "COUNT(*)", at: 6))
+    }
+}

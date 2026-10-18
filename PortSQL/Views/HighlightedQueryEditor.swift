@@ -8,6 +8,7 @@ private final class QueryTextView: UITextView {
     /// Accepts a completion from the keyboard bar, or from Tab on a hardware keyboard.
     var onAcceptCompletion: ((SQLCompletionItem) -> Void)?
     private(set) var completionItems: [SQLCompletionItem] = []
+    private var completionSignature: SQLSignatureHint?
     private var editingToolbar: UIToolbar?
     private var fullToolbarItems: [UIBarButtonItem] = []
     private var compactToolbarItems: [UIBarButtonItem] = []
@@ -127,16 +128,46 @@ private final class QueryTextView: UITextView {
         inputAccessoryView = container
     }
 
-    /// Shows completions in the keyboard bar, or the editing tools when there are none.
-    func setCompletions(_ items: [SQLCompletionItem]) {
+    /// Shows completions in the keyboard bar, led by the parameter hint inside a function call, or the
+    /// editing tools when there's neither.
+    func setCompletions(_ items: [SQLCompletionItem], signature: SQLSignatureHint? = nil) {
         let shown = Array(items.prefix(12))
-        guard shown.map(\.id) != completionItems.map(\.id) else { return }
+        guard shown.map(\.id) != completionItems.map(\.id) || signature != completionSignature else { return }
         completionItems = shown
+        completionSignature = signature
         suggestionStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        if let signature { suggestionStack.addArrangedSubview(signatureLabel(signature)) }
         for item in shown { suggestionStack.addArrangedSubview(completionButton(item)) }
-        suggestionBackground.isHidden = shown.isEmpty
+        let empty = shown.isEmpty && signature == nil
+        suggestionBackground.isHidden = empty
         suggestionScroll.contentOffset = CGPoint(x: -suggestionScroll.contentInset.left, y: 0)
-        editingToolbar?.setItems(shown.isEmpty ? fullToolbarItems : compactToolbarItems, animated: false)
+        editingToolbar?.setItems(empty ? fullToolbarItems : compactToolbarItems, animated: false)
+    }
+
+    private func signatureLabel(_ signature: SQLSignatureHint) -> UIView {
+        let text = NSMutableAttributedString()
+        let font = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let plain: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor.secondaryLabel]
+        text.append(NSAttributedString(string: signature.name + "(", attributes: plain))
+        for (index, parameter) in signature.parameters.enumerated() {
+            if index > 0 { text.append(NSAttributedString(string: ", ", attributes: plain)) }
+            text.append(NSAttributedString(string: parameter, attributes: index == signature.argument
+                ? [.font: UIFont.monospacedSystemFont(ofSize: 13, weight: .bold), .foregroundColor: UIColor(PortSQLPalette.accent)] : plain))
+        }
+        text.append(NSAttributedString(string: ")", attributes: plain))
+        let label = UILabel()
+        label.attributedText = text
+        label.accessibilityLabel = L10n.format("Parameter %@", signature.parameters[signature.argument])
+        let container = UIView()
+        label.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -6),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            container.heightAnchor.constraint(equalToConstant: 36),
+        ])
+        return container
     }
 
     private func completionButton(_ item: SQLCompletionItem) -> UIButton {
@@ -180,7 +211,37 @@ private final class QueryTextView: UITextView {
             let range = source.lineRange(for: NSRange(location: selectedRange.location, length: 0))
             let prefix = source.substring(with: NSRange(location: range.location, length: selectedRange.location - range.location))
             super.insertText("\n" + prefix.prefix(while: { $0 == " " || $0 == "\t" }))
+        } else if text.count == 1, let character = text.first {
+            let selection = selectedRange
+            switch EditorAutoPairs.action(typing: character, in: self.text ?? "", selection: selection) {
+            case .insert:
+                super.insertText(text)
+            case .stepOver:
+                selectedRange = NSRange(location: selection.location + 1, length: 0)
+                delegate?.textViewDidChangeSelection?(self)
+            case .pair(let pair):
+                super.insertText(pair)
+                selectedRange = NSRange(location: selection.location + 1, length: 0)
+                delegate?.textViewDidChangeSelection?(self)
+            case .wrap(let opener, let closer):
+                guard let range = selectedTextRange else { super.insertText(text); return }
+                let selected = ((self.text ?? "") as NSString).substring(with: selection)
+                replace(range, withText: opener + selected + closer)
+                selectedRange = NSRange(location: selection.location + 1, length: (selected as NSString).length)
+                delegate?.textViewDidChangeSelection?(self)
+            }
         } else { super.insertText(text) }
+    }
+
+    override func deleteBackward() {
+        let selection = selectedRange
+        if markedTextRange == nil, selection.length == 0, EditorAutoPairs.deletesPair(in: text ?? "", at: selection.location),
+           let start = position(from: beginningOfDocument, offset: selection.location - 1),
+           let end = position(from: start, offset: 2), let range = textRange(from: start, to: end) {
+            replace(range, withText: "")
+            return
+        }
+        super.deleteBackward()
     }
 
     override var keyCommands: [UIKeyCommand]? {
@@ -462,7 +523,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             guard caret.length == 0, NSMaxRange(result.fragmentRange) == caret.location, NSMaxRange(result.fragmentRange) <= source.length,
                   source.substring(with: result.fragmentRange) == result.fragment else { return }
             completion = result
-            textView.setCompletions(result.opensAutomatically || !result.fragment.isEmpty ? result.items : [])
+            textView.setCompletions(result.opensAutomatically || !result.fragment.isEmpty ? result.items : [], signature: result.signature)
         }
 
         /// Inserts a completion as ordinary edits, so Undo takes it back.
@@ -476,6 +537,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             }
             textView.selectedRange = NSRange(location: min(plan.cursor, textView.textStorage.length), length: 0)
             textView.setCompletions([])
+            SQLCompletionUsage.record(item)
             completion = .empty
             textViewDidChange(textView)
         }

@@ -1633,3 +1633,8 @@
 "esc Close" = "esc Закрыть";
 "↑↓ Choose" = "↑↓ Выбрать";
 "↩ ⇥ Insert" = "↩ ⇥ Вставить";
+"It isn't in this database, or the table list needs refreshing." = "Её нет в этой базе данных, или нужно обновить список таблиц.";
+"It isn't in this database. Did you mean “%@”?" = "Её нет в этой базе данных. Возможно, вы имели в виду «%@»?";
+"Parameter %@" = "Параметр %@";
+"Suggestions: %d" = "Подсказки: %d";
+"Unknown table “%@”" = "Неизвестная таблица «%@»";

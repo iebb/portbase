@@ -1633,3 +1633,8 @@
 "esc Close" = "esc 닫기";
 "↑↓ Choose" = "↑↓ 선택";
 "↩ ⇥ Insert" = "↩ ⇥ 삽입";
+"It isn't in this database, or the table list needs refreshing." = "이 데이터베이스에 없거나 테이블 목록을 새로 고쳐야 합니다.";
+"It isn't in this database. Did you mean “%@”?" = "이 데이터베이스에 없습니다. ‘%@’을(를) 말씀하신 건가요?";
+"Parameter %@" = "매개변수 %@";
+"Suggestions: %d" = "제안: %d";
+"Unknown table “%@”" = "알 수 없는 테이블 ‘%@’";

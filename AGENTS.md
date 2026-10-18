@@ -45,6 +45,14 @@ This repository is archived. If work resumes, treat the decisions below as proje
 - Free supports three saved bookmarks. Pro unlocks unlimited bookmarks and premium line/area chart styles. Enforce this at action/model boundaries, not only by hiding UI.
 - Recompute StoreKit access from verified current entitlements after transaction updates; revoked, refunded, expired, or upgraded transactions must not leave stale access enabled.
 
+## SQL editor
+
+- Completion comes from `SQLCompletionEngine` for the console on every platform and for the Explorer's clause fields. It reads the statement at the caret and the schema catalog only, never queries the database, and must not offer anything inside strings or comments.
+- Accepting a completion applies `SQLCompletionEngine.edits` as ordinary text edits in the editor so a single Undo reverts it; never replace the whole buffer for a completion.
+- The Mac list opens while typing (and on Esc/Control-Space) and never takes focus from the editor; iPhone and iPad show completions and the parameter hint in the keyboard bar. Keep Tab accepting the first iOS suggestion and Return/Tab accepting on the Mac.
+- Join suggestions come from key-name heuristics and must not guess self-joins. Unknown-table warnings are hints, never errors that block running a query.
+- Bracket and quote pairing follows `EditorAutoPairs`: only typed characters pair, never inside strings or comments, and quotes don't pair after a word.
+
 ## Localization and verification
 
 - Maintain exact catalog parity for `en`, `de`, `es`, `fr`, `ja`, `ko`, `pt-BR`, `ru`, `zh-Hans`, and `zh-Hant`, including placeholders and `.stringsdict` plural forms.

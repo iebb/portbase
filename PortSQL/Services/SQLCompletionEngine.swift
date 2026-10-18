@@ -45,6 +45,15 @@ struct SQLTextAddition: Hashable {
     let text: String
 }
 
+/// The function call the caret is inside, for a parameter hint like DataGrip's.
+struct SQLSignatureHint: Equatable {
+    let name: String
+    /// The parameters as the signature names them, such as ["'day'", "timestamp"].
+    let parameters: [String]
+    /// The parameter the caret is on.
+    let argument: Int
+}
+
 /// The completions at the caret and the word they replace.
 struct SQLCompletionResult: Equatable {
     var items: [SQLCompletionItem]
@@ -53,8 +62,32 @@ struct SQLCompletionResult: Equatable {
     var fragment: String
     /// Whether the list should open on its own as the user types; otherwise only on request.
     var opensAutomatically: Bool
+    var signature: SQLSignatureHint? = nil
 
     static let empty = SQLCompletionResult(items: [], fragmentRange: NSRange(location: 0, length: 0), fragment: "", opensAutomatically: false)
+}
+
+/// How often each completion has been accepted, so the ones a person uses rise to the top, as
+/// DataGrip ranks by use. Kept on this device.
+enum SQLCompletionUsage {
+    private static let key = "Portbase.completionUsage"
+    private static let limit = 400
+
+    static func key(for item: SQLCompletionItem) -> String { item.kind.rawValue + "|" + item.insertion.lowercased() }
+
+    static func counts() -> [String: Int] {
+        UserDefaults.standard.dictionary(forKey: key) as? [String: Int] ?? [:]
+    }
+
+    static func record(_ item: SQLCompletionItem) {
+        var counts = counts()
+        counts[key(for: item), default: 0] += 1
+        // Keep the most used when the list grows long.
+        if counts.count > limit {
+            counts = Dictionary(uniqueKeysWithValues: counts.sorted { $0.value > $1.value }.prefix(limit * 3 / 4).map { ($0.key, $0.value) })
+        }
+        UserDefaults.standard.set(counts, forKey: key)
+    }
 }
 
 /// Context-aware SQL completion, in the spirit of DataGrip and DBeaver: it works out which clause of which
@@ -63,7 +96,7 @@ struct SQLCompletionResult: Equatable {
 /// operators, keywords, and snippets, ranked by how well they match what has been typed.
 enum SQLCompletionEngine {
     static func complete(_ text: String, cursor: Int, catalog: [SchemaTableDescriptor], activeDatabase: String?,
-                         engine: DatabaseEngine, limit: Int = 40) -> SQLCompletionResult {
+                         engine: DatabaseEngine, limit: Int = 40, usage: [String: Int] = [:]) -> SQLCompletionResult {
         let length = text.utf16.count
         let cursor = max(0, min(cursor, length))
         let caretIndex = String.Index(utf16Offset: cursor, in: text)
@@ -91,11 +124,39 @@ enum SQLCompletionEngine {
                               statementEnd: base + sql.utf16.count, sources: scope.sources, ctes: scope.ctes, catalog: catalog,
                               activeDatabase: activeDatabase, engine: engine)
         var items = context.candidates()
+        if !usage.isEmpty {
+            for index in items.indices {
+                // Enough to reorder items of the same kind, not to lift one past a better fit for the context.
+                items[index].score += min(usage[SQLCompletionUsage.key(for: items[index])] ?? 0, 8) * 12
+            }
+        }
         items = rank(items, fragment: context.typedName)
         var seen = Set<String>()
         items = items.filter { seen.insert($0.kind.rawValue + "|" + $0.insertion.lowercased()).inserted }
         return SQLCompletionResult(items: Array(items.prefix(limit)), fragmentRange: fragmentRange, fragment: fragment,
-                                   opensAutomatically: context.opensAutomatically && context.opensWithoutTyping && !items.isEmpty)
+                                   opensAutomatically: context.opensAutomatically && context.opensWithoutTyping && !items.isEmpty,
+                                   signature: signature(in: tokens, engine: engine))
+    }
+
+    /// The function call around the caret and which of its arguments the caret is on.
+    static func signature(in tokens: [Token], engine: DatabaseEngine) -> SQLSignatureHint? {
+        var balance = 0
+        var commas = 0
+        for index in tokens.indices.reversed() {
+            let token = tokens[index]
+            if token.text == ")" { balance += 1; continue }
+            if token.text == "(" {
+                if balance > 0 { balance -= 1; continue }
+                guard index > 0, tokens[index - 1].kind == .word else { return nil }
+                let name = tokens[index - 1].text.uppercased()
+                guard let function = SQLFunctionCatalog.functions(for: engine).first(where: { $0.name.uppercased() == name && $0.takesArguments }) else { return nil }
+                let parameters = SQLFunctionCatalog.parameters(of: function.signature)
+                guard !parameters.isEmpty else { return nil }
+                return SQLSignatureHint(name: function.name, parameters: parameters, argument: min(commas, parameters.count - 1))
+            }
+            if token.text == ",", balance == 0 { commas += 1 }
+        }
+        return nil
     }
 
     /// The edits accepting an item makes, last first so each range is still valid when it's applied, and
