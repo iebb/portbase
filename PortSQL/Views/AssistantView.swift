@@ -128,8 +128,9 @@ struct AssistantChatView: View {
         }
         .onChange(of: chatProvider.id) { _, id in apiKey = AssistantAPIKeyStore.load(for: id) }
         .onReceive(NotificationCenter.default.publisher(for: NSUbiquitousKeyValueStore.didChangeExternallyNotification)) { _ in
-            if AssistantSettingsSync.pull() { settings = .load() }
+            AssistantSettingsSync.pull()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .assistantSettingsDidChange)) { _ in settings = .load() }
         .sheet(isPresented: $showsSettings, onDismiss: {
             settings = .load()
             apiKey = AssistantAPIKeyStore.load(for: chatProvider.id)
@@ -690,14 +691,15 @@ struct AssistantSettingsSections: View {
         } footer: {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Sends up to 5 rows of the last result so answers can match real values. Off by default because it shares data with the provider.")
-                Text("These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device.")
+                Text("These settings, reference files included, sync to your other devices as an encrypted file in iCloud Drive whose key is in iCloud Keychain. API keys sync through iCloud Keychain.")
             }
         }
         .onChange(of: settings) { _, value in value.save() }
         // Another device changed the settings: show its copy.
         .onReceive(NotificationCenter.default.publisher(for: NSUbiquitousKeyValueStore.didChangeExternallyNotification)) { _ in
-            if AssistantSettingsSync.pull() { settings = .load() }
+            AssistantSettingsSync.pull()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .assistantSettingsDidChange)) { _ in settings = .load() }
         .fileImporter(isPresented: $importsFile, allowedContentTypes: [.plainText, .text, .sourceCode, .json, .data],
                       allowsMultipleSelection: false) { result in importFile(result) }
         .sheet(item: $editing) { edit in

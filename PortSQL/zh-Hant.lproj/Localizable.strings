@@ -1523,3 +1523,4 @@
 "The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider." = "勾選的提供者及其模型是新聊天的預設值；每個聊天都可以選擇自己的。API 鍵透過 iCloud 鑰匙圈同步，要求直接從此裝置傳送給提供者。";
 "The model this chat uses" = "此聊天使用的模型";
 "These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device." = "這些設定透過 iCloud 同步到你的其他裝置，API 鍵透過 iCloud 鑰匙圈同步。總計超過 256 KB 的參考檔案會保留在此裝置上。";
+"These settings, reference files included, sync to your other devices as an encrypted file in iCloud Drive whose key is in iCloud Keychain. API keys sync through iCloud Keychain." = "這些設定（包括參考檔案）以加密檔案形式透過 iCloud 雲碟同步到你的其他裝置，其鍵保存在 iCloud 鑰匙圈中。API 鍵透過 iCloud 鑰匙圈同步。";

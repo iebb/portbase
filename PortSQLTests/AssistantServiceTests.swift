@@ -1,3 +1,4 @@
+import CryptoKit
 import XCTest
 @testable import PortSQL
 
@@ -211,28 +212,32 @@ final class AssistantSettingsSyncTests: XCTestCase {
         XCTAssertNil(AssistantSettingsSync.merged(local: cloud, cloud: local), "An older iCloud copy doesn't replace newer local settings")
     }
 
-    func testLargeReferenceFilesStayOnTheDeviceThatAddedThem() throws {
+    func testSettingsSyncEncryptedWithAllReferenceFiles() throws {
+        let key = SymmetricKey(size: .bits256)
         var settings = AssistantSettings()
         settings.instructions = "Amounts are in cents."
-        settings.documents = [AssistantContextDocument(name: "big.sql", text: String(repeating: "x", count: 300 * 1_024))]
+        settings.documents = [AssistantContextDocument(name: "big.sql", text: String(repeating: "CREATE TABLE secret_orders (id int);\n", count: 20_000))]
         settings.updatedAt = Date(timeIntervalSince1970: 300)
-        let payload = try XCTUnwrap(AssistantSettingsSync.cloudPayload(for: settings))
-        XCTAssertLessThan(payload.count, AssistantSettingsSync.documentBudget)
-        let cloud = try JSONDecoder().decode(AssistantSettings.self, from: payload)
-        XCTAssertTrue(cloud.documents.isEmpty)
-        XCTAssertTrue(cloud.documentsOmitted)
-        XCTAssertEqual(cloud.instructions, "Amounts are in cents.")
+        let payload = try AssistantSettingsSync.encryptedPayload(for: settings, key: key)
+        XCTAssertGreaterThan(payload.count, 600 * 1_024, "Large reference files sync too, past key-value storage's limit")
+        XCTAssertNil(String(data: payload, encoding: .utf8)?.range(of: "secret_orders"), "The file reveals nothing without the key")
+        XCTAssertFalse(payload.range(of: Data("Amounts are in cents".utf8)) != nil)
+        let decoded = try AssistantSettingsSync.settings(fromEncrypted: payload, key: key)
+        XCTAssertEqual(decoded.documents.first?.text.count, settings.documents.first?.text.count)
+        XCTAssertEqual(decoded.instructions, "Amounts are in cents.")
+    }
 
+    func testLegacyCopiesWithoutReferenceFilesKeepThisDevicesFiles() throws {
+        var cloud = AssistantSettings()
+        cloud.instructions = "Amounts are in cents."
+        cloud.documentsOmitted = true
+        cloud.updatedAt = Date(timeIntervalSince1970: 300)
         var other = AssistantSettings()
         other.documents = [AssistantContextDocument(name: "mine.sql", text: "CREATE TABLE t (id int);")]
         let merged = try XCTUnwrap(AssistantSettingsSync.merged(local: other, cloud: cloud))
-        XCTAssertEqual(merged.documents.map(\.name), ["mine.sql"], "A device keeps its own files when the iCloud copy left them out")
+        XCTAssertEqual(merged.documents.map(\.name), ["mine.sql"])
         XCTAssertEqual(merged.instructions, "Amounts are in cents.")
         XCTAssertFalse(merged.documentsOmitted)
-
-        settings.documents = [AssistantContextDocument(name: "small.sql", text: "CREATE TABLE t (id int);")]
-        let small = try JSONDecoder().decode(AssistantSettings.self, from: try XCTUnwrap(AssistantSettingsSync.cloudPayload(for: settings)))
-        XCTAssertEqual(small.documents.map(\.name), ["small.sql"], "Small files sync with the settings")
     }
 
     func testSettingsAreSavedWithoutTheAPIKey() throws {
@@ -287,6 +292,38 @@ final class DestructiveSQLTests: XCTestCase {
         let blocked = try XCTUnwrap(SQLSafetyService.assessment(for: "DROP TABLE users", readOnly: true))
         XCTAssertTrue(blocked.blocksExecution)
         XCTAssertFalse(blocked.isDestructive)
+    }
+}
+
+final class CloudEncryptionTests: XCTestCase {
+    func testSealedDataOpensOnlyWithItsKeyAndUntouched() throws {
+        let key = SymmetricKey(size: .bits256)
+        let sealed = try CloudEncryption.seal(Data("hello".utf8), key: key)
+        XCTAssertEqual(sealed.prefix(4), Data("PBE1".utf8))
+        XCTAssertEqual(try CloudEncryption.open(sealed, key: key), Data("hello".utf8))
+        XCTAssertNotEqual(try CloudEncryption.seal(Data("hello".utf8), key: key), sealed, "Each seal uses a fresh nonce")
+
+        XCTAssertThrowsError(try CloudEncryption.open(sealed, key: SymmetricKey(size: .bits256))) {
+            XCTAssertEqual($0 as? CloudEncryptionError, .wrongKeyOrDamaged)
+        }
+        var tampered = sealed
+        tampered[tampered.count - 1] ^= 0x01
+        XCTAssertThrowsError(try CloudEncryption.open(tampered, key: key)) {
+            XCTAssertEqual($0 as? CloudEncryptionError, .wrongKeyOrDamaged)
+        }
+        XCTAssertThrowsError(try CloudEncryption.open(Data("{\"plain\": true}".utf8), key: key)) {
+            XCTAssertEqual($0 as? CloudEncryptionError, .unrecognizedFormat)
+        }
+    }
+
+    func testTheKeyIsCreatedOnceAndReused() throws {
+        defer { KeychainService.setSyncedAppSecret("", for: CloudEncryption.keyName) }
+        KeychainService.setSyncedAppSecret("", for: CloudEncryption.keyName)
+        XCTAssertNil(CloudEncryption.key(creatingIfMissing: false))
+        let first = try XCTUnwrap(CloudEncryption.key())
+        let again = try XCTUnwrap(CloudEncryption.key())
+        let sealed = try CloudEncryption.seal(Data("x".utf8), key: first)
+        XCTAssertEqual(try CloudEncryption.open(sealed, key: again), Data("x".utf8), "A second call returns the stored key")
     }
 }
 

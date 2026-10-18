@@ -17,6 +17,7 @@
 		06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */; };
 		5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
 		7EAA524DCE70FC139D4C48D8 /* SchemaDDLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */; };
+		C014536B50F5C0D07D8EAE77 /* CloudEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */; };
 		DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
 		E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		071C3A222675B56549A173EF /* ServerCertificateProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */; };
@@ -231,6 +232,7 @@
 		8CCD53796779AEFB9659D4E1 /* VisualizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */; };
 		9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
 		F39772426FEA8E73F8B2D456 /* SchemaDDLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */; };
+		9E150FEE8C7A4545B7B8FEA6 /* CloudEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */; };
 		385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
 		12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		8E30B4B80563F61728402BED /* MongoQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C52CE99FBA2ED6D018425D /* MongoQueryEditorCard.swift */; };
@@ -464,6 +466,7 @@
 		48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationService.swift; sourceTree = "<group>"; };
 		8C2D20E83571702A0436925F /* ChartQueryRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartQueryRunner.swift; sourceTree = "<group>"; };
 		54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaDDLBuilder.swift; sourceTree = "<group>"; };
+		89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudEncryption.swift; sourceTree = "<group>"; };
 		26662324659C354D792E1789 /* ChartRenderData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderData.swift; sourceTree = "<group>"; };
 		12415823640818708E85F1ED /* ChartResultCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartResultCache.swift; sourceTree = "<group>"; };
 		49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedQueryEditor.swift; sourceTree = "<group>"; };
@@ -784,6 +787,7 @@
 				48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */,
 				8C2D20E83571702A0436925F /* ChartQueryRunner.swift */,
 				54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */,
+				89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */,
 				26662324659C354D792E1789 /* ChartRenderData.swift */,
 				12415823640818708E85F1ED /* ChartResultCache.swift */,
 				934A946D9B49098CF15CE03C /* WorkspaceActivityService.swift */,
@@ -1306,6 +1310,7 @@
 				8CCD53796779AEFB9659D4E1 /* VisualizationService.swift in Sources */,
 				9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */,
 				F39772426FEA8E73F8B2D456 /* SchemaDDLBuilder.swift in Sources */,
+				9E150FEE8C7A4545B7B8FEA6 /* CloudEncryption.swift in Sources */,
 				385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */,
 				12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */,
 				51C296FEDE9059FA07DE51F4 /* VisualizerView.swift in Sources */,
@@ -1511,6 +1516,7 @@
 				06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */,
 				5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */,
 				7EAA524DCE70FC139D4C48D8 /* SchemaDDLBuilder.swift in Sources */,
+				C014536B50F5C0D07D8EAE77 /* CloudEncryption.swift in Sources */,
 				DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */,
 				E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */,
 				8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */,

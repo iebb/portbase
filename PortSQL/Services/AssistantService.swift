@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 // MARK: - Configuration
@@ -232,25 +233,31 @@ struct AssistantSettings: Codable, Equatable {
     func isConfigured(apiKey: String) -> Bool { activeProvider.isConfigured(apiKey: apiKey) }
 }
 
-/// Syncs assistant settings through iCloud key-value storage, like connections. The API key is never
-/// part of it. Reference files sync only while they fit a share of the store's limited space.
-enum AssistantSettingsSync {
-    static let cloudKey = "portbase.assistant.settings.v1"
-    static let documentBudget = 256 * 1_024
+extension Notification.Name {
+    /// Posted on the main thread after newer assistant settings arrived from another device.
+    static let assistantSettingsDidChange = Notification.Name("Portbase.assistantSettingsDidChange")
+}
 
-    /// The copy to put in iCloud: everything, or everything but the reference files when they're too large.
-    static func cloudPayload(for settings: AssistantSettings) -> Data? {
-        let encoder = JSONEncoder()
-        guard let full = try? encoder.encode(settings) else { return nil }
-        if full.count <= documentBudget { return full }
-        var trimmed = settings
-        trimmed.documents = []
-        trimmed.documentsOmitted = true
-        return try? encoder.encode(trimmed)
+/// Syncs assistant settings as an encrypted file in the app's iCloud Drive folder, with the key in
+/// iCloud Keychain (see `CloudEncryption`), so reading the iCloud Drive folder reveals nothing and the
+/// settings, reference files included, aren't held to key-value storage's small limit. A tiny revision
+/// value in key-value storage tells other devices when to read the file. API keys are never part of it.
+enum AssistantSettingsSync {
+    /// The plaintext copy earlier versions kept in key-value storage; read once to migrate, then removed.
+    static let legacyCloudKey = "portbase.assistant.settings.v1"
+    static let revisionKey = "portbase.assistant.settings.revision"
+    static let fileName = "assistant-settings.pbenc"
+
+    static func encryptedPayload(for settings: AssistantSettings, key: SymmetricKey) throws -> Data {
+        try CloudEncryption.seal(JSONEncoder().encode(settings), key: key)
+    }
+
+    static func settings(fromEncrypted data: Data, key: SymmetricKey) throws -> AssistantSettings {
+        try JSONDecoder().decode(AssistantSettings.self, from: CloudEncryption.open(data, key: key))
     }
 
     /// The local settings after taking in an iCloud copy, or nil when the local copy is as new.
-    /// When the iCloud copy left out the reference files, this device keeps its own.
+    /// When a legacy iCloud copy left out the reference files, this device keeps its own.
     static func merged(local: AssistantSettings, cloud: AssistantSettings) -> AssistantSettings? {
         guard cloud.updatedAt > local.updatedAt else { return nil }
         var merged = cloud
@@ -259,23 +266,74 @@ enum AssistantSettingsSync {
         return merged
     }
 
-    static func push(_ settings: AssistantSettings) {
-        guard let payload = cloudPayload(for: settings) else { return }
-        let store = NSUbiquitousKeyValueStore.default
-        store.set(payload, forKey: cloudKey)
-        store.synchronize()
+    private static let queue = DispatchQueue(label: "Portbase.AssistantSettingsSync", qos: .utility)
+    /// Looked up once, on `queue`: finding the iCloud Drive folder can take a moment.
+    nonisolated(unsafe) private static var folderLookup: URL??
+
+    private static func folder() -> URL? {
+        if let folderLookup { return folderLookup }
+        let url = FileManager.default.url(forUbiquityContainerIdentifier: nil)?
+            .appendingPathComponent("Documents", isDirectory: true)
+            .appendingPathComponent("PortSQL", isDirectory: true)
+        if let url { try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true) }
+        folderLookup = .some(url)
+        return url
     }
 
-    /// Adopts a newer copy from iCloud into local storage. Returns whether the local settings changed.
-    @discardableResult
-    static func pull(into defaults: UserDefaults = .standard) -> Bool {
-        guard !WorkspaceFileStore.isTestHost,
-              let data = NSUbiquitousKeyValueStore.default.data(forKey: cloudKey),
-              let cloud = try? JSONDecoder().decode(AssistantSettings.self, from: data),
-              let merged = merged(local: .load(from: defaults), cloud: cloud),
-              let encoded = try? JSONEncoder().encode(merged) else { return false }
-        defaults.set(encoded, forKey: AssistantSettings.storageKey)
-        return true
+    static func push(_ settings: AssistantSettings) {
+        queue.async {
+            guard let folder = folder(), let key = CloudEncryption.key(),
+                  let payload = try? encryptedPayload(for: settings, key: key) else { return }
+            let url = folder.appendingPathComponent(fileName)
+            var coordinationError: NSError?
+            NSFileCoordinator().coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { target in
+                try? payload.write(to: target, options: .atomic)
+            }
+            let store = NSUbiquitousKeyValueStore.default
+            store.set(settings.updatedAt.timeIntervalSince1970, forKey: revisionKey)
+            // The plaintext copy earlier versions kept isn't written anymore, and is removed.
+            store.removeObject(forKey: legacyCloudKey)
+            store.synchronize()
+        }
+    }
+
+    /// Reads the iCloud copy in the background and adopts it when it's newer, posting
+    /// `assistantSettingsDidChange` so open screens reload.
+    static func pull() {
+        guard !WorkspaceFileStore.isTestHost else { return }
+        queue.async {
+            guard let cloud = encryptedCopy() ?? legacyCopy() else { return }
+            DispatchQueue.main.async {
+                guard let merged = merged(local: .load(), cloud: cloud),
+                      let encoded = try? JSONEncoder().encode(merged) else { return }
+                UserDefaults.standard.set(encoded, forKey: AssistantSettings.storageKey)
+                NotificationCenter.default.post(name: .assistantSettingsDidChange, object: nil)
+            }
+        }
+    }
+
+    private static func encryptedCopy() -> AssistantSettings? {
+        guard let folder = folder() else { return nil }
+        let url = folder.appendingPathComponent(fileName)
+        // A file another device wrote may not be on this device yet: ask for it and read it next time,
+        // rather than wait on the download.
+        let status = try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]).ubiquitousItemDownloadingStatus
+        if let status, status != .current {
+            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+            return nil
+        }
+        var data: Data?
+        var coordinationError: NSError?
+        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { source in
+            data = try? Data(contentsOf: source)
+        }
+        // Without the key yet (iCloud Keychain still syncing it), the file is read on a later pull.
+        guard let data, let key = CloudEncryption.key(creatingIfMissing: false) else { return nil }
+        return try? settings(fromEncrypted: data, key: key)
+    }
+
+    private static func legacyCopy() -> AssistantSettings? {
+        NSUbiquitousKeyValueStore.default.data(forKey: legacyCloudKey).flatMap { try? JSONDecoder().decode(AssistantSettings.self, from: $0) }
     }
 }
 
