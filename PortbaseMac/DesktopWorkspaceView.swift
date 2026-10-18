@@ -94,6 +94,9 @@ struct DesktopWorkspaceView: View {
                 if showsHome { home } else { session }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Backgrounds extend under the toolbar by default; keep sidebars and pages out of the title bar
+            // so the tab strip sits on one even color.
+            .clipped()
             if let error = library.storageError ?? consoles.storageError {
                 Label(error, systemImage: "exclamationmark.triangle.fill").font(.captionText).foregroundStyle(.red).padding(Spacing.s)
             }
