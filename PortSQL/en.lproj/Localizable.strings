@@ -1516,3 +1516,10 @@
 "The API key stays in this device’s Keychain." = "The API key stays in this device’s Keychain.";
 "The provider listed no models." = "The provider listed no models.";
 "Use %@" = "Use %@";
+"Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain." = "Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain.";
+"Make Default for New Chats" = "Make Default for New Chats";
+"No models listed" = "No models listed";
+"The API key syncs to your other devices through iCloud Keychain." = "The API key syncs to your other devices through iCloud Keychain.";
+"The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider." = "The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider.";
+"The model this chat uses" = "The model this chat uses";
+"These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device." = "These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device.";

@@ -217,6 +217,17 @@ struct AssistantSettings: Codable, Equatable {
         if syncing { AssistantSettingsSync.push(stamped) }
     }
 
+    /// These settings with one chat's choice of provider and model, which may differ from the default
+    /// for new chats. A provider that has since been removed falls back to the default.
+    func choosing(providerID: UUID?, model: String?) -> AssistantSettings {
+        var chosen = self
+        if let providerID, providers.contains(where: { $0.id == providerID }) {
+            chosen.selectedProviderID = providerID
+            if let model, !model.isEmpty { chosen.activeProvider.model = model }
+        }
+        return chosen
+    }
+
     /// Whether requests can be sent with the active provider.
     func isConfigured(apiKey: String) -> Bool { activeProvider.isConfigured(apiKey: apiKey) }
 }
@@ -268,15 +279,35 @@ enum AssistantSettingsSync {
     }
 }
 
-/// Each provider's API key, kept in this device's Keychain like database secrets.
+/// Each provider's API key, kept in iCloud Keychain so it reaches the user's other devices end-to-end
+/// encrypted, the way the provider settings sync through iCloud. Keys saved on this device only by
+/// earlier versions move to iCloud Keychain the first time they're read.
 enum AssistantAPIKeyStore {
     static func account(for providerID: UUID) -> String {
         // The provider migrated from earlier versions keeps the key saved before providers had IDs.
         providerID == AssistantProviderConfig.legacyID ? "assistant.apiKey" : "assistant.apiKey." + providerID.uuidString
     }
-    static func load(for providerID: UUID = AssistantProviderConfig.legacyID) -> String { KeychainService.appSecret(account(for: providerID)) }
+
+    static func load(for providerID: UUID = AssistantProviderConfig.legacyID) -> String {
+        let account = account(for: providerID)
+        let synced = KeychainService.syncedAppSecret(account)
+        if !synced.isEmpty { return synced }
+        let local = KeychainService.appSecret(account)
+        if !local.isEmpty, KeychainService.setSyncedAppSecret(local, for: account) {
+            KeychainService.setAppSecret("", for: account)
+        }
+        return local
+    }
+
     static func save(_ key: String, for providerID: UUID = AssistantProviderConfig.legacyID) {
-        KeychainService.setAppSecret(key.trimmingCharacters(in: .whitespacesAndNewlines), for: account(for: providerID))
+        let account = account(for: providerID)
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if KeychainService.setSyncedAppSecret(trimmed, for: account) {
+            KeychainService.setAppSecret("", for: account)
+        } else {
+            // iCloud Keychain unavailable: keep the key on this device rather than lose it.
+            KeychainService.setAppSecret(trimmed, for: account)
+        }
     }
 }
 

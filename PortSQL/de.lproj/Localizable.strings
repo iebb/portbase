@@ -1516,3 +1516,10 @@
 "The API key stays in this device’s Keychain." = "Der API-Schlüssel bleibt im Schlüsselbund dieses Geräts.";
 "The provider listed no models." = "Der Anbieter hat keine Modelle aufgelistet.";
 "Use %@" = "%@ verwenden";
+"Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain." = "Füge Anthropic, OpenAI, OpenRouter, einen lokalen Server wie Ollama oder LM Studio oder einen anderen OpenAI-kompatiblen Endpunkt hinzu. Schlüssel werden über den iCloud-Schlüsselbund mit deinen Geräten synchronisiert.";
+"Make Default for New Chats" = "Als Standard für neue Chats";
+"No models listed" = "Keine Modelle aufgelistet";
+"The API key syncs to your other devices through iCloud Keychain." = "Der API-Schlüssel wird über den iCloud-Schlüsselbund mit deinen anderen Geräten synchronisiert.";
+"The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider." = "Der markierte Anbieter und sein Modell sind der Standard für neue Chats; jeder Chat kann sein eigenes wählen. API-Schlüssel werden über den iCloud-Schlüsselbund synchronisiert, und Anfragen gehen direkt von diesem Gerät an den Anbieter.";
+"The model this chat uses" = "Das Modell dieses Chats";
+"These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device." = "Diese Einstellungen werden über iCloud mit deinen anderen Geräten synchronisiert, API-Schlüssel über den iCloud-Schlüsselbund. Referenzdateien über insgesamt 256 KB bleiben auf diesem Gerät.";

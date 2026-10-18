@@ -121,6 +121,56 @@ enum KeychainService {
 #endif
     }
 
+    /// An app secret kept in iCloud Keychain, which syncs it end-to-end encrypted to the user's other
+    /// devices. Used for AI provider keys only; connection secrets stay on this device.
+    static func syncedAppSecret(_ name: String) -> String {
+        var query = syncedQuery(account: "app.synced." + name)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: AnyObject?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data, let value = String(data: data, encoding: .utf8) else {
+#if DEBUG
+            return fallbackStore.value(for: "app.synced." + name)
+#else
+            return ""
+#endif
+        }
+        return value
+    }
+
+    /// Saves or, when empty, removes a synced app secret. Returns whether the Keychain took it.
+    @discardableResult
+    static func setSyncedAppSecret(_ secret: String, for name: String) -> Bool {
+        let account = "app.synced." + name
+        guard !secret.isEmpty else {
+            SecItemDelete(syncedQuery(account: account) as CFDictionary)
+#if DEBUG
+            fallbackStore.removeValue(for: account)
+#endif
+            return true
+        }
+        let data = Data(secret.utf8)
+        var query = syncedQuery(account: account)
+        var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        if status == errSecItemNotFound {
+            query[kSecValueData as String] = data
+            // Not "this device only": iCloud Keychain only syncs items every device can unlock.
+            query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+            status = SecItemAdd(query as CFDictionary, nil)
+        }
+#if DEBUG
+        if status != errSecSuccess { fallbackStore.set(secret, for: account); return true }
+#endif
+        return status == errSecSuccess
+    }
+
+    private static func syncedQuery(account: String) -> [String: Any] {
+        var query = baseQuery(account: account)
+        query[kSecAttrSynchronizable as String] = kCFBooleanTrue
+        return query
+    }
+
     private static func baseQuery(account: String) -> [String: Any] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

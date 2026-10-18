@@ -320,6 +320,33 @@ final class AssistantProviderTests: XCTestCase {
         XCTAssertEqual(object["provider"] as? String, "openAICompatible")
     }
 
+    func testDeviceOnlyKeysMoveToTheSyncedKeychainWhenRead() {
+        let provider = UUID()
+        let account = AssistantAPIKeyStore.account(for: provider)
+        defer { AssistantAPIKeyStore.save("", for: provider); KeychainService.setAppSecret("", for: account) }
+        KeychainService.setAppSecret("sk-old", for: account)
+        XCTAssertEqual(AssistantAPIKeyStore.load(for: provider), "sk-old")
+        XCTAssertEqual(KeychainService.syncedAppSecret(account), "sk-old", "The key now syncs through iCloud Keychain")
+        XCTAssertEqual(KeychainService.appSecret(account), "", "The device-only copy is removed")
+        AssistantAPIKeyStore.save("sk-new", for: provider)
+        XCTAssertEqual(AssistantAPIKeyStore.load(for: provider), "sk-new")
+    }
+
+    func testEachChatCanPickItsOwnProviderAndModel() {
+        var settings = AssistantSettings()
+        var ollama = AssistantProviderPreset.ollama.configuration
+        ollama.model = "llama3.1"
+        settings.providers.append(ollama)
+        let chat = settings.choosing(providerID: ollama.id, model: "qwen2.5")
+        XCTAssertEqual(chat.activeProvider.id, ollama.id)
+        XCTAssertEqual(chat.model, "qwen2.5")
+        XCTAssertEqual(settings.activeProvider.id, AssistantProviderConfig.legacyID, "The default for new chats is unchanged")
+        XCTAssertEqual(settings.providers[1].model, "llama3.1")
+        XCTAssertEqual(settings.choosing(providerID: nil, model: nil), settings, "A chat without a choice uses the default")
+        XCTAssertEqual(settings.choosing(providerID: UUID(), model: "gone").activeProvider.id, AssistantProviderConfig.legacyID,
+                       "A removed provider falls back to the default")
+    }
+
     func testModelsRequestsUseEachAPIsAuthentication() throws {
         let anthropic = try AssistantClient.modelsRequest(for: AssistantProviderPreset.anthropic.configuration, apiKey: "sk-ant")
         XCTAssertEqual(anthropic.url?.absoluteString, "https://api.anthropic.com/v1/models?limit=1000")

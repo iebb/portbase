@@ -1516,3 +1516,10 @@
 "The API key stays in this device’s Keychain." = "APIキーはこのデバイスのキーチェーンに保存されます。";
 "The provider listed no models." = "プロバイダはモデルを返しませんでした。";
 "Use %@" = "%@を使用";
+"Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain." = "Anthropic、OpenAI、OpenRouter、OllamaやLM Studioなどのローカルサーバ、またはOpenAI互換のエンドポイントを追加します。キーはiCloudキーチェーンでデバイス間に同期されます。";
+"Make Default for New Chats" = "新しいチャットのデフォルトにする";
+"No models listed" = "モデルがありません";
+"The API key syncs to your other devices through iCloud Keychain." = "APIキーはiCloudキーチェーンでほかのデバイスに同期されます。";
+"The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider." = "チェックしたプロバイダとそのモデルが新しいチャットのデフォルトです。チャットごとに別のものを選べます。APIキーはiCloudキーチェーンで同期され、リクエストはこのデバイスからプロバイダへ直接送信されます。";
+"The model this chat uses" = "このチャットで使うモデル";
+"These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device." = "これらの設定はiCloudでほかのデバイスに、APIキーはiCloudキーチェーンで同期されます。合計256 KBを超える参照ファイルはこのデバイスに残ります。";

@@ -15,6 +15,9 @@ final class AssistantSession: ObservableObject {
 
     @Published private(set) var turns: [Turn] = []
     @Published private(set) var isSending = false
+    /// This chat's provider and model; nil uses the default for new chats.
+    @Published var providerID: UUID?
+    @Published var model: String?
     @Published var errorMessage: String?
     private var task: Task<Void, Never>?
 
@@ -35,7 +38,7 @@ final class AssistantSession: ObservableObject {
         let system = AssistantPromptBuilder.systemPrompt(context: context, settings: settings)
         let messages = turns.map { AssistantMessage(role: $0.role, text: $0.text) }
         let apiKey = AssistantAPIKeyStore.load(for: settings.activeProvider.id)
-        let model = settings.model
+        let model = settings.activeProvider.name + " · " + settings.model
         isSending = true
         errorMessage = nil
         task = Task {
@@ -100,7 +103,10 @@ struct AssistantChatView: View {
     @State private var modelsError: String?
     @FocusState private var promptFocused: Bool
 
-    private var isConfigured: Bool { settings.isConfigured(apiKey: apiKey) }
+    /// The settings with this chat's provider and model applied.
+    private var chatSettings: AssistantSettings { settings.choosing(providerID: session.providerID, model: session.model) }
+    private var chatProvider: AssistantProviderConfig { chatSettings.activeProvider }
+    private var isConfigured: Bool { chatSettings.isConfigured(apiKey: apiKey) }
     private var context: AssistantContext? { workspace.assistantContext(includingSampleRows: settings.includesSampleRows) }
 
     var body: some View {
@@ -116,17 +122,17 @@ struct AssistantChatView: View {
         }
         .background(PortSQLPalette.canvasTop)
         .onAppear {
-            apiKey = AssistantAPIKeyStore.load(for: settings.activeProvider.id)
+            apiKey = AssistantAPIKeyStore.load(for: chatProvider.id)
             promptFocused = isConfigured
-            if isConfigured, settings.activeProvider.models.isEmpty { refreshModels() }
+            if isConfigured, settings.providers.contains(where: { $0.models.isEmpty }) { refreshModels() }
         }
-        .onChange(of: settings.activeProvider.id) { _, id in apiKey = AssistantAPIKeyStore.load(for: id) }
+        .onChange(of: chatProvider.id) { _, id in apiKey = AssistantAPIKeyStore.load(for: id) }
         .onReceive(NotificationCenter.default.publisher(for: NSUbiquitousKeyValueStore.didChangeExternallyNotification)) { _ in
             if AssistantSettingsSync.pull() { settings = .load() }
         }
         .sheet(isPresented: $showsSettings, onDismiss: {
             settings = .load()
-            apiKey = AssistantAPIKeyStore.load(for: settings.activeProvider.id)
+            apiKey = AssistantAPIKeyStore.load(for: chatProvider.id)
         }) {
             AssistantSettingsSheet()
         }
@@ -175,7 +181,7 @@ struct AssistantChatView: View {
         return parts.joined(separator: " · ")
     }
 
-    /// Every provider's models, as their models endpoints listed them.
+    /// Every provider's models, as their models endpoints listed them. The choice is this chat's own.
     private var modelMenu: some View {
         Menu {
             ForEach(settings.providers) { provider in
@@ -183,9 +189,12 @@ struct AssistantChatView: View {
                     let models = provider.models.isEmpty
                         ? (provider.model.isEmpty ? [] : [AssistantModelInfo(id: provider.model)])
                         : provider.models
+                    if models.isEmpty {
+                        Text("No models listed")
+                    }
                     ForEach(models) { model in
                         Button { select(model.id, of: provider) } label: {
-                            if provider.id == settings.activeProvider.id && provider.model == model.id {
+                            if provider.id == chatProvider.id && chatProvider.model == model.id {
                                 Label(model.title, systemImage: "checkmark")
                             } else {
                                 Text(model.title)
@@ -195,12 +204,17 @@ struct AssistantChatView: View {
                 }
             }
             Divider()
+            Button("Make Default for New Chats", systemImage: "star") { makeDefault() }
+                .disabled(settings.activeProvider.id == chatProvider.id && settings.activeProvider.model == chatProvider.model)
             Button("Refresh Models", systemImage: "arrow.clockwise") { refreshModels() }
                 .disabled(isLoadingModels)
             Button("Manage Providers…", systemImage: "server.rack") { showsSettings = true }
         } label: {
             HStack(spacing: Spacing.xxs) {
                 if isLoadingModels { ProgressView().controlSize(.mini) }
+                if settings.providers.count > 1 {
+                    Text(chatProvider.name).foregroundStyle(PortSQLPalette.muted).lineLimit(1)
+                }
                 Text(activeModelTitle).lineLimit(1)
                 Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold))
             }
@@ -214,39 +228,59 @@ struct AssistantChatView: View {
         .menuIndicator(.hidden)
         .buttonStyle(.plain)
         .fixedSize()
-        .help(modelsError ?? settings.activeProvider.name)
+        .help(modelsError ?? L10n.text("The model this chat uses"))
         .accessibilityLabel(L10n.format("Model %@", activeModelTitle))
     }
 
     private var activeModelTitle: String {
-        let provider = settings.activeProvider
+        let provider = chatProvider
         return provider.models.first { $0.id == provider.model }?.title ?? (provider.model.isEmpty ? provider.name : provider.model)
     }
 
+    /// Picks a model for this chat only; other chats and the default stay as they are.
     private func select(_ model: String, of provider: AssistantProviderConfig) {
-        settings.selectedProviderID = provider.id
-        settings.activeProvider.model = model
-        settings.save()
+        session.providerID = provider.id
+        session.model = model
         apiKey = AssistantAPIKeyStore.load(for: provider.id)
     }
 
-    /// Asks the active provider which models it offers and remembers the list.
+    private func makeDefault() {
+        let chosen = chatProvider
+        settings.selectedProviderID = chosen.id
+        if let index = settings.providers.firstIndex(where: { $0.id == chosen.id }) { settings.providers[index].model = chosen.model }
+        settings.save()
+    }
+
+    /// Asks every provider which models it offers and remembers the lists.
     private func refreshModels() {
-        let provider = settings.activeProvider
-        let key = AssistantAPIKeyStore.load(for: provider.id)
+        let providers = settings.providers
         isLoadingModels = true
         modelsError = nil
         Task {
-            do {
-                let models = try await AssistantClient.listModels(for: provider, apiKey: key)
-                if let index = settings.providers.firstIndex(where: { $0.id == provider.id }) {
-                    settings.providers[index].models = models
-                    if settings.providers[index].model.isEmpty, let first = models.first { settings.providers[index].model = first.id }
-                    settings.save()
+            var failures: [String] = []
+            await withTaskGroup(of: (UUID, Result<[AssistantModelInfo], Error>).self) { group in
+                for provider in providers {
+                    let key = AssistantAPIKeyStore.load(for: provider.id)
+                    // A provider that can't be asked yet, such as one without its key, is skipped.
+                    guard (try? AssistantClient.modelsRequest(for: provider, apiKey: key)) != nil else { continue }
+                    group.addTask {
+                        do { return (provider.id, .success(try await AssistantClient.listModels(for: provider, apiKey: key))) }
+                        catch { return (provider.id, .failure(error)) }
+                    }
                 }
-            } catch {
-                modelsError = DatabaseErrorFormatter.message(for: error)
+                for await (id, result) in group {
+                    guard let index = settings.providers.firstIndex(where: { $0.id == id }) else { continue }
+                    switch result {
+                    case .success(let models):
+                        settings.providers[index].models = models
+                        if settings.providers[index].model.isEmpty, let first = models.first { settings.providers[index].model = first.id }
+                    case .failure(let error):
+                        failures.append(settings.providers[index].name + ": " + DatabaseErrorFormatter.message(for: error))
+                    }
+                }
             }
+            settings.save()
+            modelsError = failures.isEmpty ? nil : failures.joined(separator: "\n")
             isLoadingModels = false
         }
     }
@@ -258,7 +292,7 @@ struct AssistantChatView: View {
             Spacer(minLength: 0)
             Image(systemName: "sparkles").font(.emptyStateSymbol).foregroundStyle(PortSQLPalette.accent)
             Text("Set up an AI provider").font(.sectionTitle).foregroundStyle(PortSQLPalette.ink)
-            Text("Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys stay in this device’s Keychain.")
+            Text("Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain.")
                 .font(.footnoteText)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -415,7 +449,7 @@ struct AssistantChatView: View {
             }
             Spacer(minLength: Spacing.s)
             if session.turns.last?.role == .user, let context {
-                Button("Retry", systemImage: "arrow.clockwise") { session.retry(context: context, settings: settings) }
+                Button("Retry", systemImage: "arrow.clockwise") { session.retry(context: context, settings: chatSettings) }
                     .buttonStyle(.portbaseSecondary)
             }
         }
@@ -537,7 +571,7 @@ struct AssistantChatView: View {
 
     private func send() {
         guard canSend, let context else { return }
-        session.send(prompt, context: context, settings: settings)
+        session.send(prompt, context: context, settings: chatSettings)
         prompt = ""
     }
 }
@@ -613,7 +647,7 @@ struct AssistantSettingsSections: View {
         } header: {
             Text("AI Providers")
         } footer: {
-            Text("API keys stay in this device’s Keychain. Requests go straight from this device to the provider you choose.")
+            Text("The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider.")
         }
 
         Section {
@@ -656,7 +690,7 @@ struct AssistantSettingsSections: View {
         } footer: {
             VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text("Sends up to 5 rows of the last result so answers can match real values. Off by default because it shares data with the provider.")
-                Text("These settings sync through iCloud to your other devices. The API key stays on each device, and reference files larger than 256 KB in total stay on this device.")
+                Text("These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device.")
             }
         }
         .onChange(of: settings) { _, value in value.save() }
@@ -752,7 +786,7 @@ struct AssistantProviderEditor: View {
                         .portbaseKeyboardType(.URL)
                     SecureField(draft.kind == .anthropic ? L10n.text("API key") : L10n.text("API key (optional for local servers)"), text: $apiKey)
                 } footer: {
-                    Text("The API key stays in this device’s Keychain.")
+                    Text("The API key syncs to your other devices through iCloud Keychain.")
                 }
                 Section {
                     if !draft.models.isEmpty {

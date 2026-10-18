@@ -1516,3 +1516,10 @@
 "The API key stays in this device’s Keychain." = "API 密钥保存在此设备的钥匙串中。";
 "The provider listed no models." = "提供商没有列出任何模型。";
 "Use %@" = "使用 %@";
+"Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain." = "添加 Anthropic、OpenAI、OpenRouter、本地服务器（如 Ollama 或 LM Studio）或任何兼容 OpenAI 的端点。密钥通过 iCloud 钥匙串在你的设备间同步。";
+"Make Default for New Chats" = "设为新聊天的默认值";
+"No models listed" = "没有列出模型";
+"The API key syncs to your other devices through iCloud Keychain." = "API 密钥通过 iCloud 钥匙串同步到你的其他设备。";
+"The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider." = "勾选的提供商及其模型是新聊天的默认值；每个聊天都可以选择自己的。API 密钥通过 iCloud 钥匙串同步，请求直接从此设备发送给提供商。";
+"The model this chat uses" = "此聊天使用的模型";
+"These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device." = "这些设置通过 iCloud 同步到你的其他设备，API 密钥通过 iCloud 钥匙串同步。总计超过 256 KB 的参考文件保留在此设备上。";

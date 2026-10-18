@@ -1516,3 +1516,10 @@
 "The API key stays in this device’s Keychain." = "API 키는 이 기기의 키체인에 보관됩니다.";
 "The provider listed no models." = "제공자가 모델을 반환하지 않았습니다.";
 "Use %@" = "%@ 사용";
+"Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain." = "Anthropic, OpenAI, OpenRouter, Ollama나 LM Studio 같은 로컬 서버 또는 OpenAI 호환 엔드포인트를 추가하세요. 키는 iCloud 키체인으로 기기 간에 동기화됩니다.";
+"Make Default for New Chats" = "새 채팅의 기본값으로 설정";
+"No models listed" = "모델 없음";
+"The API key syncs to your other devices through iCloud Keychain." = "API 키는 iCloud 키체인으로 다른 기기에 동기화됩니다.";
+"The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider." = "선택한 제공자와 모델이 새 채팅의 기본값이며, 채팅마다 따로 고를 수 있습니다. API 키는 iCloud 키체인으로 동기화되고, 요청은 이 기기에서 제공자로 직접 전송됩니다.";
+"The model this chat uses" = "이 채팅에서 사용하는 모델";
+"These settings sync through iCloud to your other devices, and API keys through iCloud Keychain. Reference files larger than 256 KB in total stay on this device." = "이 설정은 iCloud로, API 키는 iCloud 키체인으로 다른 기기에 동기화됩니다. 합계 256KB를 넘는 참조 파일은 이 기기에 남습니다.";
