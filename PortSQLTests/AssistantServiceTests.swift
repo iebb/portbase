@@ -415,3 +415,140 @@ final class AssistantProviderTests: XCTestCase {
         }
     }
 }
+
+final class AssistantAgentTests: XCTestCase {
+    func testToolRequestsUseEachAPIsFormat() throws {
+        var settings = AssistantSettings()
+        let messages = [
+            AssistantMessage(role: .user, text: "How many orders?"),
+            AssistantMessage(role: .assistant, text: "Let me check.", toolCalls: [AssistantToolCall(id: "call_1", name: "run_query", arguments: ["query": "SELECT count(*) FROM orders"])]),
+            AssistantMessage(role: .user, text: "", toolResults: [AssistantToolResult(callID: "call_1", content: "Rows: 1")]),
+        ]
+        let anthropic = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(
+            AssistantClient.request(settings: settings, apiKey: "k", system: "S", messages: messages, tools: true).httpBody)) as? [String: Any])
+        XCTAssertEqual(((anthropic["tools"] as? [[String: Any]])?.first)?["name"] as? String, "run_query")
+        let anthropicMessages = try XCTUnwrap(anthropic["messages"] as? [[String: Any]])
+        let toolUse = try XCTUnwrap((anthropicMessages[1]["content"] as? [[String: Any]])?.last)
+        XCTAssertEqual(toolUse["type"] as? String, "tool_use")
+        XCTAssertEqual((toolUse["input"] as? [String: String])?["query"], "SELECT count(*) FROM orders")
+        let toolResult = try XCTUnwrap((anthropicMessages[2]["content"] as? [[String: Any]])?.first)
+        XCTAssertEqual(toolResult["type"] as? String, "tool_result")
+        XCTAssertEqual(toolResult["tool_use_id"] as? String, "call_1")
+
+        settings.providers = [AssistantProviderPreset.ollama.configuration]
+        settings.model = "llama3.1"
+        let openAI = try XCTUnwrap(JSONSerialization.jsonObject(with: XCTUnwrap(
+            AssistantClient.request(settings: settings, apiKey: "", system: "S", messages: messages, tools: true).httpBody)) as? [String: Any])
+        XCTAssertEqual((((openAI["tools"] as? [[String: Any]])?.first)?["function"] as? [String: Any])?["name"] as? String, "run_query")
+        let openAIMessages = try XCTUnwrap(openAI["messages"] as? [[String: Any]])
+        XCTAssertEqual(openAIMessages.map { $0["role"] as? String }, ["system", "user", "assistant", "tool"])
+        let call = try XCTUnwrap((openAIMessages[2]["tool_calls"] as? [[String: Any]])?.first)
+        XCTAssertEqual((call["function"] as? [String: Any])?["arguments"] as? String, #"{"query":"SELECT count(*) FROM orders"}"#)
+        XCTAssertEqual(openAIMessages[3]["tool_call_id"] as? String, "call_1")
+    }
+
+    func testRepliesWithToolCallsParseOnBothAPIs() throws {
+        let anthropic = #"{"content":[{"type":"text","text":"Checking."},{"type":"tool_use","id":"toolu_1","name":"run_query","input":{"query":"SELECT 1","purpose":"test"}}],"stop_reason":"tool_use"}"#
+        let reply = try AssistantClient.reply(from: Data(anthropic.utf8), provider: .anthropic, statusCode: 200)
+        XCTAssertEqual(reply.text, "Checking.")
+        XCTAssertEqual(reply.toolCalls, [AssistantToolCall(id: "toolu_1", name: "run_query", arguments: ["query": "SELECT 1", "purpose": "test"])])
+
+        let openAI = #"{"choices":[{"message":{"role":"assistant","content":null,"tool_calls":[{"id":"call_9","type":"function","function":{"name":"run_query","arguments":"{\"query\":\"SELECT 2\"}"}}]}}]}"#
+        let tools = try AssistantClient.reply(from: Data(openAI.utf8), provider: .openAICompatible, statusCode: 200)
+        XCTAssertEqual(tools.text, "")
+        XCTAssertEqual(tools.toolCalls.first?.arguments["query"], "SELECT 2")
+    }
+
+    func testToolOutputIsShortenedForTheModel() {
+        let rows = (0..<80).map { QueryRow(cells: [.integer(String($0)), $0 == 0 ? .null : .text(String(repeating: "v", count: 300))]) }
+        let result = QueryResultTable(columns: [QueryColumn(name: "id", type: "int"), QueryColumn(name: "note", type: "text")], rows: rows,
+                                      executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: nil, sourceQuery: nil)
+        let summary = AssistantToolOutput.summary(result)
+        XCTAssertTrue(summary.hasPrefix("Columns: id (int), note (text)\nRows: 80; the first 50 follow"))
+        XCTAssertTrue(summary.contains("0 | NULL"))
+        XCTAssertFalse(summary.contains("\n50 | "), "Rows past the first 50 aren't sent")
+        XCTAssertFalse(summary.contains(String(repeating: "v", count: 200)), "Long values are cut")
+    }
+
+    func testExpertPromptExplainsToolsReadOnlyAndProduction() {
+        var context = AssistantContext(engine: .mysql, database: "shop", tables: [])
+        context.isReadOnly = true
+        context.environment = "Production"
+        let prompt = AssistantPromptBuilder.systemPrompt(context: context, settings: AssistantSettings(), toolsEnabled: true)
+        XCTAssertTrue(prompt.contains("database expert"))
+        XCTAssertTrue(prompt.contains("run_query"))
+        XCTAssertTrue(prompt.contains("always need the user's confirmation"))
+        XCTAssertTrue(prompt.contains("This connection is read-only"))
+        XCTAssertTrue(prompt.contains("production data"))
+        XCTAssertFalse(prompt.contains("never runs your queries"), "With tools, the prompt doesn't claim queries never run")
+        XCTAssertEqual(AssistantSettings().approvalMode, .askEveryQuery, "Asking before every query is the default")
+    }
+
+    @MainActor
+    func testReadOnlyQueriesRunOnTheirOwnAndChangesWaitForApproval() async throws {
+        let session = AssistantSession()
+        var replies = [
+            AssistantReply(text: "", toolCalls: [AssistantToolCall(id: "a", name: "run_query", arguments: ["query": "SELECT count(*) FROM orders"])]),
+            AssistantReply(text: "Deleting the test rows.", toolCalls: [AssistantToolCall(id: "b", name: "run_query", arguments: ["query": "DELETE FROM orders WHERE id = 7"])]),
+            AssistantReply(text: "Done.", toolCalls: []),
+        ]
+        var sentResults: [[AssistantToolResult]] = []
+        session.respond = { _, _, _, messages, tools in
+            XCTAssertTrue(tools)
+            if let last = messages.last, !last.toolResults.isEmpty { sentResults.append(last.toolResults) }
+            return replies.removeFirst()
+        }
+        var policies: [String] = []
+        let runner = AssistantQueryRunner(engine: .postgresql, isReadOnly: false, environment: .none) { sql, policy in
+            policies.append(policy.requiresReadOnlySession ? "read-only: " + sql : "confirmed: " + sql)
+            return QueryResultTable(columns: [QueryColumn(name: "count", type: "int")], rows: [QueryRow(cells: [.integer("42")])],
+                                    executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: nil, sourceQuery: nil)
+        }
+        var settings = AssistantSettings()
+        settings.approvalMode = .autoReadOnly
+        session.send("Clean up order 7", context: AssistantContext(engine: .postgresql, database: "shop", tables: []), settings: settings, runner: runner)
+
+        // The read-only query runs by itself; the DELETE then waits for the user.
+        for _ in 0..<200 where !session.turns.contains(where: { $0.step?.state == .awaitingApproval }) { try await Task.sleep(nanoseconds: 5_000_000) }
+        XCTAssertEqual(policies, ["read-only: SELECT count(*) FROM orders"])
+        let waiting = try XCTUnwrap(session.turns.first { $0.step?.state == .awaitingApproval })
+        XCTAssertNotNil(waiting.step?.assessment, "The change carries its safety assessment")
+
+        session.decide(waiting.id, approved: true)
+        await session.waitUntilIdle()
+        XCTAssertEqual(policies.last, "confirmed: DELETE FROM orders WHERE id = 7", "An approved change runs as a confirmed user query")
+        XCTAssertEqual(sentResults.count, 2)
+        XCTAssertTrue(sentResults[0][0].content.contains("Rows: 1"))
+        XCTAssertEqual(session.turns.last?.text, "Done.")
+        XCTAssertEqual(session.turns.filter { $0.step != nil }.count, 2)
+    }
+
+    @MainActor
+    func testDeclinedAndBlockedQueriesAreReportedToTheModel() async throws {
+        let session = AssistantSession()
+        var replies = [
+            AssistantReply(text: "", toolCalls: [AssistantToolCall(id: "a", name: "run_query", arguments: ["query": "SELECT * FROM orders"])]),
+            AssistantReply(text: "", toolCalls: [AssistantToolCall(id: "b", name: "run_query", arguments: ["query": "DROP TABLE orders"])]),
+            AssistantReply(text: "Understood.", toolCalls: []),
+        ]
+        var sentResults: [AssistantToolResult] = []
+        session.respond = { _, _, _, messages, _ in
+            if let last = messages.last { sentResults += last.toolResults }
+            return replies.removeFirst()
+        }
+        var ran = false
+        let runner = AssistantQueryRunner(engine: .postgresql, isReadOnly: true, environment: .production) { _, _ in
+            ran = true
+            return .empty
+        }
+        session.send("Look", context: AssistantContext(engine: .postgresql, database: "shop", tables: []), settings: AssistantSettings(), runner: runner)
+        for _ in 0..<200 where !session.turns.contains(where: { $0.step?.state == .awaitingApproval }) { try await Task.sleep(nanoseconds: 5_000_000) }
+        let waiting = try XCTUnwrap(session.turns.first { $0.step?.state == .awaitingApproval }, "Ask Every Time waits even for reads")
+        session.decide(waiting.id, approved: false)
+        await session.waitUntilIdle()
+        XCTAssertFalse(ran)
+        XCTAssertTrue(sentResults[0].isError && sentResults[0].content.contains("declined"))
+        XCTAssertTrue(sentResults[1].isError && sentResults[1].content.hasPrefix("Blocked"), "A read-only connection blocks the DROP without asking")
+        if case .blocked = session.turns.compactMap(\.step).last?.state {} else { XCTFail("The DROP shows as blocked") }
+    }
+}

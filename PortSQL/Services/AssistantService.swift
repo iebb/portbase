@@ -118,6 +118,37 @@ enum AssistantProviderPreset: String, CaseIterable, Identifiable {
     }
 }
 
+/// When the assistant may run the queries it writes. Changes to data or schema always ask, whatever
+/// the mode, and destructive ones ask with the stronger confirmation.
+enum AssistantApprovalMode: String, Codable, CaseIterable, Identifiable {
+    /// The assistant writes queries; the user runs them from the console.
+    case suggestOnly
+    /// Every query waits for the user's approval.
+    case askEveryQuery
+    /// Read-only queries run on their own, in a read-only session; anything else asks.
+    case autoReadOnly
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .suggestOnly: L10n.text("Suggest Only")
+        case .askEveryQuery: L10n.text("Ask Every Time")
+        case .autoReadOnly: L10n.text("Run Read-Only")
+        }
+    }
+
+    var summary: String {
+        switch self {
+        case .suggestOnly: L10n.text("Writes queries for you to run; never runs them.")
+        case .askEveryQuery: L10n.text("Asks before running each query.")
+        case .autoReadOnly: L10n.text("Runs read-only queries; asks before anything that changes data.")
+        }
+    }
+
+    var runsQueries: Bool { self != .suggestOnly }
+}
+
 /// Assistant settings. Stored in user defaults; API keys live in the Keychain, never here.
 struct AssistantSettings: Codable, Equatable {
     static let storageKey = "Portbase.assistant.settings"
@@ -131,6 +162,8 @@ struct AssistantSettings: Codable, Equatable {
     var instructions: String = ""
     /// Off by default: sample rows send real data to the provider.
     var includesSampleRows = false
+    /// Asking before every query is the default; results of queries the assistant runs go to the provider.
+    var approvalMode: AssistantApprovalMode = .askEveryQuery
     var documents: [AssistantContextDocument] = []
     /// When these settings last changed on any device; the newest copy wins when syncing.
     var updatedAt: Date = .distantPast
@@ -140,7 +173,7 @@ struct AssistantSettings: Codable, Equatable {
     init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case providers, selectedProviderID, instructions, includesSampleRows, documents, updatedAt, documentsOmitted
+        case providers, selectedProviderID, instructions, includesSampleRows, approvalMode, documents, updatedAt, documentsOmitted
         // The single provider of earlier versions, still written for them.
         case provider, baseURL, model
     }
@@ -159,6 +192,7 @@ struct AssistantSettings: Codable, Equatable {
         selectedProviderID = try container.decodeIfPresent(UUID.self, forKey: .selectedProviderID)
         instructions = try container.decodeIfPresent(String.self, forKey: .instructions) ?? ""
         includesSampleRows = try container.decodeIfPresent(Bool.self, forKey: .includesSampleRows) ?? false
+        approvalMode = (try? container.decodeIfPresent(AssistantApprovalMode.self, forKey: .approvalMode)).flatMap { $0 } ?? .askEveryQuery
         documents = try container.decodeIfPresent([AssistantContextDocument].self, forKey: .documents) ?? []
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
         documentsOmitted = try container.decodeIfPresent(Bool.self, forKey: .documentsOmitted) ?? false
@@ -170,6 +204,7 @@ struct AssistantSettings: Codable, Equatable {
         try container.encodeIfPresent(selectedProviderID, forKey: .selectedProviderID)
         try container.encode(instructions, forKey: .instructions)
         try container.encode(includesSampleRows, forKey: .includesSampleRows)
+        try container.encode(approvalMode, forKey: .approvalMode)
         try container.encode(documents, forKey: .documents)
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(documentsOmitted, forKey: .documentsOmitted)
@@ -381,6 +416,10 @@ struct AssistantContext: Equatable {
     var resultColumns: [QueryColumn] = []
     /// Only filled when the user allows sample rows.
     var sampleRows: [[String]] = []
+    /// The connection only allows reading; the assistant shouldn't attempt changes.
+    var isReadOnly = false
+    /// The connection's environment label, such as Production, when it has one.
+    var environment: String?
 }
 
 enum AssistantPromptBuilder {
@@ -388,22 +427,57 @@ enum AssistantPromptBuilder {
     static let maximumSampleRows = 5
     static let maximumSampleValueLength = 80
 
-    /// The standing instructions sent as the system prompt on every request.
-    static func systemPrompt(context: AssistantContext, settings: AssistantSettings) -> String {
+    /// The standing instructions sent as the system prompt on every request: a database expert for the
+    /// connection's engine, told whether it can run queries and how changes are confirmed.
+    static func systemPrompt(context: AssistantContext, settings: AssistantSettings, toolsEnabled: Bool = false) -> String {
+        let dialect = dialect(context.engine)
         var parts = [
             """
-            You are the query assistant inside Portbase, a database client. Help the user write \(dialect(context.engine)) \
-            queries and design charts for the database described below.
-            - Put each query in its own fenced block tagged ```sql, written for \(dialect(context.engine)).
-            - Use only tables and columns from the schema. If something needed is missing, say so instead of guessing.
-            - Prefer read-only queries. When the user asks for a change, write it, but say plainly that it modifies data. \
-            Portbase never runs your queries itself; the user reviews and runs them.
+            You are Portbase's database expert: a senior \(dialect) engineer and data analyst, working inside Portbase, \
+            a database client, on the user's database described below.
+
+            How you work:
+            - Ground every answer in the schema below. Use exact table and column names and quote identifiers the way \(dialect) \
+            requires. If something the user asks about isn't in the schema, say so instead of guessing.
+            - Write correct, efficient \(dialect): list the columns you need, keep WHERE clauses index-friendly, LIMIT exploratory \
+            queries, and point out when a query would scan a large table or would benefit from an index.
+            - Be explicit about assumptions such as time zones, NULL handling, duplicates, and units.
+            - Keep explanations short and concrete. Lead with the answer, then the query.
             - When a chart would answer the question, add one fenced block tagged ```chart containing JSON: \
             {"title": "...", "type": "bar" | "line" | "area" | "point" | "pie", "x": "<result column>", \
             "y": ["<numeric result column>", ...], "query": "<the SQL that produces those columns>"}.
-            - Keep explanations short.
             """
         ]
+        if toolsEnabled {
+            parts.append("""
+            Running queries:
+            - You can run queries with the run_query tool, one statement per call. Use it to check real data when that makes the \
+            answer more accurate: distinct values, counts, date ranges, a few sample rows. Keep these queries small, read-only, \
+            and LIMITed.
+            - Results come back truncated to the first rows. Say when an answer depends on rows you didn't see.
+            - The user approves queries according to their approval mode. If a query is declined or blocked, don't try to work \
+            around it; explain what you'd need instead.
+            - Changes to data or schema (INSERT, UPDATE, DELETE, DDL) always need the user's confirmation, and destructive ones \
+            (DROP, TRUNCATE, DELETE without WHERE) need a second, stronger one. Only run a change when the user asked for it. \
+            First show what it affects, for example with a SELECT of the rows involved, and state exactly what will change.
+            - After running queries, answer the question in prose. Put the final query you recommend in a fenced ```sql block so \
+            the user can open it in the console.
+            """)
+        } else {
+            parts.append("""
+            Queries:
+            - Put each query in its own fenced block tagged ```sql, written for \(dialect).
+            - Portbase never runs your queries itself in this mode; the user reviews and runs them.
+            - Prefer read-only queries. When the user asks for a change, write it, but say plainly that it modifies data, and \
+            for destructive statements say what is lost.
+            """)
+        }
+        if context.isReadOnly {
+            parts.append("This connection is read-only. Don't attempt changes; if the user asks for one, write the statement for them to run elsewhere.")
+        }
+        if let environment = context.environment {
+            parts.append("This connection is labeled \(environment). Be conservative" + (environment.lowercased().contains("prod") ? ", since it is production data." : "."))
+        }
         let instructions = settings.instructions.trimmingCharacters(in: .whitespacesAndNewlines)
         if !instructions.isEmpty {
             parts.append("Instructions from the user:\n" + instructions)
@@ -471,10 +545,49 @@ enum AssistantPromptBuilder {
 
 // MARK: - Requests
 
+/// A tool call the model asked for, such as running a query.
+struct AssistantToolCall: Codable, Equatable {
+    var id: String
+    var name: String
+    var arguments: [String: String]
+}
+
+/// What a tool call produced, sent back to the model.
+struct AssistantToolResult: Codable, Equatable {
+    var callID: String
+    var content: String
+    var isError = false
+}
+
 struct AssistantMessage: Codable, Equatable {
     enum Role: String, Codable { case user, assistant }
     var role: Role
     var text: String
+    /// An assistant turn's tool calls.
+    var toolCalls: [AssistantToolCall] = []
+    /// A user turn carrying the results of the previous turn's tool calls.
+    var toolResults: [AssistantToolResult] = []
+}
+
+/// A model's reply: its text and any tools it wants to use.
+struct AssistantReply: Equatable {
+    var text: String
+    var toolCalls: [AssistantToolCall]
+}
+
+/// The tools Portbase offers the model.
+enum AssistantTools {
+    static let runQuery = "run_query"
+    static let runQueryDescription = "Runs one query on the user's current database connection and returns the result's columns and first rows. The user approves queries according to their settings; changes to data always need their confirmation."
+
+    static var runQueryParameters: [String: Any] { [
+        "type": "object",
+        "properties": [
+            "query": ["type": "string", "description": "One statement in the connection's query language."],
+            "purpose": ["type": "string", "description": "A short note for the user on why this query helps."],
+        ],
+        "required": ["query"],
+    ] }
 }
 
 enum AssistantError: LocalizedError, Equatable {
@@ -494,8 +607,8 @@ enum AssistantError: LocalizedError, Equatable {
 enum AssistantClient {
     static let maximumOutputTokens = 4_096
 
-    /// Builds the HTTP request for the configured provider.
-    static func request(settings: AssistantSettings, apiKey: String, system: String, messages: [AssistantMessage]) throws -> URLRequest {
+    /// Builds the HTTP request for the configured provider, offering the run_query tool when `tools` is set.
+    static func request(settings: AssistantSettings, apiKey: String, system: String, messages: [AssistantMessage], tools: Bool = false) throws -> URLRequest {
         guard settings.isConfigured(apiKey: apiKey) else { throw AssistantError.notConfigured }
         var base = settings.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
         while base.hasSuffix("/") { base.removeLast() }
@@ -510,21 +623,110 @@ enum AssistantClient {
         case .anthropic:
             request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
             request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-            body = [
+            var anthropic: [String: Any] = [
                 "model": model,
                 "max_tokens": maximumOutputTokens,
                 "system": system,
-                "messages": messages.map { ["role": $0.role.rawValue, "content": $0.text] },
+                "messages": messages.map(anthropicMessage),
             ]
+            if tools {
+                anthropic["tools"] = [["name": AssistantTools.runQuery, "description": AssistantTools.runQueryDescription,
+                                       "input_schema": AssistantTools.runQueryParameters]]
+            }
+            body = anthropic
         case .openAICompatible:
             if !apiKey.isEmpty { request.setValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization") }
-            body = [
+            var openAI: [String: Any] = [
                 "model": model,
-                "messages": [["role": "system", "content": system]] + messages.map { ["role": $0.role.rawValue, "content": $0.text] },
+                "messages": [["role": "system", "content": system]] + messages.flatMap(openAIMessages),
             ]
+            if tools {
+                openAI["tools"] = [["type": "function", "function": ["name": AssistantTools.runQuery, "description": AssistantTools.runQueryDescription,
+                                                                    "parameters": AssistantTools.runQueryParameters]]]
+            }
+            body = openAI
         }
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
         return request
+    }
+
+    /// A message in Anthropic's format: tool calls as tool_use blocks, their results as tool_result blocks.
+    private static func anthropicMessage(_ message: AssistantMessage) -> [String: Any] {
+        guard !message.toolCalls.isEmpty || !message.toolResults.isEmpty else {
+            return ["role": message.role.rawValue, "content": message.text]
+        }
+        var blocks: [[String: Any]] = message.toolResults.map {
+            ["type": "tool_result", "tool_use_id": $0.callID, "content": $0.content, "is_error": $0.isError]
+        }
+        if !message.text.isEmpty { blocks.append(["type": "text", "text": message.text]) }
+        blocks += message.toolCalls.map { ["type": "tool_use", "id": $0.id, "name": $0.name, "input": $0.arguments] }
+        return ["role": message.role.rawValue, "content": blocks]
+    }
+
+    /// Messages in OpenAI's format: tool calls on the assistant message, each result as a "tool" message.
+    private static func openAIMessages(_ message: AssistantMessage) -> [[String: Any]] {
+        var messages: [[String: Any]] = message.toolResults.map { ["role": "tool", "tool_call_id": $0.callID, "content": $0.content] }
+        if !message.toolCalls.isEmpty {
+            messages.append([
+                "role": "assistant",
+                "content": message.text.isEmpty ? NSNull() : message.text as Any,
+                "tool_calls": message.toolCalls.map { call in
+                    let arguments = (try? JSONSerialization.data(withJSONObject: call.arguments)).flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+                    return ["id": call.id, "type": "function", "function": ["name": call.name, "arguments": arguments]] as [String: Any]
+                },
+            ])
+        } else if !message.text.isEmpty || message.toolResults.isEmpty {
+            messages.append(["role": message.role.rawValue, "content": message.text])
+        }
+        return messages
+    }
+
+    /// Reads a reply's text and tool calls, or the provider's error message.
+    static func reply(from data: Data, provider: AssistantProvider, statusCode: Int) throws -> AssistantReply {
+        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if !(200..<300).contains(statusCode) {
+            let message = (object?["error"] as? [String: Any])?["message"] as? String
+                ?? object?["error"] as? String
+                ?? HTTPURLResponse.localizedString(forStatusCode: statusCode)
+            throw AssistantError.provider(message)
+        }
+        guard let object else { throw AssistantError.invalidResponse }
+        var text = ""
+        var calls: [AssistantToolCall] = []
+        switch provider {
+        case .anthropic:
+            for block in object["content"] as? [[String: Any]] ?? [] {
+                switch block["type"] as? String {
+                case "text": text += (text.isEmpty ? "" : "\n") + (block["text"] as? String ?? "")
+                case "tool_use":
+                    guard let id = block["id"] as? String, let name = block["name"] as? String else { continue }
+                    calls.append(AssistantToolCall(id: id, name: name, arguments: stringArguments(block["input"])))
+                default: break
+                }
+            }
+        case .openAICompatible:
+            let message = (object["choices"] as? [[String: Any]])?.first?["message"] as? [String: Any]
+            text = message?["content"] as? String ?? ""
+            for call in message?["tool_calls"] as? [[String: Any]] ?? [] {
+                guard let id = call["id"] as? String, let function = call["function"] as? [String: Any],
+                      let name = function["name"] as? String else { continue }
+                let arguments = (function["arguments"] as? String)?.data(using: .utf8).flatMap { try? JSONSerialization.jsonObject(with: $0) }
+                calls.append(AssistantToolCall(id: id, name: name, arguments: stringArguments(arguments)))
+            }
+        }
+        guard !text.isEmpty || !calls.isEmpty else { throw AssistantError.invalidResponse }
+        return AssistantReply(text: text, toolCalls: calls)
+    }
+
+    private static func stringArguments(_ value: Any?) -> [String: String] {
+        guard let dictionary = value as? [String: Any] else { return [:] }
+        return dictionary.compactMapValues { $0 as? String ?? ($0 as? CustomStringConvertible)?.description }
+    }
+
+    static func respond(settings: AssistantSettings, apiKey: String, system: String, messages: [AssistantMessage], tools: Bool) async throws -> AssistantReply {
+        let request = try request(settings: settings, apiKey: apiKey, system: system, messages: messages, tools: tools)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        return try reply(from: data, provider: settings.provider, statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 
     /// Reads the reply text, or the provider's error message.
@@ -598,6 +800,49 @@ enum AssistantClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         return try replyText(from: data, provider: settings.provider, statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
+}
+
+/// A query result as the model sees it: column types, the row count, and the first rows, cut short so a
+/// wide or long result doesn't flood the conversation.
+enum AssistantToolOutput {
+    static let maximumRows = 50
+    static let maximumValueLength = 120
+    static let maximumCharacters = 16_000
+
+    static func summary(_ result: QueryResultTable) -> String {
+        guard !result.columns.isEmpty else {
+            let affected = result.affectedRowCount.map { "Rows affected: \($0)." } ?? ""
+            return [result.executionSummary, affected].filter { !$0.isEmpty }.joined(separator: " ")
+        }
+        var lines = ["Columns: " + result.columns.map { "\($0.name) (\($0.type))" }.joined(separator: ", ")]
+        var count = "Rows: \(result.rows.count)"
+        if result.isTruncated == true { count += " (cut off at Portbase's row limit)" }
+        if result.rows.count > maximumRows { count += "; the first \(maximumRows) follow" }
+        lines.append(count)
+        lines.append(result.columns.map(\.name).joined(separator: " | "))
+        for row in result.rows.prefix(maximumRows) {
+            lines.append(row.cells.map { cell in
+                if cell.isNull { return "NULL" }
+                let value = cell.displayValue.replacingOccurrences(of: "\n", with: " ")
+                return value.count > maximumValueLength ? String(value.prefix(maximumValueLength)) + "…" : value
+            }.joined(separator: " | "))
+        }
+        var text = lines.joined(separator: "\n")
+        if text.count > maximumCharacters { text = String(text.prefix(maximumCharacters)) + "\n… (output shortened)" }
+        return text
+    }
+}
+
+/// Runs the assistant's queries on the current connection, always through `DatabaseService` with an
+/// explicit policy: read-only queries in a read-only session, approved changes as confirmed user queries.
+struct AssistantQueryRunner {
+    let engine: DatabaseEngine
+    let isReadOnly: Bool
+    let environment: ConnectionEnvironment
+    let run: (String, DatabaseExecutionPolicy) async throws -> QueryResultTable
+
+    /// Engines whose queries Portbase can classify as read-only or not before running them.
+    static func supports(_ engine: DatabaseEngine) -> Bool { engine.isSQL || engine == .mongodb || engine == .redis }
 }
 
 // MARK: - Replies

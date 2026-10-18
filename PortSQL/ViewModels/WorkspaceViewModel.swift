@@ -392,7 +392,9 @@ final class WorkspaceViewModel: ObservableObject {
             resultColumns: result.columns,
             sampleRows: includingSampleRows
                 ? result.rows.prefix(AssistantPromptBuilder.maximumSampleRows).map { $0.cells.map { $0.isNull ? "NULL" : $0.displayValue } }
-                : []
+                : [],
+            isReadOnly: selectedBookmark?.isReadOnly ?? false,
+            environment: selectedBookmark.flatMap { $0.environment == .none ? nil : $0.environment.title }
         )
     }
 

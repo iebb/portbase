@@ -1,60 +1,165 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// One conversation with the assistant, kept per console so it survives switching away.
+/// One conversation with the assistant, kept per console so it survives switching away. When the
+/// approval mode allows, the assistant runs queries as tool calls: read-only ones per the mode, changes
+/// only after the user confirms each one.
 @MainActor
 final class AssistantSession: ObservableObject {
+    /// A query the assistant asked to run, and what became of it.
+    struct QueryStep: Equatable {
+        enum State: Equatable {
+            case awaitingApproval
+            case running
+            case completed(rows: Int, milliseconds: Int)
+            case declined
+            case blocked(String)
+            case failed(String)
+        }
+        let query: String
+        let purpose: String?
+        /// Set when the query changes data or schema, or is blocked; nil for read-only queries.
+        let assessment: SQLSafetyAssessment?
+        var state: State
+        var result: QueryResultTable?
+    }
+
     struct Turn: Identifiable, Equatable {
         let id = UUID()
         let role: AssistantMessage.Role
         let text: String
         let segments: [AssistantReplySegment]
-        /// The model that wrote an assistant turn.
+        /// The provider and model that wrote an assistant turn.
         var model: String?
+        var step: QueryStep?
     }
+
+    static let maximumSteps = 8
 
     @Published private(set) var turns: [Turn] = []
     @Published private(set) var isSending = false
+    @Published var errorMessage: String?
     /// This chat's provider and model; nil uses the default for new chats.
     @Published var providerID: UUID?
     @Published var model: String?
-    @Published var errorMessage: String?
+    /// The conversation as sent to the model, tool calls and results included.
+    private var history: [AssistantMessage] = []
+    private var approvals: [UUID: CheckedContinuation<Bool, Never>] = [:]
     private var task: Task<Void, Never>?
+    /// Sends the conversation to the model; replaceable so tests can script replies.
+    var respond: (AssistantSettings, String, String, [AssistantMessage], Bool) async throws -> AssistantReply = { settings, key, system, messages, tools in
+        try await AssistantClient.respond(settings: settings, apiKey: key, system: system, messages: messages, tools: tools)
+    }
 
-    func send(_ prompt: String, context: AssistantContext, settings: AssistantSettings) {
+    /// Finishes when the current exchange does, for tests.
+    func waitUntilIdle() async { await task?.value }
+
+    func send(_ prompt: String, context: AssistantContext, settings: AssistantSettings, runner: AssistantQueryRunner?) {
         let text = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !isSending else { return }
         turns.append(Turn(role: .user, text: text, segments: [.text(text)]))
-        request(context: context, settings: settings)
+        history.append(AssistantMessage(role: .user, text: text))
+        converse(context: context, settings: settings, runner: runner)
     }
 
     /// Sends the conversation again after a failed request.
-    func retry(context: AssistantContext, settings: AssistantSettings) {
-        guard !isSending, turns.last?.role == .user else { return }
-        request(context: context, settings: settings)
+    func retry(context: AssistantContext, settings: AssistantSettings, runner: AssistantQueryRunner?) {
+        guard !isSending, history.last?.role == .user else { return }
+        converse(context: context, settings: settings, runner: runner)
     }
 
-    private func request(context: AssistantContext, settings: AssistantSettings) {
-        let system = AssistantPromptBuilder.systemPrompt(context: context, settings: settings)
-        let messages = turns.map { AssistantMessage(role: $0.role, text: $0.text) }
+    /// Approves or declines a query waiting for the user.
+    func decide(_ turnID: UUID, approved: Bool) {
+        approvals.removeValue(forKey: turnID)?.resume(returning: approved)
+    }
+
+    private func converse(context: AssistantContext, settings: AssistantSettings, runner: AssistantQueryRunner?) {
+        let runner = runner.flatMap { AssistantQueryRunner.supports($0.engine) ? $0 : nil }
+        let tools = settings.approvalMode.runsQueries && runner != nil
+        let system = AssistantPromptBuilder.systemPrompt(context: context, settings: settings, toolsEnabled: tools)
         let apiKey = AssistantAPIKeyStore.load(for: settings.activeProvider.id)
-        let model = settings.activeProvider.name + " · " + settings.model
+        let label = settings.activeProvider.name + " · " + settings.model
         isSending = true
         errorMessage = nil
         task = Task {
+            defer { isSending = false }
             do {
-                let reply = try await AssistantClient.send(settings: settings, apiKey: apiKey, system: system, messages: messages)
-                turns.append(Turn(role: .assistant, text: reply, segments: AssistantReplyParser.segments(reply), model: model))
+                for _ in 0..<Self.maximumSteps {
+                    let reply = try await respond(settings, apiKey, system, history, tools)
+                    history.append(AssistantMessage(role: .assistant, text: reply.text, toolCalls: reply.toolCalls))
+                    if !reply.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        turns.append(Turn(role: .assistant, text: reply.text, segments: AssistantReplyParser.segments(reply.text), model: label))
+                    }
+                    guard let runner, !reply.toolCalls.isEmpty else { return }
+                    var results: [AssistantToolResult] = []
+                    for call in reply.toolCalls {
+                        // Every call needs a result, even when the user stopped the conversation part way.
+                        if Task.isCancelled {
+                            results.append(AssistantToolResult(callID: call.id, content: "The user stopped the conversation.", isError: true))
+                        } else {
+                            results.append(await perform(call, runner: runner, mode: settings.approvalMode))
+                        }
+                    }
+                    history.append(AssistantMessage(role: .user, text: "", toolResults: results))
+                    if Task.isCancelled { return }
+                }
+                errorMessage = L10n.text("The assistant stopped after several steps. Ask it to continue if you need more.")
             } catch is CancellationError {
             } catch let error as URLError where error.code == .cancelled {
             } catch {
                 errorMessage = DatabaseErrorFormatter.message(for: error)
             }
-            isSending = false
         }
     }
 
+    private func perform(_ call: AssistantToolCall, runner: AssistantQueryRunner, mode: AssistantApprovalMode) async -> AssistantToolResult {
+        guard call.name == AssistantTools.runQuery,
+              let query = call.arguments["query"]?.trimmingCharacters(in: .whitespacesAndNewlines), !query.isEmpty else {
+            return AssistantToolResult(callID: call.id, content: "Unknown tool, or no query was given.", isError: true)
+        }
+        let assessment = SQLSafetyService.assessment(for: query, readOnly: runner.isReadOnly, engine: runner.engine)
+        let turn = Turn(role: .assistant, text: "", segments: [],
+                        step: QueryStep(query: query, purpose: call.arguments["purpose"], assessment: assessment, state: .running))
+        turns.append(turn)
+        if let assessment, assessment.blocksExecution {
+            update(turn.id) { $0.state = .blocked(assessment.message) }
+            return AssistantToolResult(callID: call.id, content: "Blocked: \(assessment.title). \(assessment.message)", isError: true)
+        }
+        // Changes always ask; read-only queries ask unless the mode runs them on their own.
+        if mode == .askEveryQuery || assessment != nil {
+            update(turn.id) { $0.state = .awaitingApproval }
+            let approved = await withCheckedContinuation { continuation in approvals[turn.id] = continuation }
+            guard approved else {
+                update(turn.id) { $0.state = .declined }
+                return AssistantToolResult(callID: call.id, content: "The user declined to run this query.", isError: true)
+            }
+        }
+        update(turn.id) { $0.state = .running }
+        let started = Date()
+        do {
+            let output = try await runner.run(query, assessment == nil ? .readOnly : .userQuery(confirmed: true))
+            let milliseconds = Int(Date().timeIntervalSince(started) * 1_000)
+            update(turn.id) {
+                $0.state = .completed(rows: output.rows.count, milliseconds: milliseconds)
+                $0.result = output
+            }
+            return AssistantToolResult(callID: call.id, content: AssistantToolOutput.summary(output))
+        } catch {
+            let message = DatabaseErrorFormatter.message(for: error)
+            update(turn.id) { $0.state = .failed(message) }
+            return AssistantToolResult(callID: call.id, content: "The query failed: " + message, isError: true)
+        }
+    }
+
+    private func update(_ turnID: UUID, _ change: (inout QueryStep) -> Void) {
+        guard let index = turns.firstIndex(where: { $0.id == turnID }), var step = turns[index].step else { return }
+        change(&step)
+        turns[index].step = step
+    }
+
     func cancel() {
+        for continuation in approvals.values { continuation.resume(returning: false) }
+        approvals = [:]
         task?.cancel()
         task = nil
         isSending = false
@@ -63,6 +168,7 @@ final class AssistantSession: ObservableObject {
     func reset() {
         cancel()
         turns = []
+        history = []
         errorMessage = nil
     }
 }
@@ -101,7 +207,18 @@ struct AssistantChatView: View {
     @State private var showsSettings = false
     @State private var isLoadingModels = false
     @State private var modelsError: String?
+    /// Names typed to confirm destructive queries on production, per step.
+    @State private var typedConfirmations: [UUID: String] = [:]
     @FocusState private var promptFocused: Bool
+
+    /// Runs the assistant's queries on this tab's connection through DatabaseService.
+    private var runner: AssistantQueryRunner? {
+        guard let profile = workspace.selectedBookmark else { return nil }
+        let database = workspace.activeDatabaseName
+        return AssistantQueryRunner(engine: profile.engine, isReadOnly: profile.isReadOnly, environment: profile.environment) { sql, policy in
+            try await DatabaseService.shared.execute(query: sql, profile: profile, database: database, policy: policy)
+        }
+    }
 
     /// The settings with this chat's provider and model applied.
     private var chatSettings: AssistantSettings { settings.choosing(providerID: session.providerID, model: session.model) }
@@ -160,6 +277,15 @@ struct AssistantChatView: View {
                     .disabled(session.turns.isEmpty && session.errorMessage == nil)
                 Button(showsContext ? L10n.text("Hide Context") : L10n.text("What's Sent"), systemImage: "doc.text.magnifyingglass") {
                     withAnimation(.snappy) { showsContext.toggle() }
+                }
+                Divider()
+                Picker(selection: Binding(get: { settings.approvalMode }, set: { mode in
+                    settings.approvalMode = mode
+                    settings.save()
+                })) {
+                    ForEach(AssistantApprovalMode.allCases) { Text($0.title).tag($0) }
+                } label: {
+                    Label("Running Queries", systemImage: "play.circle")
                 }
                 Divider()
                 Button("AI Settings", systemImage: "gearshape") { showsSettings = true }
@@ -317,7 +443,7 @@ struct AssistantChatView: View {
                     ForEach(session.turns) { turn in
                         turnView(turn).id(turn.id)
                     }
-                    if session.isSending { thinking.id("progress") }
+                    if session.isSending, !session.turns.contains(where: { $0.step?.state == .awaitingApproval }) { thinking.id("progress") }
                     if let error = session.errorMessage { failure(error).id("error") }
                 }
                 .padding(.horizontal, Spacing.xl)
@@ -389,7 +515,12 @@ struct AssistantChatView: View {
     }
 
     @ViewBuilder private func turnView(_ turn: AssistantSession.Turn) -> some View {
-        if turn.role == .user {
+        if let step = turn.step {
+            HStack(alignment: .top, spacing: Spacing.s) {
+                assistantAvatar
+                stepView(turn.id, step)
+            }
+        } else if turn.role == .user {
             HStack {
                 Spacer(minLength: Spacing.xxxl * 2)
                 Text(turn.text)
@@ -424,6 +555,142 @@ struct AssistantChatView: View {
             .accessibilityHidden(true)
     }
 
+    // MARK: Queries
+
+    /// A query the assistant ran or wants to run: its SQL, the user's decision, and its result inline.
+    private func stepView(_ id: UUID, _ step: AssistantSession.QueryStep) -> some View {
+        let destructive = step.assessment?.isDestructive == true
+        let waiting = step.state == .awaitingApproval
+        return VStack(alignment: .leading, spacing: Spacing.s) {
+            HStack(spacing: Spacing.s) {
+                stepIcon(step)
+                Text(stepTitle(step)).font(.rowTitle).foregroundStyle(PortSQLPalette.ink)
+                Spacer(minLength: Spacing.s)
+                if case .completed(let rows, let milliseconds) = step.state {
+                    Text(L10n.format("%1$d rows · %2$d ms", rows, milliseconds))
+                        .font(.captionText.monospacedDigit())
+                        .foregroundStyle(PortSQLPalette.muted)
+                }
+            }
+            if let purpose = step.purpose, !purpose.isEmpty {
+                Text(purpose).font(.captionText).foregroundStyle(PortSQLPalette.muted)
+            }
+            ScrollView(.horizontal) {
+                Text(verbatim: step.query)
+                    .font(.codeCaption)
+                    .foregroundStyle(PortSQLPalette.ink)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .padding(Spacing.s)
+            }
+            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+            switch step.state {
+            case .awaitingApproval:
+                approvalControls(id, step)
+            case .running:
+                HStack(spacing: Spacing.xs) {
+                    ProgressView().controlSize(.small)
+                    Text("Running…").font(.captionText).foregroundStyle(PortSQLPalette.muted)
+                }
+            case .completed:
+                if let result = step.result {
+                    if result.columns.isEmpty {
+                        Text(result.executionSummary).font(.captionText).foregroundStyle(PortSQLPalette.muted)
+                    } else {
+                        ChartTableView(result: result, rowLimit: 200)
+                            .frame(height: min(260, CGFloat(min(result.rows.count, 8)) * 26 + 30))
+                    }
+                }
+                HStack(spacing: Spacing.s) {
+                    Button { use(step.query, replacing: false) } label: { Label("Open in Console", systemImage: "terminal") }
+                    Button { PortbaseClipboard.copy(step.query) } label: { Label("Copy", systemImage: "doc.on.doc") }
+                }
+                .font(.captionStrong)
+                .buttonStyle(.portbaseToolbar)
+            case .declined:
+                Text("Not run.").font(.captionText).foregroundStyle(PortSQLPalette.muted)
+            case .blocked(let message), .failed(let message):
+                Text(message).font(.captionText).foregroundStyle(.red).textSelection(.enabled)
+            }
+        }
+        .padding(Spacing.m)
+        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                .strokeBorder(waiting ? (destructive ? Color.red : Color.orange).opacity(0.6) : PortSQLPalette.stroke, lineWidth: waiting ? 1.5 : 1)
+        }
+    }
+
+    private func stepTitle(_ step: AssistantSession.QueryStep) -> String {
+        switch step.state {
+        case .awaitingApproval:
+            step.assessment?.isDestructive == true ? L10n.text("Wants to make a destructive change")
+                : step.assessment != nil ? L10n.text("Wants to change data") : L10n.text("Wants to run a query")
+        case .running: L10n.text("Running a query")
+        case .completed: L10n.text("Ran a query")
+        case .declined: L10n.text("You declined this query")
+        case .blocked: L10n.text("Query blocked")
+        case .failed: L10n.text("Query failed")
+        }
+    }
+
+    @ViewBuilder private func stepIcon(_ step: AssistantSession.QueryStep) -> some View {
+        switch step.state {
+        case .awaitingApproval: Image(systemName: "hand.raised.fill").foregroundStyle(step.assessment?.isDestructive == true ? .red : .orange)
+        case .running: Image(systemName: "play.circle.fill").foregroundStyle(PortSQLPalette.accent)
+        case .completed: Image(systemName: "checkmark.circle.fill").foregroundStyle(PortSQLPalette.accent)
+        case .declined: Image(systemName: "xmark.circle").foregroundStyle(PortSQLPalette.muted)
+        case .blocked, .failed: Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+        }
+    }
+
+    /// Run or Don't Run. Changes say what they do; destructive ones on production need the object's
+    /// name typed, as in the console's confirmation.
+    @ViewBuilder private func approvalControls(_ id: UUID, _ step: AssistantSession.QueryStep) -> some View {
+        let destructive = step.assessment?.isDestructive == true
+        let production = workspace.selectedBookmark?.environment == .production
+        let target = destructive && production ? step.assessment?.target : nil
+        VStack(alignment: .leading, spacing: Spacing.s) {
+            if let assessment = step.assessment {
+                HStack(alignment: .top, spacing: Spacing.s) {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(destructive ? .red : .orange)
+                    VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                        Text(assessment.title).font(.rowDetail.weight(.semibold)).foregroundStyle(PortSQLPalette.ink)
+                        Text(assessment.message).font(.captionText).foregroundStyle(.secondary)
+                        if production {
+                            Text("You're connected to a production database.").font(.captionText).foregroundStyle(.red)
+                        }
+                    }
+                }
+            }
+            if let target {
+                TextField(L10n.format("Type %@ to confirm", target), text: Binding(get: { typedConfirmations[id] ?? "" },
+                                                                                  set: { typedConfirmations[id] = $0 }))
+                    .textFieldStyle(.plain)
+                    .font(.codeText)
+                    .autocorrectionDisabled()
+                    .portbaseTextCapitalization(.never)
+                    .portbaseFieldChrome()
+            }
+            HStack(spacing: Spacing.s) {
+                let blocked = target.map { (typedConfirmations[id] ?? "").trimmingCharacters(in: .whitespaces) != $0 } ?? false
+                if destructive {
+                    Button(step.assessment?.actionTitle ?? L10n.text("Run"), systemImage: "exclamationmark.triangle.fill") {
+                        session.decide(id, approved: true)
+                    }
+                    .buttonStyle(.portbaseDestructive)
+                    .disabled(blocked)
+                } else {
+                    Button("Run", systemImage: "play.fill") { session.decide(id, approved: true) }
+                        .buttonStyle(.portbasePrimary)
+                }
+                Button("Don't Run") { session.decide(id, approved: false) }
+                    .buttonStyle(.portbaseSecondary)
+            }
+            .font(.captionStrong)
+        }
+    }
+
     private var thinking: some View {
         HStack(spacing: Spacing.s) {
             assistantAvatar
@@ -450,7 +717,7 @@ struct AssistantChatView: View {
             }
             Spacer(minLength: Spacing.s)
             if session.turns.last?.role == .user, let context {
-                Button("Retry", systemImage: "arrow.clockwise") { session.retry(context: context, settings: chatSettings) }
+                Button("Retry", systemImage: "arrow.clockwise") { session.retry(context: context, settings: chatSettings, runner: runner) }
                     .buttonStyle(.portbaseSecondary)
             }
         }
@@ -555,8 +822,7 @@ struct AssistantChatView: View {
             .padding(.vertical, Spacing.xs)
             .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card + 4, style: .continuous))
             .overlay { RoundedRectangle(cornerRadius: Radius.card + 4, style: .continuous).strokeBorder(PortSQLPalette.stroke) }
-            Text(context == nil ? L10n.text("Choose a connection to include its schema.")
-                                : L10n.text("Replies are suggestions; nothing runs until you run it."))
+            Text(context == nil ? L10n.text("Choose a connection to include its schema.") : composerHint)
                 .font(.microText)
                 .foregroundStyle(PortSQLPalette.muted)
         }
@@ -566,13 +832,20 @@ struct AssistantChatView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var composerHint: String {
+        guard settings.approvalMode.runsQueries, let engine = workspace.selectedBookmark?.engine, AssistantQueryRunner.supports(engine) else {
+            return L10n.text("Replies are suggestions; nothing runs until you run it.")
+        }
+        return settings.approvalMode.summary + " " + L10n.text("Changes to data always ask.")
+    }
+
     private var canSend: Bool {
         !session.isSending && context != nil && !prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private func send() {
         guard canSend, let context else { return }
-        session.send(prompt, context: context, settings: chatSettings)
+        session.send(prompt, context: context, settings: chatSettings, runner: runner)
         prompt = ""
     }
 }
@@ -649,6 +922,16 @@ struct AssistantSettingsSections: View {
             Text("AI Providers")
         } footer: {
             Text("The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider.")
+        }
+
+        Section {
+            Picker("Running Queries", selection: $settings.approvalMode) {
+                ForEach(AssistantApprovalMode.allCases) { Text($0.title).tag($0) }
+            }
+        } header: {
+            Text("Agent")
+        } footer: {
+            Text(settings.approvalMode.summary + " " + L10n.text("Changes to data always ask, and destructive ones need a stronger confirmation. Results of queries the assistant runs, up to 50 rows, are sent to the provider."))
         }
 
         Section {
