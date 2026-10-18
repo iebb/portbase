@@ -151,3 +151,9 @@ products, credentials, local previews, and temporary files are excluded from Git
 
 Historical release documents record the state at the time of each submission;
 check App Store Connect for the current review and distribution state.
+
+## License
+
+Portbase's original code is licensed under the [BSD 3-Clause License](LICENSE).
+The vendored [MySQL driver](Packages/mysql-nio/LICENSE) and bundled
+[fonts](PortSQL/Fonts/OFL.txt) retain their own licenses.

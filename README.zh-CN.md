@@ -118,3 +118,8 @@ GitHub Actions 为推送到 `master` 的确切提交或手动触发的 `master` 
 | `AppStore/`、`fastlane/`、`ReviewScreenshots/` | 商店元数据、历史发布记录和截图 |
 
 历史发布文档反映当次提交时的状态；当前审核和分发状态请以 App Store Connect 为准。
+
+## 许可证
+
+Portbase 的原创代码采用 [BSD 3-Clause 许可证](LICENSE)。仓库内维护的
+[MySQL 驱动](Packages/mysql-nio/LICENSE)和附带的[字体](PortSQL/Fonts/OFL.txt)保留各自的许可证。

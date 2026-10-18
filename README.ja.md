@@ -119,3 +119,8 @@ GitHub Actions は `master` に push されたコミット、または手動実�
 | `AppStore/`・`fastlane/`・`ReviewScreenshots/` | ストア情報、過去のリリース記録、スクリーンショット |
 
 過去のリリース文書は各申請時点の記録です。現在の審査・配布状況は App Store Connect で確認してください。
+
+## ライセンス
+
+Portbase の独自コードは [BSD 3-Clause ライセンス](LICENSE)で公開しています。
+同梱の [MySQL ドライバ](Packages/mysql-nio/LICENSE)と[フォント](PortSQL/Fonts/OFL.txt)には、それぞれのライセンスが適用されます。

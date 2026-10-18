@@ -118,3 +118,9 @@ Consulta la [configuración de publicación y los secretos necesarios](Docs/app-
 | `AppStore/`, `fastlane/`, `ReviewScreenshots/` | Metadatos de la tienda, registros históricos y capturas |
 
 Los documentos de publicaciones anteriores reflejan el estado en el momento de cada envío. Consulta App Store Connect para conocer el estado actual de revisión y distribución.
+
+## Licencia
+
+El código original de Portbase se distribuye bajo la [licencia BSD de 3 cláusulas](LICENSE).
+El [controlador MySQL](Packages/mysql-nio/LICENSE) incluido y las
+[fuentes](PortSQL/Fonts/OFL.txt) conservan sus propias licencias.
