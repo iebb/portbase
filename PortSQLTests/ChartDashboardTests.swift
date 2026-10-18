@@ -42,6 +42,16 @@ final class ChartDashboardTests: XCTestCase {
         XCTAssertEqual(VisualizationService.chartPoints(for: result, preset: preset).count, 3)
     }
 
+    func testStaleGeneratedTitlesFollowTheCurrentSetup() {
+        var preset = VisualizationService.defaultPreset(for: .empty, connectionProfileID: nil, connectionName: "", databaseName: nil, sourceTableReference: nil)
+        preset.chartType = .donut
+        preset.xField = "country"; preset.yField = "total_users"; preset.yFields = ["total_users"]
+        preset.title = "nekokotel.travelsim_view_country_stats • Bar • mcc by first_user_at"
+        XCTAssertEqual(preset.displayTitle, VisualizationService.generatedTitle(chartType: .donut, xField: "country", yFields: ["total_users"], source: nil))
+        preset.title = "Signups • weekly"
+        XCTAssertEqual(preset.displayTitle, "Signups • weekly", "A title someone typed is kept")
+    }
+
     func testDateRangesAndParameterStrings() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))

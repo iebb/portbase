@@ -17,7 +17,10 @@ struct VisualizerComposerSheet: View {
     @State private var isConfirmingDelete = false
 
     init(initialPreset: SavedVisualizationPreset) {
-        _draft = State(initialValue: initialPreset)
+        var preset = initialPreset
+        // A stale generated title from an earlier version is replaced by one for the current setup.
+        preset.title = initialPreset.displayTitle
+        _draft = State(initialValue: preset)
         initialGeneratedTitle = VisualizationService.generatedTitle(chartType: initialPreset.chartType, xField: initialPreset.xField,
                                                                     yFields: initialPreset.resolvedYFields, source: nil)
         // Earlier versions generated "source • Bar • total by country".

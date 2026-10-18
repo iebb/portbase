@@ -20,7 +20,6 @@ struct VisualizationChartPlot: View {
     var onSelect: ((VisualizationPlotPoint) -> Void)?
     /// A fixed height, or nil to fill the space offered, as dashboard tiles do.
     var height: CGFloat? = 300
-    @State private var selectedAngle: Double?
 
     private var selectedPoint: VisualizationPlotPoint? { points.first { $0.id == selectedPointID } }
     private var groupLabel: String { L10n.text("Group") }
@@ -267,7 +266,19 @@ struct VisualizationChartPlot: View {
         }
         .chartForegroundStyleScale(domain: titles, range: colors)
         .chartLegend(.hidden)
-        .chartAngleSelection(value: $selectedAngle)
+        // Selection follows clicks and taps only. The built-in angle selection tracks the pointer on the
+        // Mac, which re-selected (and toggled) the slice under the mouse as it moved.
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Color.clear.contentShape(Rectangle())
+                    .onTapGesture { location in
+                        guard let frame = proxy.plotFrame, total > 0 else { return }
+                        if let point = sector(at: location, in: geometry[frame], total: total, donut: donut) { onSelect?(point) }
+                    }
+                    .allowsHitTesting(onSelect != nil)
+                    .accessibilityHidden(true)
+            }
+        }
         .chartBackground { proxy in
             GeometryReader { geometry in
                 if donut, let frame = proxy.plotFrame {
@@ -287,14 +298,23 @@ struct VisualizationChartPlot: View {
                 }
             }
         }
-        .onChange(of: selectedAngle) { _, angle in
-            guard let angle else { return }
-            var running: Double = 0
-            for point in points {
-                running += point.yValue
-                if angle <= running { onSelect?(point); return }
-            }
+    }
+
+    /// The slice under a point in the plot: its angle clockwise from twelve o'clock, inside the ring.
+    private func sector(at location: CGPoint, in plot: CGRect, total: Double, donut: Bool) -> VisualizationPlotPoint? {
+        let radius = min(plot.width, plot.height) / 2
+        let dx = location.x - plot.midX, dy = location.y - plot.midY
+        let distance = (dx * dx + dy * dy).squareRoot()
+        guard distance <= radius, !donut || distance >= radius * 0.55 else { return nil }
+        var angle = atan2(dx, -dy)
+        if angle < 0 { angle += 2 * .pi }
+        let value = angle / (2 * .pi) * total
+        var running: Double = 0
+        for point in points {
+            running += point.yValue
+            if value <= running { return point }
         }
+        return points.last
     }
 
     private var sectorColors: [Color] {

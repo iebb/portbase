@@ -208,6 +208,17 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
 
+    /// The title to show. Earlier versions generated titles like "orders • Bar • total by day" that went
+    /// stale when the chart changed; those show a title generated from the current setup instead.
+    var displayTitle: String {
+        let parts = title.components(separatedBy: " • ")
+        let chartTypes = Set(VisualizationChartType.allCases.flatMap { [$0.title, $0.rawValue.capitalized] })
+        if parts.count == 3, chartTypes.contains(parts[1]), parts[2].contains(" by ") {
+            return VisualizationService.generatedTitle(chartType: chartType, xField: xField, yFields: resolvedYFields, source: nil)
+        }
+        return title
+    }
+
     static let tileHeightRange: ClosedRange<Double> = 200...900
     static let defaultTileHeight: Double = 320
 

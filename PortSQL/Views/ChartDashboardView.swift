@@ -376,7 +376,7 @@ private struct ChartTile: View {
     private var header: some View {
         HStack(alignment: .top, spacing: Spacing.s) {
             VStack(alignment: .leading, spacing: Spacing.xxxs) {
-                Text(preset.title)
+                Text(preset.displayTitle)
                     .font(.rowTitle.weight(.semibold))
                     .foregroundStyle(PortSQLPalette.ink)
                     .lineLimit(1)
@@ -389,7 +389,7 @@ private struct ChartTile: View {
             .contentShape(Rectangle())
             // Drag a chart by its title to reorder it or move it to another page.
             .draggable(preset.id.uuidString) {
-                Label(preset.title, systemImage: preset.chartType.symbolName)
+                Label(preset.displayTitle, systemImage: preset.chartType.symbolName)
                     .font(.rowTitle)
                     .padding(Spacing.m)
                     .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.control))
@@ -409,7 +409,7 @@ private struct ChartTile: View {
             }
             .buttonStyle(.plain)
             .disabled(isRunning || !hasQuery || profile == nil)
-            .accessibilityLabel(L10n.format("Run %@ chart query", preset.title))
+            .accessibilityLabel(L10n.format("Run %@ chart query", preset.displayTitle))
 
             menu
         }
@@ -463,7 +463,7 @@ private struct ChartTile: View {
         .menuIndicator(.hidden)
         .buttonStyle(.plain)
         .fixedSize()
-        .accessibilityLabel(L10n.format("Edit %@ chart", preset.title))
+        .accessibilityLabel(L10n.format("Edit %@ chart", preset.displayTitle))
     }
 
     private var index: Int? { libraryStore.charts(onPage: page.id).firstIndex { $0.id == preset.id } }
