@@ -377,7 +377,8 @@ struct DesktopWorkspaceView: View {
                 } else {
                     DesktopStructureView(
                         onOpenData: { table in workspace.selectExplorerTable(table); show(.explorer) },
-                        onQuery: { table in workspace.queryText = workspace.defaultQuery(for: table); show(.console) }
+                        onQuery: { table in workspace.queryText = workspace.defaultQuery(for: table); show(.console) },
+                        onOpenSQL: { sql in workspace.applyAssistantQuery(sql, replacing: false); show(.console) }
                     )
                 }
             default: console

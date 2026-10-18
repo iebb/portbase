@@ -353,6 +353,41 @@ final class WorkspaceLibraryStore: ObservableObject {
         updateVisualizations([chart])
     }
 
+    /// Applies a change to one chart's settings and saves it, for the tile's quick menus.
+    func updateChart(_ id: UUID, _ change: (inout SavedVisualizationPreset) -> Void) {
+        guard var chart = visualizations.first(where: { $0.id == id }) else { return }
+        let before = chart
+        change(&chart)
+        guard chart != before else { return }
+        updateVisualizations([chart])
+    }
+
+    /// Saves a copy of a chart beside it on its page, with its last result.
+    @discardableResult
+    func duplicateChart(_ id: UUID) -> SavedVisualizationPreset? {
+        guard let chart = visualizations.first(where: { $0.id == id }) else { return nil }
+        var copy = chart
+        copy.id = UUID()
+        copy.title = L10n.format("%@ Copy", chart.displayTitle)
+        copy.createdAt = .now
+        guard saveVisualization(copy) else { return nil }
+        if let cached = chartResults.peek(chart.id) { chartResults.store(cached.result, for: copy.id, parameterValues: cached.parameterValues, fetchedAt: cached.fetchedAt) }
+        // New charts land at the end of the page; the copy goes right after the original instead.
+        moveChart(copy.id, toPage: resolvedPageID(for: chart), before: nextChart(after: chart)?.id)
+        return copy
+    }
+
+    private func resolvedPageID(for chart: SavedVisualizationPreset) -> UUID {
+        let pages = displayedChartPages
+        return chart.pageID.flatMap { id in pages.contains { $0.id == id } ? id : nil } ?? pages[0].id
+    }
+
+    private func nextChart(after chart: SavedVisualizationPreset) -> SavedVisualizationPreset? {
+        let ordered = charts(onPage: resolvedPageID(for: chart))
+        guard let index = ordered.firstIndex(where: { $0.id == chart.id }), ordered.indices.contains(index + 1) else { return nil }
+        return ordered[index + 1]
+    }
+
     func setChartShowsLegend(_ id: UUID, _ showsLegend: Bool) {
         guard var chart = visualizations.first(where: { $0.id == id }), chart.showsLegend != showsLegend else { return }
         chart.showsLegend = showsLegend
@@ -588,6 +623,10 @@ final class WorkspaceLibraryStore: ObservableObject {
                 "  showsLegend: \(preset.showsLegend ? "true" : "false")",
                 "  topLimit: \(yamlOptional(preset.topLimit.map { String($0) }))",
                 "  presentation: \(yamlOptional(preset.presentation?.rawValue))",
+                "  sortOrder: \(yamlOptional(preset.sortOrder?.rawValue))",
+                "  barLayout: \(yamlOptional(preset.barLayout?.rawValue))",
+                "  isHorizontal: \(preset.isHorizontal ? "true" : "false")",
+                "  showsValues: \(preset.showsValues ? "true" : "false")",
                 "  createdAt: \(yamlQuoted(formatter.string(from: preset.createdAt)))",
                 "  updatedAt: \(yamlQuoted(formatter.string(from: preset.updatedAt)))"
             ].joined(separator: "\n")
@@ -693,6 +732,10 @@ final class WorkspaceLibraryStore: ObservableObject {
                 showsLegend: yamlBool(item["showsLegend"]) ?? true,
                 topLimit: (try? yamlDecoded(item["topLimit"])).flatMap { $0 }.flatMap(Int.init),
                 presentation: (try? yamlDecoded(item["presentation"])).flatMap { $0 }.flatMap(ChartPresentation.init(rawValue:)),
+                sortOrder: (try? yamlDecoded(item["sortOrder"])).flatMap { $0 }.flatMap(ChartSortOrder.init(rawValue:)),
+                barLayout: (try? yamlDecoded(item["barLayout"])).flatMap { $0 }.flatMap(ChartBarLayout.init(rawValue:)),
+                isHorizontal: yamlBool(item["isHorizontal"]) ?? false,
+                showsValues: yamlBool(item["showsValues"]) ?? false,
                 createdAt: createdAt,
                 updatedAt: updatedAt
             )

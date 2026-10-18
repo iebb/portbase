@@ -69,6 +69,32 @@ enum ChartPresentation: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// The order of categories along the axis.
+enum ChartSortOrder: String, Codable, CaseIterable, Identifiable {
+    case valueDescending, valueAscending, label
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .valueDescending: L10n.text("Largest First")
+        case .valueAscending: L10n.text("Smallest First")
+        case .label: L10n.text("By Label")
+        }
+    }
+}
+
+/// How bars of several series share a category.
+enum ChartBarLayout: String, Codable, CaseIterable, Identifiable {
+    case stacked, grouped, normalized
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .stacked: L10n.text("Stacked")
+        case .grouped: L10n.text("Side by Side")
+        case .normalized: L10n.text("100% Stacked")
+        }
+    }
+}
+
 enum VisualizationFieldMode: String, CaseIterable, Identifiable, Codable {
     case automatic
     case category
@@ -120,6 +146,14 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
     var topLimit: Int?
     /// Shows the data as a table or a single number instead of the plot.
     var presentation: ChartPresentation?
+    /// Category order; nil keeps the query's order.
+    var sortOrder: ChartSortOrder?
+    /// Bars of several series side by side or as shares; nil stacks them.
+    var barLayout: ChartBarLayout?
+    /// Draws bars horizontally, which suits long category names.
+    var isHorizontal = false
+    /// Labels each bar, point, or slice with its value.
+    var showsValues = false
     var createdAt: Date = .now
     var updatedAt: Date = .now
 
@@ -178,6 +212,10 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         showsLegend: Bool = true,
         topLimit: Int? = nil,
         presentation: ChartPresentation? = nil,
+        sortOrder: ChartSortOrder? = nil,
+        barLayout: ChartBarLayout? = nil,
+        isHorizontal: Bool = false,
+        showsValues: Bool = false,
         createdAt: Date = .now,
         updatedAt: Date = .now
     ) {
@@ -206,6 +244,10 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         self.showsLegend = showsLegend
         self.topLimit = topLimit.map(Self.clampedTopLimit)
         self.presentation = presentation
+        self.sortOrder = sortOrder
+        self.barLayout = barLayout
+        self.isHorizontal = isHorizontal
+        self.showsValues = showsValues
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -243,6 +285,10 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         topLimit = (try? container.decodeIfPresent(Int.self, forKey: .topLimit)).flatMap { $0 }.map(Self.clampedTopLimit)
         // An unknown presentation from a newer version falls back to the plot.
         presentation = (try? container.decodeIfPresent(ChartPresentation.self, forKey: .presentation)).flatMap { $0 }
+        sortOrder = (try? container.decodeIfPresent(ChartSortOrder.self, forKey: .sortOrder)).flatMap { $0 }
+        barLayout = (try? container.decodeIfPresent(ChartBarLayout.self, forKey: .barLayout)).flatMap { $0 }
+        isHorizontal = (try? container.decodeIfPresent(Bool.self, forKey: .isHorizontal)).flatMap { $0 } ?? false
+        showsValues = (try? container.decodeIfPresent(Bool.self, forKey: .showsValues)).flatMap { $0 } ?? false
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }

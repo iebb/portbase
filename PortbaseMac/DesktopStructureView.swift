@@ -6,6 +6,8 @@ struct DesktopStructureView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     var onOpenData: (SchemaTableDescriptor) -> Void = { _ in }
     var onQuery: (SchemaTableDescriptor) -> Void = { _ in }
+    /// Puts SQL into the console without running it.
+    var onOpenSQL: (String) -> Void = { _ in }
 
     @State private var objects: [SchemaObject] = []
     @State private var search = ""
@@ -120,7 +122,9 @@ struct DesktopStructureView: View {
                         if !details.indexes.isEmpty { listCard(L10n.text("Indexes"), systemImage: "list.number", items: details.indexes) }
                         if !details.constraints.isEmpty { listCard(L10n.text("Constraints"), systemImage: "checkmark.shield", items: details.constraints) }
                         if !details.foreignKeys.isEmpty { foreignKeysCard(details.foreignKeys) }
-                        if !details.definition.isEmpty { definitionCard(details.definition) }
+                        if !details.definition.isEmpty {
+                            definitionCard(SchemaDDLBuilder.createScript(object, details: details, engine: engine))
+                        }
                     } else if loadingDetails {
                         ProgressView().frame(maxWidth: .infinity)
                     }
@@ -160,9 +164,7 @@ struct DesktopStructureView: View {
                 Button("Query", systemImage: "terminal") { onQuery(table) }
                     .buttonStyle(.portbaseSecondary)
             }
-            Button { PortbaseClipboard.copy(object.displayName) } label: { Image(systemName: "doc.on.doc") }
-                .buttonStyle(.portbaseSecondary)
-                .help(L10n.text("Copy Name"))
+            copyMenu(object)
         }
     }
 
@@ -275,8 +277,41 @@ struct DesktopStructureView: View {
         }
     }
 
+    private var engine: DatabaseEngine { workspace.selectedBookmark?.engine ?? .postgresql }
+
+    /// Copies the object's name or SQL for it; statements with values use named parameters.
+    private func copyMenu(_ object: SchemaObject) -> some View {
+        let columns = table(for: object)?.columns ?? []
+        let isRelation = object.kind != .function && object.kind != .procedure
+        return Menu {
+            Button("Copy Name") { PortbaseClipboard.copy(object.displayName) }
+            if isRelation, !columns.isEmpty {
+                Button("Copy Column Names") { PortbaseClipboard.copy(SchemaDDLBuilder.columnList(columns, engine: engine)) }
+            }
+            Divider()
+            Button("Copy CREATE Statement") {
+                if let details { PortbaseClipboard.copy(SchemaDDLBuilder.createScript(object, details: details, engine: engine)) }
+            }
+            .disabled(details?.definition.isEmpty ?? true)
+            Button("Copy DROP Statement") { PortbaseClipboard.copy(SchemaDDLBuilder.dropStatement(object, engine: engine)) }
+            if isRelation {
+                Divider()
+                Button("Copy SELECT Statement") { PortbaseClipboard.copy(SchemaDDLBuilder.selectStatement(object, columns: columns, engine: engine)) }
+                if object.kind == .table, !columns.isEmpty {
+                    Button("Copy INSERT Statement") { PortbaseClipboard.copy(SchemaDDLBuilder.insertStatement(object, columns: columns, engine: engine)) }
+                    Button("Copy UPDATE Statement") { PortbaseClipboard.copy(SchemaDDLBuilder.updateStatement(object, columns: columns, engine: engine)) }
+                }
+            }
+        } label: {
+            Label("Copy", systemImage: "doc.on.doc")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.portbaseSecondary)
+        .fixedSize()
+    }
+
     private func definitionCard(_ definition: String) -> some View {
-        card(L10n.text("Definition"), systemImage: "chevron.left.forwardslash.chevron.right") {
+        card(L10n.text("DDL"), systemImage: "chevron.left.forwardslash.chevron.right") {
             VStack(alignment: .trailing, spacing: Spacing.s) {
                 ScrollView(.horizontal) {
                     Text(verbatim: definition)
@@ -286,9 +321,13 @@ struct DesktopStructureView: View {
                         .fixedSize(horizontal: true, vertical: false)
                         .padding(Spacing.m)
                 }
-                Button("Copy Definition", systemImage: "doc.on.doc") { PortbaseClipboard.copy(definition) }
-                    .buttonStyle(.portbaseSecondary)
-                    .padding([.trailing, .bottom], Spacing.m)
+                HStack(spacing: Spacing.s) {
+                    Button("Open in Console", systemImage: "terminal") { onOpenSQL(definition) }
+                        .help(L10n.text("Puts the statement in the console without running it"))
+                    Button("Copy DDL", systemImage: "doc.on.doc") { PortbaseClipboard.copy(definition) }
+                }
+                .buttonStyle(.portbaseSecondary)
+                .padding([.trailing, .bottom], Spacing.m)
             }
         }
     }

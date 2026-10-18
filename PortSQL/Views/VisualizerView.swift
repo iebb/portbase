@@ -317,6 +317,37 @@ struct VisualizerComposerSheet: View {
                                 }
                             }
 
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Spacing.s) {
+                                VisualizationControlMenu(
+                                    title: L10n.text("Sort"),
+                                    value: draft.sortOrder?.title ?? L10n.text("Query Order"),
+                                    systemImage: "arrow.up.arrow.down"
+                                ) {
+                                    Button("Query Order") { draft.sortOrder = nil }
+                                    ForEach(ChartSortOrder.allCases) { order in
+                                        Button(order.title) { draft.sortOrder = order }
+                                    }
+                                }
+                                if draft.chartType == .bar && draft.presentation == nil {
+                                    VisualizationControlMenu(
+                                        title: L10n.text("Bars"),
+                                        value: (draft.barLayout ?? .stacked).title,
+                                        systemImage: "chart.bar.doc.horizontal"
+                                    ) {
+                                        ForEach(ChartBarLayout.allCases) { layout in
+                                            Button(layout.title) { draft.barLayout = layout == .stacked ? nil : layout }
+                                        }
+                                    }
+                                }
+                            }
+                            if draft.chartType == .bar && draft.presentation == nil {
+                                Toggle("Horizontal Bars", isOn: $draft.isHorizontal)
+                                    .font(.rowTitle)
+                                    .foregroundStyle(PortSQLPalette.ink)
+                            }
+                            Toggle("Show Values", isOn: $draft.showsValues)
+                                .font(.rowTitle)
+                                .foregroundStyle(PortSQLPalette.ink)
                             Toggle("Show Legend", isOn: $draft.showsLegend)
                                 .font(.rowTitle)
                                 .foregroundStyle(PortSQLPalette.ink)

@@ -309,6 +309,7 @@ private struct ChartTile: View {
     private var resizeUnit: CGFloat { ChartTileLayout.unit(for: pageWidth, spacing: Spacing.l) }
     @State private var isTargeted = false
     @State private var isConfirmingDelete = false
+    @State private var showsFullSize = false
 
     private var height: Double { resize?.height ?? preset.resolvedTileHeight }
     private var engine: DatabaseEngine { profile?.engine ?? .postgresql }
@@ -364,6 +365,11 @@ private struct ChartTile: View {
             hasLoadedCache = true
         }
         .onChange(of: refreshToken) { _, _ in Task { await run() } }
+        .sheet(isPresented: $showsFullSize) {
+            if let entry {
+                ChartFullSizeView(preset: preset, result: entry.result, fetchedAt: entry.fetchedAt)
+            }
+        }
         .alert("Delete Chart", isPresented: $isConfirmingDelete) {
             Button("Delete", role: .destructive) { libraryStore.deleteVisualization(preset) }
             Button("Cancel", role: .cancel) {}
@@ -421,6 +427,9 @@ private struct ChartTile: View {
     private var menu: some View {
         Menu {
             Button("Edit Chart…", systemImage: "slider.horizontal.3", action: onEdit)
+            Button("Open Full Size", systemImage: "arrow.up.left.and.arrow.down.right") { showsFullSize = true }
+                .disabled(entry == nil)
+            Button("Duplicate", systemImage: "plus.square.on.square") { withAnimation { libraryStore.duplicateChart(preset.id) } }
             Button("Inspect", systemImage: "scope") { previewAction = .inspect }
                 .disabled(entry == nil)
             Menu("Export", systemImage: "square.and.arrow.up") {
@@ -459,6 +468,19 @@ private struct ChartTile: View {
                         else { Text(L10n.format("Top %d", limit)) }
                     }
                 }
+            }
+            Menu("Sort", systemImage: "arrow.up.arrow.down") {
+                Button { libraryStore.updateChart(preset.id) { $0.sortOrder = nil } } label: {
+                    if preset.sortOrder == nil { Label("Query Order", systemImage: "checkmark") } else { Text("Query Order") }
+                }
+                ForEach(ChartSortOrder.allCases) { order in
+                    Button { libraryStore.updateChart(preset.id) { $0.sortOrder = order } } label: {
+                        if preset.sortOrder == order { Label(order.title, systemImage: "checkmark") } else { Text(order.title) }
+                    }
+                }
+            }
+            Toggle(isOn: Binding(get: { preset.showsValues }, set: { value in libraryStore.updateChart(preset.id) { $0.showsValues = value } })) {
+                Label("Show Values", systemImage: "number")
             }
             Toggle(isOn: Binding(get: { preset.showsLegend }, set: { libraryStore.setChartShowsLegend(preset.id, $0) })) {
                 Label("Show Legend", systemImage: "list.bullet.rectangle")
@@ -632,6 +654,35 @@ private struct ChartTile: View {
         } catch {
             runError = error.localizedDescription
         }
+    }
+}
+
+/// A chart at full size, with its date range, inspection, and export tools.
+private struct ChartFullSizeView: View {
+    @Environment(\.dismiss) private var dismiss
+    let preset: SavedVisualizationPreset
+    let result: QueryResultTable
+    let fetchedAt: Date
+
+    var body: some View {
+        PortbaseSheet(preset.displayTitle, subtitle: [preset.connectionName, preset.databaseName,
+                                                     L10n.format("Updated %@", fetchedAt.formatted(.relative(presentation: .named)))]
+                        .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")) {
+            ScrollView {
+                VisualizationChartPreview(preset: preset, result: result, compact: false, plotHeight: 520)
+                    .padding(.horizontal, Spacing.xl)
+                    .padding(.bottom, Spacing.l)
+            }
+        } footer: {
+            Button("Done") { dismiss() }
+                .buttonStyle(.portbasePrimary)
+                .keyboardShortcut(.defaultAction)
+        }
+#if os(macOS)
+        .frame(minWidth: 900, idealWidth: 1100, minHeight: 680, idealHeight: 760)
+#else
+        .presentationDetents([.large])
+#endif
     }
 }
 

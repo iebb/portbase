@@ -21,6 +21,7 @@ struct ChartRenderData: Sendable {
         let xMode = VisualizationService.resolvedXMode(for: preset, fields: fields)
         let points = VisualizationService.chartPoints(for: filtered, preset: preset, fields: fields)
         var drawn = preset.topLimit.map { topLimited(points, limit: $0, xMode: xMode) } ?? points
+        if let order = preset.sortOrder, xMode == .category || xMode == .automatic { drawn = sorted(drawn, by: order) }
         if preset.presentation == nil {
             switch preset.chartType {
             // Largest slice first, with "Other" always last whatever its size.
@@ -37,6 +38,27 @@ struct ChartRenderData: Sendable {
     }
 
     static func isOther(_ point: VisualizationPlotPoint) -> Bool { point.id.hasPrefix("portbase.other") }
+
+    /// Orders categories by their total or their label; charts place categories in the order they first
+    /// appear. "Other" stays last.
+    static func sorted(_ points: [VisualizationPlotPoint], by order: ChartSortOrder) -> [VisualizationPlotPoint] {
+        var totals: [String: Double] = [:]
+        for point in points { totals[point.xText, default: 0] += point.yValue }
+        let other = L10n.text("Other")
+        return points.enumerated().sorted { lhs, rhs in
+            let left = lhs.element, right = rhs.element
+            if (left.xText == other) != (right.xText == other) { return right.xText == other }
+            if left.xText != right.xText {
+                switch order {
+                case .valueDescending: if totals[left.xText]! != totals[right.xText]! { return totals[left.xText]! > totals[right.xText]! }
+                case .valueAscending: if totals[left.xText]! != totals[right.xText]! { return totals[left.xText]! < totals[right.xText]! }
+                case .label: break
+                }
+                return left.xText.localizedStandardCompare(right.xText) == .orderedAscending
+            }
+            return lhs.offset < rhs.offset
+        }.map(\.element)
+    }
 
     /// The chart's Top K: with a group field, the K largest series; otherwise the K largest x values.
     /// The rest are summed into "Other" where the x axis has categories; a date or number axis has no
@@ -156,6 +178,7 @@ struct ChartRenderKey: Hashable, Sendable {
     let xAxisMode: VisualizationFieldMode
     let topLimit: Int?
     let presentation: ChartPresentation?
+    let sortOrder: ChartSortOrder?
     let dateFilter: VisualizationDateFilter?
 
     init(result: QueryResultTable, preset: SavedVisualizationPreset, dateFilter: VisualizationDateFilter?) {
@@ -168,6 +191,7 @@ struct ChartRenderKey: Hashable, Sendable {
         xAxisMode = preset.xAxisMode
         topLimit = preset.topLimit
         presentation = preset.presentation
+        sortOrder = preset.sortOrder
         self.dateFilter = dateFilter
     }
 }

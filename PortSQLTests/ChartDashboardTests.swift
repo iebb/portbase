@@ -75,6 +75,18 @@ final class ChartDashboardTests: XCTestCase {
         XCTAssertNil(decoded.topLimit)
     }
 
+    func testSortingOrdersCategoriesAndKeepsOtherLast() {
+        let points = [point("b", 5), point("a", 9), point("Other", 50), point("c", 1)].map { item -> VisualizationPlotPoint in
+            item.xText == "Other"
+                ? VisualizationPlotPoint(id: "portbase.other|users", xText: L10n.text("Other"), xNumber: nil, xDate: nil, yValue: 50,
+                                         group: nil, label: nil, metric: "users", sourceRowIDs: [])
+                : item
+        }
+        XCTAssertEqual(ChartRenderData.sorted(points, by: .valueDescending).map(\.xText), ["a", "b", "c", L10n.text("Other")])
+        XCTAssertEqual(ChartRenderData.sorted(points, by: .valueAscending).map(\.xText), ["c", "b", "a", L10n.text("Other")])
+        XCTAssertEqual(ChartRenderData.sorted(points, by: .label).map(\.xText), ["a", "b", "c", L10n.text("Other")])
+    }
+
     func testThinningKeepsEndpointsAndPeaks() {
         let xs = (0..<5_000).map(Double.init)
         var ys = xs.map { sin($0 / 300) }
@@ -189,8 +201,24 @@ final class ChartDashboardTests: XCTestCase {
         XCTAssertEqual(page.dateRange?.preset, .last30Days)
         XCTAssertEqual(page.parameterValues, ["region": "EU"])
 
+        reopened.updateChart(ids[2]) { chart in
+            chart.sortOrder = .valueDescending
+            chart.barLayout = .normalized
+            chart.isHorizontal = true
+            chart.showsValues = true
+        }
+        let copy = try XCTUnwrap(reopened.duplicateChart(ids[2]))
+        XCTAssertEqual(reopened.charts(onPage: ChartPage.defaultID).map(\.id), [ids[2], copy.id, ids[0]], "A copy sits right after its original")
+        let again = WorkspaceLibraryStore(directory: directory, cloudSyncEnabled: false)
+        let styled = try XCTUnwrap(again.visualizations.first { $0.id == ids[2] })
+        XCTAssertEqual(styled.sortOrder, .valueDescending)
+        XCTAssertEqual(styled.barLayout, .normalized)
+        XCTAssertTrue(styled.isHorizontal)
+        XCTAssertTrue(styled.showsValues)
+        XCTAssertTrue(again.visualizations.first { $0.id == copy.id }?.isHorizontal == true, "A copy keeps the original's settings")
+
         reopened.deleteChartPage(growth.id)
         XCTAssertEqual(reopened.displayedChartPages.map(\.id), [ChartPage.defaultID])
-        XCTAssertEqual(reopened.charts(onPage: ChartPage.defaultID).map(\.id), [ids[2], ids[0], ids[1]], "A deleted page's charts move, not vanish")
+        XCTAssertEqual(reopened.charts(onPage: ChartPage.defaultID).map(\.id), [ids[2], copy.id, ids[0], ids[1]], "A deleted page's charts move, not vanish")
     }
 }

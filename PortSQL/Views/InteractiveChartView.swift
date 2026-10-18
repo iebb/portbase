@@ -130,6 +130,8 @@ struct VisualizationChartPreview: View {
     /// Dashboard tiles: the chart fills the tile and its actions come from the tile's menu.
     var compact: Bool
     var action: Binding<ChartPreviewAction?> = .constant(nil)
+    /// The plot's height outside dashboard tiles, where it fills the tile instead.
+    var plotHeight: CGFloat = 300
     @State private var dateFilter: VisualizationDateFilter?
     @State private var showsDateFilter = false
     @State private var showsPointList = false
@@ -188,29 +190,29 @@ struct VisualizationChartPreview: View {
             switch presentation {
             case .table:
                 ChartTableView(result: data.result, rowLimit: preset.topLimit)
-                    .frame(height: compact ? nil : 300)
+                    .frame(height: compact ? nil : plotHeight)
                     .frame(maxHeight: compact ? .infinity : nil)
             case .number:
                 ChartNumberView(preset: preset, data: data)
-                    .frame(height: compact ? nil : 300)
+                    .frame(height: compact ? nil : plotHeight)
                     .frame(maxHeight: compact ? .infinity : nil)
             }
         } else if let data {
             if data.points.isEmpty {
                 ContentUnavailableView("No plottable rows", systemImage: "chart.bar.doc.horizontal")
                     .frame(maxWidth: .infinity)
-                    .frame(height: compact ? nil : 300)
+                    .frame(height: compact ? nil : plotHeight)
                     .frame(maxHeight: compact ? .infinity : nil)
             } else {
                 VisualizationChartPlot(preset: preset, points: data.points, xMode: data.xMode, compact: compact,
                                        selectedPointID: selectedPointID, onSelect: { point in
                                            selectedPointID = selectedPointID == point.id ? nil : point.id
-                                       }, height: compact ? nil : 300)
+                                       }, height: compact ? nil : plotHeight)
             }
         } else {
             ProgressView()
                 .frame(maxWidth: .infinity)
-                .frame(height: compact ? nil : 300)
+                .frame(height: compact ? nil : plotHeight)
                 .frame(maxHeight: compact ? .infinity : nil)
         }
     }

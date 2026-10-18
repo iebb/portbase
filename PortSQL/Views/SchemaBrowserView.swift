@@ -78,12 +78,29 @@ struct SchemaObjectView: View {
             }
             if let details {
                 if !details.definition.isEmpty {
-                    Section("Definition") {
+                    let engine = workspace.selectedBookmark?.engine ?? .postgresql
+                    let script = SchemaDDLBuilder.createScript(object, details: details, engine: engine)
+                    let columns = workspace.schemaCatalog.first(where: { $0.schemaName == object.schema && $0.name == object.name })?.columns ?? []
+                    Section("DDL") {
                         ScrollView(.horizontal) {
-                            Text(details.definition).font(.codeDetail).textSelection(.enabled)
+                            Text(script).font(.codeDetail).textSelection(.enabled)
                                 .fixedSize(horizontal: true, vertical: false)
                         }
-                        Button("Copy Definition", systemImage: "doc.on.doc") { PortbaseClipboard.copy(details.definition )}
+                        Button("Copy DDL", systemImage: "doc.on.doc") { PortbaseClipboard.copy(script) }
+                        Button("Copy DROP Statement", systemImage: "trash") { PortbaseClipboard.copy(SchemaDDLBuilder.dropStatement(object, engine: engine)) }
+                        if object.kind != .function, object.kind != .procedure {
+                            Button("Copy SELECT Statement", systemImage: "text.magnifyingglass") {
+                                PortbaseClipboard.copy(SchemaDDLBuilder.selectStatement(object, columns: columns, engine: engine))
+                            }
+                        }
+                        if object.kind == .table, !columns.isEmpty {
+                            Button("Copy INSERT Statement", systemImage: "plus.rectangle") {
+                                PortbaseClipboard.copy(SchemaDDLBuilder.insertStatement(object, columns: columns, engine: engine))
+                            }
+                            Button("Copy UPDATE Statement", systemImage: "pencil") {
+                                PortbaseClipboard.copy(SchemaDDLBuilder.updateStatement(object, columns: columns, engine: engine))
+                            }
+                        }
                     }
                 }
                 if !details.indexes.isEmpty {
