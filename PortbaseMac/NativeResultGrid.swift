@@ -40,6 +40,8 @@ struct GridCollectionBridge: NSViewRepresentable {
     let onConfigureColumn: (Int) -> Void
     let onPinColumn: (Int) -> Void
     let onHideColumn: (Int) -> Void
+    /// Moves a column (by index) to a position among the visible columns.
+    var onMoveColumn: (Int, Int) -> Void = { _, _ in }
     var copyFormats: [ResultCopyFormat] = []
     var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
     var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
@@ -62,6 +64,8 @@ struct GridCollectionBridge: NSViewRepresentable {
         table.style = .fullWidth
         // Selection is drawn per cell; the system's full-row highlight fought with it and with the editor.
         table.selectionHighlightStyle = .none
+        // Drag a header to reorder columns; the order is remembered for the table.
+        table.allowsColumnReordering = true
         table.target = context.coordinator; table.doubleAction = #selector(Coordinator.openCell)
         table.onSelectCell = { [weak coordinator = context.coordinator] row, column, extend in
             coordinator?.select(row: row, column: column, extend: extend)
@@ -80,7 +84,9 @@ struct GridCollectionBridge: NSViewRepresentable {
         guard let table = scroll.documentView as? ResultTableView else { return }
         let old = context.coordinator.parent
         context.coordinator.parent = self
-        if old.visibleColumns != visibleColumns || old.result.columns != result.columns || table.tableColumns.isEmpty {
+        // A column the user just dragged is already in place, so compare against the table itself.
+        let shown = table.tableColumns.map(\.identifier.rawValue)
+        if shown != visibleColumns.map(String.init) || old.result.columns != result.columns || table.tableColumns.isEmpty {
             for column in table.tableColumns { table.removeTableColumn(column) }
             for index in visibleColumns {
                 let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(String(index)))
@@ -183,6 +189,12 @@ struct GridCollectionBridge: NSViewRepresentable {
             ])
             return cell
         }
+        func tableViewColumnDidMove(_ notification: Notification) {
+            guard let table, let to = notification.userInfo?["NSNewColumn"] as? Int,
+                  table.tableColumns.indices.contains(to), let index = Int(table.tableColumns[to].identifier.rawValue) else { return }
+            parent.onMoveColumn(index, to)
+        }
+
         func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {
             if let index = Int(tableColumn.identifier.rawValue) { parent.onSort?(parent.result.columns[index].name) }
         }

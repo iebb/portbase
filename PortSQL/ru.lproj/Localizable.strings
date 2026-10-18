@@ -1438,3 +1438,11 @@
 "Use All Rows" = "Использовать все строки";
 "Values are sent as bound parameters, never written into the SQL." = "Значения передаются как связанные параметры и никогда не вставляются в SQL.";
 "Year to Date" = "С начала года";
+"Move Column" = "Переместить столбец";
+"Move Left" = "Переместить влево";
+"Move Right" = "Переместить вправо";
+"Move to Start" = "Переместить в начало";
+"Move to End" = "Переместить в конец";
+"Reset Column Order" = "Сбросить порядок столбцов";
+"Order" = "Порядок";
+"Drag to reorder. The order is remembered for this table." = "Перетащите, чтобы изменить порядок. Он запоминается для этой таблицы.";

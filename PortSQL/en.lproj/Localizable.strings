@@ -1438,3 +1438,11 @@
 "Use All Rows" = "Use All Rows";
 "Values are sent as bound parameters, never written into the SQL." = "Values are sent as bound parameters, never written into the SQL.";
 "Year to Date" = "Year to Date";
+"Move Column" = "Move Column";
+"Move Left" = "Move Left";
+"Move Right" = "Move Right";
+"Move to Start" = "Move to Start";
+"Move to End" = "Move to End";
+"Reset Column Order" = "Reset Column Order";
+"Order" = "Order";
+"Drag to reorder. The order is remembered for this table." = "Drag to reorder. The order is remembered for this table.";

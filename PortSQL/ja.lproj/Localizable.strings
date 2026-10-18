@@ -1438,3 +1438,11 @@
 "Use All Rows" = "すべての行を使用";
 "Values are sent as bound parameters, never written into the SQL." = "値はバインドパラメータとして送信され、SQLに書き込まれることはありません。";
 "Year to Date" = "年初来";
+"Move Column" = "列を移動";
+"Move Left" = "左へ移動";
+"Move Right" = "右へ移動";
+"Move to Start" = "先頭へ移動";
+"Move to End" = "末尾へ移動";
+"Reset Column Order" = "列の順序をリセット";
+"Order" = "順序";
+"Drag to reorder. The order is remembered for this table." = "ドラッグして並べ替えます。順序はこのテーブルで記憶されます。";

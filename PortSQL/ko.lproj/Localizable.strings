@@ -1438,3 +1438,11 @@
 "Use All Rows" = "모든 행 사용";
 "Values are sent as bound parameters, never written into the SQL." = "값은 바인딩된 매개변수로 전송되며 SQL에 직접 기록되지 않습니다.";
 "Year to Date" = "올해 누적";
+"Move Column" = "열 이동";
+"Move Left" = "왼쪽으로 이동";
+"Move Right" = "오른쪽으로 이동";
+"Move to Start" = "맨 앞으로 이동";
+"Move to End" = "맨 뒤로 이동";
+"Reset Column Order" = "열 순서 재설정";
+"Order" = "순서";
+"Drag to reorder. The order is remembered for this table." = "드래그하여 순서를 바꿉니다. 순서는 이 테이블에 기억됩니다.";

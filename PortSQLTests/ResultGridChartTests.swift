@@ -71,3 +71,29 @@ final class ResultGridChartTests: XCTestCase {
         XCTAssertNil(VisualizationService.parsedNumber(from: "Infinity"))
     }
 }
+
+final class ResultGridColumnOrderTests: XCTestCase {
+    private func columns(_ names: String...) -> [QueryColumn] { names.map { QueryColumn(name: $0, type: "text") } }
+
+    func testSavedOrderAppliesByNameAndNewColumnsKeepTheirPlace() {
+        let saved = ["email", "name", "id"]
+        XCTAssertEqual(ResultGridColumnOrder.apply(saved, to: columns("id", "name", "email")), [2, 1, 0])
+        // "created_at" is new: it stays at its own position while the known columns follow the saved order.
+        XCTAssertEqual(ResultGridColumnOrder.apply(saved, to: columns("id", "created_at", "name", "email")), [3, 1, 2, 0])
+        XCTAssertEqual(ResultGridColumnOrder.apply([], to: columns("a", "b")), [0, 1])
+    }
+
+    func testDuplicateNamesKeepSeparatePlaces() {
+        let cols = columns("id", "name", "id")
+        XCTAssertEqual(ResultGridColumnOrder.keys(for: cols), ["id", "name", "id#1"])
+        XCTAssertEqual(ResultGridColumnOrder.apply(["id#1", "name", "id"], to: cols), [2, 1, 0])
+    }
+
+    func testVisibleColumnsFollowTheOrderWithPinnedFirst() {
+        var configuration = ResultGridConfiguration()
+        configuration.hidden = [1]
+        configuration.pinned = [0]
+        XCTAssertEqual(configuration.visibleColumns(count: 4, order: [3, 2, 1, 0]), [0, 3, 2])
+        XCTAssertEqual(configuration.visibleColumns(count: 4, order: [9, 9]), [0, 2, 3], "An invalid order falls back to the natural one")
+    }
+}

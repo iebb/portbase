@@ -1438,3 +1438,11 @@
 "Use All Rows" = "Usar todas las filas";
 "Values are sent as bound parameters, never written into the SQL." = "Los valores se envían como parámetros enlazados y nunca se escriben en el SQL.";
 "Year to Date" = "En lo que va de año";
+"Move Column" = "Mover columna";
+"Move Left" = "Mover a la izquierda";
+"Move Right" = "Mover a la derecha";
+"Move to Start" = "Mover al principio";
+"Move to End" = "Mover al final";
+"Reset Column Order" = "Restablecer orden de columnas";
+"Order" = "Orden";
+"Drag to reorder. The order is remembered for this table." = "Arrastra para reordenar. El orden se recuerda para esta tabla.";

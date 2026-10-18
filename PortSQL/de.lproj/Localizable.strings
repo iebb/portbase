@@ -1438,3 +1438,11 @@
 "Use All Rows" = "Alle Zeilen verwenden";
 "Values are sent as bound parameters, never written into the SQL." = "Werte werden als gebundene Parameter gesendet und nie in das SQL geschrieben.";
 "Year to Date" = "Seit Jahresbeginn";
+"Move Column" = "Spalte verschieben";
+"Move Left" = "Nach links";
+"Move Right" = "Nach rechts";
+"Move to Start" = "An den Anfang";
+"Move to End" = "Ans Ende";
+"Reset Column Order" = "Spaltenreihenfolge zurücksetzen";
+"Order" = "Reihenfolge";
+"Drag to reorder. The order is remembered for this table." = "Zum Neuordnen ziehen. Die Reihenfolge wird für diese Tabelle gespeichert.";

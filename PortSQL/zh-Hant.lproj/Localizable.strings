@@ -1438,3 +1438,11 @@
 "Use All Rows" = "使用所有列";
 "Values are sent as bound parameters, never written into the SQL." = "值以綁定參數傳送，絕不會寫入 SQL。";
 "Year to Date" = "年初至今";
+"Move Column" = "移動欄";
+"Move Left" = "左移";
+"Move Right" = "右移";
+"Move to Start" = "移到開頭";
+"Move to End" = "移到結尾";
+"Reset Column Order" = "重設欄順序";
+"Order" = "順序";
+"Drag to reorder. The order is remembered for this table." = "拖移以重新排序。此表會記住該順序。";

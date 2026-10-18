@@ -34,9 +34,45 @@ struct ResultGridConfiguration: Codable, Equatable {
     var pinned: Set<Int> = []
     var hidden: Set<Int> = []
 
-    func visibleColumns(count: Int) -> [Int] {
-        let visible = (0..<count).filter { !hidden.contains($0) }
+    /// Visible columns in display order: the table's saved order, pinned columns first.
+    func visibleColumns(count: Int, order: [Int]? = nil) -> [Int] {
+        let base = order.flatMap { $0.count == count && Set($0) == Set(0..<count) ? $0 : nil } ?? Array(0..<count)
+        let visible = base.filter { !hidden.contains($0) }
         return visible.filter { pinned.contains($0) } + visible.filter { !pinned.contains($0) }
+    }
+}
+
+/// A table's column order, remembered by column name so it survives new, removed, or re-typed
+/// columns. Columns that weren't there when the order was saved keep their own positions.
+enum ResultGridColumnOrder {
+    private static let prefix = "PortSQL.gridOrder."
+
+    /// Names with an occurrence count, so two columns both named "id" keep separate places.
+    static func keys(for columns: [QueryColumn]) -> [String] {
+        var seen: [String: Int] = [:]
+        return columns.map { column in
+            let occurrence = seen[column.name, default: 0]
+            seen[column.name] = occurrence + 1
+            return occurrence == 0 ? column.name : column.name + "#" + String(occurrence)
+        }
+    }
+
+    /// Column indices in the saved order.
+    static func apply(_ saved: [String], to columns: [QueryColumn]) -> [Int] {
+        let keys = keys(for: columns)
+        let rank = Dictionary(saved.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        let known = keys.indices.filter { rank[keys[$0]] != nil }.sorted { rank[keys[$0]]! < rank[keys[$1]]! }
+        var queue = known.makeIterator()
+        return keys.indices.map { rank[keys[$0]] != nil ? queue.next()! : $0 }
+    }
+
+    static func load(_ table: String) -> [String] {
+        UserDefaults.standard.stringArray(forKey: prefix + table) ?? []
+    }
+
+    static func save(_ order: [String], for table: String) {
+        if order.isEmpty { UserDefaults.standard.removeObject(forKey: prefix + table) }
+        else { UserDefaults.standard.set(order, forKey: prefix + table) }
     }
 }
 
@@ -174,7 +210,10 @@ struct ResultGridView: View {
         return cells
     }
 
-    private var visibleColumns: [Int] { configuration.visibleColumns(count: result.columns.count) }
+    @State private var savedColumnOrder: [String] = []
+    /// Every column index in display order before hiding and pinning.
+    private var columnOrder: [Int] { ResultGridColumnOrder.apply(savedColumnOrder, to: result.columns) }
+    private var visibleColumns: [Int] { configuration.visibleColumns(count: result.columns.count, order: columnOrder) }
     private var controlHeight: CGFloat {
 #if canImport(UIKit)
         44
@@ -281,6 +320,7 @@ struct ResultGridView: View {
                 onConfigureColumn: { focusedColumn = $0; showsColumns = true },
                 onPinColumn: { index in togglePinned(index) },
                 onHideColumn: { index in hideColumn(index) },
+                onMoveColumn: { index, position in moveColumn(index, toVisiblePosition: position) },
                 copyFormats: ResultCopyFormat.available(for: copyEngine),
                 onCopyAs: { copy(as: $0) },
                 headerMenu: { headerMenu(for: $0) },
@@ -319,6 +359,9 @@ struct ResultGridView: View {
                 configuration = saved
             } else { configuration = ResultGridConfiguration() }
             if visibleColumns.isEmpty { configuration.hidden = [] }
+        }
+        .onChange(of: persistenceKey, initial: true) { _, key in
+            savedColumnOrder = key.map(ResultGridColumnOrder.load) ?? []
         }
         .onChange(of: configuration) { _, newValue in
             if let key = configurationKey, let data = try? JSONEncoder().encode(newValue) {
@@ -373,6 +416,27 @@ struct ResultGridView: View {
         PortbaseSheet(L10n.text("Columns"), onClose: { showsColumns = false }) {
             ScrollViewReader { proxy in
                 List {
+                    Section {
+                        ForEach(columnOrder, id: \.self) { index in
+                            HStack(spacing: Spacing.s) {
+                                Text(result.columns[index].name).font(.codeText).lineLimit(1)
+                                Spacer(minLength: Spacing.s)
+                                Text(result.columns[index].type.lowercased()).font(.captionText).foregroundStyle(.secondary).lineLimit(1)
+                                if configuration.hidden.contains(index) { Image(systemName: "eye.slash").foregroundStyle(.secondary) }
+                                if configuration.pinned.contains(index) { Image(systemName: "pin.fill").foregroundStyle(.secondary) }
+                            }
+                            .frame(minHeight: Sizes.control)
+                        }
+                        .onMove { source, destination in
+                            var order = columnOrder
+                            order.move(fromOffsets: source, toOffset: destination)
+                            setColumnOrder(order)
+                        }
+                    } header: {
+                        Text("Order").textCase(nil)
+                    } footer: {
+                        Text("Drag to reorder. The order is remembered for this table.")
+                    }
                     ForEach(Array(result.columns.enumerated()), id: \.offset) { index, column in
                         Section {
                             Toggle("Visible", isOn: Binding(
@@ -410,10 +474,14 @@ struct ResultGridView: View {
                 }
                 .listStyle(.portbaseGrouped)
                 .scrollContentBackground(.hidden)
+#if canImport(UIKit)
+                // Shows the drag handles; the toggles and sliders keep working.
+                .environment(\.editMode, .constant(.active))
+#endif
                 .onAppear { if let focusedColumn { proxy.scrollTo(focusedColumn, anchor: .top) } }
             }
         } footer: {
-            Button("Reset Columns") { configuration = ResultGridConfiguration(); selection = nil }
+            Button("Reset Columns") { configuration = ResultGridConfiguration(); resetColumnOrder() }
                 .buttonStyle(.portbaseSecondary)
             Button("Done") { showsColumns = false }
                 .buttonStyle(.portbasePrimary)
@@ -451,6 +519,14 @@ struct ResultGridView: View {
         }
         items += [
             .separator,
+            .submenu(L10n.text("Move Column"), "arrow.left.arrow.right", [
+                .action(L10n.text("Move Left"), "arrow.left", enabled: (visibleColumns.firstIndex(of: column) ?? 0) > 0) { moveColumn(column, by: -1) },
+                .action(L10n.text("Move Right"), "arrow.right", enabled: (visibleColumns.firstIndex(of: column) ?? visibleColumns.count) < visibleColumns.count - 1) { moveColumn(column, by: 1) },
+                .action(L10n.text("Move to Start"), "arrow.left.to.line") { moveColumn(column, toVisiblePosition: 0) },
+                .action(L10n.text("Move to End"), "arrow.right.to.line") { moveColumn(column, toVisiblePosition: visibleColumns.count - 1) },
+                .separator,
+                .action(L10n.text("Reset Column Order"), "arrow.uturn.backward", enabled: !savedColumnOrder.isEmpty) { resetColumnOrder() },
+            ]),
             .action(configuration.pinned.contains(column) ? L10n.text("Unpin Column") : L10n.text("Pin Column"), "pin") { togglePinned(column) },
             .action(L10n.text("Hide Column"), "eye.slash", enabled: visibleColumns.count > 1) { hideColumn(column) },
             .action(L10n.text("Hide Other Columns"), "eye.slash.circle", enabled: visibleColumns.count > 1) {
@@ -537,6 +613,41 @@ struct ResultGridView: View {
         return items
     }
 
+    // MARK: Column order
+
+    private func moveColumn(_ index: Int, by offset: Int) {
+        guard let position = visibleColumns.firstIndex(of: index) else { return }
+        moveColumn(index, toVisiblePosition: position + offset)
+    }
+
+    /// Moves a column to a place among the visible columns and remembers the order for this table.
+    private func moveColumn(_ index: Int, toVisiblePosition target: Int) {
+        var visible = visibleColumns
+        guard let from = visible.firstIndex(of: index) else { return }
+        let to = min(max(target, 0), visible.count - 1)
+        guard from != to else { return }
+        visible.remove(at: from)
+        visible.insert(index, at: to)
+        // Hidden columns keep their place relative to the column before them.
+        var order = visible
+        for (position, column) in columnOrder.enumerated() where !visible.contains(column) {
+            let previous = columnOrder[..<position].last { order.contains($0) }
+            order.insert(column, at: previous.flatMap { order.firstIndex(of: $0) }.map { $0 + 1 } ?? 0)
+        }
+        setColumnOrder(order)
+    }
+
+    private func setColumnOrder(_ order: [Int]) {
+        let keys = ResultGridColumnOrder.keys(for: result.columns)
+        savedColumnOrder = order == Array(result.columns.indices) ? [] : order.map { keys[$0] }
+        if let persistenceKey { ResultGridColumnOrder.save(savedColumnOrder, for: persistenceKey) }
+        selection = nil
+    }
+
+    private func resetColumnOrder() {
+        setColumnOrder(Array(result.columns.indices))
+    }
+
     private func togglePinned(_ index: Int) {
         if configuration.pinned.contains(index) { configuration.pinned.remove(index) }
         else { configuration.pinned.insert(index) }
@@ -588,6 +699,8 @@ private struct GridCollectionBridge: UIViewRepresentable {
     let onConfigureColumn: (Int) -> Void
     let onPinColumn: (Int) -> Void
     let onHideColumn: (Int) -> Void
+    /// Moves a column (by index) to a position among the visible columns.
+    var onMoveColumn: (Int, Int) -> Void = { _, _ in }
     var copyFormats: [ResultCopyFormat] = []
     var onCopyAs: (ResultCopyFormat) -> Void = { _ in }
     var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
