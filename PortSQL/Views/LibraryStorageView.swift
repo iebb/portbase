@@ -13,44 +13,55 @@ struct LibraryStorageView: View {
     }
 
     var body: some View {
-        List {
+        Form {
             if let error = library.storageError ?? consoles.storageError {
-                Section { Text(error).foregroundStyle(.red) }
+                Section { Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red) }
             }
-            Section("Storage") {
-                LabeledContent("Saved Queries", value: library.snippets.count.formatted())
-                LabeledContent("Charts", value: library.visualizations.count.formatted())
-                LabeledContent("Chart Previews", value: library.previewStorageSize)
-                Button("Clear Chart Previews") { clearing = .previews }
-                Button("Clear Query History", role: .destructive) { clearing = .history }
+            Section {
+                LabeledContent { Text(library.snippets.count.formatted()).monospacedDigit() } label: {
+                    Label("Saved Queries", systemImage: "books.vertical")
+                }
+                LabeledContent { Text(library.visualizations.count.formatted()).monospacedDigit() } label: {
+                    Label("Charts", systemImage: "chart.bar.xaxis")
+                }
+                LabeledContent { Text(library.previewStorageSize).monospacedDigit() } label: {
+                    Label("Chart Previews", systemImage: "photo.on.rectangle")
+                }
+            } header: {
+                Text("Storage")
+            } footer: {
+                HStack(spacing: Spacing.s) {
+                    Button("Clear Chart Previews") { clearing = .previews }
+                    Button("Clear Query History", role: .destructive) { clearing = .history }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .padding(.top, Spacing.xs)
             }
+
             Section("Recently Closed Consoles") {
+                if consoles.closed.isEmpty {
+                    emptyRow(L10n.text("Consoles you close stay here for a while, ready to restore."))
+                }
                 ForEach(consoles.closed) { draft in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(draft.title)
-                            Text(draft.query).font(.codeCaption).lineLimit(2).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button("Restore") { consoles.add(restoring: draft) }.buttonStyle(.borderless)
+                    itemRow(title: draft.title, onRestore: { consoles.add(restoring: draft) }, onDelete: { closedDeletion = draft }) {
+                        Text(draft.query).font(.codeCaption).lineLimit(2).foregroundStyle(.secondary)
                     }
-                    .swipeActions { Button("Delete", role: .destructive) { closedDeletion = draft } }
                 }
             }
+
             Section("Trash") {
+                if library.trash.isEmpty {
+                    emptyRow(L10n.text("Deleted queries and charts stay here until you delete them permanently."))
+                }
                 ForEach(library.trash) { item in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(item.title)
-                            Text(item.deletedAt, style: .date).font(.captionText).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button("Restore") { library.restore(item) }.buttonStyle(.borderless)
+                    itemRow(title: item.title, onRestore: { library.restore(item) }, onDelete: { deletion = item }) {
+                        Text(item.deletedAt, style: .date).font(.captionText).foregroundStyle(.secondary)
                     }
-                    .swipeActions { Button("Delete", role: .destructive) { deletion = item } }
                 }
             }
         }
+        .formStyle(.grouped)
         .navigationTitle("Library Storage")
         // Clearing can't be undone, unlike deleting a saved query, which goes to the trash.
         .confirmationDialog(clearing == .history ? L10n.text("Clear query history?") : L10n.text("Clear chart previews?"),
@@ -73,5 +84,34 @@ struct LibraryStorageView: View {
             }
             Button("Cancel", role: .cancel) { deletion = nil; closedDeletion = nil }
         }
+    }
+
+    private func emptyRow(_ text: String) -> some View {
+        Text(text).font(.captionText).foregroundStyle(.secondary)
+    }
+
+    /// A closed console or deleted item with Restore and Delete Permanently, as buttons, a context menu,
+    /// and, on iPhone and iPad, a swipe.
+    private func itemRow<Detail: View>(title: String, onRestore: @escaping () -> Void, onDelete: @escaping () -> Void,
+                                       @ViewBuilder detail: () -> Detail) -> some View {
+        HStack(spacing: Spacing.s) {
+            VStack(alignment: .leading, spacing: Spacing.xxxs) {
+                Text(title).lineLimit(1)
+                detail()
+            }
+            Spacer(minLength: Spacing.s)
+            Button("Restore", action: onRestore).buttonStyle(.borderless)
+            Button(role: .destructive, action: onDelete) {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.borderless)
+            .help(L10n.text("Delete Permanently"))
+            .accessibilityLabel("Delete Permanently")
+        }
+        .contextMenu {
+            Button("Restore", systemImage: "arrow.uturn.backward", action: onRestore)
+            Button("Delete Permanently", systemImage: "trash", role: .destructive, action: onDelete)
+        }
+        .swipeActions { Button("Delete", role: .destructive, action: onDelete) }
     }
 }

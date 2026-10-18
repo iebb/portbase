@@ -1520,7 +1520,6 @@ struct DesktopSettingsView: View {
     @AppStorage("Portbase.editorFontSize") private var editorFontSize = 13.0
     var body: some View {
         TabView {
-            NavigationStack {
             Form {
                 Section { AboutHeader() }
                 Section("iCloud") {
@@ -1531,13 +1530,17 @@ struct DesktopSettingsView: View {
                     if let error = bookmarks.cloudSyncError ?? library.cloudSyncError { Text(error).foregroundStyle(.red) }
                     Button("Sync Now") { bookmarks.synchronizeCloud(); library.synchronizeCloud() }
                 }
-                Section("Library") { NavigationLink("Library Storage") { LibraryStorageView() } }
             }
             .formStyle(.grouped)
             .scrollContentBackground(.hidden)
             .background(PortSQLPalette.canvasTop)
-            }
             .tabItem { Label("General", systemImage: "gearshape") }
+
+            // Its own tab: pushed inside the General tab, its back button landed among the tabs.
+            LibraryStorageView()
+                .scrollContentBackground(.hidden)
+                .background(PortSQLPalette.canvasTop)
+                .tabItem { Label("Library", systemImage: "archivebox") }
 
             Form {
                 AppearanceSettingsSection()
