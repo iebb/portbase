@@ -289,3 +289,65 @@ final class DestructiveSQLTests: XCTestCase {
         XCTAssertFalse(blocked.isDestructive)
     }
 }
+
+final class AssistantProviderTests: XCTestCase {
+    func testSettingsFromBeforeProvidersMigrateToOneProviderWithTheExistingKey() throws {
+        let legacy = #"{"provider":"openAICompatible","baseURL":"http://localhost:11434/v1","model":"llama3.1","instructions":"Be brief","includesSampleRows":false,"documents":[],"updatedAt":0,"documentsOmitted":false}"#
+        let settings = try JSONDecoder().decode(AssistantSettings.self, from: Data(legacy.utf8))
+        XCTAssertEqual(settings.providers.count, 1)
+        XCTAssertEqual(settings.activeProvider.id, AssistantProviderConfig.legacyID)
+        XCTAssertEqual(settings.provider, .openAICompatible)
+        XCTAssertEqual(settings.model, "llama3.1")
+        XCTAssertEqual(settings.instructions, "Be brief")
+        XCTAssertEqual(AssistantAPIKeyStore.account(for: AssistantProviderConfig.legacyID), "assistant.apiKey",
+                       "The migrated provider keeps the key saved before providers had IDs")
+        let other = UUID()
+        XCTAssertEqual(AssistantAPIKeyStore.account(for: other), "assistant.apiKey." + other.uuidString)
+    }
+
+    func testProvidersRoundTripAndStillWriteTheActiveOneForEarlierVersions() throws {
+        var settings = AssistantSettings()
+        var ollama = AssistantProviderPreset.ollama.configuration
+        ollama.model = "qwen2.5"
+        settings.providers.append(ollama)
+        settings.selectedProviderID = ollama.id
+        let data = try JSONEncoder().encode(settings)
+        let decoded = try JSONDecoder().decode(AssistantSettings.self, from: data)
+        XCTAssertEqual(decoded.providers.map(\.name), ["Anthropic", "Ollama"])
+        XCTAssertEqual(decoded.activeProvider.model, "qwen2.5")
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(object["model"] as? String, "qwen2.5", "Earlier versions read the active provider's model")
+        XCTAssertEqual(object["provider"] as? String, "openAICompatible")
+    }
+
+    func testModelsRequestsUseEachAPIsAuthentication() throws {
+        let anthropic = try AssistantClient.modelsRequest(for: AssistantProviderPreset.anthropic.configuration, apiKey: "sk-ant")
+        XCTAssertEqual(anthropic.url?.absoluteString, "https://api.anthropic.com/v1/models?limit=1000")
+        XCTAssertEqual(anthropic.value(forHTTPHeaderField: "x-api-key"), "sk-ant")
+        XCTAssertEqual(anthropic.value(forHTTPHeaderField: "anthropic-version"), "2023-06-01")
+        XCTAssertThrowsError(try AssistantClient.modelsRequest(for: AssistantProviderPreset.anthropic.configuration, apiKey: ""))
+
+        var router = AssistantProviderPreset.openRouter.configuration
+        router.baseURL += "/"
+        let openAI = try AssistantClient.modelsRequest(for: router, apiKey: "or-key")
+        XCTAssertEqual(openAI.url?.absoluteString, "https://openrouter.ai/api/v1/models")
+        XCTAssertEqual(openAI.value(forHTTPHeaderField: "Authorization"), "Bearer or-key")
+        let local = try AssistantClient.modelsRequest(for: AssistantProviderPreset.ollama.configuration, apiKey: "")
+        XCTAssertNil(local.value(forHTTPHeaderField: "Authorization"), "Local servers need no key")
+    }
+
+    func testModelListsParseAndReportProviderErrors() throws {
+        let anthropic = #"{"data":[{"id":"claude-opus-5-5","display_name":"Claude Opus 5.5","type":"model"},{"id":"claude-sonnet-5-5","display_name":"Claude Sonnet 5.5"}],"has_more":false}"#
+        let models = try AssistantClient.models(from: Data(anthropic.utf8), provider: .anthropic, statusCode: 200)
+        XCTAssertEqual(models.map(\.id), ["claude-opus-5-5", "claude-sonnet-5-5"], "Anthropic's newest-first order is kept")
+        XCTAssertEqual(models.first?.title, "Claude Opus 5.5")
+
+        let openAI = #"{"object":"list","data":[{"id":"gpt-z","object":"model"},{"id":"gpt-a","object":"model"}]}"#
+        XCTAssertEqual(try AssistantClient.models(from: Data(openAI.utf8), provider: .openAICompatible, statusCode: 200).map(\.title), ["gpt-a", "gpt-z"])
+
+        let failure = #"{"error":{"message":"Incorrect API key"}}"#
+        XCTAssertThrowsError(try AssistantClient.models(from: Data(failure.utf8), provider: .openAICompatible, statusCode: 401)) {
+            XCTAssertEqual($0 as? AssistantError, .provider("Incorrect API key"))
+        }
+    }
+}

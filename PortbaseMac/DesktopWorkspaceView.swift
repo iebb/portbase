@@ -12,22 +12,22 @@ extension Notification.Name {
 
 struct DesktopWorkspaceView: View {
     enum Destination: String, CaseIterable {
-        case home, connections, console, explorer, structure, charts
+        case home, connections, console, explorer, structure, charts, assistant
         var title: String {
             switch self {
             case .home: "Home"; case .connections: "Connections"; case .console: "Console"; case .explorer: "Explorer"
-            case .structure: "Structure"; case .charts: "Charts"
+            case .structure: "Structure"; case .charts: "Charts"; case .assistant: "Ask AI"
             }
         }
         var symbol: String {
             switch self {
             // The same symbols as the iOS destinations.
             case .home: "house"; case .connections: "server.rack"; case .console: "terminal"; case .explorer: "square.stack.3d.up"
-            case .structure: "list.bullet.rectangle"; case .charts: "chart.bar.xaxis"
+            case .structure: "list.bullet.rectangle"; case .charts: "chart.bar.xaxis"; case .assistant: "sparkles"
             }
         }
         /// The views inside a connection tab.
-        static let sessionCases: [Destination] = [.console, .explorer, .structure]
+        static let sessionCases: [Destination] = [.console, .explorer, .structure, .assistant]
     }
 
     /// Sections of the home tab, like Termius's Hosts, Keychain, and Snippets.
@@ -114,7 +114,7 @@ struct DesktopWorkspaceView: View {
         case .home: showsHome = true
         case .connections: homeSection = .servers; showsHome = true
         case .charts: homeSection = .charts; showsHome = true
-        case .console, .explorer, .structure:
+        case .console, .explorer, .structure, .assistant:
             destinations[consoles.selectedID] = target
             showsHome = false
         }
@@ -139,10 +139,6 @@ struct DesktopWorkspaceView: View {
 
     private func withSheets<Content: View>(_ content: Content) -> some View {
         content
-        .sheet(isPresented: $workspace.isShowingAssistant) {
-            AssistantSheet(session: workspace.assistant, onShowConsole: { show(.console) })
-                .frame(minWidth: 680, idealWidth: 760, minHeight: 600, idealHeight: 720)
-        }
         .sheet(isPresented: $showsPalette) { CommandPaletteView(onNavigate: navigate, onCreateSQLite: { createsSQLite = true }) }
         .newSQLiteDatabasePrompt(isPresented: $createsSQLite) { show(.console) }
         .sheet(item: $workspace.dataEditorDraft) { _ in DesktopRowEditor().frame(minWidth: 620, minHeight: 360) }
@@ -180,6 +176,12 @@ struct DesktopWorkspaceView: View {
         .onChange(of: workspace.queryText) { _, _ in workspace.refreshAssist() }
         .onChange(of: workspace.queryCursorOffset) { _, _ in workspace.refreshAssist() }
         .onChange(of: consoles.selectedID) { _, _ in showsHome = false }
+        // Ask AI from the menu, the console, or the toolbar opens the tab's Ask AI page.
+        .onChange(of: workspace.isShowingAssistant) { _, showing in
+            guard showing else { return }
+            workspace.isShowingAssistant = false
+            show(.assistant)
+        }
         .onChange(of: workspace.activeDatabaseName, initial: true) { _, database in
             // The active database opens in the sidebar; switching databases keeps the current view.
             if let id = workspace.selectedBookmarkID, let database { expandedDatabases.insert(databaseKey(id, database)) }
@@ -204,7 +206,7 @@ struct DesktopWorkspaceView: View {
         }
         ToolbarItemGroup(placement: .primaryAction) {
             // Works from any tab: it asks about the current connection tab's schema.
-            Button("Ask AI", systemImage: "sparkles") { workspace.isShowingAssistant = true }
+            Button("Ask AI", systemImage: "sparkles") { show(.assistant) }
                 .disabled(workspace.selectedBookmark == nil)
                 .help(L10n.text("Ask an AI model to write a query or design a chart") + " (⇧⌘A)")
             Button("Search", systemImage: "magnifyingglass") { showsPalette = true }
@@ -385,6 +387,8 @@ struct DesktopWorkspaceView: View {
                         onOpenSQL: { sql in workspace.applyAssistantQuery(sql, replacing: false); show(.console) }
                     )
                 }
+            case .assistant:
+                AssistantChatView(session: workspace.assistant, onShowConsole: { show(.console) })
             default: console
             }
         }

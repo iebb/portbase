@@ -39,16 +39,93 @@ struct AssistantContextDocument: Codable, Identifiable, Equatable {
     var text: String
 }
 
-/// Assistant settings. Stored in user defaults; the API key lives in the Keychain, never here.
+/// A model a provider offers, as its models endpoint lists it.
+struct AssistantModelInfo: Codable, Identifiable, Equatable, Hashable {
+    var id: String
+    var name: String?
+    var title: String { name.flatMap { $0.isEmpty ? nil : $0 } ?? id }
+}
+
+/// One configured AI provider: what API it speaks, where, and which model to use. Its API key is in
+/// the Keychain under the provider's ID, never here.
+struct AssistantProviderConfig: Codable, Identifiable, Equatable {
+    /// The provider settings from before providers could be added migrate to this ID, which keeps
+    /// using the API key already saved for them.
+    static let legacyID = UUID(uuidString: "1F0A6E52-7C1B-4B8E-9C2D-5A7E3F9B1C01")!
+
+    var id = UUID()
+    var name: String
+    var kind: AssistantProvider
+    var baseURL: String
+    var model: String
+    /// The models the provider listed when last asked, newest list wins.
+    var models: [AssistantModelInfo] = []
+
+    init(id: UUID = UUID(), name: String, kind: AssistantProvider, baseURL: String, model: String, models: [AssistantModelInfo] = []) {
+        self.id = id; self.name = name; self.kind = kind; self.baseURL = baseURL; self.model = model; self.models = models
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        kind = (try? container.decode(AssistantProvider.self, forKey: .kind)) ?? .openAICompatible
+        name = try container.decodeIfPresent(String.self, forKey: .name) ?? kind.title
+        baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL) ?? kind.defaultBaseURL
+        model = try container.decodeIfPresent(String.self, forKey: .model) ?? ""
+        models = (try? container.decodeIfPresent([AssistantModelInfo].self, forKey: .models)).flatMap { $0 } ?? []
+    }
+
+    static var defaultAnthropic: AssistantProviderConfig {
+        AssistantProviderConfig(id: legacyID, name: "Anthropic", kind: .anthropic,
+                                baseURL: AssistantProvider.anthropic.defaultBaseURL, model: AssistantProvider.anthropic.defaultModel)
+    }
+
+    /// Whether requests can be sent; a local OpenAI-compatible server may not need a key.
+    func isConfigured(apiKey: String) -> Bool {
+        guard URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines))?.host != nil,
+              !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        return kind == .openAICompatible || !apiKey.isEmpty
+    }
+}
+
+/// Ready-made provider settings for adding a provider.
+enum AssistantProviderPreset: String, CaseIterable, Identifiable {
+    case anthropic, openAI, openRouter, ollama, lmStudio, custom
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .anthropic: "Anthropic"
+        case .openAI: "OpenAI"
+        case .openRouter: "OpenRouter"
+        case .ollama: "Ollama"
+        case .lmStudio: "LM Studio"
+        case .custom: L10n.text("Other OpenAI-compatible")
+        }
+    }
+
+    var configuration: AssistantProviderConfig {
+        switch self {
+        case .anthropic: AssistantProviderConfig(name: title, kind: .anthropic, baseURL: AssistantProvider.anthropic.defaultBaseURL,
+                                                 model: AssistantProvider.anthropic.defaultModel)
+        case .openAI: AssistantProviderConfig(name: title, kind: .openAICompatible, baseURL: "https://api.openai.com/v1", model: "")
+        case .openRouter: AssistantProviderConfig(name: title, kind: .openAICompatible, baseURL: "https://openrouter.ai/api/v1", model: "")
+        case .ollama: AssistantProviderConfig(name: title, kind: .openAICompatible, baseURL: "http://localhost:11434/v1", model: "")
+        case .lmStudio: AssistantProviderConfig(name: title, kind: .openAICompatible, baseURL: "http://localhost:1234/v1", model: "")
+        case .custom: AssistantProviderConfig(name: title, kind: .openAICompatible, baseURL: "", model: "")
+        }
+    }
+}
+
+/// Assistant settings. Stored in user defaults; API keys live in the Keychain, never here.
 struct AssistantSettings: Codable, Equatable {
     static let storageKey = "Portbase.assistant.settings"
     /// Per attached document, so a stray large file can't flood every request.
     static let maximumDocumentBytes = 200 * 1_024
     static let maximumDocuments = 8
 
-    var provider: AssistantProvider = .anthropic
-    var baseURL: String = AssistantProvider.anthropic.defaultBaseURL
-    var model: String = AssistantProvider.anthropic.defaultModel
+    var providers: [AssistantProviderConfig] = [.defaultAnthropic]
+    var selectedProviderID: UUID?
     /// Standing instructions, such as naming conventions or which tables matter.
     var instructions: String = ""
     /// Off by default: sample rows send real data to the provider.
@@ -58,6 +135,72 @@ struct AssistantSettings: Codable, Equatable {
     var updatedAt: Date = .distantPast
     /// Set on the iCloud copy when the reference files were too large to sync with it.
     var documentsOmitted = false
+
+    init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case providers, selectedProviderID, instructions, includesSampleRows, documents, updatedAt, documentsOmitted
+        // The single provider of earlier versions, still written for them.
+        case provider, baseURL, model
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let providers = try container.decodeIfPresent([AssistantProviderConfig].self, forKey: .providers), !providers.isEmpty {
+            self.providers = providers
+        } else {
+            let kind = (try? container.decodeIfPresent(AssistantProvider.self, forKey: .provider)).flatMap { $0 } ?? .anthropic
+            providers = [AssistantProviderConfig(
+                id: AssistantProviderConfig.legacyID, name: kind.title, kind: kind,
+                baseURL: try container.decodeIfPresent(String.self, forKey: .baseURL) ?? kind.defaultBaseURL,
+                model: try container.decodeIfPresent(String.self, forKey: .model) ?? kind.defaultModel)]
+        }
+        selectedProviderID = try container.decodeIfPresent(UUID.self, forKey: .selectedProviderID)
+        instructions = try container.decodeIfPresent(String.self, forKey: .instructions) ?? ""
+        includesSampleRows = try container.decodeIfPresent(Bool.self, forKey: .includesSampleRows) ?? false
+        documents = try container.decodeIfPresent([AssistantContextDocument].self, forKey: .documents) ?? []
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
+        documentsOmitted = try container.decodeIfPresent(Bool.self, forKey: .documentsOmitted) ?? false
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(providers, forKey: .providers)
+        try container.encodeIfPresent(selectedProviderID, forKey: .selectedProviderID)
+        try container.encode(instructions, forKey: .instructions)
+        try container.encode(includesSampleRows, forKey: .includesSampleRows)
+        try container.encode(documents, forKey: .documents)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(documentsOmitted, forKey: .documentsOmitted)
+        try container.encode(provider, forKey: .provider)
+        try container.encode(baseURL, forKey: .baseURL)
+        try container.encode(model, forKey: .model)
+    }
+
+    private var activeIndex: Int { providers.firstIndex { $0.id == selectedProviderID } ?? 0 }
+
+    /// The provider requests go to: the selected one, or the first.
+    var activeProvider: AssistantProviderConfig {
+        get { providers.isEmpty ? .defaultAnthropic : providers[activeIndex] }
+        set {
+            if providers.isEmpty { providers = [newValue] } else { providers[activeIndex] = newValue }
+        }
+    }
+
+    var provider: AssistantProvider {
+        get { activeProvider.kind }
+        set { activeProvider.kind = newValue }
+    }
+
+    var baseURL: String {
+        get { activeProvider.baseURL }
+        set { activeProvider.baseURL = newValue }
+    }
+
+    var model: String {
+        get { activeProvider.model }
+        set { activeProvider.model = newValue }
+    }
 
     static func load(from defaults: UserDefaults = .standard) -> AssistantSettings {
         guard let data = defaults.data(forKey: storageKey),
@@ -74,12 +217,8 @@ struct AssistantSettings: Codable, Equatable {
         if syncing { AssistantSettingsSync.push(stamped) }
     }
 
-    /// Whether requests can be sent; a local OpenAI-compatible server may not need a key.
-    func isConfigured(apiKey: String) -> Bool {
-        guard URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines))?.host != nil,
-              !model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        return provider == .openAICompatible || !apiKey.isEmpty
-    }
+    /// Whether requests can be sent with the active provider.
+    func isConfigured(apiKey: String) -> Bool { activeProvider.isConfigured(apiKey: apiKey) }
 }
 
 /// Syncs assistant settings through iCloud key-value storage, like connections. The API key is never
@@ -129,10 +268,16 @@ enum AssistantSettingsSync {
     }
 }
 
-/// The assistant API key, kept in this device's Keychain like database secrets.
+/// Each provider's API key, kept in this device's Keychain like database secrets.
 enum AssistantAPIKeyStore {
-    static func load() -> String { KeychainService.appSecret("assistant.apiKey") }
-    static func save(_ key: String) { KeychainService.setAppSecret(key.trimmingCharacters(in: .whitespacesAndNewlines), for: "assistant.apiKey") }
+    static func account(for providerID: UUID) -> String {
+        // The provider migrated from earlier versions keeps the key saved before providers had IDs.
+        providerID == AssistantProviderConfig.legacyID ? "assistant.apiKey" : "assistant.apiKey." + providerID.uuidString
+    }
+    static func load(for providerID: UUID = AssistantProviderConfig.legacyID) -> String { KeychainService.appSecret(account(for: providerID)) }
+    static func save(_ key: String, for providerID: UUID = AssistantProviderConfig.legacyID) {
+        KeychainService.setAppSecret(key.trimmingCharacters(in: .whitespacesAndNewlines), for: account(for: providerID))
+    }
 }
 
 // MARK: - Context
@@ -315,6 +460,48 @@ enum AssistantClient {
                   let text = message["content"] as? String, !text.isEmpty else { throw AssistantError.invalidResponse }
             return text
         }
+    }
+
+    /// The request that lists a provider's models: GET /models, authenticated the way its API expects.
+    static func modelsRequest(for provider: AssistantProviderConfig, apiKey: String) throws -> URLRequest {
+        var base = provider.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        while base.hasSuffix("/") { base.removeLast() }
+        guard let url = URL(string: base + (provider.kind == .anthropic ? "/models?limit=1000" : "/models")), url.host != nil else {
+            throw AssistantError.notConfigured
+        }
+        var request = URLRequest(url: url, timeoutInterval: 30)
+        switch provider.kind {
+        case .anthropic:
+            guard !apiKey.isEmpty else { throw AssistantError.notConfigured }
+            request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+            request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        case .openAICompatible:
+            if !apiKey.isEmpty { request.setValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization") }
+        }
+        return request
+    }
+
+    /// Reads a models list: {"data": [{"id": …, "display_name"?: …}]}, as both APIs return it.
+    static func models(from data: Data, provider: AssistantProvider, statusCode: Int) throws -> [AssistantModelInfo] {
+        let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        if !(200..<300).contains(statusCode) {
+            let message = (object?["error"] as? [String: Any])?["message"] as? String
+                ?? object?["error"] as? String
+                ?? HTTPURLResponse.localizedString(forStatusCode: statusCode)
+            throw AssistantError.provider(message)
+        }
+        guard let entries = object?["data"] as? [[String: Any]] else { throw AssistantError.invalidResponse }
+        let models = entries.compactMap { entry -> AssistantModelInfo? in
+            guard let id = entry["id"] as? String, !id.isEmpty else { return nil }
+            return AssistantModelInfo(id: id, name: entry["display_name"] as? String ?? entry["name"] as? String)
+        }
+        // Anthropic lists newest first; other servers list in no particular order.
+        return provider == .anthropic ? models : models.sorted { $0.id.localizedStandardCompare($1.id) == .orderedAscending }
+    }
+
+    static func listModels(for provider: AssistantProviderConfig, apiKey: String) async throws -> [AssistantModelInfo] {
+        let (data, response) = try await URLSession.shared.data(for: modelsRequest(for: provider, apiKey: apiKey))
+        return try models(from: data, provider: provider.kind, statusCode: (response as? HTTPURLResponse)?.statusCode ?? 0)
     }
 
     static func send(settings: AssistantSettings, apiKey: String, system: String, messages: [AssistantMessage]) async throws -> String {
