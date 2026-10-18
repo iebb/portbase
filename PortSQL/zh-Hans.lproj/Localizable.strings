@@ -1638,3 +1638,6 @@
 "Parameter %@" = "参数 %@";
 "Suggestions: %d" = "建议：%d";
 "Unknown table “%@”" = "未知表“%@”";
+"Unknown column “%@”" = "未知列“%@”";
+"%1$@ has no such column. Did you mean “%2$@”?" = "%1$@ 没有这个列。你是指“%2$@”吗？";
+"%@ has no such column." = "%@ 没有这个列。";

@@ -217,4 +217,15 @@ final class SQLEditorSmartsTests: XCTestCase {
         XCTAssertTrue(EditorAutoPairs.deletesPair(in: "COUNT()", at: 6))
         XCTAssertFalse(EditorAutoPairs.deletesPair(in: "COUNT(*)", at: 6))
     }
+
+    func testUnknownQualifiedColumnsAreFlaggedOnlyWhenTheTableIsKnown() {
+        let sql = "SELECT o.totl, o.total, x.anything, c.nme FROM orders o JOIN customers c ON c.id = o.id"
+        XCTAssertEqual(SQLInspection.unknownColumns(in: sql, catalog: catalog, engine: .postgresql), [
+            .init(reference: "o.totl", table: "orders", suggestion: "total"),
+            .init(reference: "c.nme", table: "customers", suggestion: "name"),
+        ])
+        let nested = "SELECT u.name FROM customers u WHERE EXISTS (SELECT 1 FROM orders u WHERE u.total > 0)"
+        XCTAssertTrue(SQLInspection.unknownColumns(in: nested, catalog: catalog, engine: .postgresql).isEmpty, "Each reference uses the alias in scope where it is")
+        XCTAssertTrue(SQLInspection.unknownColumns(in: "SELECT t.whatever FROM (SELECT 1 AS n) t", catalog: catalog, engine: .postgresql).isEmpty)
+    }
 }

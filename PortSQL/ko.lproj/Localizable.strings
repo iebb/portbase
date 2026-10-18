@@ -1638,3 +1638,6 @@
 "Parameter %@" = "매개변수 %@";
 "Suggestions: %d" = "제안: %d";
 "Unknown table “%@”" = "알 수 없는 테이블 ‘%@’";
+"Unknown column “%@”" = "알 수 없는 열 ‘%@’";
+"%1$@ has no such column. Did you mean “%2$@”?" = "%1$@에는 그런 열이 없습니다. ‘%2$@’을(를) 말씀하신 건가요?";
+"%@ has no such column." = "%@에는 그런 열이 없습니다.";

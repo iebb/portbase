@@ -1638,3 +1638,6 @@
 "Parameter %@" = "Paramètre %@";
 "Suggestions: %d" = "Suggestions : %d";
 "Unknown table “%@”" = "Table inconnue « %@ »";
+"Unknown column “%@”" = "Colonne inconnue « %@ »";
+"%1$@ has no such column. Did you mean “%2$@”?" = "%1$@ n’a pas cette colonne. Vouliez-vous dire « %2$@ » ?";
+"%@ has no such column." = "%@ n’a pas cette colonne.";

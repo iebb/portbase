@@ -57,24 +57,67 @@ enum SQLInspection {
         return found
     }
 
+    struct UnknownColumn: Equatable {
+        /// As written, like o.totl.
+        let reference: String
+        let table: String
+        let suggestion: String?
+    }
+
+    /// Qualified columns, like o.totl, whose qualifier is a table in scope at that spot that has no such
+    /// column. Unqualified names and sources whose columns aren't known are left alone, so nothing is guessed.
+    static func unknownColumns(in sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine) -> [UnknownColumn] {
+        guard !catalog.isEmpty else { return [] }
+        let tokens = SQLEditingService.tokens(sql, engine: engine)
+        var found: [UnknownColumn] = []
+        var seen = Set<String>()
+        for index in tokens.indices where index + 2 < tokens.count && tokens[index + 1].text == "." {
+            let qualifier = tokens[index], column = tokens[index + 2]
+            guard qualifier.isIdentifier, column.isIdentifier,
+                  index == 0 || tokens[index - 1].text != ".",
+                  index + 3 >= tokens.count || tokens[index + 3].text != "." && tokens[index + 3].text != "(" else { continue }
+            let cursor = qualifier.range.lowerBound.utf16Offset(in: sql)
+            let sources = SQLSymbolCompletion.scope(query: sql, cursor: cursor, catalog: catalog, engine: engine).sources
+            guard let source = sources.first(where: { $0.name.lowercased() == qualifier.text.lowercased() }),
+                  let table = source.table, !source.isCTE, !table.columns.isEmpty else { continue }
+            let name = column.text.lowercased()
+            guard !table.columns.contains(where: { $0.name.lowercased() == name }) else { continue }
+            let reference = qualifier.text + "." + column.text
+            guard seen.insert(reference.lowercased()).inserted else { continue }
+            found.append(UnknownColumn(reference: reference, table: table.name, suggestion: closest(to: name, among: table.columns.map(\.name))))
+        }
+        return found
+    }
+
     static func hints(for sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine) -> [EditorHint] {
-        unknownTables(in: sql, catalog: catalog, engine: engine).prefix(3).map { unknown in
+        let tables = unknownTables(in: sql, catalog: catalog, engine: engine).map { unknown in
             EditorHint(title: L10n.format("Unknown table “%@”", unknown.name),
                        message: unknown.suggestion.map { L10n.format("It isn't in this database. Did you mean “%@”?", $0) }
                            ?? L10n.text("It isn't in this database, or the table list needs refreshing."),
                        severity: .warning)
         }
+        let columns = unknownColumns(in: sql, catalog: catalog, engine: engine).map { unknown in
+            EditorHint(title: L10n.format("Unknown column “%@”", unknown.reference),
+                       message: unknown.suggestion.map { L10n.format("%1$@ has no such column. Did you mean “%2$@”?", unknown.table, $0) }
+                           ?? L10n.format("%@ has no such column.", unknown.table),
+                       severity: .warning)
+        }
+        return Array((tables + columns).prefix(3))
     }
 
     /// The table name within a small edit distance, for typos like ordres or custmers.
     private static func closest(to name: String, in catalog: [SchemaTableDescriptor]) -> String? {
+        closest(to: name, among: catalog.map(\.name))
+    }
+
+    private static func closest(to name: String, among candidates: [String]) -> String? {
         let limit = max(1, min(3, name.count / 3))
         var best: (name: String, distance: Int)?
-        for table in catalog {
-            let edits = distance(name, table.name.lowercased())
+        for candidate in candidates {
+            let edits = distance(name, candidate.lowercased())
             guard edits <= limit else { continue }
-            if let current = best, current.distance < edits || (current.distance == edits && current.name <= table.name) { continue }
-            best = (table.name, edits)
+            if let current = best, current.distance < edits || (current.distance == edits && current.name <= candidate) { continue }
+            best = (candidate, edits)
         }
         return best?.name
     }

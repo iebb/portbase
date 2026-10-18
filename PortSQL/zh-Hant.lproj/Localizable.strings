@@ -1638,3 +1638,6 @@
 "Parameter %@" = "參數 %@";
 "Suggestions: %d" = "建議：%d";
 "Unknown table “%@”" = "未知資料表「%@」";
+"Unknown column “%@”" = "未知欄位「%@」";
+"%1$@ has no such column. Did you mean “%2$@”?" = "%1$@ 沒有這個欄位。你是指「%2$@」嗎？";
+"%@ has no such column." = "%@ 沒有這個欄位。";

@@ -1638,3 +1638,6 @@
 "Parameter %@" = "パラメータ %@";
 "Suggestions: %d" = "候補：%d";
 "Unknown table “%@”" = "不明なテーブル“%@”";
+"Unknown column “%@”" = "不明な列“%@”";
+"%1$@ has no such column. Did you mean “%2$@”?" = "%1$@ にはその列がありません。“%2$@”のことですか？";
+"%@ has no such column." = "%@ にはその列がありません。";
