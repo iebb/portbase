@@ -873,9 +873,13 @@ private struct LibraryEngineTile: View {
     var fallback = "terminal"
 
     var body: some View {
-        Image(systemName: engine?.symbolName ?? fallback)
-            .font(.captionStrong)
-            .foregroundStyle(engine?.tint ?? PortSQLPalette.muted)
+        Group {
+            if let engine {
+                EngineGlyph(engine: engine).fill(engine.tint).frame(width: 18, height: 18)
+            } else {
+                Image(systemName: fallback).font(.captionStrong).foregroundStyle(PortSQLPalette.muted)
+            }
+        }
             .frame(width: Sizes.avatar, height: Sizes.avatar)
             .background((engine?.tint ?? PortSQLPalette.muted).opacity(0.16), in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
             .accessibilityHidden(true)

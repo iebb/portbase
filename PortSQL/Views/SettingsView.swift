@@ -53,8 +53,16 @@ struct SettingsView: View {
             }
 
             Section {
-                FlowChips(items: DatabaseEngine.allCases.map { ($0.rawValue, $0.symbolName, $0.tint) })
-                    .padding(.vertical, Spacing.xxs)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: Spacing.s)], alignment: .leading, spacing: Spacing.s) {
+                    ForEach(DatabaseEngine.allCases) { engine in
+                        HStack(spacing: Spacing.s) {
+                            EngineBadge(engine: engine, size: Sizes.iconTileSmall, cornerRadius: Radius.s)
+                            Text(engine.rawValue).font(.rowDetail).lineLimit(1)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+                .padding(.vertical, Spacing.xxs)
             } header: {
                 Text("Supported Engines")
             } footer: {
@@ -269,14 +277,3 @@ private struct CloudStatusRow: View {
 }
 
 /// Wrapping chips for short labels.
-struct FlowChips: View {
-    let items: [(String, String, Color)]
-
-    var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: Spacing.s)], alignment: .leading, spacing: Spacing.s) {
-            ForEach(items, id: \.0) { item in
-                PortbaseChip(title: item.0, systemImage: item.1, tint: item.2)
-            }
-        }
-    }
-}

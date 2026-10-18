@@ -277,18 +277,62 @@ extension NSColor {
 extension DatabaseEngine {
     var brandColors: [Color] {
         switch self {
-        case .mysql: [Color(hex: 0x0EA5E9), Color(hex: 0x0369A1)]
-        case .mariadb: [Color(hex: 0x14B8A6), Color(hex: 0x0F766E)]
-        case .postgresql: [Color(hex: 0x6366F1), Color(hex: 0x1D4ED8)]
-        case .sqlite: [Color(hex: 0x38BDF8), Color(hex: 0x6366F1)]
-        case .clickhouse: [Color(hex: 0xFACC15), Color(hex: 0xF97316)]
-        case .mongodb: [Color(hex: 0x22C55E), Color(hex: 0x047857)]
-        case .redis: [Color(hex: 0xF87171), Color(hex: 0xDC2626)]
-        case .elasticsearch: [Color(hex: 0x2DD4BF), Color(hex: 0x7C3AED)]
+        case .mysql: [Color(hex: 0x2B9AC9), Color(hex: 0x00618A)]
+        case .mariadb: [Color(hex: 0xC98B6B), Color(hex: 0x7C4A33)]
+        case .postgresql: [Color(hex: 0x5C7FD1), Color(hex: 0x2F4C99)]
+        case .sqlite: [Color(hex: 0x6EC1F0), Color(hex: 0x2A78C2)]
+        case .clickhouse: [Color(hex: 0x3A3A3D), Color(hex: 0x151517)]
+        case .mongodb: [Color(hex: 0x21B35E), Color(hex: 0x00684A)]
+        case .redis: [Color(hex: 0xFF5A47), Color(hex: 0xC6302B)]
+        case .elasticsearch: [Color(hex: 0x2CC5B9), Color(hex: 0x0B6FB8)]
         }
     }
 
-    var tint: Color { brandColors[1] }
+    /// The mark's color on the brand gradient; ClickHouse's bars are yellow on near-black.
+    var glyphColor: Color { self == .clickhouse ? Color(hex: 0xFAE24C) : .white }
+
+    var tint: Color { self == .clickhouse ? Color(hex: 0xD9A400) : brandColors[1] }
+}
+
+extension ConnectionColor {
+    var title: String {
+        switch self {
+        case .red: L10n.text("Red")
+        case .orange: L10n.text("Orange")
+        case .yellow: L10n.text("Yellow")
+        case .green: L10n.text("Green")
+        case .mint: L10n.text("Mint")
+        case .teal: L10n.text("Teal")
+        case .cyan: L10n.text("Cyan")
+        case .blue: L10n.text("Blue")
+        case .indigo: L10n.text("Indigo")
+        case .purple: L10n.text("Purple")
+        case .pink: L10n.text("Pink")
+        case .brown: L10n.text("Brown")
+        case .graphite: L10n.text("Graphite")
+        }
+    }
+
+    /// Fixed colors in both appearances, light to dark, with white marks legible on each.
+    var colors: [Color] {
+        switch self {
+        case .red: [Color(hex: 0xF2665C), Color(hex: 0xC92A2A)]
+        case .orange: [Color(hex: 0xFF9F43), Color(hex: 0xE0620D)]
+        case .yellow: [Color(hex: 0xF7C948), Color(hex: 0xD49B06)]
+        case .green: [Color(hex: 0x4CC46B), Color(hex: 0x2B8A3E)]
+        case .mint: [Color(hex: 0x3DD6B0), Color(hex: 0x0E9F7E)]
+        case .teal: [Color(hex: 0x2BB8C4), Color(hex: 0x0B7285)]
+        case .cyan: [Color(hex: 0x4DC3F7), Color(hex: 0x1C8ACB)]
+        case .blue: [Color(hex: 0x5B8DEF), Color(hex: 0x1F5BD8)]
+        case .indigo: [Color(hex: 0x7C7FF2), Color(hex: 0x4338CA)]
+        case .purple: [Color(hex: 0xB07CF0), Color(hex: 0x7B3FD0)]
+        case .pink: [Color(hex: 0xF77FB8), Color(hex: 0xD6336C)]
+        case .brown: [Color(hex: 0xB38867), Color(hex: 0x7A5537)]
+        case .graphite: [Color(hex: 0x8E9196), Color(hex: 0x4A4D52)]
+        }
+    }
+
+    var color: Color { colors[1] }
 }
 
 // MARK: - Design tokens
@@ -1284,7 +1328,8 @@ struct PortbaseEmptyState: View {
     }
 }
 
-/// A connection's avatar: its chosen symbol or initials over the engine gradient.
+/// A connection's avatar: its engine's mark, a chosen symbol, or initials, over its color tag or the
+/// engine's gradient.
 struct BookmarkAvatar: View {
     let profile: ConnectionProfile
     var size: CGFloat = 24
@@ -1292,22 +1337,31 @@ struct BookmarkAvatar: View {
     var foregroundStyle: Color = .white
 
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(LinearGradient(colors: profile.engine.brandColors, startPoint: .topLeading, endPoint: .bottomTrailing))
-            .frame(width: size, height: size)
-            .overlay {
-                if let iconName = profile.resolvedIconName {
-                    Image(systemName: iconName)
-                        .font(.system(size: size * 0.44, weight: .semibold))
-                        .foregroundStyle(foregroundStyle)
-                } else {
-                    Text(profile.initials)
-                        .font(.system(size: size * 0.36, weight: .bold, design: .rounded))
-                        .foregroundStyle(foregroundStyle)
-                        .minimumScaleFactor(0.6)
-                }
+        switch profile.avatarStyle {
+        case .engine:
+            EngineBadge(engine: profile.engine, size: size, cornerRadius: cornerRadius, colors: profile.colorTag?.colors)
+        case .symbol(let iconName):
+            tile.overlay {
+                Image(systemName: iconName)
+                    .font(.system(size: size * 0.44, weight: .semibold))
+                    .foregroundStyle(foregroundStyle)
             }
             .accessibilityHidden(true)
+        case .initials:
+            tile.overlay {
+                Text(profile.initials)
+                    .font(.system(size: size * 0.36, weight: .bold, design: .rounded))
+                    .foregroundStyle(foregroundStyle)
+                    .minimumScaleFactor(0.6)
+            }
+            .accessibilityHidden(true)
+        }
+    }
+
+    private var tile: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(LinearGradient(colors: profile.colorTag?.colors ?? profile.engine.brandColors, startPoint: .topLeading, endPoint: .bottomTrailing))
+            .frame(width: size, height: size)
     }
 }
 
@@ -1388,6 +1442,61 @@ struct EnvironmentStripe: View {
 }
 
 /// Environment choices as tappable capsules.
+/// Color swatches for tagging a connection, with a first swatch that clears the tag.
+struct ConnectionColorPicker: View {
+    @Binding var selection: ConnectionColor?
+#if os(macOS)
+    private static let target: CGFloat = 32
+#else
+    private static let target = Sizes.touchTarget
+#endif
+
+    var body: some View {
+        // Wraps rather than scrolls, so every color and the current one are always in view.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: Self.target, maximum: Self.target), spacing: Spacing.xxs)],
+                  alignment: .leading, spacing: Spacing.xxs) {
+            swatch(nil)
+            ForEach(ConnectionColor.allCases) { swatch($0) }
+        }
+        .padding(.vertical, Spacing.xxs)
+    }
+
+    private func swatch(_ color: ConnectionColor?) -> some View {
+        let selected = selection == color
+        return Button {
+            withAnimation(.easeOut(duration: 0.12)) { selection = color }
+        } label: {
+            ZStack {
+                if let color {
+                    Circle().fill(LinearGradient(colors: color.colors, startPoint: .topLeading, endPoint: .bottomTrailing))
+                } else {
+                    Circle().strokeBorder(PortSQLPalette.stroke, lineWidth: 1.5)
+                    Image(systemName: "slash.circle")
+                        .font(.captionStrong)
+                        .foregroundStyle(PortSQLPalette.muted)
+                }
+                if selected {
+                    Circle().strokeBorder(PortSQLPalette.surface, lineWidth: 2.5).padding(2)
+                    if color != nil {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                }
+            }
+            .frame(width: 28, height: 28)
+            .overlay {
+                if selected { Circle().strokeBorder(color?.color ?? PortSQLPalette.muted, lineWidth: 2) }
+            }
+            .frame(width: Self.target, height: Self.target)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(color?.title ?? L10n.text("No Color"))
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
 struct EnvironmentPicker: View {
     @Binding var selection: ConnectionEnvironment
 

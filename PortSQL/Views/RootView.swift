@@ -1597,20 +1597,6 @@ struct BookmarkEditorView: View {
 
                 Section("Server") {
                     TextField("Name", text: $profile.name)
-#if !os(macOS)
-                    Button {
-                        isShowingIconPicker = true
-                    } label: {
-                        HStack {
-                            Text("Icon")
-                            Spacer()
-                            BookmarkAvatar(profile: profile, size: Sizes.avatar, cornerRadius: Radius.chip)
-                            Text(profile.resolvedIconName ?? profile.initials)
-                                .font(.captionText)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-#endif
                     if !profile.engine.isLocal {
                     TextField("Host", text: $profile.host)
                         .portbaseTextCapitalization(.never)
@@ -1647,6 +1633,33 @@ struct BookmarkEditorView: View {
                     Text("Environment")
                 } footer: {
                     Text("A labeled environment shows a colored stripe and badge wherever this connection is open.")
+                }
+
+                Section {
+#if !os(macOS)
+                    Button {
+                        isShowingIconPicker = true
+                    } label: {
+                        HStack(spacing: Spacing.s) {
+                            Text("Icon").foregroundStyle(PortSQLPalette.ink)
+                            Spacer()
+                            Text(profile.avatarDescription)
+                                .font(.captionText)
+                                .foregroundStyle(.secondary)
+                            BookmarkAvatar(profile: profile, size: Sizes.avatar, cornerRadius: Radius.chip)
+                            Image(systemName: "chevron.right")
+                                .font(.captionStrong)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+#endif
+                    ConnectionColorPicker(selection: $profile.colorTag)
+                } header: {
+                    Text("Appearance")
+                } footer: {
+                    Text("The color fills this connection's icon on every device signed in to the same iCloud account.")
                 }
 
                 if profile.engine.isLocal { SQLiteConnectionSection(profile: $profile) }
@@ -1991,12 +2004,7 @@ private struct EngineChooser: View {
                 let selected = selection == engine
                 Button { withAnimation(.easeOut(duration: 0.15)) { selection = engine } } label: {
                     VStack(spacing: Spacing.xs) {
-                        Image(systemName: engine.symbolName)
-                            .font(.tileSymbol)
-                            .foregroundStyle(.white)
-                            .frame(width: Sizes.avatarLarge, height: Sizes.avatarLarge)
-                            .background(LinearGradient(colors: engine.brandColors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                                        in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+                        EngineBadge(engine: engine, size: Sizes.avatarLarge, cornerRadius: Radius.control)
                         Text(engine.rawValue)
                             .font(.microText.weight(selected ? .bold : .medium))
                             .foregroundStyle(selected ? PortSQLPalette.ink : .secondary)
@@ -2036,15 +2044,34 @@ private struct BookmarkIconPicker: View {
                     PortbaseSearchField(prompt: L10n.text("server, chart, folder"), text: $searchText)
 
                     LazyVGrid(columns: columns, spacing: Spacing.l) {
+                        if searchText.isEmpty {
+                            choice(L10n.text("Engine"), selected: profile.avatarStyle == .engine) {
+                                profile.iconName = nil
+                                profile.showsInitials = false
+                            } content: { selected in
+                                EngineGlyph(engine: profile.engine)
+                                    .fill(selected ? Color.white : PortSQLPalette.ink)
+                                    .frame(width: 34, height: 34)
+                            }
+                            choice(L10n.text("Initials"), selected: profile.avatarStyle == .initials) {
+                                profile.iconName = nil
+                                profile.showsInitials = true
+                            } content: { selected in
+                                Text(profile.initials)
+                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .foregroundStyle(selected ? .white : PortSQLPalette.ink)
+                            }
+                        }
                         ForEach(filteredIcons, id: \.self) { iconName in
                             Button {
                                 profile.iconName = iconName
+                                profile.showsInitials = false
                             } label: {
                                 VStack(spacing: Spacing.s) {
                                     RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                                         .fill(
                                             iconName == profile.resolvedIconName
-                                                ? AnyShapeStyle(profile.engine.gradient)
+                                                ? AnyShapeStyle(selectedFill)
                                                 : AnyShapeStyle(PortSQLPalette.surface)
                                         )
                                         .frame(height: 68)
@@ -2061,7 +2088,7 @@ private struct BookmarkIconPicker: View {
                                     Text(iconName)
                                         .font(.microText)
                                         .foregroundStyle(.secondary)
-                                        .lineLimit(2)
+                                        .lineLimit(2, reservesSpace: true)
                                         .multilineTextAlignment(.center)
                                 }
                             }
@@ -2073,12 +2100,38 @@ private struct BookmarkIconPicker: View {
                 .padding(.vertical, Spacing.l)
             }
         } footer: {
-            Button("Use Initials") { profile.iconName = nil }
-                .buttonStyle(.portbaseSecondary)
             Button("Done") { dismiss() }
                 .buttonStyle(.portbasePrimary)
                 .keyboardShortcut(.defaultAction)
         }
+    }
+
+    private var selectedFill: LinearGradient {
+        LinearGradient(colors: profile.colorTag?.colors ?? profile.engine.brandColors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    /// A tile in the grid for the engine's mark or initials, styled like the symbol tiles.
+    private func choice(_ title: String, selected: Bool, action: @escaping () -> Void,
+                        @ViewBuilder content: (Bool) -> some View) -> some View {
+        Button(action: action) {
+            VStack(spacing: Spacing.s) {
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .fill(selected ? AnyShapeStyle(selectedFill) : AnyShapeStyle(PortSQLPalette.surface))
+                    .frame(height: 68)
+                    .overlay { content(selected) }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                            .stroke(selected ? Color.clear : PortSQLPalette.stroke, lineWidth: 1)
+                    }
+                Text(title)
+                    .font(.microText)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2, reservesSpace: true)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
     }
 
     private var filteredIcons: [String] {

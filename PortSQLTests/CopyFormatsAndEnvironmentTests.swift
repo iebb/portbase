@@ -72,6 +72,32 @@ final class CopyFormatsAndEnvironmentTests: XCTestCase {
         XCTAssertEqual(profile.duplicate().environment, .production)
     }
 
+    func testColorTagAndAvatarStyleSyncInBookmarkJSON() throws {
+        var profile = ConnectionProfile(name: "Orders", engine: .mysql, host: "db.example.com", port: 3306,
+                                        username: "app", password: "secret", defaultDatabase: "orders")
+        XCTAssertEqual(profile.avatarStyle, .engine, "Connections without a symbol show the engine's mark")
+        let plain = String(data: try JSONEncoder().encode(profile), encoding: .utf8) ?? ""
+        XCTAssertFalse(plain.contains("colorTag"))
+        XCTAssertFalse(plain.contains("showsInitials"), "Untagged profiles keep their previous encoding")
+
+        profile.colorTag = .purple
+        profile.showsInitials = true
+        let data = try JSONEncoder().encode(profile)
+        let decoded = try JSONDecoder().decode(ConnectionProfile.self, from: data)
+        XCTAssertEqual(decoded.colorTag, .purple)
+        XCTAssertEqual(decoded.avatarStyle, .initials)
+        XCTAssertFalse(String(data: data, encoding: .utf8)?.contains("secret") ?? true)
+
+        profile.iconName = "server.rack"
+        XCTAssertEqual(profile.avatarStyle, .symbol("server.rack"), "A chosen symbol wins over initials")
+
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object["colorTag"] = "chartreuse"
+        let future = try JSONDecoder().decode(ConnectionProfile.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertNil(future.colorTag, "An unknown color from a newer version doesn't drop the connection")
+        XCTAssertEqual(future.name, "Orders")
+    }
+
     func testMongoDocumentIdentifierSummaries() {
         XCTAssertEqual(MongoDocumentSummary.identifier(in: #"{"_id": {"$oid": "65f0c0ffee"}, "a": 1}"#), "65f0c0ffee")
         XCTAssertEqual(MongoDocumentSummary.identifier(in: #"{"_id": "order-42"}"#), "order-42")

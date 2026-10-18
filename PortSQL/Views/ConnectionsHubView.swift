@@ -16,6 +16,7 @@ struct ConnectionsHubView: View {
     @State private var query = ""
     @State private var group: ConnectionEnvironment?
     @State private var engineFilter: DatabaseEngine?
+    @State private var colorFilter: ConnectionColor?
     @State private var onlyReadOnly = false
     @State private var importError: String?
 
@@ -179,6 +180,7 @@ struct ConnectionsHubView: View {
         return bookmarks.bookmarks.filter { profile in
             (group == nil || profile.environment == group)
                 && (engineFilter == nil || profile.engine == engineFilter)
+                && (colorFilter == nil || profile.colorTag == colorFilter)
                 && (!onlyReadOnly || profile.isReadOnly)
                 && (search.isEmpty || [profile.name, profile.host, profile.defaultDatabase, profile.username, profile.notes, profile.engine.rawValue]
                     .contains { $0.localizedCaseInsensitiveContains(search) })
@@ -221,10 +223,21 @@ struct ConnectionsHubView: View {
                 Text("All Engines").tag(Optional<DatabaseEngine>.none)
                 ForEach(DatabaseEngine.allCases) { engine in Text(engine.rawValue).tag(Optional(engine)) }
             }
+            // Only the colors in use, so the menu stays short.
+            let colors = ConnectionColor.allCases.filter { color in bookmarks.bookmarks.contains { $0.colorTag == color } }
+            if !colors.isEmpty {
+                Picker("Color Tag", selection: $colorFilter) {
+                    Text("All Colors").tag(Optional<ConnectionColor>.none)
+                    ForEach(colors) { color in
+                        Label { Text(color.title) } icon: { Image(systemName: "circle.fill").foregroundStyle(color.color) }
+                            .tag(Optional(color))
+                    }
+                }
+            }
             Toggle("Read-only connections", isOn: $onlyReadOnly)
-            Button("Reset Filters") { engineFilter = nil; onlyReadOnly = false; group = nil; query = "" }
+            Button("Reset Filters") { engineFilter = nil; colorFilter = nil; onlyReadOnly = false; group = nil; query = "" }
         } label: {
-            Image(systemName: engineFilter != nil || onlyReadOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+            Image(systemName: engineFilter != nil || colorFilter != nil || onlyReadOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .font(.toolSymbol)
                 .frame(minWidth: Sizes.control, minHeight: Sizes.control)
         }

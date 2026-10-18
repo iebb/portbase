@@ -100,9 +100,9 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
             "PORTBASE", "Portbase", "iCloud", "WHERE", "ORDER", "SQL", "Portbase Pro", "JSON", "NULL", "PK",
         ]
         let localeSpecificInvariantKeys: [String: Set<String>] = [
-            "de": ["FORMAT", "EXPLAIN", "SCHEMA", "Server", "Name", "Host", "Port", "Auto", "Filter", "Staging"],
+            "de": ["FORMAT", "EXPLAIN", "SCHEMA", "Server", "Name", "Host", "Port", "Auto", "Filter", "Staging", "Orange", "Indigo"],
             "es": ["Host", "Auto", "No"],
-            "fr": ["Mode", "Port", "Page %d", "Auto", "Date", "Production"],
+            "fr": ["Mode", "Port", "Page %d", "Auto", "Date", "Production", "Orange", "Indigo"],
             "ja": [],
             "ko": [],
             "pt-BR": ["Host", "Auto"],

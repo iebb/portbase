@@ -111,7 +111,20 @@ enum ConnectionEnvironment: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+/// A color a connection can be tagged with; it fills the connection's avatar everywhere it appears.
+enum ConnectionColor: String, Codable, CaseIterable, Identifiable {
+    case red, orange, yellow, green, mint, teal, cyan, blue, indigo, purple, pink, brown, graphite
+
+    var id: String { rawValue }
+}
+
 struct ConnectionProfile: Identifiable, Codable, Hashable {
+    enum AvatarStyle: Equatable {
+        case engine
+        case symbol(String)
+        case initials
+    }
+
     var id: UUID = UUID()
     var name: String
     var engine: DatabaseEngine
@@ -144,6 +157,10 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var schemaCachingEnabled: Bool = true
     var schemaCacheDurationHours: Int = 24
     var environment: ConnectionEnvironment = .none
+    var colorTag: ConnectionColor? = nil
+    /// Shows initials instead of the engine's mark when no symbol is chosen. A separate flag, so
+    /// versions that predate engine marks keep showing initials for every connection without a symbol.
+    var showsInitials = false
     var createdAt: Date = .now
 
     func duplicate() -> ConnectionProfile {
@@ -160,11 +177,24 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         set { defaultDatabase = newValue }
     }
 
+    /// The chosen SF Symbol, if any; nil when the avatar shows the engine's mark or initials.
     var resolvedIconName: String? {
         guard let iconName, !iconName.isEmpty else {
             return nil
         }
         return iconName
+    }
+
+    var avatarDescription: String {
+        switch avatarStyle {
+        case .engine: engine.rawValue
+        case .symbol(let name): name
+        case .initials: L10n.text("Initials")
+        }
+    }
+
+    var avatarStyle: AvatarStyle {
+        resolvedIconName.map(AvatarStyle.symbol) ?? (showsInitials ? .initials : .engine)
     }
 
     var trimmedDefaultDatabase: String {
@@ -244,6 +274,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         case schemaCachingEnabled
         case schemaCacheDurationHours
         case environment
+        case colorTag
+        case showsInitials
         case createdAt
     }
 
@@ -388,6 +420,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         schemaCacheDurationHours = max(1, try container.decodeIfPresent(Int.self, forKey: .schemaCacheDurationHours) ?? 24)
         // An unknown label from a newer version must not make the whole connection unreadable.
         environment = (try? container.decodeIfPresent(ConnectionEnvironment.self, forKey: .environment)) ?? .none
+        colorTag = try? container.decodeIfPresent(ConnectionColor.self, forKey: .colorTag)
+        showsInitials = try container.decodeIfPresent(Bool.self, forKey: .showsInitials) ?? false
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
     }
 
@@ -425,6 +459,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         try container.encode(schemaCachingEnabled, forKey: .schemaCachingEnabled)
         try container.encode(max(1, schemaCacheDurationHours), forKey: .schemaCacheDurationHours)
         try container.encodeIfPresent(environment == .none ? nil : environment, forKey: .environment)
+        try container.encodeIfPresent(colorTag, forKey: .colorTag)
+        if showsInitials { try container.encode(true, forKey: .showsInitials) }
         try container.encode(createdAt, forKey: .createdAt)
     }
 }
