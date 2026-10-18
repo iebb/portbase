@@ -212,20 +212,21 @@ enum VisualizationService {
                 xDate = nil
             }
 
+            // Read single cells; `row.values` would format the whole row on every access.
             let group = groupIndex
-                .flatMap { row.values[safe: $0]?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .flatMap { row.cells[safe: $0]?.displayValue.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .flatMap { $0.isEmpty ? nil : $0 }
             let label = labelIndex
-                .flatMap { row.values[safe: $0]?.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .flatMap { row.cells[safe: $0]?.displayValue.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .flatMap { $0.isEmpty ? nil : $0 }
 
             for (metricName, yIndex) in yFieldIndexes {
-                let rawY = row.values[safe: yIndex]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                let rawY = row.cells[safe: yIndex]?.displayValue.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                 guard let yValue = parsedNumber(from: rawY) else { continue }
 
                 let seriesGroup = stackedSeriesName(metric: metricName, group: group, preset: preset)
-                let categoryIdentity = xMode == .category
-                    ? (try? JSONEncoder().encode(xCell))?.base64EncodedString() ?? rawX : xText
+                // NULL, empty text, and text that reads "NULL" stay separate categories.
+                let categoryIdentity = xMode == .category ? (xCell.isNull ? "\u{0}null" : "v:" + rawX) : xText
                 let identifierComponents: [String] = [
                     xMode.rawValue,
                     categoryIdentity,
@@ -340,11 +341,8 @@ enum VisualizationService {
         default:
             yTitle = "\(yFields[0]) + \(yFields.count - 1)"
         }
-        let axisTitle = [yTitle, "by", xField].filter { !$0.isEmpty }.joined(separator: " ")
-        if let source, !source.isEmpty {
-            return "\(source) • \(chartType.title) • \(axisTitle)"
-        }
-        return "\(chartType.title) • \(axisTitle)"
+        // The source shows beside the title already; the title says what is measured.
+        return xField.isEmpty ? yTitle : L10n.format("%1$@ by %2$@", yTitle, xField)
     }
 
     static func unlimitedQuery(from sql: String) -> String {
@@ -472,12 +470,17 @@ enum VisualizationService {
         if let direct = Double(trimmed) {
             return direct.isFinite ? direct : nil
         }
+        guard let value = groupedNumberFormatter.number(from: trimmed)?.doubleValue, value.isFinite else { return nil }
+        return value
+    }
+
+    // Formatters are thread-safe; building one per value made charting large results slow.
+    nonisolated(unsafe) private static let groupedNumberFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.numberStyle = .decimal
-        guard let value = formatter.number(from: trimmed)?.doubleValue, value.isFinite else { return nil }
-        return value
-    }
+        return formatter
+    }()
 
     static func parsedDate(from raw: String, sourceType: String) -> Date? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)

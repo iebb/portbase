@@ -1,0 +1,192 @@
+import Foundation
+
+/// What a chart draws, built from a result off the main thread and remembered per result and setup,
+/// so scrolling, resizing, and switching pages never recompute it.
+struct ChartRenderData: Sendable {
+    var result: QueryResultTable
+    var points: [VisualizationPlotPoint]
+    var xMode: VisualizationFieldMode
+    var dateFields: [VisualizationFieldDescriptor]
+    /// Points before small pie slices were combined or dense series thinned.
+    var plottedPointCount: Int
+
+    static let empty = ChartRenderData(result: .empty, points: [], xMode: .category, dateFields: [], plottedPointCount: 0)
+
+    /// Pie and donut charts show this many slices at most; the rest become "Other".
+    static let maximumSlices = 7
+    /// Line, area, and point series are thinned to this many points, keeping their shape.
+    static let maximumSeriesPoints = 600
+
+    static func build(result: QueryResultTable, preset: SavedVisualizationPreset, dateFilter: VisualizationDateFilter?) -> ChartRenderData {
+        let fields = VisualizationService.fieldDescriptors(for: result)
+        let filtered = VisualizationService.filteredResult(result, dateFilter: dateFilter)
+        let xMode = VisualizationService.resolvedXMode(for: preset, fields: fields)
+        let points = VisualizationService.chartPoints(for: filtered, preset: preset, fields: fields)
+        let drawn: [VisualizationPlotPoint] = switch preset.chartType {
+        case .pie, .donut: sectorPoints(points)
+        case .line, .area, .point: thinned(limitedSeries(points), xMode: xMode, limit: maximumSeriesPoints)
+        case .bar, .rule: limitedSeries(points)
+        }
+        return ChartRenderData(result: filtered, points: drawn, xMode: xMode, dateFields: fields.filter(\.supportsDate),
+                               plottedPointCount: points.count)
+    }
+
+    /// Grouped charts show this many series at most; the rest are summed into "Other".
+    static let maximumSeries = 8
+
+    /// Keeps the largest groups and sums the rest per x value, so a high-cardinality group field
+    /// draws a readable chart and legend instead of hundreds of series.
+    static func limitedSeries(_ points: [VisualizationPlotPoint]) -> [VisualizationPlotPoint] {
+        var totals: [String: Double] = [:]
+        for point in points { if let group = point.group { totals[group, default: 0] += abs(point.yValue) } }
+        guard totals.count > maximumSeries else { return points }
+        let kept = Set(totals.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }.prefix(maximumSeries - 1).map(\.key))
+        let otherName = L10n.text("Other")
+        var result: [VisualizationPlotPoint] = []
+        var others: [String: Int] = [:]
+        for point in points {
+            guard let group = point.group, !kept.contains(group) else { result.append(point); continue }
+            let xKey = [point.xText, point.xNumber.map { String($0) } ?? "", point.xDate.map { String($0.timeIntervalSince1970) } ?? ""].joined(separator: "\u{1F}")
+            if let index = others[xKey] {
+                result[index].yValue += point.yValue
+                result[index].sourceRowIDs += point.sourceRowIDs
+            } else {
+                others[xKey] = result.count
+                result.append(VisualizationPlotPoint(id: "portbase.other|" + xKey, xText: point.xText, xNumber: point.xNumber, xDate: point.xDate,
+                                                     yValue: point.yValue, group: otherName, label: nil, metric: point.metric,
+                                                     sourceRowIDs: point.sourceRowIDs))
+            }
+        }
+        return result
+    }
+
+    /// Keeps the largest slices and combines the rest, so a long tail reads as one "Other" slice
+    /// instead of a fringe of slivers.
+    static func sectorPoints(_ points: [VisualizationPlotPoint]) -> [VisualizationPlotPoint] {
+        let positive = points.filter { $0.yValue > 0 }.sorted { $0.yValue > $1.yValue }
+        let total = positive.reduce(0) { $0 + $1.yValue }
+        guard total > 0 else { return [] }
+        var kept: [VisualizationPlotPoint] = []
+        var rest: [VisualizationPlotPoint] = []
+        for point in positive {
+            // Slices under 2% are too thin to see or label.
+            if kept.count < maximumSlices - 1, point.yValue / total >= 0.02 { kept.append(point) } else { rest.append(point) }
+        }
+        if rest.count == 1 { kept.append(rest[0]) }
+        else if !rest.isEmpty {
+            kept.append(VisualizationPlotPoint(
+                id: "portbase.other", xText: L10n.text("Other"), xNumber: nil, xDate: nil,
+                yValue: rest.reduce(0) { $0 + $1.yValue }, group: nil, label: nil, metric: rest[0].metric,
+                sourceRowIDs: rest.flatMap(\.sourceRowIDs)))
+        }
+        return kept
+    }
+
+    /// Thins each series with largest-triangle-three-buckets, which keeps peaks and dips.
+    static func thinned(_ points: [VisualizationPlotPoint], xMode: VisualizationFieldMode, limit: Int) -> [VisualizationPlotPoint] {
+        let series = Dictionary(grouping: points.indices) { points[$0].group ?? points[$0].metric ?? "" }
+        guard series.values.contains(where: { $0.count > limit }) else { return points }
+        var kept = Set<Int>()
+        for indices in series.values {
+            guard indices.count > limit else { kept.formUnion(indices); continue }
+            let xs = indices.enumerated().map { offset, index -> Double in
+                switch xMode {
+                case .date: points[index].xDate?.timeIntervalSince1970 ?? Double(offset)
+                case .number: points[index].xNumber ?? Double(offset)
+                case .category, .automatic: Double(offset)
+                }
+            }
+            let ys = indices.map { points[$0].yValue }
+            kept.formUnion(largestTriangleThreeBuckets(xs: xs, ys: ys, threshold: limit).map { indices[$0] })
+        }
+        return points.indices.filter(kept.contains).map { points[$0] }
+    }
+
+    /// Indexes of the points to keep, always including the first and last.
+    static func largestTriangleThreeBuckets(xs: [Double], ys: [Double], threshold: Int) -> [Int] {
+        let count = xs.count
+        guard threshold >= 3, count > threshold else { return Array(0..<count) }
+        var sampled = [0]
+        let bucketSize = Double(count - 2) / Double(threshold - 2)
+        var anchor = 0
+        for bucket in 0..<(threshold - 2) {
+            let averageStart = min(Int(Double(bucket + 1) * bucketSize) + 1, count - 1)
+            let averageEnd = max(min(Int(Double(bucket + 2) * bucketSize) + 1, count), averageStart + 1)
+            var averageX = 0.0, averageY = 0.0
+            for index in averageStart..<averageEnd { averageX += xs[index]; averageY += ys[index] }
+            averageX /= Double(averageEnd - averageStart)
+            averageY /= Double(averageEnd - averageStart)
+
+            let rangeStart = Int(Double(bucket) * bucketSize) + 1
+            let rangeEnd = max(min(Int(Double(bucket + 1) * bucketSize) + 1, count - 1), rangeStart + 1)
+            var largest = -1.0
+            var chosen = rangeStart
+            for index in rangeStart..<rangeEnd {
+                let area = abs((xs[anchor] - averageX) * (ys[index] - ys[anchor]) - (xs[anchor] - xs[index]) * (averageY - ys[anchor]))
+                if area > largest { largest = area; chosen = index }
+            }
+            sampled.append(chosen)
+            anchor = chosen
+        }
+        sampled.append(count - 1)
+        return sampled
+    }
+}
+
+/// Identifies one rendering: a particular result with a particular chart setup and filter.
+struct ChartRenderKey: Hashable, Sendable {
+    let result: String
+    let chartType: VisualizationChartType
+    let xField: String
+    let yFields: [String]
+    let groupField: String?
+    let labelField: String?
+    let xAxisMode: VisualizationFieldMode
+    let dateFilter: VisualizationDateFilter?
+
+    init(result: QueryResultTable, preset: SavedVisualizationPreset, dateFilter: VisualizationDateFilter?) {
+        self.result = result.chartFingerprint
+        chartType = preset.chartType
+        xField = preset.xField
+        yFields = preset.resolvedYFields
+        groupField = preset.groupField
+        labelField = preset.labelField
+        xAxisMode = preset.xAxisMode
+        self.dateFilter = dateFilter
+    }
+}
+
+/// Remembers recent renderings so a chart that reappears draws immediately.
+@MainActor final class ChartRenderStore {
+    static let shared = ChartRenderStore()
+    private var entries: [ChartRenderKey: ChartRenderData] = [:]
+    private var order: [ChartRenderKey] = []
+    private let capacity = 48
+
+    func cached(_ key: ChartRenderKey) -> ChartRenderData? { entries[key] }
+
+    func render(_ key: ChartRenderKey, result: QueryResultTable, preset: SavedVisualizationPreset,
+                dateFilter: VisualizationDateFilter?) async -> ChartRenderData {
+        if let cached = entries[key] { return cached }
+        let data = await Task.detached(priority: .userInitiated) {
+            ChartRenderData.build(result: result, preset: preset, dateFilter: dateFilter)
+        }.value
+        entries[key] = data
+        order.removeAll { $0 == key }
+        order.append(key)
+        if order.count > capacity { entries[order.removeFirst()] = nil }
+        return data
+    }
+}
+
+extension QueryResultTable {
+    /// A cheap identity for a result: its shape plus its first and last rows. Rows get fresh IDs
+    /// whenever a result is fetched or decoded, so a new fetch never matches an old one.
+    var chartFingerprint: String {
+        var hasher = Hasher()
+        hasher.combine(rows.first?.cells)
+        hasher.combine(rows.last?.cells)
+        return [String(rows.count), rows.first?.id.uuidString ?? "", rows.last?.id.uuidString ?? "",
+                String(hasher.finalize()), columns.map(\.name).joined(separator: "\u{1F}")].joined(separator: "|")
+    }
+}

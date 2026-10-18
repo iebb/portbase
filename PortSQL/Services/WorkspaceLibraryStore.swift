@@ -18,7 +18,15 @@ final class WorkspaceLibraryStore: ObservableObject {
     @Published private(set) var history: [QueryHistoryEntry] = []
     @Published private(set) var snippets: [SavedQuerySnippet] = []
     @Published private(set) var visualizations: [SavedVisualizationPreset] = []
-    @Published private(set) var visualizationPreviewCache: [UUID: QueryResultTable] = [:]
+    @Published private(set) var chartPages: [ChartPage] = []
+    /// The dashboard page last shown, where newly saved charts are placed.
+    @Published var currentChartPageID: UUID = ChartPage.defaultID {
+        didSet { UserDefaults.standard.set(currentChartPageID.uuidString, forKey: Self.currentChartPageKey) }
+    }
+    private static let currentChartPageKey = "Portbase.charts.currentPage"
+    private var chartPageCloudCollection: WorkspaceCloudCollection<ChartPage>?
+    private let chartPagesURL: URL
+    private let chartResults = ChartResultCache.shared
 
     private let fileManager = FileManager.default
     private let historyURL: URL
@@ -43,6 +51,7 @@ final class WorkspaceLibraryStore: ObservableObject {
         visualizationsURL = directory.appendingPathComponent("visualization-presets.yml")
         visualizationPreviewCacheURL = directory.appendingPathComponent("visualization-preview-cache.json")
         legacyVisualizationsURL = directory.appendingPathComponent("visualization-presets.json")
+        chartPagesURL = directory.appendingPathComponent("chart-pages.json")
         if cloudSyncEnabled, let ubiquityRoot = fileManager.url(forUbiquityContainerIdentifier: nil) {
             let cloudDirectory = ubiquityRoot
                 .appendingPathComponent("Documents", isDirectory: true)
@@ -62,6 +71,7 @@ final class WorkspaceLibraryStore: ObservableObject {
             Task { @MainActor in
                 self?.mergeVisualizationsFromCloud()
                 self?.mergeQueriesFromCloud()
+                self?.mergeChartPagesFromCloud()
             }
         }
         if cloudSyncEnabled { keyValueStore.synchronize() }
@@ -80,6 +90,13 @@ final class WorkspaceLibraryStore: ObservableObject {
             })
             chartCloudCollection?.seedDeletions(deletions)
             mergeVisualizationsFromCloud()
+            chartPageCloudCollection = WorkspaceCloudCollection(key: "portsql.chart-pages.v1",
+                url: directory.appendingPathComponent("chart-page-sync.json"), initial: chartPages, initialDate: { $0.updatedAt },
+                quotaMessage: L10n.text("Charts are saved on this device. The library exceeds the iCloud sync limit."))
+            mergeChartPagesFromCloud()
+        }
+        if let stored = UserDefaults.standard.string(forKey: Self.currentChartPageKey).flatMap(UUID.init(uuidString:)) {
+            currentChartPageID = stored
         }
     }
 
@@ -129,6 +146,12 @@ final class WorkspaceLibraryStore: ObservableObject {
     @discardableResult
     func saveVisualization(_ preset: SavedVisualizationPreset) -> Bool {
         var stored = preset
+        if !visualizations.contains(where: { $0.id == preset.id }), !deletedChartIDs.contains(preset.id) {
+            // New charts go to the end of the page being viewed.
+            let page = preset.pageID.flatMap { id in displayedChartPages.contains { $0.id == id } ? id : nil } ?? resolvedCurrentChartPageID
+            stored.pageID = page
+            stored.position = (charts(onPage: page).map(\.position).max() ?? 0) + 1
+        }
         stored.updatedAt = .now
         if stored.createdAt > stored.updatedAt {
             stored.createdAt = stored.updatedAt
@@ -158,8 +181,7 @@ final class WorkspaceLibraryStore: ObservableObject {
             trash = previousTrash; deletedChartIDs = previousDeleted; return
         }
         visualizations.removeAll { $0.id == preset.id }
-        visualizationPreviewCache.removeValue(forKey: preset.id)
-        persistVisualizationPreviewCache()
+        chartResults.remove(preset.id)
         persistVisualizations(pushToCloud: true)
     }
 
@@ -183,15 +205,13 @@ final class WorkspaceLibraryStore: ObservableObject {
     }
 
     func clearPreviews() {
-        visualizationPreviewCache = [:]
-        persistVisualizationPreviewCache()
+        chartResults.removeAll()
     }
 
     func clearHistory() { history = []; persistHistory() }
 
     var previewStorageSize: String {
-        let count = (try? Data(contentsOf: visualizationPreviewCacheURL).count) ?? 0
-        return ByteCountFormatter.string(fromByteCount: Int64(count), countStyle: .file)
+        ByteCountFormatter.string(fromByteCount: chartResults.storageSize, countStyle: .file)
     }
 
     @discardableResult
@@ -215,14 +235,161 @@ final class WorkspaceLibraryStore: ObservableObject {
         }
     }
 
+    /// The chart's last result if it is in memory; `ChartResultCache` loads others from disk.
     func cachedVisualizationPreview(for presetID: UUID) -> QueryResultTable? {
-        visualizationPreviewCache[presetID]
+        chartResults.peek(presetID)?.result
     }
 
     func cacheVisualizationPreview(_ result: QueryResultTable, for presetID: UUID) {
-        visualizationPreviewCache[presetID] = result
-        pruneVisualizationPreviewCache()
-        persistVisualizationPreviewCache()
+        chartResults.store(result, for: presetID)
+    }
+
+    // MARK: Dashboard pages and layout
+
+    /// The pages in order; before any page is created, the single default page.
+    var displayedChartPages: [ChartPage] {
+        chartPages.isEmpty ? [ChartPage.defaultPage] : chartPages.sorted { ($0.position, $0.createdAt) < ($1.position, $1.createdAt) }
+    }
+
+    var resolvedCurrentChartPageID: UUID {
+        let pages = displayedChartPages
+        return pages.contains { $0.id == currentChartPageID } ? currentChartPageID : pages[0].id
+    }
+
+    /// Charts on a page in layout order. Charts whose page no longer exists sit on the first page.
+    func charts(onPage pageID: UUID) -> [SavedVisualizationPreset] {
+        let pages = displayedChartPages
+        let known = Set(pages.map(\.id))
+        let first = pages[0].id
+        return visualizations
+            .filter { ($0.pageID.flatMap { known.contains($0) ? $0 : nil } ?? first) == pageID }
+            .sorted { ($0.position, $0.createdAt) < ($1.position, $1.createdAt) }
+    }
+
+    @discardableResult
+    func addChartPage(title: String) -> ChartPage {
+        var pages = chartPages
+        if pages.isEmpty { pages = [ChartPage.defaultPage] }
+        let page = ChartPage(title: title, position: (pages.map(\.position).max() ?? 0) + 1)
+        pages.append(page)
+        setChartPages(pages)
+        currentChartPageID = page.id
+        return page
+    }
+
+    func renameChartPage(_ id: UUID, to title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        var pages = displayedChartPages
+        guard let index = pages.firstIndex(where: { $0.id == id }) else { return }
+        pages[index].title = trimmed
+        pages[index].updatedAt = .now
+        setChartPages(pages)
+    }
+
+    /// Deletes a page and moves its charts to the end of the page before it, so no chart is lost.
+    func deleteChartPage(_ id: UUID) {
+        let pages = displayedChartPages
+        guard pages.count > 1, let index = pages.firstIndex(where: { $0.id == id }) else { return }
+        let destination = pages[index == 0 ? 1 : index - 1].id
+        var offset = (charts(onPage: destination).map(\.position).max() ?? 0) + 1
+        var moved: [SavedVisualizationPreset] = []
+        for chart in charts(onPage: id) {
+            var updated = chart
+            updated.pageID = destination
+            updated.position = offset
+            offset += 1
+            moved.append(updated)
+        }
+        updateVisualizations(moved)
+        var remaining = pages
+        remaining.remove(at: index)
+        setChartPages(remaining)
+        if currentChartPageID == id { currentChartPageID = destination }
+    }
+
+    /// Moves a chart to a page, before another chart or at the end, renumbering that page.
+    func moveChart(_ id: UUID, toPage pageID: UUID, before targetID: UUID?) {
+        guard let chart = visualizations.first(where: { $0.id == id }), id != targetID else { return }
+        var ordered = charts(onPage: pageID).filter { $0.id != id }
+        var moving = chart
+        moving.pageID = pageID
+        let index = targetID.flatMap { target in ordered.firstIndex { $0.id == target } } ?? ordered.endIndex
+        ordered.insert(moving, at: index)
+        var changed: [SavedVisualizationPreset] = []
+        for (offset, item) in ordered.enumerated() {
+            let position = Double(offset + 1)
+            guard item.position != position || item.id == id else { continue }
+            var updated = item
+            updated.position = position
+            changed.append(updated)
+        }
+        updateVisualizations(changed)
+    }
+
+    func setChartPageFilters(_ id: UUID, dateRange: ChartDateRange?, values: [String: String]?) {
+        var pages = displayedChartPages
+        guard let index = pages.firstIndex(where: { $0.id == id }) else { return }
+        guard pages[index].dateRange != dateRange || pages[index].parameterValues != values else { return }
+        pages[index].dateRange = dateRange
+        pages[index].parameterValues = values
+        pages[index].updatedAt = .now
+        setChartPages(pages)
+    }
+
+    func setChartShowsLegend(_ id: UUID, _ showsLegend: Bool) {
+        guard var chart = visualizations.first(where: { $0.id == id }), chart.showsLegend != showsLegend else { return }
+        chart.showsLegend = showsLegend
+        updateVisualizations([chart])
+    }
+
+    func resizeChart(_ id: UUID, height: Double?, span: Int) {
+        guard var chart = visualizations.first(where: { $0.id == id }) else { return }
+        let height = height.map(SavedVisualizationPreset.clampedTileHeight)
+        let span = SavedVisualizationPreset.clampedTileSpan(span)
+        guard chart.tileHeight != height || chart.tileSpan != span else { return }
+        chart.tileHeight = height
+        chart.tileSpan = span
+        updateVisualizations([chart])
+    }
+
+    /// Saves layout changes to several charts with one write and one sync.
+    private func updateVisualizations(_ changed: [SavedVisualizationPreset]) {
+        guard !changed.isEmpty else { return }
+        let now = Date.now
+        for chart in changed {
+            var stored = chart
+            stored.updatedAt = now
+            if let index = visualizations.firstIndex(where: { $0.id == chart.id }) { visualizations[index] = stored }
+        }
+        persistVisualizations(pushToCloud: true)
+    }
+
+    private func setChartPages(_ pages: [ChartPage]) {
+        let now = Date.now
+        chartPages = pages.map { page in
+            var page = page
+            if page.updatedAt == .distantPast || chartPages.first(where: { $0.id == page.id }) != page { page.updatedAt = now }
+            return page
+        }
+        persistChartPages()
+        // Saving records a deletion for any page no longer in the list.
+        guard cloudSyncEnabled, let chartPageCloudCollection else { return }
+        chartPageCloudCollection.save(chartPages)
+        cloudSyncError = chartPageCloudCollection.errorMessage ?? cloudSyncError
+    }
+
+    private func persistChartPages() {
+        guard let data = try? encoder.encode(chartPages) else { return }
+        write(data, to: chartPagesURL)
+    }
+
+    private func mergeChartPagesFromCloud() {
+        guard cloudSyncEnabled, canSave, let chartPageCloudCollection else { return }
+        if let merged = chartPageCloudCollection.mergeCloud(), merged != chartPages {
+            chartPages = merged
+            persistChartPages()
+        }
     }
 
     private func load() {
@@ -238,10 +405,8 @@ final class WorkspaceLibraryStore: ObservableObject {
             canSave = false
             storageError = L10n.text("Saved work could not be loaded. The original files have been preserved.")
         }
-        if let data = try? Data(contentsOf: visualizationPreviewCacheURL),
-           let decoded = try? decoder.decode([UUID: QueryResultTable].self, from: data) {
-            visualizationPreviewCache = decoded
-        }
+        chartResults.migrateLegacyCache(at: visualizationPreviewCacheURL)
+        chartPages = (try? WorkspaceFileStore.read([ChartPage].self, from: chartPagesURL, decoder: decoder)).flatMap { $0 } ?? []
         do {
             mergedVisualizations = try readVisualizations(from: visualizationsURL)
                 ?? WorkspaceFileStore.read([SavedVisualizationPreset].self, from: legacyVisualizationsURL, decoder: decoder)
@@ -262,7 +427,6 @@ final class WorkspaceLibraryStore: ObservableObject {
         visualizations = mergedVisualizations.filter { !deletedChartIDs.contains($0.id) }
         pruneVisualizationPreviewCache()
         mergeVisualizationsFromCloud()
-        persistVisualizationPreviewCache()
         persistVisualizations(pushToCloud: true)
     }
 
@@ -296,11 +460,6 @@ final class WorkspaceLibraryStore: ObservableObject {
             persistSnippets(pushToCloud: false)
         }
         cloudSyncError = queryCloudCollection.errorMessage
-    }
-
-    private func persistVisualizationPreviewCache() {
-        guard let data = try? encoder.encode(visualizationPreviewCache) else { return }
-        write(data, to: visualizationPreviewCacheURL)
     }
 
     @discardableResult
@@ -378,8 +537,9 @@ final class WorkspaceLibraryStore: ObservableObject {
     }
 
     private func pruneVisualizationPreviewCache() {
-        let validIDs = Set(visualizations.map(\.id))
-        visualizationPreviewCache = visualizationPreviewCache.filter { validIDs.contains($0.key) }
+        // Charts in Recently Deleted keep their results so restoring them brings the data back.
+        let trashed = trash.compactMap { item -> UUID? in if case .chart(let chart) = item.content { return chart.id }; return nil }
+        chartResults.prune(keeping: Set(visualizations.map(\.id) + trashed))
     }
 
     private func encodeVisualizations(_ presets: [SavedVisualizationPreset]) -> String {
@@ -404,6 +564,11 @@ final class WorkspaceLibraryStore: ObservableObject {
                 "  databaseName: \(yamlOptional(preset.databaseName))",
                 "  sourceTableReference: \(yamlOptional(preset.sourceTableReference))",
                 "  sourceQuery: \(yamlOptional(preset.sourceQuery))",
+                "  pageID: \(yamlOptional(preset.pageID?.uuidString))",
+                "  position: \(yamlQuoted(String(preset.position)))",
+                "  tileHeight: \(yamlOptional(preset.tileHeight.map { String($0) }))",
+                "  tileSpan: \(yamlQuoted(String(preset.tileSpan)))",
+                "  showsLegend: \(preset.showsLegend ? "true" : "false")",
                 "  createdAt: \(yamlQuoted(formatter.string(from: preset.createdAt)))",
                 "  updatedAt: \(yamlQuoted(formatter.string(from: preset.updatedAt)))"
             ].joined(separator: "\n")
@@ -499,6 +664,13 @@ final class WorkspaceLibraryStore: ObservableObject {
                 databaseName: try yamlDecoded(item["databaseName"]),
                 sourceTableReference: try yamlDecoded(item["sourceTableReference"]),
                 sourceQuery: try yamlDecoded(item["sourceQuery"]),
+                // Layout fields are newer; files without them, or with values a later version
+                // writes differently, fall back to defaults rather than failing the whole file.
+                pageID: (try? yamlDecoded(item["pageID"])).flatMap { $0 }.flatMap(UUID.init(uuidString:)),
+                position: (try? yamlDecoded(item["position"])).flatMap { $0 }.flatMap(Double.init) ?? 0,
+                tileHeight: (try? yamlDecoded(item["tileHeight"])).flatMap { $0 }.flatMap(Double.init),
+                tileSpan: (try? yamlDecoded(item["tileSpan"])).flatMap { $0 }.flatMap(Int.init) ?? 1,
+                showsLegend: yamlBool(item["showsLegend"]) ?? true,
                 createdAt: createdAt,
                 updatedAt: updatedAt
             )

@@ -6,10 +6,18 @@ import UIKit
 import AppKit
 #endif
 
+/// Actions a dashboard tile's menu sends to its chart.
+enum ChartPreviewAction: Equatable {
+    case inspect
+    case export(ChartExportFormat)
+}
+
 struct VisualizationChartPreview: View {
     let preset: SavedVisualizationPreset
     let result: QueryResultTable
+    /// Dashboard tiles: the chart fills the tile and its actions come from the tile's menu.
     var compact: Bool
+    var action: Binding<ChartPreviewAction?> = .constant(nil)
     @State private var dateFilter: VisualizationDateFilter?
     @State private var showsDateFilter = false
     @State private var showsPointList = false
@@ -17,74 +25,44 @@ struct VisualizationChartPreview: View {
     @State private var drilldown: ChartDrilldown?
     @State private var shareItem: ChartShareItem?
     @State private var exportError: String?
-    @State private var content = ChartContentState()
+    @State private var rendered: (key: ChartRenderKey, data: ChartRenderData)?
 
-    private var selectedPoint: VisualizationPlotPoint? { content.points.first { $0.id == selectedPointID } }
+    private var key: ChartRenderKey { ChartRenderKey(result: result, preset: preset, dateFilter: dateFilter) }
+    /// The latest rendering, or the previous one while a new one is built, so charts never blank out.
+    private var data: ChartRenderData? { rendered?.data ?? ChartRenderStore.shared.cached(key) }
+    private var selectedPoint: VisualizationPlotPoint? { data?.points.first { $0.id == selectedPointID } }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            HStack(spacing: Spacing.s) {
-                if !content.dateFields.isEmpty {
-                    Button { showsDateFilter = true } label: {
-                        Label("Date Range", systemImage: dateFilter == nil ? "calendar" : "calendar.badge.checkmark")
-                    }
-                    .frame(minHeight: Sizes.touchTarget)
-                }
-                Button { showsPointList = true } label: {
-                    Label("Inspect", systemImage: "scope").frame(minHeight: Sizes.touchTarget)
-                }
-                .disabled(content.points.isEmpty)
-                Spacer(minLength: 0)
-                Menu {
-                    Button("Export PNG") { export(.png) }
-                    Button("Export PDF") { export(.pdf) }
-                } label: {
-                    Image(systemName: "square.and.arrow.up").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-                }
-                .disabled(content.points.isEmpty)
-                .accessibilityLabel("Export Chart")
-            }
-            .font(.rowDetail)
-            .buttonStyle(.borderless)
-
-            if let dateFilter {
-                HStack(alignment: .firstTextBaseline, spacing: Spacing.s) {
-                    Text(dateFilter.field + ": " + dateRangeLabel(dateFilter))
-                        .font(.captionText).foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                    Button { self.dateFilter = nil } label: {
-                        Image(systemName: "xmark").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-                    }
-                    .accessibilityLabel("Clear Date Filter")
-                }
-            }
-
-            if content.points.isEmpty {
-                ContentUnavailableView("No plottable rows", systemImage: "chart.bar.doc.horizontal")
-                    .frame(height: compact ? 210 : 300)
+        VStack(alignment: .leading, spacing: compact ? Spacing.xs : Spacing.s) {
+            if !compact { toolbar }
+            chart
+            if let point = selectedPoint { selectionBar(point) }
+            if !compact, let data { footer(data) }
+        }
+        .task(id: key) {
+            let key = key
+            if let cached = ChartRenderStore.shared.cached(key) {
+                rendered = (key, cached)
             } else {
-                VisualizationChartPlot(preset: preset, points: content.points, xMode: content.xMode, compact: compact,
-                    selectedPointID: selectedPointID, onSelect: { selectedPointID = $0.id })
+                let data = await ChartRenderStore.shared.render(key, result: result, preset: preset, dateFilter: dateFilter)
+                guard !Task.isCancelled else { return }
+                rendered = (key, data)
             }
-
-            if let point = selectedPoint {
-                selectedPointDetails(point)
-            }
-            Text(L10n.format("Loaded rows: %d / %d", content.result.rows.count, result.rows.count))
-                .font(.captionText).foregroundStyle(.secondary)
-            if result.isTruncated == true {
-                Text("Chart uses the loaded result only. Export all data from the query for the complete result.")
-                    .font(.captionText).foregroundStyle(.orange)
+            if let selectedPointID, !(rendered?.data.points.contains { $0.id == selectedPointID } ?? false) { self.selectedPointID = nil }
+        }
+        .onChange(of: action.wrappedValue) { _, request in
+            guard let request else { return }
+            action.wrappedValue = nil
+            switch request {
+            case .inspect: showsPointList = true
+            case .export(let format): export(format)
             }
         }
-        .onChange(of: result, initial: true) { _, _ in rebuild() }
-        .onChange(of: preset) { _, _ in rebuild() }
-        .onChange(of: dateFilter) { _, _ in rebuild() }
         .sheet(isPresented: $showsDateFilter) {
-            ChartDateFilterSheet(result: result, fields: content.dateFields, current: dateFilter) { dateFilter = $0 }
+            ChartDateFilterSheet(result: result, fields: data?.dateFields ?? [], current: dateFilter) { dateFilter = $0 }
         }
         .sheet(isPresented: $showsPointList) {
-            ChartPointList(points: content.points) { selectedPointID = $0.id }
+            ChartPointList(points: data?.points ?? []) { selectedPointID = $0.id }
         }
         .sheet(item: $drilldown) { ChartDrilldownView(drilldown: $0) }
         .sheet(item: $shareItem) { ChartShareSheet(url: $0.url) }
@@ -93,56 +71,121 @@ struct VisualizationChartPreview: View {
         } message: { Text(exportError ?? "") }
     }
 
-    private func selectedPointDetails(_ point: VisualizationPlotPoint) -> some View {
-        VStack(alignment: .leading, spacing: Spacing.xxs) {
-            HStack(alignment: .top, spacing: Spacing.s) {
-                VStack(alignment: .leading, spacing: Spacing.xxs) {
-                    Text(pointTitle(point)).font(.rowTitle).textSelection(.enabled)
-                    Text(point.yValue, format: .number.precision(.significantDigits(1...12)))
-                        .font(.codeText).textSelection(.enabled)
-                }
-                Spacer(minLength: 0)
-                Button { selectedPointID = nil } label: {
-                    Image(systemName: "xmark").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-                }
-                .accessibilityLabel("Close Inspection")
+    @ViewBuilder private var chart: some View {
+        if let data {
+            if data.points.isEmpty {
+                ContentUnavailableView("No plottable rows", systemImage: "chart.bar.doc.horizontal")
+                    .frame(maxWidth: .infinity)
+                    .frame(height: compact ? nil : 300)
+                    .frame(maxHeight: compact ? .infinity : nil)
+            } else {
+                VisualizationChartPlot(preset: preset, points: data.points, xMode: data.xMode, compact: compact,
+                                       selectedPointID: selectedPointID, onSelect: { point in
+                                           selectedPointID = selectedPointID == point.id ? nil : point.id
+                                       }, height: compact ? nil : 300)
             }
-            Button {
-                drilldown = ChartDrilldown(title: pointTitle(point), result: VisualizationService.matchingResult(content.result, point: point))
-            } label: {
-                Label(L10n.format("View Rows (%d)", point.sourceRowIDs.count), systemImage: "tablecells")
-                    .frame(minHeight: Sizes.touchTarget)
-            }
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .frame(height: compact ? nil : 300)
+                .frame(maxHeight: compact ? .infinity : nil)
         }
-        .padding(Spacing.m)
-        .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.xs))
+    }
+
+    private var toolbar: some View {
+        HStack(spacing: Spacing.m) {
+            if !(data?.dateFields.isEmpty ?? true) {
+                Button { showsDateFilter = true } label: {
+                    Label(dateFilter.map { $0.field + ": " + dateRangeLabel($0) } ?? L10n.text("Date Range"),
+                          systemImage: dateFilter == nil ? "calendar" : "calendar.badge.checkmark")
+                        .lineLimit(1)
+                }
+                if dateFilter != nil {
+                    Button { dateFilter = nil } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+                        .accessibilityLabel("Clear Date Filter")
+                }
+            }
+            Spacer(minLength: 0)
+            Button { showsPointList = true } label: { Label("Inspect", systemImage: "scope") }
+                .disabled(data?.points.isEmpty ?? true)
+            Menu {
+                Button("Export PNG") { export(.png) }
+                Button("Export PDF") { export(.pdf) }
+            } label: {
+                Image(systemName: "square.and.arrow.up")
+            }
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .disabled(data?.points.isEmpty ?? true)
+            .accessibilityLabel("Export Chart")
+        }
+        .font(.captionStrong)
+        .buttonStyle(.plain)
+        .foregroundStyle(PortSQLPalette.accent)
+        .frame(minHeight: Sizes.control)
+    }
+
+    /// One line under the chart: what was picked, its value, and its rows.
+    private func selectionBar(_ point: VisualizationPlotPoint) -> some View {
+        HStack(spacing: Spacing.m) {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(pointTitle(point))
+                    .font(.captionText)
+                    .foregroundStyle(PortSQLPalette.muted)
+                    .lineLimit(1)
+                Text(point.yValue, format: .number.precision(.significantDigits(1...12)))
+                    .font(.rowTitle.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(PortSQLPalette.ink)
+                    .textSelection(.enabled)
+            }
+            Spacer(minLength: Spacing.s)
+            Button {
+                drilldown = ChartDrilldown(title: pointTitle(point), result: VisualizationService.matchingResult(data?.result ?? result, point: point))
+            } label: {
+                Text(L10n.format("View Rows (%d)", point.sourceRowIDs.count))
+                    .font(.captionStrong)
+                    .foregroundStyle(PortSQLPalette.accent)
+                    .frame(minHeight: Sizes.touchTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            Button { selectedPointID = nil } label: {
+                Image(systemName: "xmark")
+                    .font(.captionStrong)
+                    .foregroundStyle(PortSQLPalette.muted)
+                    .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close Inspection")
+        }
+        .padding(.leading, Spacing.m)
+        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+    }
+
+    @ViewBuilder private func footer(_ data: ChartRenderData) -> some View {
+        if data.plottedPointCount > data.points.count {
+            Text(L10n.format("Showing %1$d of %2$d points", data.points.count, data.plottedPointCount))
+                .font(.captionText).foregroundStyle(.secondary)
+        }
+        if result.isTruncated == true {
+            Text("Chart uses the loaded result only. Export all data from the query for the complete result.")
+                .font(.captionText).foregroundStyle(.orange)
+        }
     }
 
     private func pointTitle(_ point: VisualizationPlotPoint) -> String {
         [point.xText, point.group ?? point.metric].compactMap { $0 }.joined(separator: " · ")
     }
 
-    private func rebuild() {
-        let filtered = VisualizationService.filteredResult(result, dateFilter: dateFilter)
-        let fields = VisualizationService.fieldDescriptors(for: result)
-        content = ChartContentState(result: filtered, points: VisualizationService.chartPoints(for: filtered, preset: preset, fields: fields),
-            xMode: VisualizationService.resolvedXMode(for: preset, fields: fields), dateFields: fields.filter(\.supportsDate))
-        if !content.points.contains(where: { $0.id == selectedPointID }) { selectedPointID = nil }
-    }
-
     private func export(_ format: ChartExportFormat) {
+        guard let data else { return }
         do {
-            let url = try ChartExportService.write(preset: preset, result: content.result, points: content.points, xMode: content.xMode, dateFilter: dateFilter, format: format)
+            let url = try ChartExportService.write(preset: preset, result: data.result, points: data.points, xMode: data.xMode, dateFilter: dateFilter, format: format)
             shareItem = ChartShareItem(url: url)
         } catch { exportError = error.localizedDescription }
     }
-}
-
-private struct ChartContentState {
-    var result = QueryResultTable.empty
-    var points: [VisualizationPlotPoint] = []
-    var xMode = VisualizationFieldMode.category
-    var dateFields: [VisualizationFieldDescriptor] = []
 }
 
 private struct ChartPointList: View {

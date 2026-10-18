@@ -15,6 +15,9 @@
 		058EAE07A623C0BEBD6B6C96 /* Inter-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */; };
 		06C4360B84C706A6554D7EAF /* MongoExtendedJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2F929B764AFC3E50D32F5F4 /* MongoExtendedJSON.swift */; };
 		06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */; };
+		5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
+		DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
+		E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		071C3A222675B56549A173EF /* ServerCertificateProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */; };
 		075363B746098275FBB5E230 /* MongoClient in Frameworks */ = {isa = PBXBuildFile; productRef = 37B8BCD7DB646F11A43DABAC /* MongoClient */; };
 		07636E71B9789D2EE0DB3E24 /* RedisServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA803D509860DB47C604F547 /* RedisServiceTests.swift */; };
@@ -53,10 +56,12 @@
 		1E64BAE770072DE127C77049 /* SQLSafetyServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */; };
 		1E69E8B64C7777CEA5C89830 /* QueryPlanAndDuplicateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */; };
 		78D6398D5B9D107843ED510D /* AssistantServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E36671D46CAD500A99172A /* AssistantServiceTests.swift */; };
+		D49B82E1144820D3761E499E /* ChartDashboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3438234937B8A1CAC895B2 /* ChartDashboardTests.swift */; };
 		C8AC047EB2B058528FA0E641 /* EngineLogoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0419116346F458CABBD05E /* EngineLogoTests.swift */; };
 		1E8EA809618D2BD72EEFAEC9 /* RedisExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69B0A370E82250B1810FDAEF /* RedisExplorerView.swift */; };
 		1EA99AE62070991C88462F58 /* QueryPlanAndDuplicateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */; };
 		6652D5C4308D3548E56BB7AD /* AssistantServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37E36671D46CAD500A99172A /* AssistantServiceTests.swift */; };
+		015FCD5109985527FB4B7ABB /* ChartDashboardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3438234937B8A1CAC895B2 /* ChartDashboardTests.swift */; };
 		4CDF59B34B73811067522DF4 /* EngineLogoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D0419116346F458CABBD05E /* EngineLogoTests.swift */; };
 		20632EE6856900E2D355C7E8 /* SQLSafetyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50BB47279C113C0DDAD076A2 /* SQLSafetyService.swift */; };
 		20DFF208BACA38F4811613D7 /* SQLSyntaxHighlighter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */; };
@@ -132,6 +137,8 @@
 		5044A037FD173BB28F928FF2 /* SchemaCacheStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88816ECE5369279575107C83 /* SchemaCacheStore.swift */; };
 		506A9BFAF4FA89D3E1A56CF7 /* MongoIndexesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD23E4CE4D8F3DCC58FFAB07 /* MongoIndexesView.swift */; };
 		51C296FEDE9059FA07DE51F4 /* VisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF2634609186A8C0C442FED0 /* VisualizerView.swift */; };
+		EB864CFD14D2A3EE84770980 /* ChartPlotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CF259CD32648EFB97904F60 /* ChartPlotView.swift */; };
+		739357C73788AC433626D5B5 /* ChartDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054C5E13142077985F7369B0 /* ChartDashboardView.swift */; };
 		53C402D1FE67C3C8C0759DDC /* SQLiteDataTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3948834B19E4E757751CDA6A /* SQLiteDataTransfer.swift */; };
 		559C6463BB506A89C9459654 /* ConnectionIssue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EC061D73A95B541269B3CA /* ConnectionIssue.swift */; };
 		5639DC9496640D067515D06A /* ConnectionIssue.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4EC061D73A95B541269B3CA /* ConnectionIssue.swift */; };
@@ -211,11 +218,16 @@
 		8A3821456C079FD236135759 /* DatabaseSafetyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A1A3A58059AC6D8510CC5F /* DatabaseSafetyTests.swift */; };
 		8A564980FC3AD9E971E4AAA0 /* MongoQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52D16A9DA7C565C1D6AF7543 /* MongoQueryService.swift */; };
 		8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF2634609186A8C0C442FED0 /* VisualizerView.swift */; };
+		18003E5E9AB29EC7A0E028D7 /* ChartPlotView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CF259CD32648EFB97904F60 /* ChartPlotView.swift */; };
+		B18BFEFFDC14FA7759164138 /* ChartDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 054C5E13142077985F7369B0 /* ChartDashboardView.swift */; };
 		8A80F1989B95AEED61B61D15 /* QueryParameterAndExportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */; };
 		8AE55643A0149DB9DD683EE3 /* SQLiteDataTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3948834B19E4E757751CDA6A /* SQLiteDataTransfer.swift */; };
 		8B382826E231A91701060E8A /* DataTransferView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEE10823A80A7F2EE972465E /* DataTransferView.swift */; };
 		8CCC6E0F4C89C4C46B2173A8 /* DatabaseService+Redis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05652535CA38CA654159765 /* DatabaseService+Redis.swift */; };
 		8CCD53796779AEFB9659D4E1 /* VisualizationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */; };
+		9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
+		385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
+		12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		8E30B4B80563F61728402BED /* MongoQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C52CE99FBA2ED6D018425D /* MongoQueryEditorCard.swift */; };
 		8F44E2EEFD024762B3AA93A4 /* ConnectionImportAndIssueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54C3105572FED20DFE6A024 /* ConnectionImportAndIssueTests.swift */; };
 		8F81BD422E182B429B9E6904 /* PortSQLApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */; };
@@ -436,6 +448,7 @@
 		3F931BDF7628C962CE3B5ACE /* MongoExplorerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoExplorerView.swift; sourceTree = "<group>"; };
 		4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryPlanAndDuplicateTests.swift; sourceTree = "<group>"; };
 		37E36671D46CAD500A99172A /* AssistantServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantServiceTests.swift; sourceTree = "<group>"; };
+		1D3438234937B8A1CAC895B2 /* ChartDashboardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartDashboardTests.swift; sourceTree = "<group>"; };
 		7D0419116346F458CABBD05E /* EngineLogoTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineLogoTests.swift; sourceTree = "<group>"; };
 		4347DEE88530446E7D272A81 /* CertificateTrustSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificateTrustSheet.swift; sourceTree = "<group>"; };
 		4652F0CAD2489F2A36BCE616 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -443,6 +456,9 @@
 		46D099F14C26E51D6333F2A1 /* SQLiteConnectionSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLiteConnectionSection.swift; sourceTree = "<group>"; };
 		479DF3AB24E4157BDA8C2307 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationService.swift; sourceTree = "<group>"; };
+		8C2D20E83571702A0436925F /* ChartQueryRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartQueryRunner.swift; sourceTree = "<group>"; };
+		26662324659C354D792E1789 /* ChartRenderData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderData.swift; sourceTree = "<group>"; };
+		12415823640818708E85F1ED /* ChartResultCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartResultCache.swift; sourceTree = "<group>"; };
 		49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedQueryEditor.swift; sourceTree = "<group>"; };
 		49CC6419D07FB098F5FC5171 /* ConnectionIssueBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionIssueBanner.swift; sourceTree = "<group>"; };
 		4A15F76C29C24204DA7CF27F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
@@ -550,6 +566,8 @@
 		CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryPlanService.swift; sourceTree = "<group>"; };
 		CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHTunnelServiceTests.swift; sourceTree = "<group>"; };
 		CF2634609186A8C0C442FED0 /* VisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizerView.swift; sourceTree = "<group>"; };
+		8CF259CD32648EFB97904F60 /* ChartPlotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartPlotView.swift; sourceTree = "<group>"; };
+		054C5E13142077985F7369B0 /* ChartDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartDashboardView.swift; sourceTree = "<group>"; };
 		D2D0276E9870FCF05D930284 /* HTTPDatabaseAuthenticationSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPDatabaseAuthenticationSection.swift; sourceTree = "<group>"; };
 		D35DF15AD3F8A2F2A8DE7306 /* mysql-nio */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "mysql-nio"; path = "Packages/mysql-nio"; sourceTree = SOURCE_ROOT; };
 		D51D052A6EDBBBEC17FF22ED /* SQLTemplateService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLTemplateService.swift; sourceTree = "<group>"; };
@@ -756,6 +774,9 @@
 				D51D052A6EDBBBEC17FF22ED /* SQLTemplateService.swift */,
 				F7815F00324F38C695376075 /* SSHTunnelService.swift */,
 				48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */,
+				8C2D20E83571702A0436925F /* ChartQueryRunner.swift */,
+				26662324659C354D792E1789 /* ChartRenderData.swift */,
+				12415823640818708E85F1ED /* ChartResultCache.swift */,
 				934A946D9B49098CF15CE03C /* WorkspaceActivityService.swift */,
 				B4BFA3F7222219E28B6D0948 /* WorkspaceCloudCollection.swift */,
 				EF71402E9A73FE068C63162F /* WorkspaceFileStore.swift */,
@@ -801,6 +822,7 @@
 				C9FEF8917AFBC6511B4446AA /* QueryParameterAndExportServiceTests.swift */,
 				4057F8D1B329E10B9A40A1C0 /* QueryPlanAndDuplicateTests.swift */,
 				37E36671D46CAD500A99172A /* AssistantServiceTests.swift */,
+				1D3438234937B8A1CAC895B2 /* ChartDashboardTests.swift */,
 				7D0419116346F458CABBD05E /* EngineLogoTests.swift */,
 				FA803D509860DB47C604F547 /* RedisServiceTests.swift */,
 				251D87D88DCD9B94086CB2C2 /* ResultGridChartTests.swift */,
@@ -910,6 +932,8 @@
 				46D099F14C26E51D6333F2A1 /* SQLiteConnectionSection.swift */,
 				200D0F941E7FC63F89876E24 /* SQLTemplateMenu.swift */,
 				CF2634609186A8C0C442FED0 /* VisualizerView.swift */,
+				8CF259CD32648EFB97904F60 /* ChartPlotView.swift */,
+				054C5E13142077985F7369B0 /* ChartDashboardView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1268,7 +1292,12 @@
 				395FE4D4FD140F35542C5D3C /* SettingsView.swift in Sources */,
 				324C7657D64E47FAE6B3C0EF /* VisualizationModels.swift in Sources */,
 				8CCD53796779AEFB9659D4E1 /* VisualizationService.swift in Sources */,
+				9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */,
+				385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */,
+				12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */,
 				51C296FEDE9059FA07DE51F4 /* VisualizerView.swift in Sources */,
+				EB864CFD14D2A3EE84770980 /* ChartPlotView.swift in Sources */,
+				739357C73788AC433626D5B5 /* ChartDashboardView.swift in Sources */,
 				D77722EC31B61655A65EC205 /* WorkspaceActivityService.swift in Sources */,
 				F8FD38E5DD4BC2E59D021B23 /* WorkspaceCloudCollection.swift in Sources */,
 				E85F0CE6E2C66B22087411BD /* WorkspaceFileStore.swift in Sources */,
@@ -1296,6 +1325,7 @@
 				437BA04B864EB17A28149E47 /* QueryParameterAndExportServiceTests.swift in Sources */,
 				1EA99AE62070991C88462F58 /* QueryPlanAndDuplicateTests.swift in Sources */,
 				6652D5C4308D3548E56BB7AD /* AssistantServiceTests.swift in Sources */,
+				015FCD5109985527FB4B7ABB /* ChartDashboardTests.swift in Sources */,
 				4CDF59B34B73811067522DF4 /* EngineLogoTests.swift in Sources */,
 				07636E71B9789D2EE0DB3E24 /* RedisServiceTests.swift in Sources */,
 				D973259D5B46C6C16518A235 /* ResultGridChartTests.swift in Sources */,
@@ -1329,6 +1359,7 @@
 				8A80F1989B95AEED61B61D15 /* QueryParameterAndExportServiceTests.swift in Sources */,
 				1E69E8B64C7777CEA5C89830 /* QueryPlanAndDuplicateTests.swift in Sources */,
 				78D6398D5B9D107843ED510D /* AssistantServiceTests.swift in Sources */,
+				D49B82E1144820D3761E499E /* ChartDashboardTests.swift in Sources */,
 				C8AC047EB2B058528FA0E641 /* EngineLogoTests.swift in Sources */,
 				66C754302A675F2AF2791EDC /* RedisServiceTests.swift in Sources */,
 				F7AF0B56113CC79A9B1FB3C9 /* ResultGridChartTests.swift in Sources */,
@@ -1463,7 +1494,12 @@
 				40AED5A673FB8612E91CB78A /* SettingsView.swift in Sources */,
 				B771B5A8BF74390DD3463C36 /* VisualizationModels.swift in Sources */,
 				06D9C4245B1B187A07E5B6CB /* VisualizationService.swift in Sources */,
+				5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */,
+				DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */,
+				E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */,
 				8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */,
+				18003E5E9AB29EC7A0E028D7 /* ChartPlotView.swift in Sources */,
+				B18BFEFFDC14FA7759164138 /* ChartDashboardView.swift in Sources */,
 				81FF78AEEE680E2361086F4A /* WorkspaceActivityService.swift in Sources */,
 				5D250C7C5B2E989663876022 /* WorkspaceCloudCollection.swift in Sources */,
 				2FE14655218EB024B0955157 /* WorkspaceFileStore.swift in Sources */,
