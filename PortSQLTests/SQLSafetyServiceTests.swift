@@ -232,4 +232,12 @@ final class SQLSafetyServiceTests: XCTestCase {
             "EXPLAIN SELECT * FROM sessions"
         )
     }
+
+    func testShowStatementsAreReadOnlyEvenWhenTheyNameCreate() {
+        XCTAssertTrue(SQLSafetyService.isReadOnlySQL("SHOW CREATE TABLE `betterauth`.`account`", engine: .mysql))
+        XCTAssertTrue(SQLSafetyService.isReadOnlySQL("SHOW CREATE PROCEDURE `shop`.`refund`", engine: .mysql))
+        XCTAssertTrue(SQLSafetyService.isReadOnlySQL("SHOW INDEX FROM `update_log`", engine: .mysql))
+        XCTAssertFalse(SQLSafetyService.isReadOnlySQL("SHOW CREATE TABLE t; DROP TABLE t", engine: .mysql), "A change after a SHOW is still caught")
+        XCTAssertFalse(SQLSafetyService.isReadOnlySQL("CREATE TABLE show_log (id int)", engine: .mysql))
+    }
 }

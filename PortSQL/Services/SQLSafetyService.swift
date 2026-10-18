@@ -156,6 +156,10 @@ enum SQLSafetyService {
     }
 
     static func isReadOnlyStatement(_ normalized: String) -> Bool {
+        // SHOW only reads, including SHOW CREATE TABLE and SHOW CREATE PROCEDURE, which name a
+        // mutating keyword without running it. Each statement is checked on its own, so a SHOW
+        // followed by a change is still caught.
+        if normalized == "SHOW" || normalized.hasPrefix("SHOW ") { return true }
         guard !containsMutatingKeyword(in: normalized), !containsSelectInto(in: normalized) else { return false }
         let allowed = ["SELECT", "SHOW", "DESCRIBE", "DESC", "EXPLAIN", "WITH"]
         return allowed.contains { normalized == $0 || normalized.hasPrefix($0 + " ") }
