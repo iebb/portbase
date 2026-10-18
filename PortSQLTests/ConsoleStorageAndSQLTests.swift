@@ -118,3 +118,29 @@ final class ConsoleStorageAndSQLTests: XCTestCase {
         return directory
     }
 }
+
+final class ConsoleTabTitleTests: XCTestCase {
+    func testArchivesWithoutTheTitleFlagStillDecode() throws {
+        var draft = ConsoleDraft()
+        draft.hasCustomTitle = true
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(draft)) as? [String: Any])
+        object["hasCustomTitle"] = nil
+        let legacy = try JSONDecoder().decode(ConsoleDraft.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertNil(legacy.hasCustomTitle, "Archives from before tab titles decode as unnamed")
+        XCTAssertEqual(legacy.id, draft.id)
+    }
+
+    @MainActor
+    func testRenameMarksTheTitleAsTheUsersAndSurvivesReopening() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = ConsoleStore(directory: directory)
+        XCTAssertFalse(store.active.hasCustomTitle, "New tabs show their connection's name")
+        store.rename(store.selectedID, title: "Nightly report")
+        store.save()
+        let reopened = ConsoleStore(directory: directory)
+        XCTAssertEqual(reopened.active.title, "Nightly report")
+        XCTAssertTrue(reopened.active.hasCustomTitle)
+    }
+}

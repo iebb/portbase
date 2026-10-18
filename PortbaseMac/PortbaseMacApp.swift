@@ -92,6 +92,10 @@ struct DesktopCommands: Commands {
                 .keyboardShortcut("0", modifiers: [.command])
             Button("Search…") { NotificationCenter.default.post(name: .portbaseShowCommandPalette, object: nil) }
                 .keyboardShortcut("k", modifiers: [.command])
+            Button("Show Next Tab") { NotificationCenter.default.post(name: .portbaseSelectAdjacentTab, object: 1) }
+                .keyboardShortcut("]", modifiers: [.command, .shift])
+            Button("Show Previous Tab") { NotificationCenter.default.post(name: .portbaseSelectAdjacentTab, object: -1) }
+                .keyboardShortcut("[", modifiers: [.command, .shift])
             Divider()
             ForEach(Array([DesktopWorkspaceView.Destination.console, .explorer, .structure, .charts].enumerated()), id: \.offset) { index, item in
                 Button(L10n.text(item.title)) { NotificationCenter.default.post(name: .portbaseShowDestination, object: item.rawValue) }

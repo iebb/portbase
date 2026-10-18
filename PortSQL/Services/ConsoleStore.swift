@@ -11,17 +11,22 @@ struct ConsoleDraft: Identifiable, Codable {
     var mongo = MongoQueryDraft()
     var closedAt: Date?
     var boundQuery: BoundQuery?
+    /// Set once the user names the console; until then tabs show its connection's name.
+    /// Optional so archives written before it existed still decode.
+    var hasCustomTitle: Bool?
 }
 
 @MainActor
 final class QueryConsole: Identifiable {
     let id: UUID
     var title: String
+    var hasCustomTitle: Bool
     let workspace: WorkspaceViewModel
 
     init(draft: ConsoleDraft) {
         id = draft.id
         title = draft.title
+        hasCustomTitle = draft.hasCustomTitle ?? false
         workspace = WorkspaceViewModel()
         workspace.selectedBookmarkID = draft.bookmarkID
         workspace.selectedDatabaseName = draft.database
@@ -35,7 +40,8 @@ final class QueryConsole: Identifiable {
         ConsoleDraft(id: id, title: title, bookmarkID: workspace.selectedBookmarkID,
                      database: workspace.selectedDatabaseName, query: workspace.queryText,
                      cursor: workspace.queryCursorOffset, mongo: workspace.mongoDraft,
-                     boundQuery: workspace.activeBoundQuery?.sql == workspace.queryText ? workspace.activeBoundQuery : nil)
+                     boundQuery: workspace.activeBoundQuery?.sql == workspace.queryText ? workspace.activeBoundQuery : nil,
+                     hasCustomTitle: hasCustomTitle ? true : nil)
     }
 }
 
@@ -97,7 +103,7 @@ final class ConsoleStore: ObservableObject {
         var next = draft ?? ConsoleDraft(bookmarkID: active.workspace.selectedBookmarkID,
                                          database: active.workspace.selectedDatabaseName)
         next.closedAt = nil
-        if draft == nil { next.title = L10n.format("Console %d", consoles.count + 1) }
+        if draft == nil { next.title = L10n.format("Console %d", consoles.count + 1); next.hasCustomTitle = nil }
         let console = QueryConsole(draft: next)
         consoles.append(console); configure(console); selectedID = console.id
         closed.removeAll { $0.id == console.id }
@@ -108,7 +114,10 @@ final class ConsoleStore: ObservableObject {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         objectWillChange.send()
-        consoles.first(where: { $0.id == id })?.title = trimmed
+        if let console = consoles.first(where: { $0.id == id }) {
+            console.title = trimmed
+            console.hasCustomTitle = true
+        }
         save()
     }
 

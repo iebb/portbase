@@ -1,5 +1,17 @@
 import SwiftUI
 
+/// Opens a connection in its own workspace tab, as the Mac does. Where it's absent (iOS), choosing a
+/// connection switches the single workspace in place. The closure runs on the tab's workspace.
+struct ConnectionSessionOpener {
+    let open: (_ profileID: UUID, _ then: ((WorkspaceViewModel) -> Void)?) -> Void
+
+    func open(_ profileID: UUID) { open(profileID, nil) }
+}
+
+extension EnvironmentValues {
+    @Entry var connectionSessionOpener: ConnectionSessionOpener? = nil
+}
+
 /// The connection hub: a quick-connect bar, environment groups, a grid of connection cards, and,
 /// on wide layouts, an inspector for the selected connection.
 struct ConnectionsHubView: View {
@@ -19,6 +31,14 @@ struct ConnectionsHubView: View {
     @State private var colorFilter: ConnectionColor?
     @State private var onlyReadOnly = false
     @State private var importError: String?
+    @Environment(\.connectionSessionOpener) private var sessionOpener
+    /// The connection shown in the inspector when connections open in tabs; clicking a card inspects it.
+    @State private var inspectedID: UUID?
+
+    private var inspectedProfile: ConnectionProfile? {
+        guard sessionOpener != nil else { return workspace.selectedBookmark }
+        return inspectedID.flatMap { bookmarks.bookmark(with: $0) } ?? workspace.selectedBookmark ?? bookmarks.bookmarks.first
+    }
 
     private var showsInspector: Bool {
 #if os(iOS)
@@ -55,10 +75,16 @@ struct ConnectionsHubView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity)
-            if showsInspector, let profile = workspace.selectedBookmark {
+            if showsInspector, let profile = inspectedProfile {
                 Divider().ignoresSafeArea()
-                ConnectionInspector(profile: profile, onOpenConsole: onOpenConsole, onDelete: onDelete)
-                    .frame(width: Sizes.inspectorWidth)
+                if let sessionOpener {
+                    ConnectionInspector(profile: profile, onOpenConsole: { sessionOpener.open(profile.id) }, onDelete: onDelete,
+                                        onApplyHistory: { entry in sessionOpener.open(profile.id) { _ = $0.apply(history: entry) } })
+                        .frame(width: Sizes.inspectorWidth)
+                } else {
+                    ConnectionInspector(profile: profile, onOpenConsole: onOpenConsole, onDelete: onDelete)
+                        .frame(width: Sizes.inspectorWidth)
+                }
             }
         }
         .background(PortSQLPalette.canvasTop.ignoresSafeArea())
@@ -210,7 +236,9 @@ struct ConnectionsHubView: View {
             } else {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: Spacing.m)], spacing: Spacing.m) {
                     ForEach(filtered) { profile in
-                        ConnectionCard(profile: profile, onOpenConsole: onOpenConsole, onDelete: onDelete)
+                        ConnectionCard(profile: profile, onOpenConsole: onOpenConsole, onDelete: onDelete,
+                                       isInspected: sessionOpener != nil && inspectedProfile?.id == profile.id,
+                                       onInspect: sessionOpener == nil ? nil : { inspectedID = profile.id })
                     }
                 }
             }
@@ -287,17 +315,21 @@ extension ConnectionTile where Trailing == EmptyView {
 
 private struct ConnectionCard: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @Environment(\.connectionSessionOpener) private var sessionOpener
     let profile: ConnectionProfile
     var onOpenConsole: (() -> Void)?
     var onDelete: (ConnectionProfile) -> Void
+    var isInspected = false
+    /// Set when connections open in tabs: a click inspects the card and a double-click opens it.
+    var onInspect: (() -> Void)?
 
     private var isActive: Bool { workspace.selectedBookmarkID == profile.id }
 
     var body: some View {
         Button {
-            if !isActive { workspace.selectBookmark(profile.id) }
+            if let onInspect { onInspect() } else if !isActive { workspace.selectBookmark(profile.id) }
         } label: {
-            ConnectionTile(isSelected: isActive) {
+            ConnectionTile(isSelected: onInspect == nil ? isActive : isInspected) {
                 BookmarkAvatar(profile: profile, size: Sizes.iconTile, cornerRadius: Radius.control)
                     .overlay(alignment: .bottomTrailing) {
                         if isActive {
@@ -331,15 +363,19 @@ private struct ConnectionCard: View {
         }
         .buttonStyle(.plain)
 #if os(macOS)
-        .simultaneousGesture(TapGesture(count: 2).onEnded {
-            workspace.selectBookmark(profile.id)
-            onOpenConsole?()
-        })
+        .simultaneousGesture(TapGesture(count: 2).onEnded { open() })
 #endif
         .contextMenu { menuItems }
         .help(profile.endpointSummary)
         .accessibilityAddTraits(isActive ? .isSelected : [])
-        .accessibilityHint("Makes this the active connection")
+        .accessibilityHint(sessionOpener == nil ? L10n.text("Makes this the active connection") : L10n.text("Double-click to open in a tab"))
+    }
+
+    private func open() {
+        if let sessionOpener { sessionOpener.open(profile.id) } else {
+            workspace.selectBookmark(profile.id)
+            onOpenConsole?()
+        }
     }
 
     /// The engine and user, like "PostgreSQL · app"; the full endpoint is in the inspector and tooltip.
@@ -367,11 +403,8 @@ private struct ConnectionCard: View {
     }
 
     @ViewBuilder private var menuItems: some View {
-        if let onOpenConsole {
-            Button("Open Console", systemImage: "terminal") {
-                workspace.selectBookmark(profile.id)
-                onOpenConsole()
-            }
+        if onOpenConsole != nil || sessionOpener != nil {
+            Button("Open Console", systemImage: "terminal") { open() }
         } else {
             Button("Connect", systemImage: "bolt.horizontal.fill") { workspace.selectBookmark(profile.id) }
         }
@@ -391,6 +424,8 @@ private struct ConnectionInspector: View {
     let profile: ConnectionProfile
     var onOpenConsole: (() -> Void)?
     var onDelete: (ConnectionProfile) -> Void
+    /// Opens a recent query; by default it loads into the current workspace.
+    var onApplyHistory: ((QueryHistoryEntry) -> Void)?
 
     var body: some View {
         ScrollView {
@@ -487,7 +522,7 @@ private struct ConnectionInspector: View {
                     ForEach(Array(history.enumerated()), id: \.element.id) { index, entry in
                         if index > 0 { PortbaseRowDivider(leadingIcon: Sizes.symbolColumn) }
                         Button {
-                            if workspace.apply(history: entry) { onOpenConsole?() }
+                            if let onApplyHistory { onApplyHistory(entry) } else if workspace.apply(history: entry) { onOpenConsole?() }
                         } label: {
                             RecentQueryRow(entry: entry)
                         }

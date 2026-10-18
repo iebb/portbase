@@ -588,6 +588,9 @@ struct ExplorerView: View {
 /// and a quiet footer. Loading a query never runs it.
 struct LibrarySheetView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.connectionSessionOpener) private var sessionOpener
+    /// Shown as a page rather than a sheet: no close button, and opening a query calls this instead.
+    var onOpened: (() -> Void)? = nil
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var library: WorkspaceLibraryStore
     @State private var selection: LibrarySection = .history
@@ -657,8 +660,8 @@ struct LibrarySheetView: View {
         .padding(.bottom, Spacing.s)
     }
 
-    private var closeButton: some View {
-        PortbaseCloseButton { dismiss() }
+    @ViewBuilder private var closeButton: some View {
+        if onOpened == nil { PortbaseCloseButton { dismiss() } }
     }
 
     private var tabs: some View {
@@ -829,11 +832,22 @@ struct LibrarySheetView: View {
     // MARK: Actions
 
     private func load(_ entry: QueryHistoryEntry) {
-        if workspace.apply(history: entry) { dismiss() } else { contextError = workspace.errorMessage }
+        // With connection tabs, a query opens in its connection's tab rather than replacing the current one.
+        if let sessionOpener, let id = entry.bookmarkID {
+            sessionOpener.open(id) { _ = $0.apply(history: entry) }
+            finish()
+        } else if workspace.apply(history: entry) { finish() } else { contextError = workspace.errorMessage }
     }
 
     private func load(_ snippet: SavedQuerySnippet) {
-        if workspace.apply(snippet: snippet) { dismiss() } else { contextError = workspace.errorMessage }
+        if let sessionOpener, let id = snippet.bookmarkID {
+            sessionOpener.open(id) { _ = $0.apply(snippet: snippet) }
+            finish()
+        } else if workspace.apply(snippet: snippet) { finish() } else { contextError = workspace.errorMessage }
+    }
+
+    private func finish() {
+        if let onOpened { onOpened() } else { dismiss() }
     }
 
     private func delete(_ entry: QueryHistoryEntry) {

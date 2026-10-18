@@ -42,6 +42,7 @@
 		12215840CC69326999DA90B1 /* ConsoleStorageAndSQLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFFCE96A9FFBC25F139FD31F /* ConsoleStorageAndSQLTests.swift */; };
 		129E962E9F6C56BBD57D977E /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E06552C5652F257EA4996 /* HomeView.swift */; };
 		1455C5130377AA965AD8CC24 /* NativeResultGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54F23C155D372F3D840FDAF2 /* NativeResultGrid.swift */; };
+		C73D10D92CD920081F2E149B /* DesktopStructureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54119A75B7C3252F980EBEF /* DesktopStructureView.swift */; };
 		15A9242CE47D3D2150156920 /* MongoDNSResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08DF46A0971483C6B75CF9B1 /* MongoDNSResolver.swift */; };
 		1768F50C82F26726F565446D /* HighlightedQueryEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */; };
 		18903C1364D1714A15A1B6EA /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF537FA01FB9472E0C3A3149 /* RootView.swift */; };
@@ -474,6 +475,7 @@
 		52D16A9DA7C565C1D6AF7543 /* MongoQueryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoQueryService.swift; sourceTree = "<group>"; };
 		53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Bold.ttf"; sourceTree = "<group>"; };
 		54F23C155D372F3D840FDAF2 /* NativeResultGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeResultGrid.swift; sourceTree = "<group>"; };
+		B54119A75B7C3252F980EBEF /* DesktopStructureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopStructureView.swift; sourceTree = "<group>"; };
 		58AA186630912BC4C2DAEF21 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = de; path = de.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		599F11E40142982E8FF89E30 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		5B36875515CEA46E2FF225D5 /* LocalSQLiteDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSQLiteDatabase.swift; sourceTree = "<group>"; };
@@ -845,6 +847,7 @@
 				F5F855995945D86DACBDF277 /* DesktopWorkspaceView.swift */,
 				20E16F7D18FC41671E52E3C4 /* NativeQueryEditor.swift */,
 				54F23C155D372F3D840FDAF2 /* NativeResultGrid.swift */,
+				B54119A75B7C3252F980EBEF /* DesktopStructureView.swift */,
 				1BD33CFCE4B16DE457FF5AE2 /* PortbaseMac.entitlements */,
 				AE698233146F21C40BC822EE /* PortbaseMacApp.swift */,
 			);
@@ -1239,6 +1242,7 @@
 				8A564980FC3AD9E971E4AAA0 /* MongoQueryService.swift in Sources */,
 				35B3DD117ACDFB9225DAE912 /* NativeQueryEditor.swift in Sources */,
 				1455C5130377AA965AD8CC24 /* NativeResultGrid.swift in Sources */,
+				C73D10D92CD920081F2E149B /* DesktopStructureView.swift in Sources */,
 				B384918410F69B630AB55EA0 /* NewSQLiteDatabasePrompt.swift in Sources */,
 				D70C9366BFDA0A02030FFA7C /* PendingEditsBar.swift in Sources */,
 				EBFAB23DF56BAEA4B06AE079 /* SQLSafetyConfirmation.swift in Sources */,
