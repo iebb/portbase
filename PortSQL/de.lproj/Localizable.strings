@@ -1547,3 +1547,5 @@
 "Wants to run a query" = "Möchte eine Abfrage ausführen";
 "Writes queries for you to run; never runs them." = "Schreibt Abfragen zum Ausführen; führt sie nie selbst aus.";
 "You declined this query" = "Du hast diese Abfrage abgelehnt";
+"New Connection…" = "Neue Verbindung …";
+"New SQLite Database…" = "Neue SQLite-Datenbank …";

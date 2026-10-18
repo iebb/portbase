@@ -53,7 +53,6 @@ struct ConnectionsHubView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     quickConnectBar
-                    actionRow
                     if bookmarks.bookmarks.isEmpty {
                         PortbaseEmptyState(
                             title: L10n.text("No servers saved"),
@@ -97,6 +96,35 @@ struct ConnectionsHubView: View {
     private var quickConnectBar: some View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             HStack(spacing: Spacing.s) {
+                searchField
+                newConnectionButton
+            }
+            if let importError {
+                Label(importError, systemImage: "xmark.octagon.fill").font(.footnoteText).foregroundStyle(.red)
+            }
+        }
+    }
+
+    /// Creates a connection on click; its menu also imports a connection string or creates a SQLite database.
+    private var newConnectionButton: some View {
+        Menu {
+            Button("New Connection…", systemImage: "plus") { workspace.createBookmark() }
+            Button("Import Connection String…", systemImage: "link") { workspace.createBookmark() }
+            Divider()
+            Button("New SQLite Database…", systemImage: "externaldrive.badge.plus", action: onCreateSQLite)
+        } label: {
+            Label("New Connection", systemImage: "plus").frame(minHeight: Sizes.buttonContent)
+        } primaryAction: {
+            workspace.createBookmark()
+        }
+        .menuStyle(.button)
+        .buttonStyle(.portbasePrimary)
+        .fixedSize()
+    }
+
+    private var searchField: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Spacing.s) {
                 Image(systemName: isConnectionString ? "link" : "magnifyingglass")
                     .foregroundStyle(isConnectionString ? PortSQLPalette.accent : .secondary)
                     .frame(width: Sizes.symbolColumn)
@@ -123,9 +151,6 @@ struct ConnectionsHubView: View {
             .padding(.horizontal, Spacing.m)
             .frame(minHeight: Sizes.toolbar)
             .portbaseCardSurface(radius: Radius.control)
-            if let importError {
-                Label(importError, systemImage: "xmark.octagon.fill").font(.footnoteText).foregroundStyle(.red)
-            }
         }
     }
 
@@ -136,24 +161,6 @@ struct ConnectionsHubView: View {
         } catch {
             importError = error.localizedDescription
         }
-    }
-
-    private var actionRow: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: Spacing.s) { actionButtons }
-            VStack(alignment: .leading, spacing: Spacing.s) { actionButtons }
-        }
-    }
-
-    @ViewBuilder private var actionButtons: some View {
-        Button { workspace.createBookmark() } label: {
-            Label("New Connection", systemImage: "plus").frame(minHeight: Sizes.buttonContent)
-        }
-        .buttonStyle(.portbasePrimary)
-        Button(action: onCreateSQLite) {
-            Label("New SQLite Database", systemImage: "externaldrive.badge.plus").frame(minHeight: Sizes.buttonContent)
-        }
-        .buttonStyle(.portbaseSecondary)
     }
 
     // MARK: Groups

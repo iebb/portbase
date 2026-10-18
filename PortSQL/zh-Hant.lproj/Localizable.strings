@@ -1547,3 +1547,5 @@
 "Wants to run a query" = "想要執行查詢";
 "Writes queries for you to run; never runs them." = "撰寫供你執行的查詢；從不自行執行。";
 "You declined this query" = "你拒絕了此查詢";
+"New Connection…" = "新增連線…";
+"New SQLite Database…" = "新增 SQLite 資料庫…";

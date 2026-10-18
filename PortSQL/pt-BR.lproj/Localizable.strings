@@ -1547,3 +1547,5 @@
 "Wants to run a query" = "Quer executar uma consulta";
 "Writes queries for you to run; never runs them." = "Escreve consultas para você executar; nunca as executa.";
 "You declined this query" = "Você recusou esta consulta";
+"New Connection…" = "Nova conexão…";
+"New SQLite Database…" = "Novo banco de dados SQLite…";

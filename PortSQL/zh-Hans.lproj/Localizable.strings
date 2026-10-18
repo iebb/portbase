@@ -1547,3 +1547,5 @@
 "Wants to run a query" = "想要运行查询";
 "Writes queries for you to run; never runs them." = "编写供你运行的查询；从不自行运行。";
 "You declined this query" = "你拒绝了此查询";
+"New Connection…" = "新建连接…";
+"New SQLite Database…" = "新建 SQLite 数据库…";

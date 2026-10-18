@@ -1547,3 +1547,5 @@
 "Wants to run a query" = "Wants to run a query";
 "Writes queries for you to run; never runs them." = "Writes queries for you to run; never runs them.";
 "You declined this query" = "You declined this query";
+"New Connection…" = "New Connection…";
+"New SQLite Database…" = "New SQLite Database…";

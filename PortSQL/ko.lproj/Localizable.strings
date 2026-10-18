@@ -1547,3 +1547,5 @@
 "Wants to run a query" = "쿼리를 실행하려고 합니다";
 "Writes queries for you to run; never runs them." = "실행할 쿼리를 작성하지만 직접 실행하지는 않습니다.";
 "You declined this query" = "이 쿼리를 거부했습니다";
+"New Connection…" = "새 연결…";
+"New SQLite Database…" = "새 SQLite 데이터베이스…";

@@ -1547,3 +1547,5 @@
 "Wants to run a query" = "クエリを実行しようとしています";
 "Writes queries for you to run; never runs them." = "実行用のクエリを書きますが、自分では実行しません。";
 "You declined this query" = "このクエリを拒否しました";
+"New Connection…" = "新規接続…";
+"New SQLite Database…" = "新規SQLiteデータベース…";
