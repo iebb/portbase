@@ -111,6 +111,10 @@ struct DesktopWorkspaceView: View {
     private func withSheets<Content: View>(_ content: Content) -> some View {
         content
         .sheet(isPresented: $showsLibrary) { LibrarySheetView().frame(minWidth: 680, minHeight: 480) }
+        .sheet(isPresented: $workspace.isShowingAssistant) {
+            AssistantSheet(session: workspace.assistant, onShowConsole: { destination = .console })
+                .frame(minWidth: 680, idealWidth: 760, minHeight: 600, idealHeight: 720)
+        }
         .sheet(isPresented: $showsPalette) { CommandPaletteView(onNavigate: navigate, onCreateSQLite: { createsSQLite = true }) }
         .newSQLiteDatabasePrompt(isPresented: $createsSQLite) { destination = .console }
         .sheet(item: $workspace.dataEditorDraft) { _ in DesktopRowEditor().frame(minWidth: 620, minHeight: 360) }
@@ -516,6 +520,8 @@ private struct DesktopSQLEditor: View {
                     Button("Format", systemImage: "text.alignleft") { workspace.formatQuery() }
                     Button("Explain", systemImage: "waveform.path.ecg") { workspace.runExplain() }.disabled(workspace.selectedBookmark == nil || workspace.isRunning)
                     SQLTemplateMenu(compact: false).portbaseToolbarMenu()
+                    Button("Ask AI", systemImage: "sparkles") { workspace.isShowingAssistant = true }
+                        .help(L10n.text("Ask an AI model to write a query or design a chart"))
                 }
                 Spacer(minLength: 0)
                 Menu {
@@ -776,6 +782,10 @@ private struct DesktopResultsView: View {
             if hasPlan { tableMode = "plan" } else if tableMode == "plan" { tableMode = "table" }
         }
         .sheet(item: $composerPreset) { preset in VisualizerComposerSheet(initialPreset: preset).frame(minWidth: 680, minHeight: 520) }
+        // A chart the assistant proposed opens in the chart editor once its query has run.
+        .onChange(of: workspace.isRunning) { _, running in
+            if !running, let preset = workspace.consumeAssistantChart() { composerPreset = preset }
+        }
         .sheet(item: $selectedDocument) { selection in MongoDocumentInspector(selection: selection).frame(minWidth: 600, minHeight: 480) }
         .sheet(isPresented: Binding(get: { exportURL != nil }, set: { if !$0 { exportURL = nil } })) { if let url = exportURL { ScriptActivitySheet(url: url) } }
     }
@@ -933,6 +943,10 @@ struct DesktopSettingsView: View {
             .scrollContentBackground(.hidden)
             .background(PortSQLPalette.canvasTop)
             .tabItem { Label("Editor", systemImage: "chevron.left.forwardslash.chevron.right") }
+
+            AssistantSettingsView()
+                .background(PortSQLPalette.canvasTop)
+                .tabItem { Label("Assistant", systemImage: "sparkles") }
         }
         .frame(width: 580, height: 520)
     }

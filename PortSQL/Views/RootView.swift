@@ -150,6 +150,10 @@ struct RootView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $workspace.isShowingAssistant) {
+            AssistantSheet(session: workspace.assistant, onShowConsole: { selectedTab = .studio })
+                .presentationDetents([.large])
+        }
         .sheet(isPresented: $showsSettings) {
             PortbaseSheet(L10n.text("Settings"), onClose: { showsSettings = false }) {
                 SettingsView().portbaseForm()
@@ -575,6 +579,13 @@ struct QueryEditorCard: View {
                 }
             }
             Button {
+                workspace.isShowingAssistant = true
+            } label: {
+                Image(systemName: "sparkles").toolIconChrome()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Ask AI")
+            Button {
                 isShowingLibrarySheet = true
             } label: {
                 Image(systemName: "books.vertical").toolIconChrome()
@@ -992,6 +1003,10 @@ struct ResultsCard: View {
         }
         .sheet(item: $composerPreset) { preset in
             VisualizerComposerSheet(initialPreset: preset)
+        }
+        // A chart the assistant proposed opens in the chart editor once its query has run.
+        .onChange(of: workspace.isRunning) { _, running in
+            if !running, let preset = workspace.consumeAssistantChart() { composerPreset = preset }
         }
         .sheet(item: $selectedDocument) { selection in
             MongoDocumentInspector(selection: selection)

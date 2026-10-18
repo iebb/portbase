@@ -273,6 +273,11 @@ struct CommandPaletteView: View {
                                isEnabled: hasConnection && hasQuery && (workspace.isSQLDatabase || workspace.isDocumentDatabase), keywords: "plan") {
                 onNavigate(.console); workspace.runExplain()
             },
+            CommandPaletteItem(id: "ask-ai", group: .actions, title: L10n.text("Ask AI"), systemImage: "sparkles",
+                               isEnabled: hasConnection, keywords: "llm assistant gpt claude generate sql chart") {
+                // Present after the palette has finished dismissing.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { workspace.isShowingAssistant = true }
+            },
             CommandPaletteItem(id: "save", group: .actions, title: L10n.text("Save Query"), systemImage: "bookmark.fill", shortcut: "⇧⌘S",
                                isEnabled: hasQuery, keywords: "snippet") { workspace.saveSnippet() },
             CommandPaletteItem(id: "new-console", group: .actions, title: L10n.text("New Console"), systemImage: "plus.rectangle.on.rectangle", shortcut: "⌘T",

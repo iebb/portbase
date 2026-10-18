@@ -43,6 +43,11 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var pendingEditError: String?
     /// An action that would replace the loaded rows, held until staged edits are discarded or kept.
     @Published var pendingDiscardRequest: PendingDiscardRequest?
+    @Published var isShowingAssistant = false
+    /// This console's conversation with the assistant.
+    let assistant = AssistantSession()
+    /// A chart the assistant proposed, built once its query finishes running.
+    @Published var pendingAssistantChart: AssistantChartSuggestion?
     @Published private(set) var resultSets: [QueryResultTable] = []
     @Published private(set) var selectedResultIndex = 0
     @Published var selectedProfileForEdit: ConnectionProfile?
@@ -370,6 +375,66 @@ final class WorkspaceViewModel: ObservableObject {
         activeBoundQuery = nil
         queryText = command
         mongoDraft.mode = .command
+    }
+
+    // MARK: Assistant
+
+    /// What the assistant is told about this workspace. Hosts, users, and secrets are never included;
+    /// sample values only leave the device when the user allows them in settings.
+    func assistantContext(includingSampleRows: Bool) -> AssistantContext? {
+        guard let engine = selectedBookmark?.engine else { return nil }
+        return AssistantContext(
+            engine: engine,
+            database: activeDatabaseName,
+            tables: schemaCatalog,
+            foreignKeys: foreignKeys,
+            currentQuery: queryText,
+            resultColumns: result.columns,
+            sampleRows: includingSampleRows
+                ? result.rows.prefix(AssistantPromptBuilder.maximumSampleRows).map { $0.cells.map { $0.isNull ? "NULL" : $0.displayValue } }
+                : []
+        )
+    }
+
+    /// Puts an assistant query in the editor without running it, at the cursor or in place of the editor's text.
+    func applyAssistantQuery(_ sql: String, replacing: Bool) {
+        activeBoundQuery = nil
+        if replacing || queryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            queryText = sql
+            queryCursorOffset = (sql as NSString).length
+        } else {
+            let edit = SQLTemplateService.insert(sql, into: queryText, cursor: queryCursorOffset, selectionLength: querySelectionLength)
+            queryText = edit.text
+            queryCursorOffset = edit.cursor
+        }
+        querySelectionLength = 0
+    }
+
+    /// Runs a proposed chart's query through the normal console path, where writes still need
+    /// confirmation, and remembers the chart so the results can open it in the chart editor.
+    func runAssistantChart(_ chart: AssistantChartSuggestion) {
+        applyAssistantQuery(chart.query, replacing: true)
+        pendingAssistantChart = chart
+        runQuery()
+    }
+
+    /// The chart editor's starting point for a proposed chart, once its query has produced a result.
+    /// Unknown column names fall back to the result's defaults.
+    func consumeAssistantChart() -> SavedVisualizationPreset? {
+        guard let chart = pendingAssistantChart, !isRunning else { return nil }
+        pendingAssistantChart = nil
+        guard !result.columns.isEmpty else { return nil }
+        var preset = VisualizationService.reconciledPreset(nil, for: result,
+            connectionProfileID: selectedBookmark?.id, connectionName: selectedBookmark?.name ?? L10n.text("Current Result"),
+            databaseName: activeDatabaseName, sourceTableReference: result.sourceTableReference)
+        preset.chartType = chart.chartType
+        preset.xField = chart.x
+        preset.yFields = chart.y
+        preset.yField = chart.y.first ?? preset.yField
+        if let title = chart.title, !title.isEmpty { preset.title = title; preset.chartTitle = title }
+        return VisualizationService.reconciledPreset(preset, for: result,
+            connectionProfileID: selectedBookmark?.id, connectionName: selectedBookmark?.name ?? L10n.text("Current Result"),
+            databaseName: activeDatabaseName, sourceTableReference: result.sourceTableReference)
     }
 
     func refreshSchemaCatalog() {

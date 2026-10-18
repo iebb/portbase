@@ -108,6 +108,9 @@ struct DesktopCommands: Commands {
             Button("Decrease Text Size") { editorFontSize = max(10, editorFontSize - 1) }.keyboardShortcut("-")
         }
         CommandMenu("Query") {
+            Button("Ask AI…") { workspace?.isShowingAssistant = true }.keyboardShortcut("a", modifiers: [.command, .shift])
+                .disabled(workspace?.selectedBookmark == nil)
+            Divider()
             Button("Run Query") { workspace?.runQuery() }.keyboardShortcut(.return)
                 .disabled(workspace?.selectedBookmark == nil || workspace?.isRunning == true)
             Button("Run All") { workspace?.runQuery(entireBuffer: true) }.keyboardShortcut(.return, modifiers: [.command, .shift])

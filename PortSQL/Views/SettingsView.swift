@@ -32,6 +32,14 @@ struct SettingsView: View {
                 Text("Connections, saved queries, and chart configurations sync with iCloud. Passwords, keys, query history, results, and SQLite files stay on this device.")
             }
 
+            Section("Assistant") {
+                NavigationLink {
+                    AssistantSettingsView()
+                } label: {
+                    Label("AI Assistant", systemImage: "sparkles")
+                }
+            }
+
             Section("Library") {
                 NavigationLink {
                     LibraryStorageView()
