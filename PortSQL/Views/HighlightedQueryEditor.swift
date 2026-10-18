@@ -5,6 +5,24 @@ import UIKit
 private final class QueryTextView: UITextView {
     var allowsSQLComments = true
     var showsLineNumbers = true
+    /// Accepts a completion from the keyboard bar, or from Tab on a hardware keyboard.
+    var onAcceptCompletion: ((SQLCompletionItem) -> Void)?
+    private(set) var completionItems: [SQLCompletionItem] = []
+    private var editingToolbar: UIToolbar?
+    private var fullToolbarItems: [UIBarButtonItem] = []
+    private var compactToolbarItems: [UIBarButtonItem] = []
+    private let suggestionScroll = UIScrollView()
+    private let suggestionStack = UIStackView()
+    /// Glass behind the suggestions, as the system draws behind its own bar, so the page doesn't show through.
+    private lazy var suggestionBackground: UIVisualEffectView = {
+        let effect: UIVisualEffect
+        if #available(iOS 26.0, *) { effect = UIGlassEffect() } else { effect = UIBlurEffect(style: .systemThickMaterial) }
+        let view = UIVisualEffectView(effect: effect)
+        view.layer.cornerRadius = 22
+        view.layer.cornerCurve = .continuous
+        view.clipsToBounds = true
+        return view
+    }()
     var palette: EditorPalette? {
         didSet { if palette != oldValue { gutter.backgroundColor = palette?.gutterColor ?? .secondarySystemBackground; gutter.setNeedsDisplay() } }
     }
@@ -48,21 +66,115 @@ private final class QueryTextView: UITextView {
         let editingTools = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: UIMenu(children: actions))
         editingTools.accessibilityLabel = L10n.text("Editing Tools")
         editingTools.width = 44
-        toolbar.items = [
+        let hide = item("Hide Keyboard", "keyboard.chevron.compact.down", #selector(hideKeyboard))
+        fullToolbarItems = [
             item("Undo", "arrow.uturn.backward", #selector(undoEdit)),
             item("Redo", "arrow.uturn.forward", #selector(redoEdit)),
             item("Find and Replace", "magnifyingglass", #selector(findText)),
             item("Go to Line", "list.number", #selector(goToLine)),
             editingTools,
             UIBarButtonItem(systemItem: .flexibleSpace),
-            item("Hide Keyboard", "keyboard.chevron.compact.down", #selector(hideKeyboard))
+            hide
         ]
-        inputAccessoryView = toolbar
+        // While suggestions show, every tool is a menu item beside Hide Keyboard.
+        let allTools = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: UIMenu(children: [
+            UIAction(title: L10n.text("Undo"), image: UIImage(systemName: "arrow.uturn.backward")) { [weak self] _ in self?.undoEdit() },
+            UIAction(title: L10n.text("Redo"), image: UIImage(systemName: "arrow.uturn.forward")) { [weak self] _ in self?.redoEdit() },
+            UIAction(title: L10n.text("Find and Replace"), image: UIImage(systemName: "magnifyingglass")) { [weak self] _ in self?.findText() },
+            UIAction(title: L10n.text("Go to Line"), image: UIImage(systemName: "list.number")) { [weak self] _ in self?.goToLine() },
+        ] + actions))
+        allTools.accessibilityLabel = L10n.text("Editing Tools")
+        allTools.width = 44
+        compactToolbarItems = [UIBarButtonItem(systemItem: .flexibleSpace), allTools, hide]
+        toolbar.items = completionItems.isEmpty ? fullToolbarItems : compactToolbarItems
+        editingToolbar = toolbar
+
+        let container = UIInputView(frame: CGRect(x: 0, y: 0, width: 320, height: 48), inputViewStyle: .keyboard)
+        container.allowsSelfSizing = true
+        toolbar.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(toolbar)
+        suggestionBackground.translatesAutoresizingMaskIntoConstraints = false
+        suggestionBackground.isHidden = completionItems.isEmpty
+        suggestionScroll.translatesAutoresizingMaskIntoConstraints = false
+        suggestionScroll.showsHorizontalScrollIndicator = false
+        suggestionScroll.contentInset = UIEdgeInsets(top: 0, left: 4, bottom: 0, right: 4)
+        suggestionStack.axis = .horizontal
+        suggestionStack.spacing = 6
+        suggestionStack.alignment = .center
+        suggestionStack.translatesAutoresizingMaskIntoConstraints = false
+        suggestionScroll.addSubview(suggestionStack)
+        suggestionBackground.contentView.addSubview(suggestionScroll)
+        container.addSubview(suggestionBackground)
+        NSLayoutConstraint.activate([
+            container.heightAnchor.constraint(equalToConstant: 52),
+            toolbar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            toolbar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            toolbar.topAnchor.constraint(equalTo: container.topAnchor),
+            toolbar.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            suggestionBackground.leadingAnchor.constraint(equalTo: container.safeAreaLayoutGuide.leadingAnchor, constant: 8),
+            suggestionBackground.trailingAnchor.constraint(equalTo: container.safeAreaLayoutGuide.trailingAnchor, constant: -136),
+            suggestionBackground.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            suggestionBackground.heightAnchor.constraint(equalToConstant: 44),
+            suggestionScroll.leadingAnchor.constraint(equalTo: suggestionBackground.contentView.leadingAnchor),
+            suggestionScroll.trailingAnchor.constraint(equalTo: suggestionBackground.contentView.trailingAnchor),
+            suggestionScroll.topAnchor.constraint(equalTo: suggestionBackground.contentView.topAnchor),
+            suggestionScroll.bottomAnchor.constraint(equalTo: suggestionBackground.contentView.bottomAnchor),
+            suggestionStack.leadingAnchor.constraint(equalTo: suggestionScroll.contentLayoutGuide.leadingAnchor),
+            suggestionStack.trailingAnchor.constraint(equalTo: suggestionScroll.contentLayoutGuide.trailingAnchor),
+            suggestionStack.centerYAnchor.constraint(equalTo: suggestionScroll.frameLayoutGuide.centerYAnchor),
+            suggestionStack.heightAnchor.constraint(equalTo: suggestionScroll.frameLayoutGuide.heightAnchor),
+        ])
+        inputAccessoryView = container
+    }
+
+    /// Shows completions in the keyboard bar, or the editing tools when there are none.
+    func setCompletions(_ items: [SQLCompletionItem]) {
+        let shown = Array(items.prefix(12))
+        guard shown.map(\.id) != completionItems.map(\.id) else { return }
+        completionItems = shown
+        suggestionStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        for item in shown { suggestionStack.addArrangedSubview(completionButton(item)) }
+        suggestionBackground.isHidden = shown.isEmpty
+        suggestionScroll.contentOffset = CGPoint(x: -suggestionScroll.contentInset.left, y: 0)
+        editingToolbar?.setItems(shown.isEmpty ? fullToolbarItems : compactToolbarItems, animated: false)
+    }
+
+    private func completionButton(_ item: SQLCompletionItem) -> UIButton {
+        var configuration = UIButton.Configuration.plain()
+        configuration.cornerStyle = .capsule
+        configuration.background.backgroundColor = UIColor.label.withAlphaComponent(0.06)
+        configuration.image = UIImage(systemName: item.kind.symbol, withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+        configuration.imagePadding = 5
+        let tint = UIColor(item.kind.tint)
+        configuration.imageColorTransformer = UIConfigurationColorTransformer { _ in tint }
+        var title = AttributedString(item.label)
+        title.font = UIFont.monospacedSystemFont(ofSize: 14, weight: .medium)
+        title.foregroundColor = UIColor.label
+        if let detail = item.detail, !detail.isEmpty {
+            var suffix = AttributedString("  " + detail)
+            suffix.font = UIFont.systemFont(ofSize: 11)
+            suffix.foregroundColor = UIColor.secondaryLabel
+            title += suffix
+        }
+        configuration.attributedTitle = title
+        configuration.titleLineBreakMode = .byTruncatingMiddle
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 10, bottom: 7, trailing: 12)
+        let button = UIButton(configuration: configuration)
+        button.widthAnchor.constraint(lessThanOrEqualToConstant: 320).isActive = true
+        button.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        button.accessibilityLabel = L10n.format("Insert %@", item.label)
+        button.accessibilityValue = [item.kind.title, item.detail].compactMap { $0 }.joined(separator: ", ")
+        button.addAction(UIAction { [weak self] _ in self?.onAcceptCompletion?(item) }, for: .primaryActionTriggered)
+        return button
     }
 
     override func insertText(_ text: String) {
         guard markedTextRange == nil else { super.insertText(text); return }
-        if text == "\t" { super.insertText("  "); return }
+        if text == "\t" {
+            // Tab on a hardware keyboard takes the first suggestion, as in desktop editors.
+            if let first = completionItems.first, let onAcceptCompletion { onAcceptCompletion(first); return }
+            super.insertText("  "); return
+        }
         if text == "\n" {
             let source = (self.text ?? "") as NSString
             let range = source.lineRange(for: NSRange(location: selectedRange.location, length: 0))
@@ -205,6 +317,8 @@ struct HighlightedQueryEditor: UIViewRepresentable {
     var isJSON = false
     var allowsSQLComments = true
     var fitsContent = false
+    /// Completions at the caret, shown in the keyboard bar.
+    var completion: SQLCompletionResult?
     var errorRange: NSRange?
     @AppStorage(EditorTheme.storageKey) private var themeName = EditorTheme.portbase.rawValue
 
@@ -221,9 +335,17 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         textView.isFindInteractionEnabled = true
         textView.installEditingToolbar()
         textView.delegate = context.coordinator
+        let coordinator = context.coordinator
+        textView.onAcceptCompletion = { [weak coordinator, weak textView] item in
+            guard let coordinator, let textView else { return }
+            coordinator.accept(item, in: textView)
+        }
         textView.backgroundColor = .clear
         textView.autocorrectionType = .no
         textView.autocapitalizationType = .none
+        // SQL isn't prose: no spelling or word predictions competing with the completions bar.
+        textView.spellCheckingType = .no
+        textView.inlinePredictionType = .no
         textView.smartQuotesType = .no
         textView.smartDashesType = .no
         textView.smartInsertDeleteType = .no
@@ -281,6 +403,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         if uiView.selectedRange != range {
             context.coordinator.setSelection(range, in: uiView)
         }
+        if let queryView = uiView as? QueryTextView { context.coordinator.updateCompletion(completion, in: queryView) }
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
@@ -327,6 +450,34 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             guard !isApplyingHighlight else { return }
             cursorOffset = min(textView.selectedRange.location, textView.textStorage.length)
             selectionLength = textView.selectedRange.length
+        }
+
+        private var completion = SQLCompletionResult.empty
+
+        /// Shows a completion in the keyboard bar if it's for the text and caret as they are now.
+        fileprivate func updateCompletion(_ result: SQLCompletionResult?, in textView: QueryTextView) {
+            guard let result else { textView.setCompletions([]); return }
+            let source = (textView.text ?? "") as NSString
+            let caret = textView.selectedRange
+            guard caret.length == 0, NSMaxRange(result.fragmentRange) == caret.location, NSMaxRange(result.fragmentRange) <= source.length,
+                  source.substring(with: result.fragmentRange) == result.fragment else { return }
+            completion = result
+            textView.setCompletions(result.opensAutomatically || !result.fragment.isEmpty ? result.items : [])
+        }
+
+        /// Inserts a completion as ordinary edits, so Undo takes it back.
+        fileprivate func accept(_ item: SQLCompletionItem, in textView: QueryTextView) {
+            guard let plan = SQLCompletionEngine.edits(for: item, in: textView.text ?? "", result: completion) else { return }
+            for edit in plan.edits {
+                guard let start = textView.position(from: textView.beginningOfDocument, offset: edit.range.location),
+                      let end = textView.position(from: start, offset: edit.range.length),
+                      let range = textView.textRange(from: start, to: end) else { continue }
+                textView.replace(range, withText: edit.text)
+            }
+            textView.selectedRange = NSRange(location: min(plan.cursor, textView.textStorage.length), length: 0)
+            textView.setCompletions([])
+            completion = .empty
+            textViewDidChange(textView)
         }
 
         func setSelection(_ range: NSRange, in textView: UITextView) {
@@ -429,6 +580,9 @@ struct HighlightedClauseEditor: UIViewRepresentable {
         textView.backgroundColor = .clear
         textView.autocorrectionType = .no
         textView.autocapitalizationType = .none
+        // SQL isn't prose: no spelling or word predictions competing with the completions bar.
+        textView.spellCheckingType = .no
+        textView.inlinePredictionType = .no
         textView.smartQuotesType = .no
         textView.smartDashesType = .no
         textView.smartInsertDeleteType = .no

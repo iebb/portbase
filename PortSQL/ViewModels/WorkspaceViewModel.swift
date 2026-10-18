@@ -28,7 +28,10 @@ final class WorkspaceViewModel: ObservableObject {
         let stored = UserDefaults.standard.integer(forKey: explorerPageSizeKey)
         return explorerPageSizes.contains(stored) ? stored : 100
     }
-    @Published var suggestions: [String] = []
+    /// Context-aware completions at the console caret, from `SQLCompletionEngine`.
+    @Published private(set) var completion = SQLCompletionResult.empty
+    /// The text and caret the completion was computed for, so a stale one is never applied.
+    private var completionSource: (text: String, cursor: Int)?
     @Published var hints: [EditorHint] = []
     @Published var schema: [SchemaSuggestion] = []
     @Published var schemaCatalog: [SchemaTableDescriptor] = []
@@ -234,7 +237,7 @@ final class WorkspaceViewModel: ObservableObject {
     func refreshAssist() {
         assistTask?.cancel()
         if !isSQLDatabase {
-            suggestions = []
+            completion = .empty
             hints = []
             return
         }
@@ -249,27 +252,26 @@ final class WorkspaceViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 90_000_000)
             guard !Task.isCancelled else { return }
 
-            let suggestions = SQLAssistService.suggestions(
-                for: query,
-                catalog: catalog,
-                activeDatabase: activeDatabase,
-                cursorOffset: cursorOffset,
-                engine: engine
-            )
+            let completion = SQLCompletionEngine.complete(query, cursor: cursorOffset, catalog: catalog,
+                                                          activeDatabase: activeDatabase, engine: engine)
             let hints = SQLAssistService.hints(for: query)
 
             await MainActor.run {
                 guard self.queryText == query, self.queryCursorOffset == cursorOffset else { return }
-                self.suggestions = suggestions
+                self.completion = completion
+                self.completionSource = (query, cursorOffset)
                 self.hints = hints
             }
         }
     }
 
-    func applySuggestion(_ suggestion: String) {
-        let applied = SQLAssistService.applySuggestion(suggestion, to: queryText, cursorOffset: queryCursorOffset)
-        queryText = applied.query
-        queryCursorOffset = applied.cursorOffset
+    /// Accepts a completion computed for the current text and caret.
+    func applyCompletion(_ item: SQLCompletionItem) {
+        guard let source = completionSource, source.text == queryText else { return }
+        let applied = SQLCompletionEngine.apply(item, to: queryText, result: completion)
+        completion = .empty
+        queryText = applied.text
+        queryCursorOffset = applied.cursor
         refreshAssist()
     }
 

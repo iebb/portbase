@@ -85,9 +85,26 @@ extension SQLEditingService {
     }
 }
 
+/// A table, view, CTE, or alias a statement can refer to at the caret.
+struct SQLScopeSource: Equatable {
+    /// The name written in the statement: an alias, or the table reference itself.
+    let name: String
+    /// The table reference the name stands for.
+    let reference: String
+    let table: SchemaTableDescriptor?
+    let fields: [String]
+    let isAlias: Bool
+    let isCTE: Bool
+    /// Where the reference appears, so the most recently joined source can be found.
+    let position: Int
+}
+
 /// Resolves completion symbols from SQL tokens, including quoted names and CTE projections.
 enum SQLSymbolCompletion {
-    static func suggestions(query: String, cursor: Int, catalog: [SchemaTableDescriptor], engine: DatabaseEngine) -> [String] {
+    /// The sources visible at the caret: tables and CTEs in FROM, JOIN, UPDATE, and INTO clauses of the
+    /// enclosing queries, with their aliases, and the statement's CTEs.
+    static func scope(query: String, cursor: Int, catalog: [SchemaTableDescriptor], engine: DatabaseEngine)
+        -> (sources: [SQLScopeSource], ctes: [(name: String, fields: [String])]) {
         let selected = SQLEditingService.statement(in: query, atUTF16: cursor, engine: engine) ?? query.startIndex..<query.endIndex
         let sql = String(query[selected])
         let offset = max(0, cursor - query[..<selected.lowerBound].utf16.count)
@@ -96,8 +113,13 @@ enum SQLSymbolCompletion {
         let scope = aliasScopes(in: sql, tokens: all, caret: caret)
         let visibleScopes = Set(scope.visible)
         var sources: [String: [String]] = [:]
-        for table in catalog { sources[table.name] = table.columns.map(\.name); sources[table.displayName] = table.columns.map(\.name) }
-        var cteNames: [String] = []
+        var tables: [String: SchemaTableDescriptor] = [:]
+        for table in catalog {
+            sources[table.name] = table.columns.map(\.name); sources[table.displayName] = table.columns.map(\.name)
+            if tables[table.name] == nil { tables[table.name] = table }
+            tables[table.displayName] = table
+        }
+        var ctes: [(name: String, fields: [String])] = []
         func closing(_ start: Int) -> Int? {
             var depth = 0
             for i in start..<all.count {
@@ -142,30 +164,59 @@ enum SQLSymbolCompletion {
                         if !projection.isEmpty { addField() }
                     }
                 }
-                sources[name] = fields; cteNames.append(name)
+                sources[name] = fields; ctes.append((name, fields))
+                tables[name] = nil
                 i = end + 1
                 guard i < all.count, all[i].text == "," else { break }; i += 1
             }
         }
-        let reserved = Set(["WHERE", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "OUTER", "CROSS", "ON", "GROUP", "ORDER", "HAVING", "LIMIT", "OFFSET", "UNION", "RETURNING", "SET", "VALUES", "FOR"])
-        var aliasesByScope: [Int: [String: [String]]] = [:]
+        let cteNames = Set(ctes.map(\.name))
+        let reserved = Set(["WHERE", "JOIN", "LEFT", "RIGHT", "FULL", "INNER", "OUTER", "CROSS", "ON", "GROUP", "ORDER", "HAVING", "LIMIT", "OFFSET", "UNION", "RETURNING", "SET", "VALUES", "FOR", "USING", "NATURAL", "LATERAL", "WINDOW"])
+        var bySource: [Int: [String: SQLScopeSource]] = [:]
         for i in all.indices where visibleScopes.contains(scope.owners[i]) && ["FROM", "JOIN", "UPDATE", "INTO"].contains(all[i].keyword) {
+            // Tables listed after a comma in FROM are sources too.
             var j = i + 1
-            guard j < all.count, all[j].isIdentifier else { continue }
-            var reference = all[j].text; let short = reference; j += 1
-            if j + 1 < all.count, all[j].text == ".", all[j + 1].isIdentifier { reference += "." + all[j + 1].text; j += 2 }
-            // An unresolved local source still shadows an outer alias with the same name.
-            let fields = sources[reference] ?? sources[short] ?? []
-            aliasesByScope[scope.owners[i], default: [:]][reference] = fields
-            if j < all.count, all[j].keyword == "AS" { j += 1 }
-            if j < all.count, all[j].isIdentifier, !reserved.contains(all[j].keyword) {
-                aliasesByScope[scope.owners[i], default: [:]][all[j].text] = fields
+            while j < all.count {
+                guard all[j].isIdentifier, !reserved.contains(all[j].keyword) else { break }
+                let position = j
+                var reference = all[j].text; let short = reference; j += 1
+                if j + 1 < all.count, all[j].text == ".", all[j + 1].isIdentifier { reference += "." + all[j + 1].text; j += 2 }
+                // An unresolved local source still shadows an outer alias with the same name.
+                let fields = sources[reference] ?? sources[short] ?? []
+                let table = cteNames.contains(reference) ? nil : (tables[reference] ?? tables[short])
+                let isCTE = cteNames.contains(reference)
+                bySource[scope.owners[i], default: [:]][reference] = SQLScopeSource(
+                    name: reference, reference: reference, table: table, fields: fields, isAlias: false, isCTE: isCTE, position: position)
+                if j < all.count, all[j].keyword == "AS" { j += 1 }
+                if j < all.count, all[j].isIdentifier, !reserved.contains(all[j].keyword) {
+                    bySource[scope.owners[i], default: [:]][all[j].text] = SQLScopeSource(
+                        name: all[j].text, reference: reference, table: table, fields: fields, isAlias: true, isCTE: isCTE, position: position)
+                    j += 1
+                }
+                guard all[i].keyword == "FROM", j < all.count, all[j].text == "," else { break }
+                j += 1
             }
         }
-        var aliases: [String: [String]] = [:]
+        var visible: [String: SQLScopeSource] = [:]
         for scopeID in scope.visible.reversed() {
-            for (alias, fields) in aliasesByScope[scopeID] ?? [:] { aliases[alias] = fields }
+            for (name, source) in bySource[scopeID] ?? [:] { visible[name] = source }
         }
+        return (visible.values.sorted { $0.position == $1.position ? $0.name < $1.name : $0.position < $1.position }, ctes)
+    }
+
+    static func suggestions(query: String, cursor: Int, catalog: [SchemaTableDescriptor], engine: DatabaseEngine) -> [String] {
+        let selected = SQLEditingService.statement(in: query, atUTF16: cursor, engine: engine) ?? query.startIndex..<query.endIndex
+        let sql = String(query[selected])
+        let offset = max(0, cursor - query[..<selected.lowerBound].utf16.count)
+        let all = SQLEditingService.tokens(sql, engine: engine)
+        let caret = String.Index(utf16Offset: min(offset, sql.utf16.count), in: sql)
+        let resolved = scope(query: query, cursor: cursor, catalog: catalog, engine: engine)
+        var aliases: [String: [String]] = [:]
+        for source in resolved.sources { aliases[source.name] = source.fields }
+        var sources: [String: [String]] = [:]
+        for table in catalog { sources[table.name] = table.columns.map(\.name); sources[table.displayName] = table.columns.map(\.name) }
+        for cte in resolved.ctes { sources[cte.name] = cte.fields }
+        let cteNames = resolved.ctes.map(\.name)
         let before = all.filter { $0.range.lowerBound < caret }
         let fragment = fragment(in: sql, at: caret)
         if let dot = fragment.lastIndex(of: ".") {
@@ -194,7 +245,7 @@ enum SQLSymbolCompletion {
         let inheritsParentAliases: Bool
     }
 
-    private static func aliasScopes(in sql: String, tokens: [SQLStructureToken], caret: String.Index) -> (owners: [Int], visible: [Int]) {
+    static func aliasScopes(in sql: String, tokens: [SQLStructureToken], caret: String.Index) -> (owners: [Int], visible: [Int]) {
         var scopes = [QueryScope(parent: nil, start: sql.startIndex, end: sql.endIndex, baseDepth: 0, inheritsParentAliases: false)]
         var parentheses: [Int?] = []
         var owners = Array(repeating: 0, count: tokens.count)

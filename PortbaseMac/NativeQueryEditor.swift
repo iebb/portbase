@@ -38,8 +38,15 @@ private final class EditorHostView: NSView {
     }
 }
 
+/// Lets the completion list take arrow keys, Return, Tab, and Esc while it's open.
+@MainActor protocol SQLCompletionKeyHandling: AnyObject {
+    func handleCompletionCommand(_ selector: Selector) -> Bool
+    func requestCompletion()
+}
+
 private final class QueryTextView: NSTextView {
     var allowsSQLComments = true
+    weak var completionKeys: SQLCompletionKeyHandling?
     override func keyDown(with event: NSEvent) {
         if hasMarkedText() { super.keyDown(with: event); return }
         if event.modifierFlags.contains(.control), event.keyCode == 49 {
@@ -51,6 +58,14 @@ private final class QueryTextView: NSTextView {
         } else if event.modifierFlags.contains(.command), event.charactersIgnoringModifiers == "[" {
             indentSelection(removing: true)
         } else { super.keyDown(with: event) }
+    }
+    /// Esc, F5, and Control-Space open the completion list.
+    override func complete(_ sender: Any?) {
+        if let completionKeys { completionKeys.requestCompletion() } else { super.complete(sender) }
+    }
+    override func doCommand(by selector: Selector) {
+        if completionKeys?.handleCompletionCommand(selector) == true { return }
+        super.doCommand(by: selector)
     }
     override func insertTab(_ sender: Any?) {
         if selectedRange().length > 0 { indentSelection(removing: false) }
@@ -98,7 +113,8 @@ struct HighlightedQueryEditor: NSViewRepresentable {
     var isJSON = false
     var allowsSQLComments = true
     var fitsContent = false
-    var suggestions: [String] = []
+    /// Completions at the caret; when set, a list opens at the caret as you type.
+    var completion: SQLCompletionResult?
     var errorRange: NSRange?
     @AppStorage("Portbase.editorFontSize") private var editorFontSize = 13.0
     @AppStorage(EditorTheme.storageKey) private var themeName = EditorTheme.portbase.rawValue
@@ -136,6 +152,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         view.isIncrementalSearchingEnabled = true
         view.allowsUndo = true
         view.delegate = context.coordinator
+        if completion != nil { view.completionKeys = context.coordinator }
         view.setAccessibilityLabel(L10n.text(isJSON ? "JSON editor" : allowsSQLComments ? "SQL editor" : "Redis command editor"))
         let host = EditorHostView(textView: view)
         host.gutter?.palette = palette
@@ -144,6 +161,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {
         guard let host = nsView as? EditorHostView, let view = host.textView as? QueryTextView else { return }
         context.coordinator.parent = self
+        view.completionKeys = completion == nil ? nil : context.coordinator
         view.allowsSQLComments = allowsSQLComments && !isJSON
         view.setAccessibilityLabel(L10n.text(isJSON ? "JSON editor" : allowsSQLComments ? "SQL editor" : "Redis command editor"))
         let palette = palette
@@ -157,13 +175,26 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         if view.selectedRange() != range { view.setSelectedRange(range); view.scrollRangeToVisible(range) }
         context.coordinator.highlight(view)
         context.coordinator.applying = false
+        if let completion { context.coordinator.updateCompletion(completion, in: view) }
         host.gutter?.needsDisplay = true
         host.needsLayout = true
         view.needsDisplay = true
     }
-    @MainActor final class Coordinator: NSObject, NSTextViewDelegate {
+    @MainActor final class Coordinator: NSObject, NSTextViewDelegate, SQLCompletionKeyHandling {
         var parent: HighlightedQueryEditor
         var applying = false
+        private lazy var popup: SQLCompletionPopup = {
+            let popup = SQLCompletionPopup()
+            popup.onAccept = { [weak self] item in self?.accept(item) }
+            return popup
+        }()
+        private var completion = SQLCompletionResult.empty
+        private weak var completionView: NSTextView?
+        /// Set while the user is typing a word, so the list may open; moving the caret clears it.
+        private var typing = false
+        /// Set when the list was asked for (Esc, Control-Space), so it opens even where it wouldn't on its own.
+        private var requested = false
+        private var lastString = ""
         private var lastText: String?
         private var lastScheme: ColorScheme?
         private var lastJSON = false
@@ -171,8 +202,20 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         private var lastFontSize = 0.0
         private var lastPalette: EditorPalette?
         init(_ parent: HighlightedQueryEditor) { self.parent = parent }
+        func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString: String?) -> Bool {
+            guard parent.completion != nil, !applying else { return true }
+            if let replacement = replacementString, !replacement.isEmpty {
+                // Typing a name, a dot, or a space after a keyword can bring up the list; pasting can't.
+                typing = replacement.count <= 2 && replacement.allSatisfy { $0.isLetter || $0.isNumber || "_.$ \"`(,=".contains($0) }
+                if !typing { popup.hide() }
+            } else {
+                typing = popup.isVisible
+            }
+            return true
+        }
         func textDidChange(_ notification: Notification) {
             guard !applying, let view = notification.object as? NSTextView else { return }
+            lastString = view.string
             parent.text = view.string
             updateSelection(view)
             highlight(view)
@@ -181,13 +224,74 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         }
         func textViewDidChangeSelection(_ notification: Notification) {
             guard !applying, let view = notification.object as? NSTextView else { return }
+            // Moving the caret without typing closes the list.
+            if view.string == lastString, parent.completion != nil { typing = false; popup.hide() }
+            lastString = view.string
             updateSelection(view)
         }
-        func textView(_ textView: NSTextView, completions words: [String], forPartialWordRange charRange: NSRange, indexOfSelectedItem index: UnsafeMutablePointer<Int>?) -> [String] {
-            let prefix = (textView.string as NSString).substring(with: charRange)
-            let completions = parent.suggestions.filter { prefix.isEmpty || $0.localizedCaseInsensitiveContains(prefix) }
-            index?.pointee = 0
-            return Array(completions.prefix(30))
+        func textDidEndEditing(_ notification: Notification) { popup.hide() }
+
+        // MARK: Completion
+
+        /// Takes a new completion for the text, if it's for the text and caret as they are now.
+        func updateCompletion(_ completion: SQLCompletionResult, in view: NSTextView) {
+            completionView = view
+            let caret = view.selectedRange()
+            let source = view.string as NSString
+            guard caret.length == 0, NSMaxRange(completion.fragmentRange) == caret.location, NSMaxRange(completion.fragmentRange) <= source.length,
+                  source.substring(with: completion.fragmentRange) == completion.fragment else { return }
+            self.completion = completion
+            if completion.items.isEmpty { popup.hide(); return }
+            if popup.isVisible || (typing && completion.opensAutomatically) || requested {
+                requested = false
+                showPopup(in: view)
+            }
+        }
+
+        private func showPopup(in view: NSTextView) {
+            guard let window = view.window, view.window?.firstResponder === view else { return }
+            let caret = view.firstRect(forCharacterRange: NSRange(location: completion.fragmentRange.location, length: 0), actualRange: nil)
+            let typed = completion.fragment.split(separator: ".", omittingEmptySubsequences: false).last.map(String.init) ?? completion.fragment
+            popup.show(completion.items, typed: typed.trimmingCharacters(in: CharacterSet(charactersIn: "\"`[]")), below: caret, in: window)
+        }
+
+        func requestCompletion() {
+            requested = true
+            if let view = completionView, !completion.items.isEmpty { requested = false; showPopup(in: view) }
+        }
+
+        func handleCompletionCommand(_ selector: Selector) -> Bool {
+            guard popup.isVisible else { return false }
+            switch selector {
+            case #selector(NSResponder.moveUp(_:)): popup.move(by: -1)
+            case #selector(NSResponder.moveDown(_:)): popup.move(by: 1)
+            case #selector(NSResponder.pageUp(_:)), #selector(NSResponder.scrollPageUp(_:)): popup.page(by: -1)
+            case #selector(NSResponder.pageDown(_:)), #selector(NSResponder.scrollPageDown(_:)): popup.page(by: 1)
+            case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
+                if let item = popup.selectedItem { accept(item) } else { popup.hide() }
+            case #selector(NSResponder.cancelOperation(_:)): popup.hide()
+            default:
+                popup.hide()
+                return false
+            }
+            return true
+        }
+
+        /// Inserts an item as ordinary edits, so a single Undo takes it back.
+        private func accept(_ item: SQLCompletionItem) {
+            guard let view = completionView, let plan = SQLCompletionEngine.edits(for: item, in: view.string, result: completion) else { return }
+            popup.hide()
+            view.undoManager?.beginUndoGrouping()
+            for edit in plan.edits where view.shouldChangeText(in: edit.range, replacementString: edit.text) {
+                view.textStorage?.replaceCharacters(in: edit.range, with: edit.text)
+                view.didChangeText()
+            }
+            view.undoManager?.endUndoGrouping()
+            view.setSelectedRange(NSRange(location: min(plan.cursor, (view.string as NSString).length), length: 0))
+            completion = .empty
+            // A qualifier or schema just inserted goes straight on to its columns or tables.
+            typing = item.insertion.hasSuffix(".")
+            requested = typing
         }
         private func updateSelection(_ view: NSTextView) {
             parent.cursorOffset = view.selectedRange().location

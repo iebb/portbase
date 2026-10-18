@@ -1154,7 +1154,7 @@ private struct DesktopSQLEditor: View {
             Divider()
             HighlightedQueryEditor(text: $workspace.queryText, cursorOffset: $workspace.queryCursorOffset,
                                    selectionLength: $workspace.querySelectionLength, colorScheme: colorScheme, isJSON: workspace.usesJSONEditor,
-                                   allowsSQLComments: isSQL, suggestions: workspace.suggestions, errorRange: workspace.queryErrorRange)
+                                   allowsSQLComments: isSQL, completion: isSQL ? workspace.completion : nil, errorRange: workspace.queryErrorRange)
                 .frame(maxWidth: .infinity, maxHeight: .infinity).clipped().layoutPriority(1)
             HStack(spacing: Spacing.s) {
                 Text(workspace.editorPositionLabel).monospacedDigit().foregroundStyle(.secondary)
@@ -1229,11 +1229,30 @@ private struct DesktopTableBrowser: View {
 }
 
 extension DesktopTableBrowser {
+    func clauseSuggestions(_ text: String, kind: ClauseHistoryStore.Kind) -> [SQLClauseSuggestion] {
+        guard workspace.isSQLDatabase, let table = workspace.selectedExplorerTable,
+              !text.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
+        return SQLCompletionEngine.clauseSuggestions(text, kind: kind == .filter ? .filter : .sort, table: table,
+                                                     catalog: workspace.schemaCatalog, activeDatabase: workspace.activeDatabaseName,
+                                                     engine: workspace.selectedBookmark?.engine ?? .postgresql, limit: 10)
+    }
+
     /// A clause keyword and its field, styled like the sidebar's search field.
     func clauseField(_ keyword: String, text: Binding<String>, prompt: String, kind: ClauseHistoryStore.Kind) -> some View {
         HStack(spacing: Spacing.xs) {
             Text(keyword).font(.codeCaption.weight(.semibold)).foregroundStyle(PortSQLPalette.muted).fixedSize()
             TextField(prompt, text: text).textFieldStyle(.plain).font(.codeDetail).onSubmit { workspace.restartBrowse() }
+                // The console's completion engine, offering columns, operators, and values as the clause is typed.
+                .textInputSuggestions {
+                    ForEach(clauseSuggestions(text.wrappedValue, kind: kind)) { suggestion in
+                        Label {
+                            Text(suggestion.label) + Text(suggestion.detail.map { "  " + $0 } ?? "").foregroundColor(.secondary)
+                        } icon: {
+                            Image(systemName: suggestion.kind.symbol).foregroundStyle(suggestion.kind.tint)
+                        }
+                        .textInputCompletion(suggestion.completedText)
+                    }
+                }
             ClauseHistoryMenu(kind: kind, text: text)
         }
         .portbaseFieldChrome()

@@ -461,10 +461,6 @@ struct QueryEditorCard: View {
                     }
                     .disabled(workspace.selectedExplorerTable == nil)
                 }
-                if !trimmedQuery.isEmpty && !workspace.suggestions.isEmpty {
-                    suggestionSection
-                }
-
                 feedbackSection
             }
         }
@@ -600,6 +596,7 @@ struct QueryEditorCard: View {
                 colorScheme: colorScheme,
                 isJSON: workspace.usesJSONEditor,
                 allowsSQLComments: workspace.isSQLDatabase,
+                completion: workspace.isSQLDatabase ? workspace.completion : nil,
                 errorRange: workspace.queryErrorRange
             )
                 .frame(minHeight: min(max(editorMinimumHeight, 160), 360))
@@ -623,20 +620,6 @@ struct QueryEditorCard: View {
             RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                 .strokeBorder(workspace.queryErrorRange == nil ? editorBorderColor : Color.red.opacity(0.5), lineWidth: 1)
         }
-    }
-
-    private var suggestionSection: some View {
-        InlineSuggestionMenu(
-            suggestions: visibleSuggestions.map { InlineSuggestionItem(title: $0, subtitle: nil) },
-            onSelect: { item in
-                workspace.applySuggestion(item.title)
-            }
-        )
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var visibleSuggestions: [String] {
-        Array(workspace.suggestions.prefix(6))
     }
 
     private var editorBackgroundColor: Color {
@@ -760,6 +743,7 @@ private struct ExpandedQueryEditorSheet: View {
                         colorScheme: colorScheme,
                         isJSON: workspace.usesJSONEditor,
                         allowsSQLComments: workspace.isSQLDatabase,
+                        completion: workspace.isSQLDatabase ? workspace.completion : nil,
                         errorRange: workspace.queryErrorRange
                     )
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -2527,6 +2511,8 @@ struct StatusBanner: View {
 struct InlineSuggestionItem: Hashable {
     let title: String
     let subtitle: String?
+    var symbol: String?
+    var tint: Color?
 }
 
 struct InlineSuggestionMenu: View {
@@ -2542,6 +2528,11 @@ struct InlineSuggestionMenu: View {
                             onSelect(item)
                         } label: {
                             HStack(spacing: Spacing.xs) {
+                                if let symbol = item.symbol {
+                                    Image(systemName: symbol)
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundStyle(item.tint ?? PortSQLPalette.muted)
+                                }
                                 Text(item.title)
                                     .font(.codeCaption)
                                     .foregroundStyle(PortSQLPalette.ink)
