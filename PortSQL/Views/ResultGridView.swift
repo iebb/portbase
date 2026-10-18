@@ -334,6 +334,10 @@ struct ResultGridView: View {
             )
             .frame(height: gridHeight)
             .frame(maxWidth: .infinity, maxHeight: fillsAvailableSpace ? .infinity : nil)
+#if os(macOS)
+            // The Mac table sizes its header once, so a new header style builds a new table.
+            .id(headerStyle)
+#endif
             .id(dynamicTypeSize)
             .accessibilityLabel("Query results table")
         }

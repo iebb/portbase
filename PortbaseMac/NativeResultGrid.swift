@@ -74,6 +74,9 @@ struct GridCollectionBridge: NSViewRepresentable {
         table.onCopy = { [weak coordinator = context.coordinator] in coordinator?.copySelection() }
         table.onEditSelection = { [weak coordinator = context.coordinator] in coordinator?.editSelection() ?? false }
         let menu = NSMenu(); menu.delegate = context.coordinator; menu.autoenablesItems = false; table.menu = menu
+        // A type under the name needs a taller header. Its height is set before the table joins the scroll
+        // view, which sizes the header's area once; the grid is rebuilt when the style changes.
+        table.headerView = ResultHeaderView(frame: NSRect(x: 0, y: 0, width: 600, height: headerStyle == .typeBelow ? 30 : 26))
         let headerMenu = NSMenu(); headerMenu.delegate = context.coordinator; headerMenu.autoenablesItems = false; table.headerView?.menu = headerMenu
         context.coordinator.headerMenu = headerMenu
         table.setAccessibilityLabel(L10n.text("Query results table"))
@@ -87,17 +90,12 @@ struct GridCollectionBridge: NSViewRepresentable {
         context.coordinator.parent = self
         // A column the user just dragged is already in place, so compare against the table itself.
         let shown = table.tableColumns.map(\.identifier.rawValue)
-        // A type under the name needs a taller header.
-        let headerHeight: CGFloat = headerStyle == .typeBelow ? 38 : 26
-        if let header = table.headerView, header.frame.height != headerHeight {
-            header.frame.size.height = headerHeight
-            scroll.tile()
-        }
         if shown != visibleColumns.map(String.init) || old.result.columns != result.columns || table.tableColumns.isEmpty
             || old.headerStyle != headerStyle {
             for column in table.tableColumns { table.removeTableColumn(column) }
             for index in visibleColumns {
                 let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(String(index)))
+                column.headerCell = ResultHeaderCell(textCell: "")
                 column.title = result.columns[index].name
                 column.minWidth = 64; column.maxWidth = 800
                 column.width = configuration.widths[index].map { CGFloat($0) } ?? Self.naturalWidth(result: result, column: index, headerStyle: headerStyle)
@@ -119,14 +117,18 @@ struct GridCollectionBridge: NSViewRepresentable {
                 header.append(NSAttributedString(attachment: attachment))
                 header.append(NSAttributedString(string: " "))
             }
+            // Two lines share the header's height, so they're set a little smaller.
+            let below = headerStyle == .typeBelow
             header.append(NSAttributedString(string: name + arrow,
-                                             attributes: [.font: PortbaseFonts.codeFont(TypeSize.detail, bold: true), .foregroundColor: NSColor.labelColor]))
+                                             attributes: [.font: PortbaseFonts.codeFont(below ? TypeSize.caption : TypeSize.detail, bold: true), .foregroundColor: NSColor.labelColor]))
             if !type.isEmpty, headerStyle != .nameOnly {
-                header.append(NSAttributedString(string: (headerStyle == .typeBelow ? "\n" : "  ") + type.lowercased(),
-                                                 attributes: [.font: PortbaseFonts.codeFont(TypeSize.micro), .foregroundColor: NSColor.tertiaryLabelColor]))
+                header.append(NSAttributedString(string: (below ? "\n" : "  ") + type.lowercased(),
+                                                 attributes: [.font: PortbaseFonts.codeFont(below ? TypeSize.micro - 1 : TypeSize.micro), .foregroundColor: NSColor.tertiaryLabelColor]))
             }
             column.headerCell.wraps = headerStyle == .typeBelow
             column.headerCell.attributedStringValue = header
+            // The cell's own value keeps one line, so the full title rides along as its represented object.
+            column.headerCell.representedObject = header
             column.headerToolTip = primaryKeys.contains(name) ? L10n.text("Primary key") + " · " + type : type
         }
         let changed = old.result != result || old.selection != selection || old.visibleColumns != visibleColumns
@@ -365,5 +367,46 @@ struct GridCollectionBridge: NSViewRepresentable {
             item.target = self; item.tag = actions.count; actions.append(action); menu.addItem(item)
         }
         @objc private func performAction(_ item: NSMenuItem) { if actions.indices.contains(item.tag) { actions[item.tag]() } }
+    }
+}
+
+/// A header cell that centers its title vertically, so a name with its type on a second line fits the
+/// taller header instead of running into the divider below it.
+private final class ResultHeaderCell: NSTableHeaderCell {
+    // No stored properties: NSCell copies itself bytewise, which doesn't retain Swift references.
+    override func drawInterior(withFrame cellFrame: NSRect, in controlView: NSView) {
+        let title = (representedObject as? NSAttributedString) ?? attributedStringValue
+        guard title.length > 0 else { super.drawInterior(withFrame: cellFrame, in: controlView); return }
+        let available = cellFrame.insetBy(dx: 5, dy: 0)
+        // Each line on its own, stacked and centered as a block.
+        var lines: [NSAttributedString] = []
+        var start = 0
+        let string = title.string as NSString
+        while start <= string.length {
+            let lineEnd = string.range(of: "\n", range: NSRange(location: start, length: string.length - start)).location
+            let end = lineEnd == NSNotFound ? string.length : lineEnd
+            lines.append(title.attributedSubstring(from: NSRange(location: start, length: end - start)))
+            if lineEnd == NSNotFound { break }
+            start = end + 1
+        }
+        let heights = lines.map { ceil($0.size().height) }
+        let total = heights.reduce(0, +)
+        var y = controlView.isFlipped ? available.minY + max(0, (available.height - total) / 2)
+                                      : available.maxY - max(0, (available.height - total) / 2)
+        for (line, height) in zip(lines, heights) {
+            let rect = NSRect(x: available.minX, y: controlView.isFlipped ? y : y - height, width: available.width, height: height)
+            line.draw(with: rect, options: [.usesLineFragmentOrigin, .truncatesLastVisibleLine])
+            y += controlView.isFlipped ? height : -height
+        }
+    }
+}
+
+/// A header whose column titles take its full height, for the taller two-line header.
+private final class ResultHeaderView: NSTableHeaderView {
+    override func headerRect(ofColumn column: Int) -> NSRect {
+        var rect = super.headerRect(ofColumn: column)
+        rect.origin.y = bounds.minY
+        rect.size.height = bounds.height
+        return rect
     }
 }
