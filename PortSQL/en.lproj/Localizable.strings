@@ -1599,3 +1599,15 @@
 "Column and Type" = "Column and Type";
 "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver.";
 "Type Below Column" = "Type Below Column";
+"All Environments" = "All Environments";
+"Color" = "Color";
+"Delete Folder" = "Delete Folder";
+"Delete “%@”?" = "Delete “%@”?";
+"Folder" = "Folder";
+"Folders" = "Folders";
+"Its connections stay, outside any folder." = "Its connections stay, outside any folder.";
+"Move to Folder" = "Move to Folder";
+"New Folder" = "New Folder";
+"No Folder" = "No Folder";
+"Rename Folder" = "Rename Folder";
+"Shows only connections in this folder" = "Shows only connections in this folder";

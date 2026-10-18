@@ -1599,3 +1599,15 @@
 "Column and Type" = "列名和类型";
 "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "结果表如何显示每列的类型。隐藏的类型在指向标题时以及对 VoiceOver 仍会显示。";
 "Type Below Column" = "类型在列名下方";
+"All Environments" = "所有环境";
+"Color" = "颜色";
+"Delete Folder" = "删除文件夹";
+"Delete “%@”?" = "删除“%@”？";
+"Folder" = "文件夹";
+"Folders" = "文件夹";
+"Its connections stay, outside any folder." = "其中的连接会保留，不属于任何文件夹。";
+"Move to Folder" = "移到文件夹";
+"New Folder" = "新建文件夹";
+"No Folder" = "无文件夹";
+"Rename Folder" = "重命名文件夹";
+"Shows only connections in this folder" = "仅显示此文件夹中的连接";

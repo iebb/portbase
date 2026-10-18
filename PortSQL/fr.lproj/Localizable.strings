@@ -1599,3 +1599,15 @@
 "Column and Type" = "Colonne et type";
 "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "Comment les tableaux de résultats affichent le type de chaque colonne. Un type masqué reste visible en pointant l’en-tête et pour VoiceOver.";
 "Type Below Column" = "Type sous la colonne";
+"All Environments" = "Tous les environnements";
+"Color" = "Couleur";
+"Delete Folder" = "Supprimer le dossier";
+"Delete “%@”?" = "Supprimer « %@ » ?";
+"Folder" = "Dossier";
+"Folders" = "Dossiers";
+"Its connections stay, outside any folder." = "Ses connexions sont conservées, hors de tout dossier.";
+"Move to Folder" = "Déplacer dans un dossier";
+"New Folder" = "Nouveau dossier";
+"No Folder" = "Aucun dossier";
+"Rename Folder" = "Renommer le dossier";
+"Shows only connections in this folder" = "Affiche uniquement les connexions de ce dossier";

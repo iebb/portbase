@@ -1521,6 +1521,7 @@ private extension TransportSecurityMode {
 struct BookmarkEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @EnvironmentObject private var bookmarks: BookmarkStore
     @State var profile: ConnectionProfile
     @State private var isShowingIconPicker = false
     @State private var isImportingPrivateCA = false
@@ -1573,6 +1574,12 @@ struct BookmarkEditorView: View {
 
                 Section("Server") {
                     TextField("Name", text: $profile.name)
+                    if !bookmarks.folders.isEmpty {
+                        Picker("Folder", selection: $profile.folderID) {
+                            Text("No Folder").tag(Optional<UUID>.none)
+                            ForEach(bookmarks.folders) { folder in Text(folder.name).tag(Optional(folder.id)) }
+                        }
+                    }
                     if !profile.engine.isLocal {
                     TextField("Host", text: $profile.host)
                         .portbaseTextCapitalization(.never)

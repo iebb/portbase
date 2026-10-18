@@ -12,7 +12,7 @@ extension EnvironmentValues {
     @Entry var connectionSessionOpener: ConnectionSessionOpener? = nil
 }
 
-/// The connection hub: a quick-connect bar, environment groups, a grid of connection cards, and,
+/// The connection hub: a quick-connect bar, folders, a grid of connection cards, and,
 /// on wide layouts, an inspector for the selected connection.
 struct ConnectionsHubView: View {
     @EnvironmentObject private var bookmarks: BookmarkStore
@@ -26,7 +26,12 @@ struct ConnectionsHubView: View {
     var onDelete: (ConnectionProfile) -> Void
 
     @State private var query = ""
-    @State private var group: ConnectionEnvironment?
+    /// The folder whose connections are shown; nil shows every connection.
+    @State private var folderFilter: UUID?
+    @State private var environmentFilter: ConnectionEnvironment?
+    @State private var namingFolder: FolderNaming?
+    @State private var folderName = ""
+    @State private var deletingFolder: ConnectionFolder?
     @State private var engineFilter: DatabaseEngine?
     @State private var colorFilter: ConnectionColor?
     @State private var onlyReadOnly = false
@@ -63,7 +68,7 @@ struct ConnectionsHubView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, Spacing.xxl)
                     } else {
-                        if !groups.isEmpty { groupsSection }
+                        foldersSection
                         connectionsSection
                     }
                     Label(ConnectionSecretLocation.serverListNote, systemImage: "icloud")
@@ -88,6 +93,25 @@ struct ConnectionsHubView: View {
             }
         }
         .background(PortSQLPalette.canvasTop.ignoresSafeArea())
+        .alert(namingFolder?.title ?? "", isPresented: Binding(get: { namingFolder != nil }, set: { if !$0 { namingFolder = nil } })) {
+            TextField("Name", text: $folderName)
+            Button("Cancel", role: .cancel) { namingFolder = nil }
+            Button(namingFolder?.isNew == true ? L10n.text("Create") : L10n.text("Rename")) { saveFolderName() }
+                .disabled(folderName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .confirmationDialog(L10n.format("Delete “%@”?", deletingFolder?.name ?? ""),
+                            isPresented: Binding(get: { deletingFolder != nil }, set: { if !$0 { deletingFolder = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete Folder", role: .destructive) {
+                if let deletingFolder {
+                    if folderFilter == deletingFolder.id { folderFilter = nil }
+                    bookmarks.deleteFolder(deletingFolder.id)
+                }
+                deletingFolder = nil
+            }
+        } message: {
+            Text("Its connections stay, outside any folder.")
+        }
     }
 
     // MARK: Quick connect
@@ -164,43 +188,106 @@ struct ConnectionsHubView: View {
         }
     }
 
-    // MARK: Groups
+    // MARK: Folders
 
-    private var groups: [(environment: ConnectionEnvironment, count: Int)] {
-        ConnectionEnvironment.allCases.filter { $0 != .none }.compactMap { environment in
-            let count = bookmarks.bookmarks.filter { $0.environment == environment }.count
-            return count > 0 ? (environment, count) : nil
+    private enum FolderNaming {
+        case new
+        case rename(ConnectionFolder)
+
+        var isNew: Bool { if case .new = self { return true }; return false }
+        var title: String { isNew ? L10n.text("New Folder") : L10n.text("Rename Folder") }
+    }
+
+    private func saveFolderName() {
+        let name = folderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        switch namingFolder {
+        case .new: bookmarks.addFolder(named: name)
+        case .rename(var folder): folder.name = name; bookmarks.updateFolder(folder)
+        case nil: break
+        }
+        namingFolder = nil
+    }
+
+    private func count(in folder: ConnectionFolder) -> Int {
+        bookmarks.bookmarks.filter { $0.folderID == folder.id }.count
+    }
+
+    /// The user's folders and a tile to add one. A folder filters the list below, and connections can
+    /// be dragged onto it.
+    private var foldersSection: some View {
+        VStack(alignment: .leading, spacing: Spacing.m) {
+            PortbaseSectionHeading(title: L10n.text("Folders"))
+            // Wraps onto more rows rather than scrolling sideways, so no folder is cut off.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: Spacing.m)], spacing: Spacing.m) {
+                ForEach(bookmarks.folders) { folder in folderTile(folder) }
+                Button {
+                    folderName = ""
+                    namingFolder = .new
+                } label: {
+                    ConnectionTile {
+                        Image(systemName: "folder.badge.plus")
+                            .font(.tileSymbol)
+                            .foregroundStyle(PortSQLPalette.accent)
+                            .frame(width: Sizes.iconTile, height: Sizes.iconTile)
+                            .background(PortSQLPalette.accentSoft, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+                    } title: {
+                        Text("New Folder")
+                    } subtitle: {
+                        EmptyView()
+                    }
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
-    private var groupsSection: some View {
-        VStack(alignment: .leading, spacing: Spacing.m) {
-            PortbaseSectionHeading(title: L10n.text("Environments"))
-            // Wraps onto more rows rather than scrolling sideways, so no environment is cut off.
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: Spacing.m)], spacing: Spacing.m) {
-                ForEach(groups, id: \.environment) { item in
-                    let selected = group == item.environment
-                    Button {
-                        withAnimation(.easeOut(duration: 0.15)) { group = selected ? nil : item.environment }
-                    } label: {
-                        ConnectionTile(isSelected: selected) {
-                            Image(systemName: selected ? "folder.fill" : "folder")
-                                .font(.tileSymbol)
-                                .foregroundStyle(item.environment.color)
-                                .frame(width: Sizes.iconTile, height: Sizes.iconTile)
-                                .background(item.environment.color.opacity(0.14), in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
-                        } title: {
-                            Text(item.environment.title)
-                        } subtitle: {
-                            Text(L10n.plural("connection_count", count: item.count))
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selected ? .isSelected : [])
-                    .accessibilityHint("Shows only connections in this environment")
-                }
+    private func folderTile(_ folder: ConnectionFolder) -> some View {
+        let selected = folderFilter == folder.id
+        let tint = folder.colorTag?.color ?? PortSQLPalette.accent
+        return Button {
+            withAnimation(.easeOut(duration: 0.15)) { folderFilter = selected ? nil : folder.id }
+        } label: {
+            ConnectionTile(isSelected: selected) {
+                Image(systemName: selected ? "folder.fill" : "folder")
+                    .font(.tileSymbol)
+                    .foregroundStyle(tint)
+                    .frame(width: Sizes.iconTile, height: Sizes.iconTile)
+                    .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+            } title: {
+                Text(folder.name)
+            } subtitle: {
+                Text(L10n.plural("connection_count", count: count(in: folder)))
             }
         }
+        .buttonStyle(.plain)
+        .dropDestination(for: String.self) { items, _ in
+            let ids = items.compactMap(UUID.init(uuidString:))
+            ids.forEach { bookmarks.move($0, toFolder: folder.id) }
+            return !ids.isEmpty
+        }
+        .contextMenu {
+            Button("Rename…", systemImage: "pencil") {
+                folderName = folder.name
+                namingFolder = .rename(folder)
+            }
+            Menu("Color", systemImage: "paintpalette") {
+                Button("None") { var updated = folder; updated.colorTag = nil; bookmarks.updateFolder(updated) }
+                ForEach(ConnectionColor.allCases) { color in
+                    Button {
+                        var updated = folder
+                        updated.colorTag = color
+                        bookmarks.updateFolder(updated)
+                    } label: {
+                        Label { Text(color.title) } icon: { Image(systemName: folder.colorTag == color ? "checkmark.circle.fill" : "circle.fill").foregroundStyle(color.color) }
+                    }
+                }
+            }
+            Divider()
+            Button("Delete Folder", systemImage: "trash", role: .destructive) { deletingFolder = folder }
+        }
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityHint("Shows only connections in this folder")
     }
 
     // MARK: Connections
@@ -208,7 +295,8 @@ struct ConnectionsHubView: View {
     private var filtered: [ConnectionProfile] {
         let search = isConnectionString ? "" : query.trimmingCharacters(in: .whitespacesAndNewlines)
         return bookmarks.bookmarks.filter { profile in
-            (group == nil || profile.environment == group)
+            (folderFilter == nil || profile.folderID == folderFilter)
+                && (environmentFilter == nil || profile.environment == environmentFilter)
                 && (engineFilter == nil || profile.engine == engineFilter)
                 && (colorFilter == nil || profile.colorTag == colorFilter)
                 && (!onlyReadOnly || profile.isReadOnly)
@@ -221,12 +309,12 @@ struct ConnectionsHubView: View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             PortbaseSectionHeading(title: L10n.text("Servers")) {
                 HStack(spacing: Spacing.s) {
-                    if let group {
-                        Button { withAnimation { self.group = nil } } label: {
-                            PortbaseChip(title: group.title, systemImage: "xmark", tint: group.color)
+                    if let folder = bookmarks.folder(with: folderFilter) {
+                        Button { withAnimation { folderFilter = nil } } label: {
+                            PortbaseChip(title: folder.name, systemImage: "xmark", tint: folder.colorTag?.color ?? PortSQLPalette.accent)
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel(L10n.format("Clear filter %@", group.title))
+                        .accessibilityLabel(L10n.format("Clear filter %@", folder.name))
                     }
                     filterMenu
                 }
@@ -251,6 +339,19 @@ struct ConnectionsHubView: View {
 
     private var filterMenu: some View {
         Menu {
+            // Environments are a connection's safety setting; they filter here, and folders group.
+            let environments = ConnectionEnvironment.allCases.filter { environment in
+                environment != .none && bookmarks.bookmarks.contains { $0.environment == environment }
+            }
+            if !environments.isEmpty {
+                Picker("Environment", selection: $environmentFilter) {
+                    Text("All Environments").tag(Optional<ConnectionEnvironment>.none)
+                    ForEach(environments, id: \.self) { environment in
+                        Label { Text(environment.title) } icon: { Image(systemName: "circle.fill").foregroundStyle(environment.color) }
+                            .tag(Optional(environment))
+                    }
+                }
+            }
             Picker("Engine", selection: $engineFilter) {
                 Text("All Engines").tag(Optional<DatabaseEngine>.none)
                 ForEach(DatabaseEngine.allCases) { engine in Text(engine.rawValue).tag(Optional(engine)) }
@@ -267,9 +368,10 @@ struct ConnectionsHubView: View {
                 }
             }
             Toggle("Read-only connections", isOn: $onlyReadOnly)
-            Button("Reset Filters") { engineFilter = nil; colorFilter = nil; onlyReadOnly = false; group = nil; query = "" }
+            Button("Reset Filters") { engineFilter = nil; colorFilter = nil; environmentFilter = nil; onlyReadOnly = false; folderFilter = nil; query = "" }
         } label: {
-            Image(systemName: engineFilter != nil || colorFilter != nil || onlyReadOnly ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+            Image(systemName: engineFilter != nil || colorFilter != nil || environmentFilter != nil || onlyReadOnly
+                  ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                 .font(.toolSymbol)
                 .frame(minWidth: Sizes.control, minHeight: Sizes.control)
         }
@@ -319,6 +421,7 @@ extension ConnectionTile where Trailing == EmptyView {
 
 private struct ConnectionCard: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @EnvironmentObject private var bookmarks: BookmarkStore
     @Environment(\.connectionSessionOpener) private var sessionOpener
     let profile: ConnectionProfile
     var onOpenConsole: (() -> Void)?
@@ -370,6 +473,8 @@ private struct ConnectionCard: View {
         .simultaneousGesture(TapGesture(count: 2).onEnded { open() })
 #endif
         .contextMenu { menuItems }
+        // Drop on a folder to file the connection there.
+        .draggable(profile.id.uuidString)
         .help(profile.endpointSummary)
         .accessibilityAddTraits(isActive ? .isSelected : [])
         .accessibilityHint(sessionOpener == nil ? L10n.text("Makes this the active connection") : L10n.text("Double-click to open in a tab"))
@@ -414,6 +519,23 @@ private struct ConnectionCard: View {
         }
         Button("Edit", systemImage: "pencil") { workspace.selectedProfileForEdit = profile }
         Button("Duplicate Connection", systemImage: "plus.square.on.square") { workspace.selectedProfileForEdit = profile.duplicate() }
+        if !bookmarks.folders.isEmpty {
+            Menu("Move to Folder", systemImage: "folder") {
+                Button {
+                    bookmarks.move(profile.id, toFolder: nil)
+                } label: {
+                    Label("No Folder", systemImage: profile.folderID == nil ? "checkmark" : "tray")
+                }
+                Divider()
+                ForEach(bookmarks.folders) { folder in
+                    Button {
+                        bookmarks.move(profile.id, toFolder: folder.id)
+                    } label: {
+                        Label(folder.name, systemImage: profile.folderID == folder.id ? "checkmark" : "folder")
+                    }
+                }
+            }
+        }
         Divider()
         Button("Delete Connection", systemImage: "trash", role: .destructive) { onDelete(profile) }
     }

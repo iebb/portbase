@@ -8,6 +8,8 @@ final class BookmarkStore: ObservableObject {
     @Published private(set) var cloudSyncError: String?
     /// Connections with a password, key, or trusted host key that changed on more than one device at once.
     @Published private(set) var syncConflicts: Set<UUID> = []
+    /// Folders for filing connections, by name.
+    @Published private(set) var folders: [ConnectionFolder] = []
 
     private let keyValueStore = NSUbiquitousKeyValueStore.default
     private let syncKey = "portsql.bookmarks"
@@ -15,6 +17,8 @@ final class BookmarkStore: ObservableObject {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
     private var profileCloudCollection: WorkspaceCloudCollection<ConnectionProfile>?
+    private var folderCloudCollection: WorkspaceCloudCollection<ConnectionFolder>?
+    private let foldersURL: URL
     private let cloudSyncEnabled: Bool
 
     init(directory directoryOverride: URL? = nil, cloudSyncEnabled: Bool = true) {
@@ -22,11 +26,17 @@ final class BookmarkStore: ObservableObject {
         let directory = directoryOverride ?? WorkspaceFileStore.directory
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         self.fileURL = directory.appendingPathComponent("bookmarks.json")
+        self.foldersURL = directory.appendingPathComponent("folders.json")
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
         if cloudSyncEnabled { keyValueStore.synchronize() }
         load()
+        loadFolders()
         if cloudSyncEnabled {
+            folderCloudCollection = WorkspaceCloudCollection(key: "portsql.folders.v1",
+                url: directory.appendingPathComponent("folder-sync.json"), initial: folders, initialDate: { $0.createdAt },
+                quotaMessage: L10n.text("Connections are saved on this device. The library exceeds the iCloud sync limit."))
+            mergeFolders()
             profileCloudCollection = WorkspaceCloudCollection(key: "portsql.bookmarks.v2",
                 url: directory.appendingPathComponent("bookmark-sync.json"), initial: bookmarks, initialDate: { $0.createdAt },
                 quotaMessage: L10n.text("Connections are saved on this device. The library exceeds the iCloud sync limit."))
@@ -157,6 +167,7 @@ final class BookmarkStore: ObservableObject {
 
     private func mergeFromCloud() {
         guard cloudSyncEnabled else { return }
+        mergeFolders()
         if let profileCloudCollection {
             guard profileCloudCollection.mergeCloud() != nil else { cloudSyncError = profileCloudCollection.errorMessage; return }
             let legacy = keyValueStore.data(forKey: syncKey).flatMap { try? decoder.decode([ConnectionProfile].self, from: $0) }
@@ -244,6 +255,74 @@ final class BookmarkStore: ObservableObject {
         let refreshed = bookmarks.map { secure($0) }
         if refreshed != bookmarks { bookmarks = refreshed }
         refreshSyncConflicts()
+    }
+
+    // MARK: Folders
+
+    @discardableResult
+    func addFolder(named name: String, color: ConnectionColor? = nil) -> ConnectionFolder {
+        let folder = ConnectionFolder(name: name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag: color)
+        folders.append(folder)
+        persistFolders()
+        return folder
+    }
+
+    func updateFolder(_ folder: ConnectionFolder) {
+        guard let index = folders.firstIndex(where: { $0.id == folder.id }) else { return }
+        var updated = folder
+        updated.name = folder.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        folders[index] = updated
+        persistFolders()
+    }
+
+    /// Deletes a folder. Its connections stay, outside any folder.
+    func deleteFolder(_ id: UUID) {
+        folders.removeAll { $0.id == id }
+        persistFolders()
+        var changed = false
+        for index in bookmarks.indices where bookmarks[index].folderID == id {
+            bookmarks[index].folderID = nil
+            changed = true
+        }
+        if changed { persist() }
+    }
+
+    /// Files a connection in a folder, or takes it out of its folder with nil.
+    func move(_ profileID: UUID, toFolder folderID: UUID?) {
+        guard let index = bookmarks.firstIndex(where: { $0.id == profileID }), bookmarks[index].folderID != folderID else { return }
+        bookmarks[index].folderID = folderID
+        persist()
+    }
+
+    func folder(with id: UUID?) -> ConnectionFolder? {
+        id.flatMap { id in folders.first { $0.id == id } }
+    }
+
+    private func sortedFolders(_ folders: [ConnectionFolder]) -> [ConnectionFolder] {
+        folders.sorted {
+            let order = $0.name.localizedStandardCompare($1.name)
+            return order == .orderedSame ? $0.id.uuidString < $1.id.uuidString : order == .orderedAscending
+        }
+    }
+
+    private func loadFolders() {
+        let stored = (try? Data(contentsOf: foldersURL)).flatMap { try? decoder.decode([ConnectionFolder].self, from: $0) } ?? []
+        folders = sortedFolders(stored)
+    }
+
+    private func persistFolders() {
+        folders = sortedFolders(folders)
+        if let data = try? encoder.encode(folders) { try? data.write(to: foldersURL, options: [.atomic]) }
+        guard cloudSyncEnabled else { return }
+        folderCloudCollection?.save(folders)
+    }
+
+    private func mergeFolders() {
+        guard let folderCloudCollection, let merged = folderCloudCollection.mergeCloud() else { return }
+        let sorted = sortedFolders(merged)
+        guard sorted != folders else { return }
+        folders = sorted
+        if let data = try? encoder.encode(folders) { try? data.write(to: foldersURL, options: [.atomic]) }
     }
 
     func refreshSyncConflicts() {

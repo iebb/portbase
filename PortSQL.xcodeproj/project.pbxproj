@@ -130,6 +130,7 @@
 		45E5890A451EF53BDB4FD33A /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */; };
 		4854FCCA39674D68F3AF2C46 /* SQLTemplateMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200D0F941E7FC63F89876E24 /* SQLTemplateMenu.swift */; };
 		486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23331E5633F855E60F40421E /* VisualizationServiceTests.swift */; };
+		8304A3E5B4D1C2039A87D6FF /* ConnectionFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */; };
 		43F0652261B4B907595C2152 /* ConnectionSecretSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4A7618F86A764EFDED402B /* ConnectionSecretSyncTests.swift */; };
 		9EF5142ED1FDCF6E4736A433 /* SessionTabSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */; };
 		4940EBB3BE4C24F23B1E0271 /* Inter-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 85933FC85A65CAEAEEE98DA9 /* Inter-Medium.otf */; };
@@ -292,6 +293,7 @@
 		B485056180E0AE5A1FE6F40A /* SQLiteDatabaseClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D580722EA09FAA6C99677231 /* SQLiteDatabaseClientTests.swift */; };
 		B4E24475FA87F9BC6230C56E /* HTTPDatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2223930E01B8FF700FD2C741 /* HTTPDatabaseModels.swift */; };
 		B665D7AB1A670C85278FBF52 /* VisualizationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23331E5633F855E60F40421E /* VisualizationServiceTests.swift */; };
+		9BA9CED68CBB989E0E40F7F5 /* ConnectionFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */; };
 		D3A77AE9ED5B34C16B90C8EE /* ConnectionSecretSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C4A7618F86A764EFDED402B /* ConnectionSecretSyncTests.swift */; };
 		8A8B037E5BC89BACC769EA6D /* SessionTabSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */; };
 		B771B5A8BF74390DD3463C36 /* VisualizationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5EF3726F667E1FB0E249A5C /* VisualizationModels.swift */; };
@@ -445,6 +447,7 @@
 		226965703EF45A1026AA878E /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		22AFD3BD8AC9A13A7B595C68 /* ClickHouseDatabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickHouseDatabaseClient.swift; sourceTree = "<group>"; };
 		23331E5633F855E60F40421E /* VisualizationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationServiceTests.swift; sourceTree = "<group>"; };
+		4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFolderTests.swift; sourceTree = "<group>"; };
 		4C4A7618F86A764EFDED402B /* ConnectionSecretSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionSecretSyncTests.swift; sourceTree = "<group>"; };
 		DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTabSetTests.swift; sourceTree = "<group>"; };
 		251D87D88DCD9B94086CB2C2 /* ResultGridChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultGridChartTests.swift; sourceTree = "<group>"; };
@@ -866,6 +869,7 @@
 				ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */,
 				CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */,
 				23331E5633F855E60F40421E /* VisualizationServiceTests.swift */,
+				4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */,
 				4C4A7618F86A764EFDED402B /* ConnectionSecretSyncTests.swift */,
 				DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */,
 				660C54E07DFDB131EF53BD67 /* WorkspaceCloudSyncTests.swift */,
@@ -1382,6 +1386,7 @@
 				5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */,
 				1134B1656EE5F55C435A8F6B /* ServerCertificateProbeTests.swift in Sources */,
 				486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */,
+				8304A3E5B4D1C2039A87D6FF /* ConnectionFolderTests.swift in Sources */,
 				43F0652261B4B907595C2152 /* ConnectionSecretSyncTests.swift in Sources */,
 				9EF5142ED1FDCF6E4736A433 /* SessionTabSetTests.swift in Sources */,
 				345DFC6BED4439E0FF46D1C0 /* WorkspaceCloudSyncTests.swift in Sources */,
@@ -1419,6 +1424,7 @@
 				2DE3A2F6FFF1DBB0B49E3B23 /* SSHTunnelServiceTests.swift in Sources */,
 				889126422DD80E52074C5413 /* ServerCertificateProbeTests.swift in Sources */,
 				B665D7AB1A670C85278FBF52 /* VisualizationServiceTests.swift in Sources */,
+				9BA9CED68CBB989E0E40F7F5 /* ConnectionFolderTests.swift in Sources */,
 				D3A77AE9ED5B34C16B90C8EE /* ConnectionSecretSyncTests.swift in Sources */,
 				8A8B037E5BC89BACC769EA6D /* SessionTabSetTests.swift in Sources */,
 				FEF32D0898A63764D9A1E596 /* WorkspaceCloudSyncTests.swift in Sources */,

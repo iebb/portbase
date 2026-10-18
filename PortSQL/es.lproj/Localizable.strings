@@ -1599,3 +1599,15 @@
 "Column and Type" = "Columna y tipo";
 "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "Cómo muestran las tablas de resultados el tipo de cada columna. Un tipo oculto sigue apareciendo al señalar el encabezado y para VoiceOver.";
 "Type Below Column" = "Tipo debajo de la columna";
+"All Environments" = "Todos los entornos";
+"Color" = "Color";
+"Delete Folder" = "Eliminar carpeta";
+"Delete “%@”?" = "¿Eliminar «%@»?";
+"Folder" = "Carpeta";
+"Folders" = "Carpetas";
+"Its connections stay, outside any folder." = "Sus conexiones se conservan, fuera de cualquier carpeta.";
+"Move to Folder" = "Mover a carpeta";
+"New Folder" = "Nueva carpeta";
+"No Folder" = "Sin carpeta";
+"Rename Folder" = "Renombrar carpeta";
+"Shows only connections in this folder" = "Muestra solo las conexiones de esta carpeta";

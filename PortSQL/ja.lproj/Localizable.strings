@@ -1599,3 +1599,15 @@
 "Column and Type" = "列と型";
 "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "結果の表で各列の型をどう表示するかを選びます。非表示にした型も、見出しにポインタを合わせたときとVoiceOverでは表示されます。";
 "Type Below Column" = "列名の下に型";
+"All Environments" = "すべての環境";
+"Color" = "カラー";
+"Delete Folder" = "フォルダを削除";
+"Delete “%@”?" = "“%@”を削除しますか？";
+"Folder" = "フォルダ";
+"Folders" = "フォルダ";
+"Its connections stay, outside any folder." = "中の接続は削除されず、どのフォルダにも属さない状態になります。";
+"Move to Folder" = "フォルダへ移動";
+"New Folder" = "新規フォルダ";
+"No Folder" = "フォルダなし";
+"Rename Folder" = "フォルダ名を変更";
+"Shows only connections in this folder" = "このフォルダの接続だけを表示します";

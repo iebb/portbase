@@ -1599,3 +1599,15 @@
 "Column and Type" = "열과 유형";
 "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "결과 표에서 각 열의 유형을 표시하는 방식입니다. 숨긴 유형도 머리글을 가리키거나 VoiceOver를 사용할 때는 표시됩니다.";
 "Type Below Column" = "열 아래에 유형";
+"All Environments" = "모든 환경";
+"Color" = "색상";
+"Delete Folder" = "폴더 삭제";
+"Delete “%@”?" = "‘%@’을(를) 삭제하시겠습니까?";
+"Folder" = "폴더";
+"Folders" = "폴더";
+"Its connections stay, outside any folder." = "포함된 연결은 유지되며 어떤 폴더에도 속하지 않게 됩니다.";
+"Move to Folder" = "폴더로 이동";
+"New Folder" = "새 폴더";
+"No Folder" = "폴더 없음";
+"Rename Folder" = "폴더 이름 변경";
+"Shows only connections in this folder" = "이 폴더의 연결만 표시합니다";

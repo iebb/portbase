@@ -1599,3 +1599,15 @@
 "Column and Type" = "欄位與類型";
 "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "結果表如何顯示每個欄位的類型。隱藏的類型在指向標題時以及對 VoiceOver 仍會顯示。";
 "Type Below Column" = "類型在欄位下方";
+"All Environments" = "所有環境";
+"Color" = "顏色";
+"Delete Folder" = "刪除檔案夾";
+"Delete “%@”?" = "刪除「%@」？";
+"Folder" = "檔案夾";
+"Folders" = "檔案夾";
+"Its connections stay, outside any folder." = "其中的連線會保留，不屬於任何檔案夾。";
+"Move to Folder" = "移到檔案夾";
+"New Folder" = "新增檔案夾";
+"No Folder" = "無檔案夾";
+"Rename Folder" = "重新命名檔案夾";
+"Shows only connections in this folder" = "僅顯示此檔案夾中的連線";

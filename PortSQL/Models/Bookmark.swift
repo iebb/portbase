@@ -158,6 +158,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var schemaCacheDurationHours: Int = 24
     var environment: ConnectionEnvironment = .none
     var colorTag: ConnectionColor? = nil
+    /// The folder the connection is filed in on the Servers page, if any.
+    var folderID: UUID? = nil
     /// Shows initials instead of the engine's mark when no symbol is chosen. A separate flag, so
     /// versions that predate engine marks keep showing initials for every connection without a symbol.
     var showsInitials = false
@@ -275,6 +277,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         case schemaCacheDurationHours
         case environment
         case colorTag
+        case folderID
         case showsInitials
         case createdAt
     }
@@ -421,6 +424,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         // An unknown label from a newer version must not make the whole connection unreadable.
         environment = (try? container.decodeIfPresent(ConnectionEnvironment.self, forKey: .environment)) ?? .none
         colorTag = try? container.decodeIfPresent(ConnectionColor.self, forKey: .colorTag)
+        folderID = try? container.decodeIfPresent(UUID.self, forKey: .folderID)
         showsInitials = try container.decodeIfPresent(Bool.self, forKey: .showsInitials) ?? false
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? .now
     }
@@ -460,6 +464,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         try container.encode(max(1, schemaCacheDurationHours), forKey: .schemaCacheDurationHours)
         try container.encodeIfPresent(environment == .none ? nil : environment, forKey: .environment)
         try container.encodeIfPresent(colorTag, forKey: .colorTag)
+        try container.encodeIfPresent(folderID, forKey: .folderID)
         if showsInitials { try container.encode(true, forKey: .showsInitials) }
         try container.encode(createdAt, forKey: .createdAt)
     }
@@ -490,4 +495,13 @@ struct EditorHint: Identifiable, Hashable {
             }
         }
     }
+}
+
+/// A folder for filing connections on the Servers page, named and colored by the user and synced
+/// like the connections themselves.
+struct ConnectionFolder: Codable, Identifiable, Equatable, Hashable {
+    var id = UUID()
+    var name: String
+    var colorTag: ConnectionColor?
+    var createdAt = Date()
 }
