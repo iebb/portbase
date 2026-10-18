@@ -621,6 +621,7 @@ final class WorkspaceLibraryStore: ObservableObject {
                 "  gridSpan: \(yamlQuoted(String(preset.gridSpan)))",
                 "  tileSpan: \(yamlQuoted(String(preset.legacyTileSpan)))",
                 "  showsLegend: \(preset.showsLegend ? "true" : "false")",
+                "  legendPosition: \(yamlOptional(preset.legendPosition?.rawValue))",
                 "  topLimit: \(yamlOptional(preset.topLimit.map { String($0) }))",
                 "  presentation: \(yamlOptional(preset.presentation?.rawValue))",
                 "  sortOrder: \(yamlOptional(preset.sortOrder?.rawValue))",
@@ -730,6 +731,7 @@ final class WorkspaceLibraryStore: ObservableObject {
                 gridSpan: (try? yamlDecoded(item["gridSpan"])).flatMap { $0 }.flatMap(Int.init)
                     ?? SavedVisualizationPreset.gridSpan(fromLegacyTileSpan: (try? yamlDecoded(item["tileSpan"])).flatMap { $0 }.flatMap(Int.init) ?? 1),
                 showsLegend: yamlBool(item["showsLegend"]) ?? true,
+                legendPosition: (try? yamlDecoded(item["legendPosition"])).flatMap { $0 }.flatMap(ChartLegendPosition.init(rawValue:)),
                 topLimit: (try? yamlDecoded(item["topLimit"])).flatMap { $0 }.flatMap(Int.init),
                 presentation: (try? yamlDecoded(item["presentation"])).flatMap { $0 }.flatMap(ChartPresentation.init(rawValue:)),
                 sortOrder: (try? yamlDecoded(item["sortOrder"])).flatMap { $0 }.flatMap(ChartSortOrder.init(rawValue:)),

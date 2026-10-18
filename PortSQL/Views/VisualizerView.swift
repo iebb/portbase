@@ -348,9 +348,24 @@ struct VisualizerComposerSheet: View {
                             Toggle("Show Values", isOn: $draft.showsValues)
                                 .font(.rowTitle)
                                 .foregroundStyle(PortSQLPalette.ink)
-                            Toggle("Show Legend", isOn: $draft.showsLegend)
-                                .font(.rowTitle)
-                                .foregroundStyle(PortSQLPalette.ink)
+                            LabeledContent {
+                                Picker("Legend", selection: Binding(
+                                    get: { draft.showsLegend ? (draft.legendPosition ?? .bottom).rawValue : "hidden" },
+                                    set: { choice in
+                                        draft.showsLegend = choice != "hidden"
+                                        draft.legendPosition = ChartLegendPosition(rawValue: choice).flatMap { $0 == .bottom ? nil : $0 }
+                                    })) {
+                                    ForEach(ChartLegendPosition.allCases) { Text($0.title).tag($0.rawValue) }
+                                    Text("Hidden").tag("hidden")
+                                }
+                                .pickerStyle(.segmented)
+                                .labelsHidden()
+                                .fixedSize()
+                            } label: {
+                                Text("Legend")
+                            }
+                            .font(.rowTitle)
+                            .foregroundStyle(PortSQLPalette.ink)
 
                             VStack(alignment: .leading, spacing: Spacing.xs) {
                                 Toggle("Top K", isOn: Binding(

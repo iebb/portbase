@@ -1614,3 +1614,6 @@
 "Delete Permanently" = "完全に削除";
 "Deleted queries and charts stay here until you delete them permanently." = "削除したクエリとチャートは、完全に削除するまでここに残ります。";
 "Optional for local servers" = "ローカルサーバでは省略可";
+"Bottom" = "下";
+"Legend" = "凡例";
+"Right" = "右";

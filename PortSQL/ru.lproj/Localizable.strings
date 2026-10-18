@@ -1614,3 +1614,6 @@
 "Delete Permanently" = "Удалить навсегда";
 "Deleted queries and charts stay here until you delete them permanently." = "Удалённые запросы и диаграммы хранятся здесь, пока вы не удалите их навсегда.";
 "Optional for local servers" = "Необязательно для локальных серверов";
+"Bottom" = "Снизу";
+"Legend" = "Легенда";
+"Right" = "Справа";

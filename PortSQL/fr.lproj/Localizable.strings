@@ -1614,3 +1614,6 @@
 "Delete Permanently" = "Supprimer définitivement";
 "Deleted queries and charts stay here until you delete them permanently." = "Les requêtes et graphiques supprimés restent ici jusqu’à leur suppression définitive.";
 "Optional for local servers" = "Facultative pour les serveurs locaux";
+"Bottom" = "En bas";
+"Legend" = "Légende";
+"Right" = "À droite";

@@ -1614,3 +1614,6 @@
 "Delete Permanently" = "Delete Permanently";
 "Deleted queries and charts stay here until you delete them permanently." = "Deleted queries and charts stay here until you delete them permanently.";
 "Optional for local servers" = "Optional for local servers";
+"Bottom" = "Bottom";
+"Legend" = "Legend";
+"Right" = "Right";

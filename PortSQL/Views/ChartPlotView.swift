@@ -27,15 +27,29 @@ struct VisualizationChartPlot: View {
     private var horizontalBars: Bool { preset.chartType == .bar && preset.isHorizontal }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.s) {
-            switch preset.chartType {
-            case .pie, .donut: sectorChart
-            default: cartesianChart
+        Group {
+            if preset.showsLegend, !legend.isEmpty, preset.legendPosition == .right {
+                // Beside the plot, the legend lists every entry in a column that scrolls when it's long.
+                HStack(alignment: .top, spacing: Spacing.m) {
+                    plot
+                    legendColumn
+                }
+            } else {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    plot
+                    if preset.showsLegend, !legend.isEmpty { legendRow }
+                }
             }
-            if preset.showsLegend, !legend.isEmpty { legendRow }
         }
         .frame(height: height)
         .frame(maxHeight: height == nil ? .infinity : nil)
+    }
+
+    @ViewBuilder private var plot: some View {
+        switch preset.chartType {
+        case .pie, .donut: sectorChart
+        default: cartesianChart
+        }
     }
 
     // MARK: Legend
@@ -92,6 +106,29 @@ struct VisualizationChartPlot: View {
                 }
             }
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var legendColumn: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                ForEach(legend) { entry in
+                    HStack(spacing: Spacing.xxs) {
+                        Circle().fill(entry.color).frame(width: 7, height: 7)
+                        Text(entry.name).foregroundStyle(PortSQLPalette.ink).truncationMode(.middle)
+                        if let detail = entry.detail {
+                            Spacer(minLength: Spacing.xxs)
+                            Text(detail).foregroundStyle(PortSQLPalette.muted).monospacedDigit()
+                        }
+                    }
+                    .font(.microText)
+                    .lineLimit(1)
+                }
+            }
+            .padding(.vertical, Spacing.xxs)
+        }
+        .frame(minWidth: 80, idealWidth: 140, maxWidth: 180, alignment: .topLeading)
+        .fixedSize(horizontal: true, vertical: false)
         .accessibilityElement(children: .combine)
     }
 

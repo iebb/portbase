@@ -83,6 +83,18 @@ enum ChartSortOrder: String, Codable, CaseIterable, Identifiable {
 }
 
 /// How bars of several series share a category.
+/// Where a chart lists its series or slices.
+enum ChartLegendPosition: String, Codable, CaseIterable, Identifiable {
+    case bottom, right
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .bottom: L10n.text("Bottom")
+        case .right: L10n.text("Right")
+        }
+    }
+}
+
 enum ChartBarLayout: String, Codable, CaseIterable, Identifiable {
     case stacked, grouped, normalized
     var id: String { rawValue }
@@ -140,8 +152,10 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
     var tileHeight: Double?
     /// The tile's width in 24ths of the page, from 4 to 24. Narrow screens widen tiles to a minimum width.
     var gridSpan: Int = 8
-    /// Whether the chart lists its series or slices under the plot.
+    /// Whether the chart lists its series or slices.
     var showsLegend = true
+    /// Where the legend sits; nil is under the plot.
+    var legendPosition: ChartLegendPosition?
     /// Keeps the largest K categories, series, or rows and combines the rest into "Other"; nil shows everything.
     var topLimit: Int?
     /// Shows the data as a table or a single number instead of the plot.
@@ -210,6 +224,7 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         tileHeight: Double? = nil,
         gridSpan: Int = 8,
         showsLegend: Bool = true,
+        legendPosition: ChartLegendPosition? = nil,
         topLimit: Int? = nil,
         presentation: ChartPresentation? = nil,
         sortOrder: ChartSortOrder? = nil,
@@ -242,6 +257,7 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         self.tileHeight = tileHeight.map(Self.clampedTileHeight)
         self.gridSpan = Self.clampedGridSpan(gridSpan)
         self.showsLegend = showsLegend
+        self.legendPosition = legendPosition
         self.topLimit = topLimit.map(Self.clampedTopLimit)
         self.presentation = presentation
         self.sortOrder = sortOrder
@@ -282,6 +298,7 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
             gridSpan = Self.gridSpan(fromLegacyTileSpan: (try? legacy?.decodeIfPresent(Int.self, forKey: .tileSpan)).flatMap { $0 } ?? 1)
         }
         showsLegend = (try? container.decodeIfPresent(Bool.self, forKey: .showsLegend)) ?? true
+        legendPosition = (try? container.decodeIfPresent(ChartLegendPosition.self, forKey: .legendPosition)).flatMap { $0 }
         topLimit = (try? container.decodeIfPresent(Int.self, forKey: .topLimit)).flatMap { $0 }.map(Self.clampedTopLimit)
         // An unknown presentation from a newer version falls back to the plot.
         presentation = (try? container.decodeIfPresent(ChartPresentation.self, forKey: .presentation)).flatMap { $0 }

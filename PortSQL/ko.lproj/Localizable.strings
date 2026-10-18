@@ -1614,3 +1614,6 @@
 "Delete Permanently" = "영구적으로 삭제";
 "Deleted queries and charts stay here until you delete them permanently." = "삭제한 쿼리와 차트는 영구적으로 삭제할 때까지 여기에 남습니다.";
 "Optional for local servers" = "로컬 서버에서는 선택 사항";
+"Bottom" = "아래";
+"Legend" = "범례";
+"Right" = "오른쪽";

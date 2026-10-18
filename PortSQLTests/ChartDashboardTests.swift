@@ -75,6 +75,25 @@ final class ChartDashboardTests: XCTestCase {
         XCTAssertNil(decoded.topLimit)
     }
 
+    @MainActor
+    func testLegendPositionSurvivesSavingAndUnknownPositionsFallBackToBottom() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("legend-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        var preset = VisualizationService.defaultPreset(for: .empty, connectionProfileID: nil, connectionName: "", databaseName: nil, sourceTableReference: nil)
+        preset.legendPosition = .right
+        let store = WorkspaceLibraryStore(directory: directory, cloudSyncEnabled: false)
+        XCTAssertTrue(store.saveVisualization(preset))
+        let reopened = WorkspaceLibraryStore(directory: directory, cloudSyncEnabled: false)
+        XCTAssertEqual(reopened.visualizations.first { $0.id == preset.id }?.legendPosition, .right, "Kept in the YAML library file")
+
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(preset)) as? [String: Any])
+        XCTAssertEqual(object["legendPosition"] as? String, "right")
+        object["legendPosition"] = "left"
+        let decoded = try JSONDecoder().decode(SavedVisualizationPreset.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertNil(decoded.legendPosition, "A position from a newer version falls back to the bottom")
+        XCTAssertTrue(decoded.showsLegend)
+    }
+
     func testSortingOrdersCategoriesAndKeepsOtherLast() {
         let points = [point("b", 5), point("a", 9), point("Other", 50), point("c", 1)].map { item -> VisualizationPlotPoint in
             item.xText == "Other"

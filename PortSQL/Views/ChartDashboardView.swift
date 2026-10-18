@@ -482,8 +482,20 @@ private struct ChartTile: View {
             Toggle(isOn: Binding(get: { preset.showsValues }, set: { value in libraryStore.updateChart(preset.id) { $0.showsValues = value } })) {
                 Label("Show Values", systemImage: "number")
             }
-            Toggle(isOn: Binding(get: { preset.showsLegend }, set: { libraryStore.setChartShowsLegend(preset.id, $0) })) {
-                Label("Show Legend", systemImage: "list.bullet.rectangle")
+            Menu("Legend", systemImage: "list.bullet.rectangle") {
+                ForEach(ChartLegendPosition.allCases) { position in
+                    Button {
+                        libraryStore.updateChart(preset.id) { $0.showsLegend = true; $0.legendPosition = position == .bottom ? nil : position }
+                    } label: {
+                        let selected = preset.showsLegend && (preset.legendPosition ?? .bottom) == position
+                        if selected { Label(position.title, systemImage: "checkmark") } else { Text(position.title) }
+                    }
+                }
+                Button {
+                    libraryStore.setChartShowsLegend(preset.id, false)
+                } label: {
+                    if preset.showsLegend { Text("Hidden") } else { Label("Hidden", systemImage: "checkmark") }
+                }
             }
             Menu("Size", systemImage: "arrow.up.left.and.arrow.down.right") {
                 ForEach(ChartTileSize.allCases) { size in

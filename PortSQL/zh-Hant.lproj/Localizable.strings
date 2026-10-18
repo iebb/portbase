@@ -1614,3 +1614,6 @@
 "Delete Permanently" = "永久刪除";
 "Deleted queries and charts stay here until you delete them permanently." = "已刪除的查詢和圖表會保留在這裡，直到你永久刪除它們。";
 "Optional for local servers" = "本機伺服器可選";
+"Bottom" = "底部";
+"Legend" = "圖例";
+"Right" = "右側";
