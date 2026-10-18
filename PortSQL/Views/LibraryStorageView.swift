@@ -5,6 +5,12 @@ struct LibraryStorageView: View {
     @EnvironmentObject private var consoles: ConsoleStore
     @State private var deletion: DeletedLibraryItem?
     @State private var closedDeletion: ConsoleDraft?
+    @State private var clearing: ClearTarget?
+
+    private enum ClearTarget: Identifiable {
+        case history, previews
+        var id: Self { self }
+    }
 
     var body: some View {
         List {
@@ -15,8 +21,8 @@ struct LibraryStorageView: View {
                 LabeledContent("Saved Queries", value: library.snippets.count.formatted())
                 LabeledContent("Charts", value: library.visualizations.count.formatted())
                 LabeledContent("Chart Previews", value: library.previewStorageSize)
-                Button("Clear Chart Previews") { library.clearPreviews() }
-                Button("Clear Query History") { library.clearHistory() }
+                Button("Clear Chart Previews") { clearing = .previews }
+                Button("Clear Query History", role: .destructive) { clearing = .history }
             }
             Section("Recently Closed Consoles") {
                 ForEach(consoles.closed) { draft in
@@ -46,6 +52,19 @@ struct LibraryStorageView: View {
             }
         }
         .navigationTitle("Library Storage")
+        // Clearing can't be undone, unlike deleting a saved query, which goes to the trash.
+        .confirmationDialog(clearing == .history ? L10n.text("Clear query history?") : L10n.text("Clear chart previews?"),
+                            isPresented: Binding(get: { clearing != nil }, set: { if !$0 { clearing = nil } }),
+                            titleVisibility: .visible) {
+            Button(clearing == .history ? L10n.text("Clear Query History") : L10n.text("Clear Chart Previews"), role: .destructive) {
+                if clearing == .history { library.clearHistory() } else { library.clearPreviews() }
+                clearing = nil
+            }
+            Button("Cancel", role: .cancel) { clearing = nil }
+        } message: {
+            Text(clearing == .history ? L10n.text("Every query in the history is removed from this device. This can't be undone.")
+                                      : L10n.text("Saved chart thumbnails are removed. Charts redraw them the next time they run."))
+        }
         .alert("Delete Permanently?", isPresented: Binding(get: { deletion != nil || closedDeletion != nil }, set: { if !$0 { deletion = nil; closedDeletion = nil } })) {
             Button("Delete", role: .destructive) {
                 if let deletion { library.permanentlyDelete(deletion) }

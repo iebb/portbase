@@ -6,6 +6,13 @@ struct SQLSafetyAssessment: Identifiable, Hashable {
     let message: String
     let requiresConfirmation: Bool
     let blocksExecution: Bool
+    /// Permanently removes data or objects (DROP, TRUNCATE, DELETE without WHERE); confirmed with a
+    /// dedicated prompt that names what is lost.
+    var isDestructive = false
+    /// The object the statement destroys, as written in the SQL, for the prompt and typed confirmation.
+    var target: String?
+    /// The label for the confirming button, such as "Drop" or "Truncate".
+    var actionTitle: String?
 }
 
 enum SQLSafetyService {
@@ -24,9 +31,11 @@ enum SQLSafetyService {
         engine: DatabaseEngine = .postgresql
     ) -> SQLSafetyAssessment? {
         if engine == .mongodb { return MongoQueryService.assessment(for: sql, readOnly: readOnly) }
-        if engine == .clickhouse { return ClickHouseQueryService.assessment(for: sql, readOnly: readOnly) }
         if engine == .redis { return RedisCommandService.assessment(for: sql, readOnly: readOnly) }
         if engine == .elasticsearch { return ElasticsearchQueryService.assessment(for: sql, readOnly: readOnly) }
+        // Destroying data gets its own confirmation, ahead of ClickHouse's general write check.
+        if !readOnly, let destructive = destructiveAssessment(for: sql, engine: engine) { return destructive }
+        if engine == .clickhouse { return ClickHouseQueryService.assessment(for: sql, readOnly: readOnly) }
         let statements = normalizedStatements(sql, engine: engine)
         guard !statements.isEmpty else { return nil }
 
@@ -76,6 +85,74 @@ enum SQLSafetyService {
         }
 
         return nil
+    }
+
+    /// The confirmation for the first statement that permanently destroys data, if any. Detection runs on
+    /// the sanitized statements, so keywords in literals and comments never count; names are then read
+    /// from the original SQL so they keep the user's spelling and quoting.
+    static func destructiveAssessment(for sql: String, engine: DatabaseEngine) -> SQLSafetyAssessment? {
+        let word = #"([^\s;(),]+)"#
+        let kinds = "TEMPORARY TABLE|TABLE|MATERIALIZED VIEW|VIEW|DATABASE|SCHEMA|INDEX|SEQUENCE|FUNCTION|PROCEDURE|TRIGGER|TYPE|DICTIONARY"
+        let alterPrefix = #"ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?"#
+        for statement in normalizedStatements(sql, engine: engine).sorted() {
+            if statement.range(of: #"^TRUNCATE "#, options: .regularExpression) != nil {
+                let target = spelledName(after: #"TRUNCATE\s+(?:TABLE\s+)?(?:ONLY\s+)?"#, in: sql)
+                    ?? capture(#"^TRUNCATE (?:TABLE )?(?:ONLY )?"# + word, in: statement) ?? ""
+                return SQLSafetyAssessment(
+                    title: L10n.format("Empty %@?", target),
+                    message: L10n.format("TRUNCATE permanently removes every row in %@. This can't be undone.", target),
+                    requiresConfirmation: true, blocksExecution: false, isDestructive: true, target: target, actionTitle: L10n.text("Truncate"))
+            }
+            if let match = captures(#"^ALTER TABLE (?:IF EXISTS )?(?:ONLY )?"# + word + #" DROP (?:COLUMN )?(?:IF EXISTS )?"# + word, in: statement),
+               match.count == 2, !["CONSTRAINT", "INDEX", "KEY", "PRIMARY", "FOREIGN", "PARTITION", "DEFAULT", "CHECK"].contains(match[1]) {
+                let table = spelledName(after: alterPrefix, in: sql) ?? match[0]
+                let column = spelledName(after: alterPrefix + Self.identifierPattern + #"\s+DROP\s+(?:COLUMN\s+)?(?:IF\s+EXISTS\s+)?"#, in: sql) ?? match[1]
+                return SQLSafetyAssessment(
+                    title: L10n.format("Drop column %@?", column),
+                    message: L10n.format("This permanently deletes the column %1$@ and all of its values from %2$@. This can't be undone.", column, table),
+                    requiresConfirmation: true, blocksExecution: false, isDestructive: true, target: column, actionTitle: L10n.text("Drop"))
+            }
+            if let kind = capture(#"^DROP ("# + kinds + #") "#, in: statement) {
+                let spelledKind = kind.replacingOccurrences(of: " ", with: #"\s+"#)
+                let target = spelledName(after: #"DROP\s+"# + spelledKind + #"\s+(?:IF\s+EXISTS\s+)?"#, in: sql)
+                    ?? capture(#"^DROP "# + kind + #" (?:IF EXISTS )?"# + word, in: statement) ?? ""
+                return SQLSafetyAssessment(
+                    title: L10n.format("Drop %@?", target),
+                    message: L10n.format("DROP %1$@ permanently deletes %2$@ and everything in it. This can't be undone.", kind, target),
+                    requiresConfirmation: true, blocksExecution: false, isDestructive: true, target: target, actionTitle: L10n.text("Drop"))
+            }
+            if isDeleteWithoutWhere(statement) {
+                let target = spelledName(after: #"DELETE\s+(?:FROM\s+)?"#, in: sql)
+                    ?? capture(#"^DELETE (?:FROM )?"# + word, in: statement) ?? ""
+                return SQLSafetyAssessment(
+                    title: L10n.format("Delete every row in %@?", target),
+                    message: L10n.format("This DELETE has no WHERE clause, so it removes every row in %@. This can't be undone.", target),
+                    requiresConfirmation: true, blocksExecution: false, isDestructive: true, target: target, actionTitle: L10n.text("Delete All Rows"))
+            }
+        }
+        return nil
+    }
+
+    /// One identifier part, bare or quoted with "", ``, or [], optionally qualified with dots.
+    private static let identifierPattern = #"(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|[^\s;(),."`\[]+)(?:\.(?:"[^"]+"|`[^`]+`|\[[^\]]+\]|[^\s;(),."`\[]+))*"#
+
+    /// The identifier following `prefix` in the original SQL, without quotes, or nil when it can't be found.
+    private static func spelledName(after prefix: String, in sql: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: #"\b"# + prefix + "(" + identifierPattern + ")", options: .caseInsensitive),
+              let match = regex.firstMatch(in: sql, range: NSRange(sql.startIndex..., in: sql)),
+              let range = Range(match.range(at: 1), in: sql) else { return nil }
+        let name = sql[range].filter { !"\"`[]".contains($0) }
+        return name.isEmpty ? nil : name
+    }
+
+    private static func capture(_ pattern: String, in text: String) -> String? {
+        captures(pattern, in: text)?.first
+    }
+
+    private static func captures(_ pattern: String, in text: String) -> [String]? {
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)) else { return nil }
+        return (1..<match.numberOfRanges).compactMap { Range(match.range(at: $0), in: text).map { String(text[$0]) } }
     }
 
     static func isReadOnlyStatement(_ normalized: String) -> Bool {

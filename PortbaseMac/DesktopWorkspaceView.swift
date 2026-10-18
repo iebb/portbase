@@ -121,11 +121,7 @@ struct DesktopWorkspaceView: View {
         .sheet(item: $workspace.parameterDraft) { draft in QueryParameterSheet(draft: draft).frame(minWidth: 480, minHeight: 320) }
         .sheet(item: $workspace.selectedProfileForEdit) { profile in BookmarkEditorView(profile: profile).frame(width: 640, height: 600) }
         .pendingEditsDiscardPrompt(workspace)
-        .alert(item: $workspace.pendingSafetyConfirmation) { pending in
-            Alert(title: Text(pending.assessment.title), message: Text(pending.assessment.message),
-                  primaryButton: .destructive(Text("Run Anyway")) { workspace.runPendingSafetyConfirmation() },
-                  secondaryButton: .cancel { workspace.cancelPendingSafetyConfirmation() })
-        }
+        .sqlSafetyConfirmation(workspace)
         .focusedSceneObject(workspace)
         .certificateTrustPrompt(workspace)
         .confirmationDialog("Delete Connection?", isPresented: Binding(get: { deletingProfile != nil }, set: { if !$0 { deletingProfile = nil } }), titleVisibility: .visible) {

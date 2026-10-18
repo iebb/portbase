@@ -246,3 +246,46 @@ final class AssistantSettingsSyncTests: XCTestCase {
         XCTAssertGreaterThan(AssistantSettings.load(from: defaults).updatedAt, .distantPast)
     }
 }
+
+final class DestructiveSQLTests: XCTestCase {
+    func testTruncateDropAndDeleteAllAreDestructiveAndNameTheirTarget() throws {
+        let truncate = try XCTUnwrap(SQLSafetyService.assessment(for: "truncate table Orders;", readOnly: false))
+        XCTAssertTrue(truncate.isDestructive)
+        XCTAssertEqual(truncate.target, "Orders", "The name keeps the user's spelling")
+        XCTAssertEqual(truncate.actionTitle, "Truncate")
+
+        let drop = try XCTUnwrap(SQLSafetyService.assessment(for: "DROP TABLE IF EXISTS public.\"Customers\"", readOnly: false))
+        XCTAssertTrue(drop.isDestructive)
+        XCTAssertEqual(drop.target, "public.Customers")
+
+        let database = try XCTUnwrap(SQLSafetyService.assessment(for: "DROP DATABASE shop", readOnly: false, engine: .mysql))
+        XCTAssertEqual(database.target, "shop")
+        XCTAssertTrue(database.message.contains("DROP DATABASE"))
+
+        let column = try XCTUnwrap(SQLSafetyService.assessment(for: "ALTER TABLE users DROP COLUMN legacy_flag", readOnly: false))
+        XCTAssertTrue(column.isDestructive)
+        XCTAssertEqual(column.target, "legacy_flag")
+
+        let deleteAll = try XCTUnwrap(SQLSafetyService.assessment(for: "DELETE FROM sessions", readOnly: false))
+        XCTAssertTrue(deleteAll.isDestructive)
+        XCTAssertEqual(deleteAll.target, "sessions")
+
+        let clickHouse = try XCTUnwrap(SQLSafetyService.assessment(for: "TRUNCATE TABLE events", readOnly: false, engine: .clickhouse))
+        XCTAssertTrue(clickHouse.isDestructive)
+    }
+
+    func testOrdinaryWritesAndReadsAreNotTreatedAsDestructive() throws {
+        let delete = try XCTUnwrap(SQLSafetyService.assessment(for: "DELETE FROM sessions WHERE expired = true", readOnly: false))
+        XCTAssertFalse(delete.isDestructive)
+        XCTAssertTrue(delete.requiresConfirmation)
+        let dropConstraint = try XCTUnwrap(SQLSafetyService.assessment(for: "ALTER TABLE users DROP CONSTRAINT users_email_key", readOnly: false))
+        XCTAssertFalse(dropConstraint.isDestructive)
+        XCTAssertNil(SQLSafetyService.assessment(for: "SELECT 'DROP TABLE users'", readOnly: false), "Keywords inside literals don't count")
+    }
+
+    func testReadOnlyConnectionsStillBlockDestructiveStatements() throws {
+        let blocked = try XCTUnwrap(SQLSafetyService.assessment(for: "DROP TABLE users", readOnly: true))
+        XCTAssertTrue(blocked.blocksExecution)
+        XCTAssertFalse(blocked.isDestructive)
+    }
+}

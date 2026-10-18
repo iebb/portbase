@@ -171,18 +171,7 @@ struct RootView: View {
             BookmarkEditorView(profile: profile)
         }
         .pendingEditsDiscardPrompt(workspace)
-        .alert(item: $workspace.pendingSafetyConfirmation) { pending in
-            Alert(
-                title: Text(pending.assessment.title),
-                message: Text(pending.assessment.message),
-                primaryButton: .destructive(Text("Run Anyway")) {
-                    workspace.runPendingSafetyConfirmation()
-                },
-                secondaryButton: .cancel {
-                    workspace.cancelPendingSafetyConfirmation()
-                }
-            )
-        }
+        .sqlSafetyConfirmation(workspace)
     }
 
     /// The iPad destination tabs, in place of the floating system tab bar.

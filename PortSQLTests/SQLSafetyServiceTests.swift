@@ -23,7 +23,7 @@ final class SQLSafetyServiceTests: XCTestCase {
         let deleteAssessment = SQLSafetyService.assessment(for: "DELETE FROM users", readOnly: false)
         let updateAssessment = SQLSafetyService.assessment(for: "UPDATE users SET active = false", readOnly: false)
 
-        XCTAssertEqual(deleteAssessment?.title, "Confirm DELETE")
+        XCTAssertEqual(deleteAssessment?.isDestructive, true, "DELETE without WHERE gets the destructive confirmation")
         XCTAssertEqual(deleteAssessment?.requiresConfirmation, true)
         XCTAssertEqual(updateAssessment?.title, "Confirm UPDATE")
         XCTAssertEqual(updateAssessment?.requiresConfirmation, true)
@@ -54,7 +54,7 @@ final class SQLSafetyServiceTests: XCTestCase {
             readOnly: false
         )
 
-        XCTAssertEqual(assessment?.title, "Confirm DELETE")
+        XCTAssertEqual(assessment?.isDestructive, true, "DELETE without WHERE gets the destructive confirmation")
     }
 
     func testMySQLHashCommentDoesNotCreateFalseWhereMatch() {
@@ -64,7 +64,7 @@ final class SQLSafetyServiceTests: XCTestCase {
             engine: .mysql
         )
 
-        XCTAssertEqual(assessment?.title, "Confirm DELETE")
+        XCTAssertEqual(assessment?.isDestructive, true, "DELETE without WHERE gets the destructive confirmation")
         XCTAssertEqual(assessment?.requiresConfirmation, true)
     }
 
@@ -168,7 +168,7 @@ final class SQLSafetyServiceTests: XCTestCase {
         let assessment = SQLSafetyService.assessment(for: sql, readOnly: false, engine: .mysql)
 
         XCTAssertFalse(SQLSafetyService.isReadOnlySQL(sql, engine: .mysql))
-        XCTAssertEqual(assessment?.title, "Confirm DELETE")
+        XCTAssertEqual(assessment?.isDestructive, true, "DELETE without WHERE gets the destructive confirmation")
         XCTAssertTrue(assessment?.requiresConfirmation == true)
     }
 

@@ -281,6 +281,7 @@
 		C1CF2A49FC94BC000FD33D9C /* ClauseHistoryMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9F2CF1F2E6D73FD45B3DB7C /* ClauseHistoryMenu.swift */; };
 		C1E934566FFF6E7AE1DA4BB9 /* MongoDocumentEditingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5386C3FB749D9E3C6F4B50C /* MongoDocumentEditingTests.swift */; };
 		C2EFD292C82A88FFC4D44208 /* PendingEditsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EBE4F406C7E7B5AC2FE8F9 /* PendingEditsBar.swift */; };
+		B9F0A5845B2C7ABF71C4FC98 /* SQLSafetyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5036B28182CDD11EA53DE7 /* SQLSafetyConfirmation.swift */; };
 		E4324192C6928100FF5D983C /* AssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266D0C688B87B83CED66D1C8 /* AssistantView.swift */; };
 		C3F3ED3E74B9DB7DF2567548 /* LibraryStorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F80D99AFAC60FFE164F781B1 /* LibraryStorageView.swift */; };
 		C4EC0D8244FAF1E7CA2429F2 /* PostgresNIO in Frameworks */ = {isa = PBXBuildFile; productRef = 56B3EF1577F803D848C96A88 /* PostgresNIO */; };
@@ -299,6 +300,7 @@
 		D565C2CDE75B2FD2EEF3C0E3 /* HTTPDatabaseClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B935258BC11A1A55ACB262 /* HTTPDatabaseClientTests.swift */; };
 		D624D05933ACE8CD6EE783E9 /* SQLiteStatementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA70C64EDA6BB2FC2068BD8E /* SQLiteStatementService.swift */; };
 		D70C9366BFDA0A02030FFA7C /* PendingEditsBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8EBE4F406C7E7B5AC2FE8F9 /* PendingEditsBar.swift */; };
+		EBFAB23DF56BAEA4B06AE079 /* SQLSafetyConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E5036B28182CDD11EA53DE7 /* SQLSafetyConfirmation.swift */; };
 		5A8D9DF463DE43995133AF5F /* AssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 266D0C688B87B83CED66D1C8 /* AssistantView.swift */; };
 		D71DE5865352621C211E12A8 /* InteractiveChartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85AC296A2B11CE78022CF31E /* InteractiveChartView.swift */; };
 		D7409B5DF615E60D1F390CC3 /* SwiftBSON in Frameworks */ = {isa = PBXBuildFile; productRef = F0F014F353D815E0F5275DB2 /* SwiftBSON */; };
@@ -519,6 +521,7 @@
 		B7867B3292D0801CEF08B739 /* MongoDatabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDatabaseClient.swift; sourceTree = "<group>"; };
 		B8B685BE103998684123BF20 /* ElasticsearchModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElasticsearchModels.swift; sourceTree = "<group>"; };
 		B8EBE4F406C7E7B5AC2FE8F9 /* PendingEditsBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingEditsBar.swift; sourceTree = "<group>"; };
+		0E5036B28182CDD11EA53DE7 /* SQLSafetyConfirmation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLSafetyConfirmation.swift; sourceTree = "<group>"; };
 		266D0C688B87B83CED66D1C8 /* AssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantView.swift; sourceTree = "<group>"; };
 		B996C268E818B31DBE9B19BB /* SchemaObjects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaObjects.swift; sourceTree = "<group>"; };
 		BA3EDDC997AC2AA343BB360B /* ConnectionTester.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionTester.swift; sourceTree = "<group>"; };
@@ -883,6 +886,7 @@
 				63C52CE99FBA2ED6D018425D /* MongoQueryEditorCard.swift */,
 				9C872754AF981E9529ECBC05 /* NewSQLiteDatabasePrompt.swift */,
 				B8EBE4F406C7E7B5AC2FE8F9 /* PendingEditsBar.swift */,
+				0E5036B28182CDD11EA53DE7 /* SQLSafetyConfirmation.swift */,
 				266D0C688B87B83CED66D1C8 /* AssistantView.swift */,
 				04DF60A3CC28A1715A9CEB85 /* PlatformSupport.swift */,
 				D7ED5BC215AA4E7222335938 /* QueryPlanView.swift */,
@@ -1205,6 +1209,7 @@
 				1455C5130377AA965AD8CC24 /* NativeResultGrid.swift in Sources */,
 				B384918410F69B630AB55EA0 /* NewSQLiteDatabasePrompt.swift in Sources */,
 				D70C9366BFDA0A02030FFA7C /* PendingEditsBar.swift in Sources */,
+				EBFAB23DF56BAEA4B06AE079 /* SQLSafetyConfirmation.swift in Sources */,
 				5A8D9DF463DE43995133AF5F /* AssistantView.swift in Sources */,
 				5DFD83197F26CB1547FADF96 /* PinnedTableStore.swift in Sources */,
 				E20317BF190E70DEC1FFEDF0 /* PlatformSupport.swift in Sources */,
@@ -1397,6 +1402,7 @@
 				D0B37D9CB59FDEA5D604EDD1 /* MongoQueryService.swift in Sources */,
 				56A7417CE42163F63A9E813D /* NewSQLiteDatabasePrompt.swift in Sources */,
 				C2EFD292C82A88FFC4D44208 /* PendingEditsBar.swift in Sources */,
+				B9F0A5845B2C7ABF71C4FC98 /* SQLSafetyConfirmation.swift in Sources */,
 				E4324192C6928100FF5D983C /* AssistantView.swift in Sources */,
 				E94235766A587356E40A8E8D /* PinnedTableStore.swift in Sources */,
 				7610E482271A83C8E896E1F3 /* PlatformSupport.swift in Sources */,

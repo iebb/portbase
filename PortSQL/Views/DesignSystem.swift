@@ -769,13 +769,17 @@ struct PortbaseBackdrop: View {
 
 /// The main action of a screen or sheet: an accent fill with white text. Used once per surface.
 struct PortbasePrimaryButtonStyle: ButtonStyle {
+    /// The fill; the accent color unless the action destroys data.
+    var tint: Color?
+
     func makeBody(configuration: Configuration) -> some View {
-        PortbasePrimaryButton(configuration: configuration)
+        PortbasePrimaryButton(configuration: configuration, tint: tint ?? PortSQLPalette.accent)
     }
 }
 
 private struct PortbasePrimaryButton: View {
     let configuration: ButtonStyleConfiguration
+    let tint: Color
     @Environment(\.isEnabled) private var isEnabled
     @State private var isHovering = false
 
@@ -788,7 +792,7 @@ private struct PortbasePrimaryButton: View {
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, Spacing.xxs)
             .frame(minHeight: Sizes.control)
-            .background(shape.fill(PortSQLPalette.accent))
+            .background(shape.fill(tint))
             .background(shape.fill(Color.black.opacity(configuration.isPressed ? 0.18 : 0)).blendMode(.multiply))
             .overlay(shape.fill(Color.white.opacity(isHovering && isEnabled && !configuration.isPressed ? 0.08 : 0)))
             .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.45)
@@ -799,6 +803,8 @@ private struct PortbasePrimaryButton: View {
 
 extension ButtonStyle where Self == PortbasePrimaryButtonStyle {
     static var portbasePrimary: PortbasePrimaryButtonStyle { PortbasePrimaryButtonStyle() }
+    /// A red primary button for actions that permanently remove data.
+    static var portbaseDestructive: PortbasePrimaryButtonStyle { PortbasePrimaryButtonStyle(tint: Color(red: 0.86, green: 0.21, blue: 0.21)) }
 }
 
 /// One option of a segmented choice or tab strip.
