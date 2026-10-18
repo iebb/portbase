@@ -1310,7 +1310,6 @@
 "AI Provider" = "AI 제공자";
 "AI Settings" = "AI 설정";
 "API key" = "API 키";
-"API key (optional for local servers)" = "API 키(로컬 서버는 선택 사항)";
 "Add File…" = "파일 추가…";
 "Ask AI" = "AI에게 묻기";
 "Ask AI…" = "AI에게 묻기…";
@@ -1611,3 +1610,7 @@
 "No Folder" = "폴더 없음";
 "Rename Folder" = "폴더 이름 변경";
 "Shows only connections in this folder" = "이 폴더의 연결만 표시합니다";
+"Consoles you close stay here for a while, ready to restore." = "닫은 콘솔은 잠시 여기에 남아 있어 복원할 수 있습니다.";
+"Delete Permanently" = "영구적으로 삭제";
+"Deleted queries and charts stay here until you delete them permanently." = "삭제한 쿼리와 차트는 영구적으로 삭제할 때까지 여기에 남습니다.";
+"Optional for local servers" = "로컬 서버에서는 선택 사항";

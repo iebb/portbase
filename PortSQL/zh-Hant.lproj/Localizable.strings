@@ -1310,7 +1310,6 @@
 "AI Provider" = "AI 供應商";
 "AI Settings" = "AI 設定";
 "API key" = "API 金鑰";
-"API key (optional for local servers)" = "API 金鑰（本機伺服器可選）";
 "Add File…" = "加入檔案…";
 "Ask AI" = "詢問 AI";
 "Ask AI…" = "詢問 AI…";
@@ -1611,3 +1610,7 @@
 "No Folder" = "無檔案夾";
 "Rename Folder" = "重新命名檔案夾";
 "Shows only connections in this folder" = "僅顯示此檔案夾中的連線";
+"Consoles you close stay here for a while, ready to restore." = "關閉的主控台會在這裡保留一段時間，隨時可以復原。";
+"Delete Permanently" = "永久刪除";
+"Deleted queries and charts stay here until you delete them permanently." = "已刪除的查詢和圖表會保留在這裡，直到你永久刪除它們。";
+"Optional for local servers" = "本機伺服器可選";

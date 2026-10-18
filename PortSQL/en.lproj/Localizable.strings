@@ -1310,7 +1310,6 @@
 "AI Provider" = "AI Provider";
 "AI Settings" = "AI Settings";
 "API key" = "API key";
-"API key (optional for local servers)" = "API key (optional for local servers)";
 "Add File…" = "Add File…";
 "Ask AI" = "Ask AI";
 "Ask AI…" = "Ask AI…";
@@ -1611,3 +1610,7 @@
 "No Folder" = "No Folder";
 "Rename Folder" = "Rename Folder";
 "Shows only connections in this folder" = "Shows only connections in this folder";
+"Consoles you close stay here for a while, ready to restore." = "Consoles you close stay here for a while, ready to restore.";
+"Delete Permanently" = "Delete Permanently";
+"Deleted queries and charts stay here until you delete them permanently." = "Deleted queries and charts stay here until you delete them permanently.";
+"Optional for local servers" = "Optional for local servers";

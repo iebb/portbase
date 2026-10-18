@@ -1553,3 +1553,64 @@ struct EnvironmentPicker: View {
         }
     }
 }
+
+/// A form row with its label on the left and the editable value on the right, so a filled-in field still
+/// says what it is. Grouped forms on the Mac already lay text fields out this way.
+struct LabeledTextField: View {
+    private let title: Text
+    @Binding private var text: String
+    private let prompt: Text?
+    private let isSecure: Bool
+
+    init(_ title: LocalizedStringKey, text: Binding<String>, prompt: LocalizedStringKey? = nil, isSecure: Bool = false) {
+        self.title = Text(title)
+        self._text = text
+        self.prompt = prompt.map { Text($0) }
+        self.isSecure = isSecure
+    }
+
+    init(verbatim title: String, text: Binding<String>, prompt: String? = nil, isSecure: Bool = false) {
+        self.title = Text(verbatim: title)
+        self._text = text
+        self.prompt = prompt.map { Text(verbatim: $0) }
+        self.isSecure = isSecure
+    }
+
+    var body: some View {
+#if os(macOS)
+        field
+#else
+        LabeledContent {
+            field.multilineTextAlignment(.trailing)
+        } label: {
+            title
+        }
+#endif
+    }
+
+    @ViewBuilder private var field: some View {
+        if isSecure {
+            SecureField(text: $text, prompt: prompt) { title }
+        } else {
+            TextField(text: $text, prompt: prompt) { title }
+        }
+    }
+}
+
+/// A multi-line form field with its label above the value, which keeps the label once text is entered.
+struct LabeledTextArea: View {
+    let title: LocalizedStringKey
+    @Binding var text: String
+    var lineLimit: ClosedRange<Int> = 1...6
+
+    var body: some View {
+#if os(macOS)
+        TextField(title, text: $text, axis: .vertical).lineLimit(lineLimit)
+#else
+        VStack(alignment: .leading, spacing: Spacing.xxs) {
+            Text(title).font(.captionText).foregroundStyle(.secondary)
+            TextField(title, text: $text, axis: .vertical).lineLimit(lineLimit)
+        }
+#endif
+    }
+}

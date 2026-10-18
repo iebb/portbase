@@ -1573,7 +1573,7 @@ struct BookmarkEditorView: View {
                 if profile.engine == .mongodb { MongoConnectionURISection(profile: $profile) }
 
                 Section("Server") {
-                    TextField("Name", text: $profile.name)
+                    LabeledTextField("Name", text: $profile.name)
                     if !bookmarks.folders.isEmpty {
                         Picker("Folder", selection: $profile.folderID) {
                             Text("No Folder").tag(Optional<UUID>.none)
@@ -1581,9 +1581,10 @@ struct BookmarkEditorView: View {
                         }
                     }
                     if !profile.engine.isLocal {
-                    TextField("Host", text: $profile.host)
+                    LabeledTextField("Host", text: $profile.host, prompt: "db.example.com")
                         .portbaseTextCapitalization(.never)
-                    TextField("Port", text: Binding(
+                        .autocorrectionDisabled()
+                    LabeledTextField("Port", text: Binding(
                         get: { String(profile.port) },
                         set: { input in
                             let digits = input.filter(\.isNumber)
@@ -1591,12 +1592,12 @@ struct BookmarkEditorView: View {
                         }
                     ))
                         .portbaseKeyboardType(.numberPad)
-                    TextField(profile.engine == .redis ? L10n.text("Database number") : L10n.text("Default Database"), text: $profile.defaultDatabase)
+                    LabeledTextField(verbatim: profile.engine == .redis ? L10n.text("Database number") : L10n.text("Default Database"), text: $profile.defaultDatabase)
                         .portbaseKeyboardType(profile.engine == .redis ? .numberPad : .default)
                         .portbaseTextCapitalization(.never)
                         .autocorrectionDisabled()
                     if profile.engine == .mongodb {
-                        TextField("Authentication database", text: $profile.authenticationDatabase)
+                        LabeledTextField("Authentication database", text: $profile.authenticationDatabase)
                             .onChange(of: profile.authenticationDatabase) { _, _ in profile.mongoConnection.authenticationSourceIsExplicit = true }
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
@@ -1672,10 +1673,10 @@ struct BookmarkEditorView: View {
                     Toggle("Connect through SSH", isOn: $profile.usesSSHTunnel)
 
                     if profile.usesSSHTunnel {
-                        TextField("SSH Host", text: $profile.sshHost)
+                        LabeledTextField("SSH Host", text: $profile.sshHost, prompt: "bastion.example.com")
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
-                        TextField("SSH Port", text: Binding(
+                        LabeledTextField("SSH Port", text: Binding(
                             get: { String(profile.sshPort) },
                             set: { input in
                                 let digits = input.filter(\.isNumber)
@@ -1683,11 +1684,11 @@ struct BookmarkEditorView: View {
                             }
                         ))
                         .portbaseKeyboardType(.numberPad)
-                        TextField("SSH Username", text: $profile.sshUsername)
+                        LabeledTextField("SSH Username", text: $profile.sshUsername)
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
-                        SecureField("SSH Password", text: $profile.sshPassword)
-                        TextField("Private Key", text: $profile.sshPrivateKey, axis: .vertical)
+                        LabeledTextField("SSH Password", text: $profile.sshPassword, isSecure: true)
+                        LabeledTextArea(title: "Private Key", text: $profile.sshPrivateKey)
                             .font(.codeCaption)
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
@@ -1724,10 +1725,10 @@ struct BookmarkEditorView: View {
                     HTTPDatabaseAuthenticationSection(profile: $profile)
                 } else if !profile.engine.isLocal {
                 Section("Credentials") {
-                    TextField("Username", text: $profile.username)
+                    LabeledTextField("Username", text: $profile.username)
                         .portbaseTextCapitalization(.never)
                         .autocorrectionDisabled()
-                    SecureField("Password", text: $profile.password)
+                    LabeledTextField("Password", text: $profile.password, isSecure: true)
 #if !os(macOS)
                     Text(ConnectionSecretLocation.passwordNote)
                         .font(.captionText)

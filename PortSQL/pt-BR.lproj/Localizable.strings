@@ -1310,7 +1310,6 @@
 "AI Provider" = "Provedor de IA";
 "AI Settings" = "Ajustes de IA";
 "API key" = "Chave de API";
-"API key (optional for local servers)" = "Chave de API (opcional para servidores locais)";
 "Add File…" = "Adicionar arquivo…";
 "Ask AI" = "Perguntar à IA";
 "Ask AI…" = "Perguntar à IA…";
@@ -1611,3 +1610,7 @@
 "No Folder" = "Nenhuma pasta";
 "Rename Folder" = "Renomear pasta";
 "Shows only connections in this folder" = "Mostra apenas as conexões desta pasta";
+"Consoles you close stay here for a while, ready to restore." = "Os consoles que você fecha ficam aqui por um tempo, prontos para restaurar.";
+"Delete Permanently" = "Apagar permanentemente";
+"Deleted queries and charts stay here until you delete them permanently." = "Consultas e gráficos apagados ficam aqui até você apagá-los permanentemente.";
+"Optional for local servers" = "Opcional para servidores locais";

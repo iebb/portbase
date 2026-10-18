@@ -1310,7 +1310,6 @@
 "AI Provider" = "AI 提供商";
 "AI Settings" = "AI 设置";
 "API key" = "API 密钥";
-"API key (optional for local servers)" = "API 密钥（本地服务器可选）";
 "Add File…" = "添加文件…";
 "Ask AI" = "询问 AI";
 "Ask AI…" = "询问 AI…";
@@ -1611,3 +1610,7 @@
 "No Folder" = "无文件夹";
 "Rename Folder" = "重命名文件夹";
 "Shows only connections in this folder" = "仅显示此文件夹中的连接";
+"Consoles you close stay here for a while, ready to restore." = "关闭的控制台会在这里保留一段时间，随时可以恢复。";
+"Delete Permanently" = "永久删除";
+"Deleted queries and charts stay here until you delete them permanently." = "已删除的查询和图表会保留在这里，直到你永久删除它们。";
+"Optional for local servers" = "本地服务器可选";

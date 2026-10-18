@@ -1310,7 +1310,6 @@
 "AI Provider" = "AIプロバイダ";
 "AI Settings" = "AI設定";
 "API key" = "APIキー";
-"API key (optional for local servers)" = "APIキー（ローカルサーバでは省略可）";
 "Add File…" = "ファイルを追加…";
 "Ask AI" = "AIに質問";
 "Ask AI…" = "AIに質問…";
@@ -1611,3 +1610,7 @@
 "No Folder" = "フォルダなし";
 "Rename Folder" = "フォルダ名を変更";
 "Shows only connections in this folder" = "このフォルダの接続だけを表示します";
+"Consoles you close stay here for a while, ready to restore." = "閉じたコンソールはしばらくここに残り、復元できます。";
+"Delete Permanently" = "完全に削除";
+"Deleted queries and charts stay here until you delete them permanently." = "削除したクエリとチャートは、完全に削除するまでここに残ります。";
+"Optional for local servers" = "ローカルサーバでは省略可";

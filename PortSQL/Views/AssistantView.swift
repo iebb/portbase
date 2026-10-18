@@ -1060,16 +1060,17 @@ struct AssistantProviderEditor: View {
         PortbaseSheet(isNew ? L10n.text("Add Provider") : draft.name, onClose: { dismiss() }) {
             Form {
                 Section {
-                    TextField("Name", text: $draft.name)
+                    LabeledTextField("Name", text: $draft.name)
                     LabeledContent("API") {
                         PortbaseSegmentedPicker(selection: $draft.kind,
                                                 options: AssistantProvider.allCases.map { PortbaseChoice(value: $0, title: $0.title) })
                     }
-                    TextField("Endpoint", text: $draft.baseURL, prompt: Text(verbatim: draft.kind.defaultBaseURL))
+                    LabeledTextField(verbatim: L10n.text("Endpoint"), text: $draft.baseURL, prompt: draft.kind.defaultBaseURL)
                         .autocorrectionDisabled()
                         .portbaseTextCapitalization(.never)
                         .portbaseKeyboardType(.URL)
-                    SecureField(draft.kind == .anthropic ? L10n.text("API key") : L10n.text("API key (optional for local servers)"), text: $apiKey)
+                    LabeledTextField(verbatim: L10n.text("API key"), text: $apiKey,
+                                     prompt: draft.kind == .anthropic ? nil : L10n.text("Optional for local servers"), isSecure: true)
                 } footer: {
                     Text("The API key syncs to your other devices through iCloud Keychain.")
                 }
@@ -1082,7 +1083,7 @@ struct AssistantProviderEditor: View {
                             ForEach(draft.models) { Text($0.title).tag($0.id) }
                         }
                     }
-                    TextField(draft.models.isEmpty ? L10n.text("Model") : L10n.text("Or enter a model ID"), text: $draft.model)
+                    LabeledTextField(verbatim: draft.models.isEmpty ? L10n.text("Model") : L10n.text("Or enter a model ID"), text: $draft.model)
                         .autocorrectionDisabled()
                         .portbaseTextCapitalization(.never)
                     Button {

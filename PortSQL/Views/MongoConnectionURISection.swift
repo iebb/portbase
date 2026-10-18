@@ -16,7 +16,7 @@ struct MongoConnectionURISection: View {
                 }
             Toggle("Direct connection", isOn: $profile.mongoConnection.directConnection)
                 .disabled(profile.mongoConnection.usesSRV || !profile.mongoConnection.additionalHosts.isEmpty)
-            TextField("Replica set", text: $profile.mongoConnection.replicaSet)
+            LabeledTextField("Replica set", text: $profile.mongoConnection.replicaSet)
                 .portbaseTextCapitalization(.never).autocorrectionDisabled()
             if !profile.mongoConnection.additionalHosts.isEmpty {
                 LabeledContent("Additional seed hosts") {

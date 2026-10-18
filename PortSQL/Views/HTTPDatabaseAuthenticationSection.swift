@@ -10,13 +10,13 @@ struct HTTPDatabaseAuthenticationSection: View {
             }
             .frame(minHeight: Sizes.touchTarget)
             if profile.httpAuthentication == .basic {
-                TextField("Username", text: $profile.username)
+                LabeledTextField("Username", text: $profile.username)
                     .portbaseTextCapitalization(.never).autocorrectionDisabled().frame(minHeight: Sizes.touchTarget)
             }
-            SecureField(secretTitle, text: Binding(get: { profile.password }, set: {
+            LabeledTextField(verbatim: secretTitle, text: Binding(get: { profile.password }, set: {
                 profile.password = $0
                 profile.passwordWasExplicitlySet = true
-            }))
+            }), isSecure: true)
             .portbaseTextCapitalization(.never).autocorrectionDisabled().frame(minHeight: Sizes.touchTarget)
             .accessibilityLabel(secretTitle)
         }
