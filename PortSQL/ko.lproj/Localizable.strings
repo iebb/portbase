@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "신뢰하는 호스트 키";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "선택할 때까지 이 기기는 자신의 키를 계속 신뢰하며, 다른 키를 제시하는 서버는 거부됩니다.";
 "Use That Value" = "그 값 사용";
+"Column Headers" = "열 머리글";
+"Column Name Only" = "열 이름만";
+"Column and Type" = "열과 유형";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "결과 표에서 각 열의 유형을 표시하는 방식입니다. 숨긴 유형도 머리글을 가리키거나 VoiceOver를 사용할 때는 표시됩니다.";
+"Type Below Column" = "열 아래에 유형";

@@ -33,6 +33,7 @@ struct GridCollectionBridge: NSViewRepresentable {
     let primaryKeys: Set<String>
     let sortedColumn: String?
     let sortDirection: String?
+    var headerStyle: ResultHeaderStyle = .platformDefault
     var onSort: ((String) -> Void)?
     var onOpenRow: ((Int) -> Void)?
     var actionsForCell: ((Int, Int) -> [ResultGridRowAction])?
@@ -86,13 +87,20 @@ struct GridCollectionBridge: NSViewRepresentable {
         context.coordinator.parent = self
         // A column the user just dragged is already in place, so compare against the table itself.
         let shown = table.tableColumns.map(\.identifier.rawValue)
-        if shown != visibleColumns.map(String.init) || old.result.columns != result.columns || table.tableColumns.isEmpty {
+        // A type under the name needs a taller header.
+        let headerHeight: CGFloat = headerStyle == .typeBelow ? 38 : 26
+        if let header = table.headerView, header.frame.height != headerHeight {
+            header.frame.size.height = headerHeight
+            scroll.tile()
+        }
+        if shown != visibleColumns.map(String.init) || old.result.columns != result.columns || table.tableColumns.isEmpty
+            || old.headerStyle != headerStyle {
             for column in table.tableColumns { table.removeTableColumn(column) }
             for index in visibleColumns {
                 let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier(String(index)))
                 column.title = result.columns[index].name
                 column.minWidth = 64; column.maxWidth = 800
-                column.width = configuration.widths[index].map { CGFloat($0) } ?? Self.naturalWidth(result: result, column: index)
+                column.width = configuration.widths[index].map { CGFloat($0) } ?? Self.naturalWidth(result: result, column: index, headerStyle: headerStyle)
                 column.headerCell.font = PortbaseFonts.codeFont(TypeSize.detail, bold: true)
                 table.addTableColumn(column)
             }
@@ -113,10 +121,11 @@ struct GridCollectionBridge: NSViewRepresentable {
             }
             header.append(NSAttributedString(string: name + arrow,
                                              attributes: [.font: PortbaseFonts.codeFont(TypeSize.detail, bold: true), .foregroundColor: NSColor.labelColor]))
-            if !type.isEmpty {
-                header.append(NSAttributedString(string: "  " + type.lowercased(),
+            if !type.isEmpty, headerStyle != .nameOnly {
+                header.append(NSAttributedString(string: (headerStyle == .typeBelow ? "\n" : "  ") + type.lowercased(),
                                                  attributes: [.font: PortbaseFonts.codeFont(TypeSize.micro), .foregroundColor: NSColor.tertiaryLabelColor]))
             }
+            column.headerCell.wraps = headerStyle == .typeBelow
             column.headerCell.attributedStringValue = header
             column.headerToolTip = primaryKeys.contains(name) ? L10n.text("Primary key") + " · " + type : type
         }
@@ -125,14 +134,19 @@ struct GridCollectionBridge: NSViewRepresentable {
         // Reloading would tear down the field being edited; the edit's own commit reloads afterwards.
         if changed, !context.coordinator.isEditing { table.reloadData() }
     }
-    static func naturalWidth(result: QueryResultTable, column: Int) -> CGFloat {
+    static func naturalWidth(result: QueryResultTable, column: Int, headerStyle: ResultHeaderStyle = .platformDefault) -> CGFloat {
         guard result.columns.indices.contains(column) else { return 160 }
         // Measure with the fonts cells and headers are drawn in, so values that fit aren't truncated.
         let font = PortbaseFonts.codeFont(TypeSize.code)
         let item = result.columns[column]
-        let header = (item.name as NSString).size(withAttributes: [.font: PortbaseFonts.codeFont(TypeSize.detail, bold: true)]).width
-            + (item.type.isEmpty ? 0 : ("  " + item.type.lowercased() as NSString).size(withAttributes: [.font: PortbaseFonts.codeFont(TypeSize.micro)]).width)
-            + 20
+        let nameWidth = (item.name as NSString).size(withAttributes: [.font: PortbaseFonts.codeFont(TypeSize.detail, bold: true)]).width
+        let typeWidth = item.type.isEmpty ? 0 : ("  " + item.type.lowercased() as NSString).size(withAttributes: [.font: PortbaseFonts.codeFont(TypeSize.micro)]).width
+        let title: CGFloat = switch headerStyle {
+        case .nameAndType: nameWidth + typeWidth
+        case .typeBelow: max(nameWidth, typeWidth)
+        case .nameOnly: nameWidth
+        }
+        let header = title + 20
         let values = result.rows.prefix(40).map { row in row.cells.indices.contains(column) ? String(row.cells[column].displayValue.prefix(100)) : "NULL" }
         let widest = values.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
         return min(360, max(100, header + 24, widest + 28))

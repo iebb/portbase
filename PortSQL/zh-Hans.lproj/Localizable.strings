@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "受信任的主机密钥";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "在你选择之前，此设备会继续信任自己的密钥，提供其他任何密钥的服务器都会被拒绝。";
 "Use That Value" = "使用该值";
+"Column Headers" = "列标题";
+"Column Name Only" = "仅列名";
+"Column and Type" = "列名和类型";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "结果表如何显示每列的类型。隐藏的类型在指向标题时以及对 VoiceOver 仍会显示。";
+"Type Below Column" = "类型在列名下方";

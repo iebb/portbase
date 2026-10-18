@@ -149,6 +149,7 @@ enum ResultGridClipboard {
 struct ResultGridView: View {
     let result: QueryResultTable
     var fillsAvailableSpace = false
+    @AppStorage(ResultHeaderStyle.storageKey) private var headerStyle = ResultHeaderStyle.platformDefault
     var primaryKeys: Set<String> = []
     var sortedColumn: String?
     var sortDirection: String?
@@ -309,6 +310,7 @@ struct ResultGridView: View {
                 result: displayedResult, visibleColumns: visibleColumns,
                 configuration: configuration, selection: $selection, extendsSelection: $extendsSelection,
                 rowHeight: rowHeight, primaryKeys: primaryKeys, sortedColumn: sortedColumn, sortDirection: sortDirection,
+                headerStyle: headerStyle,
                 onSort: onSort,
                 onOpenRow: onOpenRow == nil ? nil : { row in if rowIndices.indices.contains(row) { onOpenRow?(rowIndices[row]) } },
                 actionsForCell: { row, column in rowIndices.indices.contains(row) ? actionsForCell?(rowIndices[row], column) ?? [] : [] },
@@ -484,7 +486,7 @@ struct ResultGridView: View {
     }
 
     private func width(for index: Int) -> Double {
-        configuration.widths[index] ?? Double(GridCollectionBridge.naturalWidth(result: result, column: index))
+        configuration.widths[index] ?? Double(GridCollectionBridge.naturalWidth(result: result, column: index, headerStyle: headerStyle))
     }
 
     // MARK: Quick actions
@@ -534,7 +536,7 @@ struct ResultGridView: View {
             },
             .separator,
             .action(L10n.text("Fit Column Width"), "arrow.left.and.right") {
-                configuration.widths[column] = Double(GridCollectionBridge.naturalWidth(result: result, column: column))
+                configuration.widths[column] = Double(GridCollectionBridge.naturalWidth(result: result, column: column, headerStyle: headerStyle))
             },
             .action(L10n.text("Reset Column Widths"), "arrow.uturn.backward", enabled: !configuration.widths.isEmpty) {
                 configuration.widths = [:]
@@ -686,6 +688,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
     let primaryKeys: Set<String>
     let sortedColumn: String?
     let sortDirection: String?
+    var headerStyle: ResultHeaderStyle = .platformDefault
     var onSort: ((String) -> Void)?
     var onOpenRow: ((Int) -> Void)?
     var actionsForCell: ((Int, Int) -> [ResultGridRowAction])?
@@ -735,10 +738,12 @@ private struct GridCollectionBridge: UIViewRepresentable {
             || previous.result.rows.count != result.rows.count || previous.visibleColumns != visibleColumns
             || previous.result.columns != result.columns || previous.result.rows.map(\.id) != result.rows.map(\.id)
         let layoutChanged = dataChanged || previous.configuration != configuration || layout.widths.isEmpty
+            || previous.headerStyle != headerStyle
             || layout.rowHeight != rowHeight
         if layoutChanged {
             layout.widths = [44] + visibleColumns.map {
-                CGFloat(configuration.widths[$0] ?? Double(Self.naturalWidth(result: result, column: $0, isKey: primaryKeys.contains(result.columns[$0].name))))
+                CGFloat(configuration.widths[$0] ?? Double(Self.naturalWidth(result: result, column: $0, isKey: primaryKeys.contains(result.columns[$0].name),
+                                                                             headerStyle: headerStyle)))
             }
             layout.fixedWidthColumns = Set(visibleColumns.enumerated().compactMap { configuration.widths[$0.element] != nil ? $0.offset + 1 : nil })
             layout.requestedPinnedCount = visibleColumns.prefix { configuration.pinned.contains($0) }.count + 1
@@ -755,14 +760,20 @@ private struct GridCollectionBridge: UIViewRepresentable {
         }
     }
 
-    static func naturalWidth(result: QueryResultTable, column: Int, isKey: Bool = false) -> CGFloat {
+    static func naturalWidth(result: QueryResultTable, column: Int, isKey: Bool = false, headerStyle: ResultHeaderStyle = .platformDefault) -> CGFloat {
         let font = PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
         // Headers are drawn bold, with a key symbol for primary keys, so measure them that way.
         let item = result.columns[column]
         let headerFont = PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1)
         let typeFont = PortbaseFonts.codeFont(TypeSize.micro, textStyle: .caption2)
-        let header = max((item.name as NSString).size(withAttributes: [.font: headerFont]).width,
-                         (item.type.lowercased() as NSString).size(withAttributes: [.font: typeFont]).width) + (isKey ? 16 : 0) + 20
+        let nameWidth = (item.name as NSString).size(withAttributes: [.font: headerFont]).width
+        let typeWidth = item.type.isEmpty ? 0 : ("  " + item.type.lowercased() as NSString).size(withAttributes: [.font: typeFont]).width
+        let title: CGFloat = switch headerStyle {
+        case .nameAndType: nameWidth + typeWidth
+        case .typeBelow: max(nameWidth, typeWidth)
+        case .nameOnly: nameWidth
+        }
+        let header = title + (isKey ? 16 : 0) + 20
         let samples = result.rows.prefix(40).map { row in
             guard row.cells.indices.contains(column) else { return "NULL" }
             let value = row.cells[column]
@@ -825,12 +836,13 @@ private struct GridCollectionBridge: UIViewRepresentable {
                 let title = NSMutableAttributedString(string: column.name + (sorted ? (parent.sortDirection == "DESC" ? " ↓" : " ↑") : ""),
                                                       attributes: [.font: PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1),
                                                                    .foregroundColor: UIColor.label])
-                // The column's type sits under its name, as in desktop SQL clients.
-                if !column.type.isEmpty {
-                    title.append(NSAttributedString(string: "\n" + column.type.lowercased(),
+                // The column's type beside or under its name, in a quieter style, or hidden, per the setting.
+                if !column.type.isEmpty, parent.headerStyle != .nameOnly {
+                    let below = parent.headerStyle == .typeBelow
+                    title.append(NSAttributedString(string: (below ? "\n" : "  ") + column.type.lowercased(),
                                                     attributes: [.font: PortbaseFonts.codeFont(TypeSize.micro, textStyle: .caption2),
                                                                  .foregroundColor: UIColor.tertiaryLabel]))
-                    cell.label.numberOfLines = 2
+                    if below { cell.label.numberOfLines = 2 }
                 }
                 cell.label.attributedText = title
                 cell.accessibilityLabel = column.name

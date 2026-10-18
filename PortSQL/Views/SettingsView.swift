@@ -14,6 +14,7 @@ struct SettingsView: View {
 
             AppearanceSettingsSection()
             EditorThemeSettingsSection()
+            ResultHeaderStyleSettingsSection()
 
             Section {
                 CloudStatusRow()
@@ -338,5 +339,85 @@ private struct CloudStatusRow: View {
         } label: {
             Label("Status", systemImage: "icloud")
         }
+    }
+}
+
+/// How result grid headers show each column's type.
+enum ResultHeaderStyle: String, CaseIterable, Identifiable {
+    /// The type beside the name, in a quieter style.
+    case nameAndType
+    /// The type on a second line under the name.
+    case typeBelow
+    /// Only the name; the type shows on hover and to VoiceOver.
+    case nameOnly
+
+    static let storageKey = "Portbase.resultHeaderStyle"
+
+    /// The Mac's compact rows suit one line; touch rows have room for two.
+    static var platformDefault: ResultHeaderStyle {
+#if os(macOS)
+        .nameAndType
+#else
+        .typeBelow
+#endif
+    }
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .nameAndType: L10n.text("Column and Type")
+        case .typeBelow: L10n.text("Type Below Column")
+        case .nameOnly: L10n.text("Column Name Only")
+        }
+    }
+}
+
+/// The result grid's header style, with a preview of each.
+struct ResultHeaderStyleSettingsSection: View {
+    @AppStorage(ResultHeaderStyle.storageKey) private var style = ResultHeaderStyle.platformDefault
+
+    var body: some View {
+        Section {
+            Picker("Column Headers", selection: $style) {
+                ForEach(ResultHeaderStyle.allCases) { style in
+                    Text(style.title).tag(style)
+                }
+            }
+            HStack(spacing: 0) {
+                preview(name: "customer_id", type: "integer")
+                Divider()
+                preview(name: "email", type: "text")
+            }
+            .frame(height: 44)
+            .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+            .accessibilityHidden(true)
+        } header: {
+            Text("Results")
+        } footer: {
+            Text("How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver.")
+        }
+    }
+
+    @ViewBuilder private func preview(name: String, type: String) -> some View {
+        Group {
+            switch style {
+            case .nameAndType:
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.xs) {
+                    Text(name).font(.codeCaption.weight(.bold))
+                    Text(type).font(.microText.monospaced()).foregroundStyle(.tertiary)
+                }
+            case .typeBelow:
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(name).font(.codeCaption.weight(.bold))
+                    Text(type).font(.microText.monospaced()).foregroundStyle(.tertiary)
+                }
+            case .nameOnly:
+                Text(name).font(.codeCaption.weight(.bold))
+            }
+        }
+        .lineLimit(1)
+        .padding(.horizontal, Spacing.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

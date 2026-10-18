@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "Vertrauter Hostschlüssel";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "Bis du wählst, vertraut dieses Gerät weiter seinem eigenen Schlüssel, und ein Server mit einem anderen Schlüssel wird abgelehnt.";
 "Use That Value" = "Diesen Wert verwenden";
+"Column Headers" = "Spaltenköpfe";
+"Column Name Only" = "Nur Spaltenname";
+"Column and Type" = "Spalte und Typ";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "Wie Ergebnistabellen den Typ jeder Spalte zeigen. Ein ausgeblendeter Typ erscheint weiterhin, wenn du auf den Spaltenkopf zeigst, und für VoiceOver.";
+"Type Below Column" = "Typ unter der Spalte";

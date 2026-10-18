@@ -1549,6 +1549,7 @@ struct DesktopSettingsView: View {
 
             Form {
                 EditorThemeSettingsSection()
+                ResultHeaderStyleSettingsSection()
                 Section("Text Size") {
                     Slider(value: $editorFontSize, in: 10...24, step: 1) { Text("Text Size") }
                     LabeledContent("Size", value: L10n.format("%d pt", Int(editorFontSize)))

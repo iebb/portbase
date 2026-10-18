@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "信頼済みホスト鍵";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "選ぶまで、このデバイスは自分の鍵を信頼し続け、ほかの鍵を提示するサーバは拒否されます。";
 "Use That Value" = "その値を使う";
+"Column Headers" = "列見出し";
+"Column Name Only" = "列名のみ";
+"Column and Type" = "列と型";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "結果の表で各列の型をどう表示するかを選びます。非表示にした型も、見出しにポインタを合わせたときとVoiceOverでは表示されます。";
+"Type Below Column" = "列名の下に型";

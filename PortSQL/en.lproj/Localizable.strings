@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "Trusted Host Key";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused.";
 "Use That Value" = "Use That Value";
+"Column Headers" = "Column Headers";
+"Column Name Only" = "Column Name Only";
+"Column and Type" = "Column and Type";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver.";
+"Type Below Column" = "Type Below Column";

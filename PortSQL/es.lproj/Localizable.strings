@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "Clave de host de confianza";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "Hasta que elijas, este dispositivo sigue confiando en su propia clave y se rechaza cualquier servidor que presente otra.";
 "Use That Value" = "Usar ese valor";
+"Column Headers" = "Encabezados de columna";
+"Column Name Only" = "Solo el nombre de la columna";
+"Column and Type" = "Columna y tipo";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "Cómo muestran las tablas de resultados el tipo de cada columna. Un tipo oculto sigue apareciendo al señalar el encabezado y para VoiceOver.";
+"Type Below Column" = "Tipo debajo de la columna";

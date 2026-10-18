@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "受信任的主機金鑰";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "在你選擇之前，此裝置會繼續信任自己的金鑰，提供其他任何金鑰的伺服器都會被拒絕。";
 "Use That Value" = "使用該值";
+"Column Headers" = "欄位標題";
+"Column Name Only" = "僅欄位名稱";
+"Column and Type" = "欄位與類型";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "結果表如何顯示每個欄位的類型。隱藏的類型在指向標題時以及對 VoiceOver 仍會顯示。";
+"Type Below Column" = "類型在欄位下方";

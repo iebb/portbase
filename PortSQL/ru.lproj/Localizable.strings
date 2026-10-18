@@ -1594,3 +1594,8 @@
 "Trusted Host Key" = "Доверенный ключ хоста";
 "Until you choose, this device keeps trusting its own key, and a server presenting any other key is refused." = "Пока вы не выберете, это устройство доверяет своему ключу, а сервер с любым другим ключом отклоняется.";
 "Use That Value" = "Использовать это значение";
+"Column Headers" = "Заголовки столбцов";
+"Column Name Only" = "Только имя столбца";
+"Column and Type" = "Столбец и тип";
+"How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver." = "Как таблицы результатов показывают тип каждого столбца. Скрытый тип по-прежнему виден при наведении на заголовок и в VoiceOver.";
+"Type Below Column" = "Тип под столбцом";
