@@ -81,6 +81,15 @@ extension View {
         self
 #endif
     }
+    /// Marks a field as holding a URL, so password AutoFill doesn't take it for a username field
+    /// beside the editor's password and offer saved passwords.
+    @ViewBuilder func portbaseURLField() -> some View {
+#if canImport(UIKit)
+        textContentType(.URL).keyboardType(.URL)
+#else
+        textContentType(.URL)
+#endif
+    }
     /// Keeps a navigation stack under a Portbase sheet on iOS, where form pickers push their options,
     /// with the system bar hidden because the sheet draws its own title. Mac sheets need neither.
     @ViewBuilder func portbaseSheetNavigation() -> some View {

@@ -275,23 +275,43 @@ extension NSColor {
 // MARK: - Engine identity
 
 extension DatabaseEngine {
+    /// Tiles in each project's brand colors, light to dark.
     var brandColors: [Color] {
         switch self {
-        case .mysql: [Color(hex: 0x2B9AC9), Color(hex: 0x00618A)]
-        case .mariadb: [Color(hex: 0xC98B6B), Color(hex: 0x7C4A33)]
-        case .postgresql: [Color(hex: 0x5C7FD1), Color(hex: 0x2F4C99)]
-        case .sqlite: [Color(hex: 0x6EC1F0), Color(hex: 0x2A78C2)]
-        case .clickhouse: [Color(hex: 0x3A3A3D), Color(hex: 0x151517)]
-        case .mongodb: [Color(hex: 0x21B35E), Color(hex: 0x00684A)]
-        case .redis: [Color(hex: 0xFF5A47), Color(hex: 0xC6302B)]
-        case .elasticsearch: [Color(hex: 0x2CC5B9), Color(hex: 0x0B6FB8)]
+        case .mysql: [Color(hex: 0x5A8DB8), Color(hex: 0x2F6690)]
+        case .mariadb: [Color(hex: 0x0B4A5E), Color(hex: 0x003545)]
+        case .postgresql: [Color(hex: 0x5B80EA), Color(hex: 0x3256C9)]
+        case .sqlite: [Color(hex: 0x1F8FD6), Color(hex: 0x003B57)]
+        case .clickhouse: [Color(hex: 0x353538), Color(hex: 0x151517)]
+        case .mongodb: [Color(hex: 0x0A3B39), Color(hex: 0x001E2B)]
+        case .redis: [Color(hex: 0xFF5A47), Color(hex: 0xD6301F)]
+        case .elasticsearch: [Color(hex: 0x0E7FA6), Color(hex: 0x005571)]
         }
     }
 
-    /// The mark's color on the brand gradient; ClickHouse's bars are yellow on near-black.
-    var glyphColor: Color { self == .clickhouse ? Color(hex: 0xFAE24C) : .white }
+    /// The logo's color on its tile: ClickHouse yellow, MongoDB green, MariaDB copper, white otherwise.
+    var glyphColor: Color {
+        switch self {
+        case .clickhouse: Color(hex: 0xFFCC01)
+        case .mongodb: Color(hex: 0x00ED64)
+        case .mariadb: Color(hex: 0xC49A6C)
+        default: .white
+        }
+    }
 
-    var tint: Color { self == .clickhouse ? Color(hex: 0xD9A400) : brandColors[1] }
+    /// The engine's color on ordinary backgrounds, for logos and accents outside a tile.
+    var tint: Color {
+        switch self {
+        case .mysql: Color(hex: 0x4479A1)
+        case .mariadb: Color(hex: 0xB07A52)
+        case .postgresql: Color(hex: 0x4169E1)
+        case .sqlite: Color(hex: 0x0F80CC)
+        case .clickhouse: Color(hex: 0xD9A400)
+        case .mongodb: Color(hex: 0x13AA52)
+        case .redis: Color(hex: 0xFF4438)
+        case .elasticsearch: Color(hex: 0x0B7A9E)
+        }
+    }
 }
 
 extension ConnectionColor {

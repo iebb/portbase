@@ -23,6 +23,7 @@ struct ConnectionStringImportSection: View {
                 .lineLimit(1...3)
                 .portbaseTextCapitalization(.never)
                 .autocorrectionDisabled()
+                .portbaseURLField()
                 .font(.codeText)
                 .onSubmit(applyString)
                 .accessibilityLabel("Connection string")
