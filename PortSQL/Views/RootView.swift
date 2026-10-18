@@ -57,10 +57,10 @@ struct RootView: View {
     }
 
     var body: some View {
-        // On iPad the system's floating tab bar sits over each page's navigation bar and hides its
-        // controls, so the destinations move to a strip of underline tabs above the workspace.
-        VStack(spacing: 0) {
-        if horizontalSizeClass == .regular { destinationStrip }
+        // The Liquid Glass tab bar sits at the bottom on iPad too: the floating bar iPadOS puts at the
+        // top covers each page's navigation bar and its controls. A compact width for the tab view
+        // alone moves the bar down; each page gets the real width back.
+        let pageSizeClass = horizontalSizeClass
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: RootTab.home) {
                 NavigationStack {
@@ -68,52 +68,47 @@ struct RootView: View {
                         .navigationTitle("Home")
                         .portbaseTitleDisplayMode(.large)
                         .toolbar {
-                            // On iPad the destination strip already has search and settings.
                             ToolbarItemGroup(placement: PortbaseToolbar.trailing) {
-                                if horizontalSizeClass != .regular {
-                                    searchButton
-                                    Button { navigate(.settings) } label: {
-                                        Image(systemName: "gearshape").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-                                    }
-                                    .accessibilityLabel("Settings")
+                                searchButton
+                                Button { navigate(.settings) } label: {
+                                    Image(systemName: "gearshape").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
                                 }
+                                .accessibilityLabel("Settings")
                             }
                         }
                 }
-                .portbaseHidesTabBarWhenRegular()
+                .environment(\.horizontalSizeClass, pageSizeClass)
             }
 
             Tab("Explorer", systemImage: "square.stack.3d.up.fill", value: RootTab.explorer) {
                 ExplorerWorkspaceView()
-                    .portbaseHidesTabBarWhenRegular()
+                    .environment(\.horizontalSizeClass, pageSizeClass)
             }
 
             Tab("Console", systemImage: "terminal.fill", value: RootTab.studio) {
                 ExplorerWorkspaceView(showsConsole: true)
-                    .portbaseHidesTabBarWhenRegular()
+                    .environment(\.horizontalSizeClass, pageSizeClass)
             }
 
             Tab("Charts", systemImage: "chart.bar.xaxis", value: RootTab.charts) {
                 NavigationStack {
                     VisualizerView()
                 }
-                .portbaseHidesTabBarWhenRegular()
+                .environment(\.horizontalSizeClass, pageSizeClass)
             }
 
             Tab("Servers", systemImage: "server.rack", value: RootTab.servers) {
                 NavigationStack {
                     BookmarksView(onOpenConsole: { navigate(.console) })
                 }
-                .portbaseHidesTabBarWhenRegular()
+                .environment(\.horizontalSizeClass, pageSizeClass)
             }
             .badge(hasConnectionProblem ? Text(verbatim: "!") : nil)
 
         }
-        // Tab bar only: the adaptable style put a sidebar toggle on every iPad page, but the iPad
-        // destinations live in the strip above instead.
         .tabViewStyle(.tabBarOnly)
+        .environment(\.horizontalSizeClass, .compact)
         .portbaseMinimizingTabBar()
-        }
         .certificateTrustPrompt(workspace)
         .portbaseTheme()
         .background {
@@ -174,32 +169,6 @@ struct RootView: View {
         .sqlSafetyConfirmation(workspace)
     }
 
-    /// The iPad destination tabs, in place of the floating system tab bar.
-    private var destinationStrip: some View {
-        HStack(spacing: Spacing.m) {
-            PortbasePillTabs(selection: $selectedTab, options: [
-                PortbaseChoice(value: RootTab.home, title: L10n.text("Home"), systemImage: "house"),
-                PortbaseChoice(value: RootTab.explorer, title: L10n.text("Explorer"), systemImage: "square.stack.3d.up"),
-                PortbaseChoice(value: RootTab.studio, title: L10n.text("Console"), systemImage: "terminal"),
-                PortbaseChoice(value: RootTab.charts, title: L10n.text("Charts"), systemImage: "chart.bar.xaxis"),
-                PortbaseChoice(value: RootTab.servers, title: L10n.text("Servers"),
-                               systemImage: hasConnectionProblem ? "exclamationmark.triangle.fill" : "server.rack"),
-            ])
-            .padding(.vertical, Spacing.xs)
-            Spacer(minLength: Spacing.m)
-            searchButton
-                .buttonStyle(.portbaseToolbar)
-            Button { showsSettings = true } label: {
-                Image(systemName: "gearshape").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-            }
-            .buttonStyle(.portbaseToolbar)
-            .accessibilityLabel("Settings")
-        }
-        .padding(.horizontal, Spacing.xl)
-        .background(PortSQLPalette.panel.ignoresSafeArea(edges: .top))
-        .overlay(alignment: .bottom) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
-    }
-
     private var searchButton: some View {
         Button { showsPalette = true } label: {
             Image(systemName: "magnifyingglass").frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
@@ -222,22 +191,12 @@ struct RootView: View {
 }
 
 private extension View {
-    /// Hides the system tab bar on iPad, where the root view draws its own destination strip.
-    func portbaseHidesTabBarWhenRegular() -> some View { modifier(HidesTabBarWhenRegular()) }
-
     @ViewBuilder func portbaseMinimizingTabBar() -> some View {
         if #available(iOS 26.0, *) {
             self.tabBarMinimizeBehavior(.onScrollDown)
         } else {
             self
         }
-    }
-}
-
-private struct HidesTabBarWhenRegular: ViewModifier {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    func body(content: Content) -> some View {
-        content.toolbarVisibility(horizontalSizeClass == .regular ? .hidden : .automatic, for: .tabBar)
     }
 }
 
@@ -328,6 +287,7 @@ struct WorkbenchView: View {
 struct ConnectionSwitcherButton: View {
     @EnvironmentObject private var bookmarks: BookmarkStore
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     var body: some View {
         Group {
             if bookmarks.bookmarks.isEmpty {
@@ -384,6 +344,11 @@ struct ConnectionSwitcherButton: View {
                         Image(systemName: "chevron.down")
                             .font(.captionStrong)
                             .foregroundStyle(PortSQLPalette.ink.opacity(0.65))
+                        // On iPad the connection's badges ride along here rather than in a row of their own.
+                        if horizontalSizeClass == .regular, let bookmark = workspace.selectedBookmark,
+                           ConnectionStatusBadges.hasBadges(bookmark) {
+                            ConnectionStatusBadges(profile: bookmark)
+                        }
                     }
                     .frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                 }
@@ -849,6 +814,7 @@ private struct ExpandedQueryEditorSheet: View {
 struct ResultsCard: View {
     @EnvironmentObject private var libraryStore: WorkspaceLibraryStore
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    @Environment(\.workspaceFillsHeight) private var fillsHeight
     @State private var isShowingSchemaSheet = false
     @State private var composerPreset: SavedVisualizationPreset?
     @State private var schemaColumnDraft: SchemaColumnDraft?
@@ -867,9 +833,18 @@ struct ResultsCard: View {
         PanelCard {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 // The view switcher leads the header, as on the Mac, instead of a separate full-width row.
+                // Where the results fill a wide screen, counts and paging join this row too.
+                let showsPager = !workspace.isRunning && workspace.isShowingExplorerResult
+                let showsCounts = hasTabularResult || workspace.result.documents != nil
                 HStack(alignment: .center, spacing: Spacing.m) {
                     resultModeSwitcher
-                    Spacer(minLength: 0)
+                    if fillsHeight {
+                        if showsCounts { resultChips.fixedSize() }
+                        Spacer(minLength: 0)
+                        if showsPager { pager.fixedSize() }
+                    } else {
+                        Spacer(minLength: 0)
+                    }
                     HStack(spacing: Spacing.s) {
                         if workspace.isDocumentDatabase { MongoInsertDocumentButton() }
                         if !workspace.isRunning && workspace.selectedBookmark?.isReadOnly != true && workspace.canInsertIntoCurrentTable {
@@ -892,10 +867,9 @@ struct ResultsCard: View {
                 }
 
                 // Counts on the left and paging on the right share one row.
-                let showsPager = !workspace.isRunning && workspace.isShowingExplorerResult
-                if hasTabularResult || workspace.result.documents != nil || showsPager {
+                if !fillsHeight, showsCounts || showsPager {
                     HStack(spacing: Spacing.s) {
-                        if hasTabularResult || workspace.result.documents != nil { resultChips }
+                        if showsCounts { resultChips }
                         if showsPager {
                             Spacer(minLength: Spacing.s)
                             pager
@@ -1102,6 +1076,7 @@ struct ResultsCard: View {
     private var resultTable: some View {
         ResultGridView(
             result: workspace.result,
+            fillsAvailableSpace: fillsHeight,
             primaryKeys: Set(workspace.isShowingExplorerResult ? (workspace.selectedExplorerTable?.primaryKeyColumns.map(\.name) ?? []) : []),
             sortedColumn: workspace.isShowingExplorerResult ? workspace.explorerSortColumn : nil,
             sortDirection: workspace.explorerSortDirection,

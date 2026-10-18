@@ -176,8 +176,8 @@ struct ConnectionsHubView: View {
     private var groupsSection: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             PortbaseSectionHeading(title: L10n.text("Environments"))
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.m) {
+            // Wraps onto more rows rather than scrolling sideways, so no environment is cut off.
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: Spacing.m)], spacing: Spacing.m) {
                 ForEach(groups, id: \.environment) { item in
                     let selected = group == item.environment
                     Button {
@@ -198,12 +198,8 @@ struct ConnectionsHubView: View {
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(selected ? .isSelected : [])
                     .accessibilityHint("Shows only connections in this environment")
-                    .frame(minWidth: 180)
                 }
-                }
-                .padding(.vertical, Spacing.xxxs)
             }
-            .scrollClipDisabled()
         }
     }
 

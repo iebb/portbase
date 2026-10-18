@@ -1,6 +1,15 @@
 import SwiftUI
 
+extension EnvironmentValues {
+    /// Set where a workspace gives its results the rest of the screen, so the grid fills it rather
+    /// than stopping at a fixed height.
+    @Entry var workspaceFillsHeight = false
+}
+
 enum WorkspaceLayout {
+    /// Below this height, a workspace that fills the screen scrolls instead of squeezing its panels.
+    static let minimumFillHeight: CGFloat = 640
+
     static func usesColumns(width: CGFloat, height: CGFloat, regularWidth: Bool, accessibilitySize: Bool) -> Bool {
         regularWidth && !accessibilitySize && width >= 780 && height >= 400
     }
@@ -24,13 +33,21 @@ struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
                 regularWidth: regularWidth, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
             let layout = columns ? AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.l))
                                  : AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.l))
+            // With a regular width, the results take the rest of the screen: the full column side by
+            // side, or what's left under the editor when stacked.
+            let fills = regularWidth && !dynamicTypeSize.isAccessibilitySize
             ScrollView {
                 layout {
+                    // Stacked, the editor keeps its own height and the results get the rest.
                     leading.frame(maxWidth: .infinity, alignment: .topLeading)
-                    trailing.frame(maxWidth: .infinity, alignment: .topLeading)
+                        .fixedSize(horizontal: false, vertical: fills && !columns)
+                    trailing.frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .topLeading)
+                        .environment(\.workspaceFillsHeight, fills)
                 }
                 .padding(Spacing.l)
-                .frame(width: geometry.size.width, alignment: .topLeading)
+                .frame(width: geometry.size.width,
+                       height: fills ? max(geometry.size.height, WorkspaceLayout.minimumFillHeight) : nil,
+                       alignment: .topLeading)
             }
             .scrollDismissesKeyboard(.interactively)
         }

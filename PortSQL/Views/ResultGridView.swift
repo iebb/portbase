@@ -222,11 +222,7 @@ struct ResultGridView: View {
 #endif
     }
     private var gridHeight: CGFloat? {
-#if canImport(UIKit)
-        min(600, max(132, CGFloat(rowIndices.count + 1) * rowHeight + 8))
-#else
         fillsAvailableSpace ? nil : min(600, max(132, CGFloat(rowIndices.count + 1) * rowHeight + 8))
-#endif
     }
     private var rowHeight: CGFloat {
 #if canImport(UIKit)
@@ -335,9 +331,7 @@ struct ResultGridView: View {
                 }
             )
             .frame(height: gridHeight)
-#if os(macOS)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-#endif
+            .frame(maxWidth: .infinity, maxHeight: fillsAvailableSpace ? .infinity : nil)
             .id(dynamicTypeSize)
             .accessibilityLabel("Query results table")
         }

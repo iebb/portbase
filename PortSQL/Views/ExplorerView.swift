@@ -13,31 +13,58 @@ struct ExplorerView: View {
     @State private var focusedClause: ClauseField?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+    /// Where there's room, the table, its clauses, and the run button share one row, and the rows
+    /// below take the rest of the screen.
+    private var isWide: Bool { horizontalSizeClass == .regular && !dynamicTypeSize.isAccessibilitySize }
+
+    private var runButton: some View {
+        Button {
+            focusedClause = nil
+            workspace.restartBrowse()
+        } label: {
+            Image(systemName: "play.fill")
+                .font(.rowTitle)
+                .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .background(PortSQLPalette.accent, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
+        .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
+        .accessibilityLabel("Run table browse query")
+        .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
+    }
+
+    private func whereRow(_ table: SchemaTableDescriptor) -> some View {
+        clauseRow(field: .whereClause, title: "WHERE", text: $workspace.explorerWhereClause, placeholder: L10n.text("Filter"),
+                  suggestions: whereSuggestions(for: table), apply: applyWhereSuggestion)
+            .frame(maxWidth: .infinity)
+    }
+
+    private func orderRow(_ table: SchemaTableDescriptor) -> some View {
+        clauseRow(field: .orderByClause, title: "ORDER", text: $workspace.explorerOrderByClause, placeholder: L10n.text("Sort"),
+                  suggestions: orderBySuggestions(for: table), apply: applyOrderSuggestion)
+            .frame(maxWidth: .infinity)
+    }
+
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.l) {
                     // Browsing needs a connection; without one, only the empty state below is shown.
-                    if workspace.selectedBookmark != nil {
+                    if workspace.selectedBookmark != nil, isWide, let selectedTable = workspace.selectedExplorerTable {
+                        HStack(alignment: .top, spacing: Spacing.s) {
+                            tableMenu.frame(maxWidth: 260)
+                            whereRow(selectedTable)
+                            orderRow(selectedTable)
+                            runButton
+                        }
+                    } else if workspace.selectedBookmark != nil {
                         PanelCard {
                             VStack(alignment: .leading, spacing: Spacing.m) {
                                 // One row: the table and the run button (selecting a table browses it; run re-applies the clauses).
                                 HStack(alignment: .center, spacing: Spacing.s) {
                                     tableMenu
-                                    Button {
-                                        focusedClause = nil
-                                        workspace.restartBrowse()
-                                    } label: {
-                                        Image(systemName: "play.fill")
-                                            .font(.rowTitle)
-                                            .frame(width: Sizes.touchTarget, height: Sizes.touchTarget)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .foregroundStyle(.white)
-                                    .background(PortSQLPalette.accent, in: RoundedRectangle(cornerRadius: Radius.button, style: .continuous))
-                                    .disabled(workspace.selectedExplorerTable == nil || workspace.isRunning)
-                                    .accessibilityLabel("Run table browse query")
-                                    .accessibilityHint("Applies the current WHERE and ORDER BY clauses")
+                                    runButton
                                 }
 
                                 if let selectedTable = workspace.selectedExplorerTable {
@@ -59,25 +86,8 @@ struct ExplorerView: View {
                                         ? AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.s))
                                         : AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.m))
                                     clauses {
-                                        clauseRow(
-                                            field: .whereClause,
-                                            title: "WHERE",
-                                            text: $workspace.explorerWhereClause,
-                                            placeholder: L10n.text("Filter"),
-                                            suggestions: whereSuggestions(for: selectedTable),
-                                            apply: applyWhereSuggestion
-                                        )
-                                        .frame(maxWidth: .infinity)
-
-                                        clauseRow(
-                                            field: .orderByClause,
-                                            title: "ORDER",
-                                            text: $workspace.explorerOrderByClause,
-                                            placeholder: L10n.text("Sort"),
-                                            suggestions: orderBySuggestions(for: selectedTable),
-                                            apply: applyOrderSuggestion
-                                        )
-                                        .frame(maxWidth: .infinity)
+                                        whereRow(selectedTable)
+                                        orderRow(selectedTable)
                                     }
                                 } else {
                                     HStack(spacing: Spacing.s) {
@@ -135,10 +145,14 @@ struct ExplorerView: View {
                         .portbaseCardSurface()
                     } else {
                         ResultsCard()
+                            .frame(maxHeight: isWide ? .infinity : nil, alignment: .top)
                     }
                 }
+                .environment(\.workspaceFillsHeight, isWide)
                 .padding(Spacing.l)
-                .frame(width: proxy.size.width, alignment: .topLeading)
+                .frame(width: proxy.size.width,
+                       height: isWide ? max(proxy.size.height, WorkspaceLayout.minimumFillHeight) : nil,
+                       alignment: .topLeading)
             }
             // A page-wide tap gesture to dismiss the clause keyboard cancelled taps on the result grid,
             // so cells couldn't be selected or edited. Scrolling, or selecting a cell, dismisses it instead.

@@ -41,6 +41,7 @@ This repository is archived. If work resumes, treat the decisions below as proje
 - Saved chart cards do not auto-run when a view appears. They use explicit loading, content, missing-query, missing-connection, idle, and error states, with manual Run and Edit actions.
 - Database browse/chart/Explain call sites use read-only execution even when their bookmark is otherwise writable.
 - Preserve Dynamic Type layouts, 44-point interactive targets, meaningful VoiceOver labels, typed NULL/empty-cell announcements, and adaptive iPad result widths.
+- iPhone and iPad both use the bottom Liquid Glass tab bar: the root `TabView` gets a compact horizontal size class (which keeps the iPadOS bar off the top, where it covered page toolbars) and each page gets the real size class back. On regular widths, workspaces give results the rest of the screen (`workspaceFillsHeight`), and connection badges sit in the navigation bar's connection button.
 - Free supports three saved bookmarks. Pro unlocks unlimited bookmarks and premium line/area chart styles. Enforce this at action/model boundaries, not only by hiding UI.
 - Recompute StoreKit access from verified current entitlements after transaction updates; revoked, refunded, expired, or upgraded transactions must not leave stale access enabled.
 
