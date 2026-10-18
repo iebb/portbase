@@ -35,7 +35,8 @@ struct ResultInsightsView: View {
                     .frame(minHeight: Sizes.control)
                     .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: Spacing.m)], alignment: .leading, spacing: Spacing.m) {
+                // Cards line up at the top and share their row's height, rather than centering on the tallest.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: Spacing.m, alignment: .top)], alignment: .leading, spacing: Spacing.m) {
                     ForEach(visibleColumns) { column in
                         ColumnInsightCard(column: column)
                     }
@@ -55,8 +56,17 @@ struct ResultInsightsView: View {
         }
     }
 
+    /// The four totals across the full width, or two by two where they don't fit in a row.
     private var summary: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: Spacing.s)], spacing: Spacing.s) {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: Spacing.s) { summaryTiles }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: Spacing.s, alignment: .top), GridItem(.flexible(), spacing: Spacing.s, alignment: .top)],
+                      spacing: Spacing.s) { summaryTiles }
+        }
+    }
+
+    @ViewBuilder private var summaryTiles: some View {
+        Group {
             PortbaseMetricTile(title: L10n.text("Loaded rows"), value: insights.rowCount.formatted(), systemImage: "list.number",
                                tint: Color(hex: 0x6366F1), footnote: result.isTruncated == true ? L10n.text("Result truncated") : nil)
             PortbaseMetricTile(title: L10n.text("Columns"), value: insights.columns.count.formatted(), systemImage: "tablecells", tint: Color(hex: 0x0EA5E9))
@@ -65,6 +75,7 @@ struct ResultInsightsView: View {
             PortbaseMetricTile(title: L10n.text("Numeric columns"), value: insights.numericColumnCount.formatted(), systemImage: "number",
                                tint: Color(hex: 0xF97316))
         }
+        .frame(minWidth: 150, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
@@ -150,7 +161,7 @@ private struct ColumnInsightCard: View {
             }
         }
         .padding(Spacing.l)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .portbaseCardSurface()
     }
 
