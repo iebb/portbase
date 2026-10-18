@@ -53,6 +53,7 @@ struct ConnectionsHubView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.xl) {
                     quickConnectBar
+                    SyncConflictBanner()
                     if bookmarks.bookmarks.isEmpty {
                         PortbaseEmptyState(
                             title: L10n.text("No servers saved"),

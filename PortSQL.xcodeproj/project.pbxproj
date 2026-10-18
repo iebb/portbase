@@ -18,6 +18,8 @@
 		5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
 		7EAA524DCE70FC139D4C48D8 /* SchemaDDLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */; };
 		C014536B50F5C0D07D8EAE77 /* CloudEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */; };
+		57CACC3357B890A4041D8424 /* SyncedSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59833943293B28D19E467488 /* SyncedSlot.swift */; };
+		75CA09B63F3B2BC425AF9818 /* SyncMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4EA2C48082DA04C515A564 /* SyncMerge.swift */; };
 		DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
 		E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		071C3A222675B56549A173EF /* ServerCertificateProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */; };
@@ -235,6 +237,8 @@
 		9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C2D20E83571702A0436925F /* ChartQueryRunner.swift */; };
 		F39772426FEA8E73F8B2D456 /* SchemaDDLBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */; };
 		9E150FEE8C7A4545B7B8FEA6 /* CloudEncryption.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */; };
+		1833A4472E1128C23C799D74 /* SyncedSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59833943293B28D19E467488 /* SyncedSlot.swift */; };
+		809148409420379312927EA7 /* SyncMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4EA2C48082DA04C515A564 /* SyncMerge.swift */; };
 		385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
 		12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		8E30B4B80563F61728402BED /* MongoQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C52CE99FBA2ED6D018425D /* MongoQueryEditorCard.swift */; };
@@ -269,6 +273,7 @@
 		A768695EDF8DD4F4A4E1A2BA /* DataEditorValidationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382CE86047375A114FC20E86 /* DataEditorValidationServiceTests.swift */; };
 		A8144A2C6C612869C1FB8BF5 /* NIOSSH in Frameworks */ = {isa = PBXBuildFile; productRef = 646D2FB7B63750307A701D54 /* NIOSSH */; };
 		A82ADAFA9B27E508450FAEA3 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */; };
+		F9C0322C30DD6AD35C813CE0 /* SyncConflictViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C18B30E15B2D8780C84AA6F /* SyncConflictViews.swift */; };
 		A8968FEB0781E8147AB69A58 /* MongoDocumentDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69886FF7F8856D13D200E507 /* MongoDocumentDraft.swift */; };
 		AA2BDCC3D0EE4E854D295A5C /* SQLiteFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384FE4151D6FABC2F362A89F /* SQLiteFileStore.swift */; };
 		AB5C30871465D17485275B03 /* ConnectionTester.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA3EDDC997AC2AA343BB360B /* ConnectionTester.swift */; };
@@ -300,6 +305,7 @@
 		BCC9280BDFAFD6133502D5A6 /* Inter-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 619E92533B8FCEF0E822CFB4 /* Inter-Bold.otf */; };
 		BDBA77BFC29C23310DE87955 /* QueryPlanService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */; };
 		BED11A309EFB0DE37F25D657 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */; };
+		90571B43DFDB8EAA4A807BFB /* SyncConflictViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C18B30E15B2D8780C84AA6F /* SyncConflictViews.swift */; };
 		BF914C434AA65586E8D62F69 /* MongoDocumentEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2958FC4E2B745E93C90C45B /* MongoDocumentEditor.swift */; };
 		BFAB685F6C704AA5704A4DA3 /* QueryPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7ED5BC215AA4E7222335938 /* QueryPlanView.swift */; };
 		C057ACAD8C4CDECB0263AD2E /* EditorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9031C5697CDA58F9C4079CA2 /* EditorTheme.swift */; };
@@ -411,6 +417,7 @@
 /* Begin PBXFileReference section */
 		04DF60A3CC28A1715A9CEB85 /* PlatformSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformSupport.swift; sourceTree = "<group>"; };
 		06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		8C18B30E15B2D8780C84AA6F /* SyncConflictViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncConflictViews.swift; sourceTree = "<group>"; };
 		069A7E933C18061BED1FB614 /* ServerCertificateProbeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerCertificateProbeTests.swift; sourceTree = "<group>"; };
 		0717CE81BCB40CF0EE63576C /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		08DF46A0971483C6B75CF9B1 /* MongoDNSResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDNSResolver.swift; sourceTree = "<group>"; };
@@ -475,6 +482,8 @@
 		8C2D20E83571702A0436925F /* ChartQueryRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartQueryRunner.swift; sourceTree = "<group>"; };
 		54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaDDLBuilder.swift; sourceTree = "<group>"; };
 		89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudEncryption.swift; sourceTree = "<group>"; };
+		59833943293B28D19E467488 /* SyncedSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncedSlot.swift; sourceTree = "<group>"; };
+		3B4EA2C48082DA04C515A564 /* SyncMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncMerge.swift; sourceTree = "<group>"; };
 		26662324659C354D792E1789 /* ChartRenderData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderData.swift; sourceTree = "<group>"; };
 		12415823640818708E85F1ED /* ChartResultCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartResultCache.swift; sourceTree = "<group>"; };
 		49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedQueryEditor.swift; sourceTree = "<group>"; };
@@ -797,6 +806,8 @@
 				8C2D20E83571702A0436925F /* ChartQueryRunner.swift */,
 				54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */,
 				89E5C75D6C7A451F3D2A3791 /* CloudEncryption.swift */,
+				59833943293B28D19E467488 /* SyncedSlot.swift */,
+				3B4EA2C48082DA04C515A564 /* SyncMerge.swift */,
 				26662324659C354D792E1789 /* ChartRenderData.swift */,
 				12415823640818708E85F1ED /* ChartResultCache.swift */,
 				934A946D9B49098CF15CE03C /* WorkspaceActivityService.swift */,
@@ -925,6 +936,7 @@
 				65700D32E188A7B752B0F224 /* ConsoleTransactionControls.swift */,
 				EEE10823A80A7F2EE972465E /* DataTransferView.swift */,
 				06884A4A0D4CF08C5F732F1B /* DesignSystem.swift */,
+				8C18B30E15B2D8780C84AA6F /* SyncConflictViews.swift */,
 				9031C5697CDA58F9C4079CA2 /* EditorTheme.swift */,
 				1C56566958B819CACCAFF882 /* ElasticsearchExplorerView.swift */,
 				4EC42D2DAA16F628F2609972 /* ElasticsearchQueryEditorCard.swift */,
@@ -1232,6 +1244,7 @@
 				6C070A429382F526EC5B8547 /* DatabaseService+SchemaObjects.swift in Sources */,
 				D4E48D091F9BD0016D8E5B1D /* DatabaseService.swift in Sources */,
 				A82ADAFA9B27E508450FAEA3 /* DesignSystem.swift in Sources */,
+				F9C0322C30DD6AD35C813CE0 /* SyncConflictViews.swift in Sources */,
 				6AC1297B189A966798261E0E /* DesktopWorkspaceView.swift in Sources */,
 				C057ACAD8C4CDECB0263AD2E /* EditorTheme.swift in Sources */,
 				690A700F5922EBE63721C43D /* ElasticsearchDatabaseClient.swift in Sources */,
@@ -1324,6 +1337,8 @@
 				9E4B1C52F7450F325C9C6987 /* ChartQueryRunner.swift in Sources */,
 				F39772426FEA8E73F8B2D456 /* SchemaDDLBuilder.swift in Sources */,
 				9E150FEE8C7A4545B7B8FEA6 /* CloudEncryption.swift in Sources */,
+				1833A4472E1128C23C799D74 /* SyncedSlot.swift in Sources */,
+				809148409420379312927EA7 /* SyncMerge.swift in Sources */,
 				385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */,
 				12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */,
 				51C296FEDE9059FA07DE51F4 /* VisualizerView.swift in Sources */,
@@ -1448,6 +1463,7 @@
 				1CEBCE815013CB660569EC69 /* DatabaseService+SchemaObjects.swift in Sources */,
 				3F111012F4D1C2CD865BA6E2 /* DatabaseService.swift in Sources */,
 				BED11A309EFB0DE37F25D657 /* DesignSystem.swift in Sources */,
+				90571B43DFDB8EAA4A807BFB /* SyncConflictViews.swift in Sources */,
 				0558F6095717ECAA043D4B6F /* EditorTheme.swift in Sources */,
 				3F8775515111911DB106E11A /* ElasticsearchDatabaseClient.swift in Sources */,
 				FDA4F18C3290D9B3B6F6B017 /* ElasticsearchExplorerView.swift in Sources */,
@@ -1535,6 +1551,8 @@
 				5AA6F87F25978ACFB8F97E1E /* ChartQueryRunner.swift in Sources */,
 				7EAA524DCE70FC139D4C48D8 /* SchemaDDLBuilder.swift in Sources */,
 				C014536B50F5C0D07D8EAE77 /* CloudEncryption.swift in Sources */,
+				57CACC3357B890A4041D8424 /* SyncedSlot.swift in Sources */,
+				75CA09B63F3B2BC425AF9818 /* SyncMerge.swift in Sources */,
 				DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */,
 				E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */,
 				8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */,

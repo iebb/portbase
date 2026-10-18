@@ -1579,6 +1579,7 @@ struct BookmarkEditorView: View {
     var body: some View {
         PortbaseSheet(L10n.text("Connection"), subtitle: profile.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : profile.name) {
             Form {
+                SecretConflictSection(profile: $profile)
 
                 Section("Engine") {
                     EngineChooser(selection: $profile.engine)
@@ -1708,7 +1709,8 @@ struct BookmarkEditorView: View {
                             .font(.codeCaption)
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
-                        Text("SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported.")
+                        SSHHostKeyTrustRows(host: profile.sshHost, port: profile.sshPort)
+                        Text(ConnectionSecretLocation.sshNote)
                             .font(.captionText)
                             .foregroundStyle(.secondary)
                     }

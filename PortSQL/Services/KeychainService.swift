@@ -18,8 +18,9 @@ enum KeychainService {
     // MARK: Connection secrets
 
     /// Connection secrets always keep a copy on this device. While syncing is on, each one also lives in
-    /// iCloud Keychain, which syncs it end-to-end encrypted to the user's other devices, and the iCloud
-    /// copy wins when the two differ, since another device may have changed it.
+    /// iCloud Keychain, which syncs it end-to-end encrypted to the user's other devices. The two copies
+    /// are reconciled as `SyncedSlot` describes: a change on one side is taken over, and when both sides
+    /// changed, the later change wins and the other value is kept as a conflict to review.
     static let syncsConnectionSecretsKey = "Portbase.syncConnectionSecrets"
 
     /// Whether this device syncs connection secrets through iCloud Keychain. On unless turned off.
@@ -27,30 +28,33 @@ enum KeychainService {
         UserDefaults.standard.object(forKey: syncsConnectionSecretsKey) as? Bool ?? true
     }
 
-    /// Turning syncing on sends this device's secrets that iCloud Keychain doesn't have yet. Turning it
-    /// off stops using iCloud Keychain here; the copies there stay for other devices unless removed.
+    /// Turning syncing on reconciles every secret with iCloud Keychain. Turning it off stops using iCloud
+    /// Keychain here; the copies there stay for other devices unless removed.
     static func setSyncsConnectionSecrets(_ enabled: Bool, removingFromICloud: Bool = false) {
         UserDefaults.standard.set(enabled, forKey: syncsConnectionSecretsKey)
         if enabled {
-            uploadMissingConnectionSecrets()
+            reconcileConnectionSecrets()
         } else if removingFromICloud {
             removeConnectionSecretsFromICloud()
         }
     }
 
-    /// Sends this device's secrets that iCloud Keychain doesn't have yet, such as those saved before
-    /// syncing existed or while it was off. A secret already in iCloud Keychain is newer or the same.
-    static func uploadMissingConnectionSecrets() {
+    /// Brings every connection secret on this device and in iCloud Keychain into agreement: this device's
+    /// changes go up, other devices' come down, and secrets changed on both are resolved.
+    static func reconcileConnectionSecrets() {
         guard syncsConnectionSecrets else { return }
-        for account in connectionAccounts(synced: false) where item(account, synced: true) == nil {
-            if let value = item(account, synced: false) { _ = setItem(value, account: account, synced: true) }
-        }
+        let local = accounts(synced: false).filter(isConnectionAccount)
+        let remote = accounts(synced: true).compactMap(SyncedSlot.baseAccount).filter(isConnectionAccount)
+        for account in Set(local).union(remote) { _ = slot(account).reconcile() }
     }
 
     /// Deletes every connection secret from iCloud Keychain, and so from other devices' iCloud copies.
     /// Each device keeps its own copy.
     static func removeConnectionSecretsFromICloud() {
-        connectionAccounts(synced: true).forEach { deleteItem($0, synced: true) }
+        for account in accounts(synced: true) {
+            guard let base = SyncedSlot.baseAccount(account), isConnectionAccount(base) else { continue }
+            slot(base).removeRemote()
+        }
     }
 
     static func password(for profileID: UUID) -> String {
@@ -61,35 +65,21 @@ enum KeychainService {
         storedSecret(kind, for: profileID) ?? ""
     }
 
-    /// The secret, an empty string when it was cleared on a syncing device, or nil when none was ever saved.
+    /// The secret, an empty string when it was cleared, or nil when none was ever saved.
     static func storedSecret(_ kind: SecretKind, for profileID: UUID) -> String? {
-        let account = account(profileID, kind: kind)
-        let local = item(account, synced: false)
-        guard syncsConnectionSecrets, let synced = item(account, synced: true) else { return local }
-        let value = synced == clearedMarker ? "" : synced
-        // Keeping this device's copy current means turning syncing off, or removing secrets from iCloud, keeps them.
-        if value != (local ?? "") {
-            if value.isEmpty { deleteItem(account, synced: false) } else { _ = setItem(value, account: account, synced: false) }
-        }
-        return value
+        let slot = slot(account(profileID, kind: kind))
+        return syncsConnectionSecrets ? slot.reconcile() : slot.localValue()
     }
 
     static func setPassword(_ password: String, for profileID: UUID) {
         setSecret(password, kind: .databasePassword, for: profileID)
     }
 
-    /// Saves a secret, or clears it when empty. A cleared secret leaves a marker in iCloud Keychain, so other
-    /// devices clear theirs instead of using, or sending back, the copy they kept.
+    /// Saves a secret, or clears it when empty. While syncing, the change goes to iCloud Keychain as the
+    /// newest version; a cleared secret is a version too, so other devices clear theirs rather than send
+    /// back the copy they kept. Saving settles any conflict the secret had.
     static func setSecret(_ secret: String, kind: SecretKind, for profileID: UUID) {
-        let account = account(profileID, kind: kind)
-        if secret.isEmpty {
-            deleteItem(account, synced: false)
-        } else {
-            _ = setItem(secret, account: account, synced: false)
-        }
-        if syncsConnectionSecrets {
-            _ = setItem(secret.isEmpty ? clearedMarker : secret, account: account, synced: true)
-        }
+        slot(account(profileID, kind: kind)).write(secret.isEmpty ? nil : secret, syncing: syncsConnectionSecrets)
     }
 
     static func deletePassword(for profileID: UUID) {
@@ -98,43 +88,79 @@ enum KeychainService {
 
     /// Removes a deleted connection's secrets from this device and from iCloud Keychain.
     static func deleteAllSecrets(for profileID: UUID) {
-        for kind in SecretKind.allCases {
-            let account = account(profileID, kind: kind)
-            deleteItem(account, synced: false)
-            deleteItem(account, synced: true)
-        }
+        SecretKind.allCases.forEach { slot(account(profileID, kind: $0)).removeEverywhere() }
     }
 
     /// Removes this device's copies of a connection's secrets, for a connection deleted on another device.
     static func deleteLocalSecrets(for profileID: UUID) {
-        SecretKind.allCases.forEach { deleteItem(account(profileID, kind: $0), synced: false) }
+        SecretKind.allCases.forEach { slot(account(profileID, kind: $0)).removeLocal() }
     }
 
     static func deleteSecret(_ kind: SecretKind, for profileID: UUID) {
         setSecret("", kind: kind, for: profileID)
     }
 
-    /// Stands for a secret cleared on a syncing device. Not a value anyone types: it starts with a control character.
-    private static let clearedMarker = "\u{1}portbase.cleared"
+    /// The values another device saved for a connection's secrets that lost to a later change here, or
+    /// that a later change elsewhere replaced here.
+    static func conflicts(for profileID: UUID) -> [SecretKind: SyncedVersion] {
+        var conflicts: [SecretKind: SyncedVersion] = [:]
+        for kind in SecretKind.allCases {
+            if let conflict = slot(account(profileID, kind: kind)).conflict() { conflicts[kind] = conflict }
+        }
+        return conflicts
+    }
 
-    private static func item(_ account: String, synced: Bool) -> String? {
+    /// The connections with a secret conflict to review.
+    static func conflictedProfileIDs() -> Set<UUID> {
+        Set(accounts(synced: false).compactMap { account -> UUID? in
+            guard account.hasSuffix(SyncedSlot.conflictSuffix) else { return nil }
+            let base = String(account.dropLast(SyncedSlot.conflictSuffix.count))
+            return isConnectionAccount(base) ? UUID(uuidString: String(base.prefix(36))) : nil
+        })
+    }
+
+    /// Settles a conflict by keeping the current secret, or by using the other value as a new change.
+    static func resolveConflict(_ kind: SecretKind, for profileID: UUID, usingOther: Bool) {
+        let slot = slot(account(profileID, kind: kind))
+        guard let conflict = slot.conflict() else { return }
+        if usingOther {
+            slot.write(conflict.value, syncing: syncsConnectionSecrets)
+        } else {
+            slot.dismissConflict()
+        }
+    }
+
+    private static func slot(_ account: String) -> SyncedSlot {
+        SyncedSlot(account: account, policy: .laterChangeWins,
+                   readLocal: { record(account, synced: false) },
+                   writeLocal: { value in
+                       if let value { setItem(value, account: account, synced: false) } else { deleteItem(account, synced: false) }
+                   })
+    }
+
+    // MARK: Items
+
+    /// An item's value and when Keychain last saw it change.
+    static func record(_ account: String, synced: Bool) -> (value: String, modified: Date?)? {
         var query = synced ? syncedQuery(account: account) : baseQuery(account: account)
         query[kSecReturnData as String] = true
+        query[kSecReturnAttributes as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var result: AnyObject?
         guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data, let value = String(data: data, encoding: .utf8) else {
+              let attributes = result as? [String: Any], let data = attributes[kSecValueData as String] as? Data,
+              let value = String(data: data, encoding: .utf8) else {
 #if DEBUG
-            return fallbackStore.optionalValue(for: fallbackKey(account, synced: synced))
+            return fallbackStore.optionalValue(for: fallbackKey(account, synced: synced)).map { ($0, nil) }
 #else
             return nil
 #endif
         }
-        return value
+        return (value, attributes[kSecAttrModificationDate as String] as? Date)
     }
 
     @discardableResult
-    private static func setItem(_ value: String, account: String, synced: Bool) -> Bool {
+    static func setItem(_ value: String, account: String, synced: Bool) -> Bool {
         let data = Data(value.utf8)
         var query = synced ? syncedQuery(account: account) : baseQuery(account: account)
         var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
@@ -150,15 +176,15 @@ enum KeychainService {
         return status == errSecSuccess
     }
 
-    private static func deleteItem(_ account: String, synced: Bool) {
+    static func deleteItem(_ account: String, synced: Bool) {
         SecItemDelete((synced ? syncedQuery(account: account) : baseQuery(account: account)) as CFDictionary)
 #if DEBUG
         fallbackStore.removeValue(for: fallbackKey(account, synced: synced))
 #endif
     }
 
-    /// The accounts of connection secrets, whose names are a connection ID and a kind; app secrets are skipped.
-    private static func connectionAccounts(synced: Bool) -> [String] {
+    /// Every account saved under this app's service, on this device or in iCloud Keychain.
+    static func accounts(synced: Bool) -> [String] {
         var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -178,9 +204,10 @@ enum KeychainService {
         let prefix = synced ? "synced:" : "local:"
         accounts += fallbackStore.keys.filter { $0.hasPrefix(prefix) }.map { String($0.dropFirst(prefix.count)) }
 #endif
-        return Array(Set(accounts.filter(isConnectionAccount))).sorted()
+        return Array(Set(accounts)).sorted()
     }
 
+    /// A connection secret's account: a connection ID and a kind.
     static func isConnectionAccount(_ account: String) -> Bool {
         let parts = account.split(separator: ".", maxSplits: 1).map(String.init)
         return parts.count == 2 && UUID(uuidString: parts[0]) != nil && SecretKind(rawValue: parts[1]) != nil

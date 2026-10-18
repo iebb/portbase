@@ -18,6 +18,7 @@ struct SettingsView: View {
             Section {
                 CloudStatusRow()
                 ConnectionSecretSyncToggle()
+                SSHHostKeySyncToggle()
                 Button {
                     bookmarks.synchronizeCloud()
                     library.synchronizeCloud()
@@ -315,6 +316,12 @@ enum ConnectionSecretLocation {
             : L10n.text("Server settings sync through iCloud. Passwords stay in this device’s Keychain.")
     }
 
+    static var sshNote: String {
+        KeychainService.syncsConnectionSecrets
+            ? L10n.text("SSH credentials are stored in Keychain and sync through iCloud Keychain. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported.")
+            : L10n.text("SSH credentials are stored in Keychain on this device. Portbase opens a local loopback forward and verifies the SSH host key after first trust. Password login and unencrypted OpenSSH Ed25519/ECDSA private keys are supported.")
+    }
+
     static var certificateNote: String {
         KeychainService.syncsConnectionSecrets
             ? L10n.text("Private CA certificates are stored in Keychain and sync through iCloud Keychain.")
@@ -333,5 +340,3 @@ private struct CloudStatusRow: View {
         }
     }
 }
-
-/// Wrapping chips for short labels.

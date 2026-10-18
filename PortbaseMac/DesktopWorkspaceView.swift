@@ -1526,6 +1526,7 @@ struct DesktopSettingsView: View {
                 Section("iCloud") {
                     LabeledContent("Status", value: FileManager.default.ubiquityIdentityToken == nil ? L10n.text("Sign in to iCloud in System Settings.") : L10n.text("iCloud available"))
                     ConnectionSecretSyncToggle()
+                    SSHHostKeySyncToggle()
                     Text("Connections, saved queries, and chart configurations sync with iCloud. Query history, results, and SQLite files stay on this device.").font(.footnoteText).foregroundStyle(.secondary)
                     if let error = bookmarks.cloudSyncError ?? library.cloudSyncError { Text(error).foregroundStyle(.red) }
                     Button("Sync Now") { bookmarks.synchronizeCloud(); library.synchronizeCloud() }

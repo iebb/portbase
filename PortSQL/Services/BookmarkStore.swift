@@ -6,6 +6,8 @@ final class BookmarkStore: ObservableObject {
     @Published private(set) var bookmarks: [ConnectionProfile] = []
     @Published private(set) var errorMessage: String?
     @Published private(set) var cloudSyncError: String?
+    /// Connections with a password, key, or trusted host key that changed on more than one device at once.
+    @Published private(set) var syncConflicts: Set<UUID> = []
 
     private let keyValueStore = NSUbiquitousKeyValueStore.default
     private let syncKey = "portsql.bookmarks"
@@ -29,10 +31,16 @@ final class BookmarkStore: ObservableObject {
                 url: directory.appendingPathComponent("bookmark-sync.json"), initial: bookmarks, initialDate: { $0.createdAt },
                 quotaMessage: L10n.text("Connections are saved on this device. The library exceeds the iCloud sync limit."))
             mergeFromCloud()
-            // Secrets saved before syncing existed, or while it was off, go to iCloud Keychain.
-            KeychainService.uploadMissingConnectionSecrets()
+            // Secrets changed here or on other devices since the last launch come into agreement.
+            KeychainService.reconcileConnectionSecrets()
         }
         removeLegacySampleConnections()
+        refreshSyncConflicts()
+        NotificationCenter.default.addObserver(
+            forName: .syncConflictsDidChange, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.refreshSyncConflicts() }
+        }
         NotificationCenter.default.addObserver(
             forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
             object: keyValueStore,
@@ -143,7 +151,7 @@ final class BookmarkStore: ObservableObject {
         guard cloudSyncEnabled else { return }
         keyValueStore.synchronize()
         mergeFromCloud()
-        KeychainService.uploadMissingConnectionSecrets()
+        KeychainService.reconcileConnectionSecrets()
         refreshSecrets()
     }
 
@@ -235,5 +243,16 @@ final class BookmarkStore: ObservableObject {
     func refreshSecrets() {
         let refreshed = bookmarks.map { secure($0) }
         if refreshed != bookmarks { bookmarks = refreshed }
+        refreshSyncConflicts()
+    }
+
+    func refreshSyncConflicts() {
+        let secrets = KeychainService.conflictedProfileIDs()
+        let hostKeys = bookmarks.filter { profile in
+            profile.usesSSHTunnel && SSHTunnelSyncingHostKeyStore.shared.conflict(
+                for: SSHTunnelSyncingHostKeyStore.storeKey(host: profile.sshHost, port: profile.sshPort)) != nil
+        }.map(\.id)
+        let conflicts = secrets.union(hostKeys).intersection(bookmarks.map(\.id))
+        if conflicts != syncConflicts { syncConflicts = conflicts }
     }
 }

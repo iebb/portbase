@@ -74,7 +74,7 @@ actor SSHTunnelService {
     private var profileGenerations: [UUID: Int] = [:]
     private let hostKeyStore: SSHTunnelHostKeyStore
 
-    init(hostKeyStore: SSHTunnelHostKeyStore = SSHTunnelUserDefaultsHostKeyStore()) {
+    init(hostKeyStore: SSHTunnelHostKeyStore = SSHTunnelSyncingHostKeyStore.shared) {
         self.hostKeyStore = hostKeyStore
     }
 
@@ -317,7 +317,7 @@ private struct TunnelKey: Hashable {
     }
 
     var knownHostStoreKey: String {
-        "\(sshHost.lowercased()):\(sshPort)"
+        SSHTunnelSyncingHostKeyStore.storeKey(host: sshHost, port: sshPort)
     }
 }
 
@@ -469,6 +469,18 @@ final class SSHTunnelUserDefaultsHostKeyStore: SSHTunnelHostKeyStore, @unchecked
             hosts[hostKey] = fingerprint
             defaults.set(hosts, forKey: storageKey)
         }
+    }
+
+    func removeFingerprint(for hostKey: String) {
+        lock.withLock {
+            var hosts = defaults.dictionary(forKey: storageKey) as? [String: String] ?? [:]
+            hosts.removeValue(forKey: hostKey)
+            defaults.set(hosts, forKey: storageKey)
+        }
+    }
+
+    var hosts: [String] {
+        lock.withLock { Array((defaults.dictionary(forKey: storageKey) ?? [:]).keys) }
     }
 }
 

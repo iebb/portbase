@@ -16,20 +16,30 @@ import Foundation
 }
 
 /// A saved item and its deletion share the same identity and revision. A late
-/// notification cannot bring a deleted item back or overwrite a newer edit.
+/// notification cannot bring a deleted item back or overwrite a newer edit. Each item also records when
+/// each of its fields changed, so edits two devices make to different fields of one item both survive.
 struct WorkspaceSyncCollection<Value: Codable & Identifiable & Equatable>: Codable, Equatable where Value.ID == UUID {
     struct Record: Codable, Equatable {
         let id: UUID
         let updatedAt: Date
         let value: Value?
+        /// When each field last changed; fields without a date changed at `updatedAt`. Older versions
+        /// leave it out and keep whole-item merging.
+        var fieldDates: [String: Date]? = nil
     }
     private(set) var records: [Record] = []
     var legacySnapshot: [Value]?
     var values: [Value] { records.sorted { $0.updatedAt == $1.updatedAt ? $0.id.uuidString < $1.id.uuidString : $0.updatedAt > $1.updatedAt }.compactMap(\.value) }
 
     mutating func set(_ value: Value, at date: Date = .now) {
+        var dates: [String: Date]?
+        if let previous = records.first(where: { $0.id == value.id }), let old = previous.value,
+           let oldObject = JSONFieldMerge.object(old), let newObject = JSONFieldMerge.object(value) {
+            dates = JSONFieldMerge.stamp(previous: oldObject, current: newObject, dates: previous.fieldDates ?? [:],
+                                         base: previous.updatedAt, now: date)
+        }
         records.removeAll { $0.id == value.id }
-        records.append(Record(id: value.id, updatedAt: date, value: value))
+        records.append(Record(id: value.id, updatedAt: date, value: value, fieldDates: dates))
         normalize()
     }
     mutating func remove(_ id: UUID, at date: Date = .now) {
@@ -41,10 +51,25 @@ struct WorkspaceSyncCollection<Value: Codable & Identifiable & Equatable>: Codab
         var map = Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0) })
         for record in remote.records {
             if let existing = map[record.id] {
-                if record.updatedAt > existing.updatedAt || (record.updatedAt == existing.updatedAt && winsTie(record, over: existing)) { map[record.id] = record }
+                if let merged = mergedFields(existing, record) {
+                    map[record.id] = merged
+                } else if record.updatedAt > existing.updatedAt || (record.updatedAt == existing.updatedAt && winsTie(record, over: existing)) {
+                    map[record.id] = record
+                }
             } else { map[record.id] = record }
         }
         records = Array(map.values); normalize()
+    }
+
+    /// Two edits of the same item, merged field by field; nil when either side is a deletion, they're
+    /// the same, or the merged fields don't make a valid item, which leaves the newer edit to win whole.
+    private func mergedFields(_ local: Record, _ remote: Record) -> Record? {
+        guard let localValue = local.value, let remoteValue = remote.value, localValue != remoteValue,
+              let localObject = JSONFieldMerge.object(localValue), let remoteObject = JSONFieldMerge.object(remoteValue) else { return nil }
+        let (object, dates) = JSONFieldMerge.merge(local: localObject, localDates: local.fieldDates ?? [:], localBase: local.updatedAt,
+                                                   remote: remoteObject, remoteDates: remote.fieldDates ?? [:], remoteBase: remote.updatedAt)
+        guard let value = JSONFieldMerge.value(Value.self, from: object), value.id == local.id else { return nil }
+        return Record(id: local.id, updatedAt: max(local.updatedAt, remote.updatedAt), value: value, fieldDates: dates)
     }
     private func winsTie(_ lhs: Record, over rhs: Record) -> Bool {
         if lhs.value == nil { return true }

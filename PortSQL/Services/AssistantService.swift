@@ -165,15 +165,18 @@ struct AssistantSettings: Codable, Equatable {
     /// Asking before every query is the default; results of queries the assistant runs go to the provider.
     var approvalMode: AssistantApprovalMode = .askEveryQuery
     var documents: [AssistantContextDocument] = []
-    /// When these settings last changed on any device; the newest copy wins when syncing.
+    /// When these settings last changed on any device.
     var updatedAt: Date = .distantPast
+    /// When each setting, provider, and reference file last changed, so syncing merges changes two
+    /// devices made to different ones; settings without a date changed at `updatedAt`.
+    var fieldDates: [String: Date] = [:]
     /// Set on the iCloud copy when the reference files were too large to sync with it.
     var documentsOmitted = false
 
     init() {}
 
     private enum CodingKeys: String, CodingKey {
-        case providers, selectedProviderID, instructions, includesSampleRows, approvalMode, documents, updatedAt, documentsOmitted
+        case providers, selectedProviderID, instructions, includesSampleRows, approvalMode, documents, updatedAt, documentsOmitted, fieldDates
         // The single provider of earlier versions, still written for them.
         case provider, baseURL, model
     }
@@ -196,6 +199,7 @@ struct AssistantSettings: Codable, Equatable {
         documents = try container.decodeIfPresent([AssistantContextDocument].self, forKey: .documents) ?? []
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? .distantPast
         documentsOmitted = try container.decodeIfPresent(Bool.self, forKey: .documentsOmitted) ?? false
+        fieldDates = try container.decodeIfPresent([String: Date].self, forKey: .fieldDates) ?? [:]
     }
 
     func encode(to encoder: Encoder) throws {
@@ -208,10 +212,14 @@ struct AssistantSettings: Codable, Equatable {
         try container.encode(documents, forKey: .documents)
         try container.encode(updatedAt, forKey: .updatedAt)
         try container.encode(documentsOmitted, forKey: .documentsOmitted)
+        try container.encode(fieldDates, forKey: .fieldDates)
         try container.encode(provider, forKey: .provider)
         try container.encode(baseURL, forKey: .baseURL)
         try container.encode(model, forKey: .model)
     }
+
+    /// Bookkeeping, and the single-provider fields written for earlier versions, which follow `providers`.
+    static let unmergedKeys: Set<String> = ["updatedAt", "fieldDates", "documentsOmitted", "provider", "baseURL", "model"]
 
     private var activeIndex: Int { providers.firstIndex { $0.id == selectedProviderID } ?? 0 }
 
@@ -246,9 +254,14 @@ struct AssistantSettings: Codable, Equatable {
 
     /// Saves locally and, outside tests, pushes the settings to iCloud for the user's other devices.
     func save(to defaults: UserDefaults = .standard, syncing: Bool = !WorkspaceFileStore.isTestHost) {
+        let previous = Self.load(from: defaults)
         var stamped = self
         stamped.updatedAt = .now
         stamped.documentsOmitted = false
+        if let old = JSONFieldMerge.object(previous), let new = JSONFieldMerge.object(stamped) {
+            stamped.fieldDates = JSONFieldMerge.stamp(previous: old, current: new, dates: previous.fieldDates, base: previous.updatedAt,
+                                                      now: stamped.updatedAt, excluding: Self.unmergedKeys)
+        }
         if let data = try? JSONEncoder().encode(stamped) { defaults.set(data, forKey: Self.storageKey) }
         if syncing { AssistantSettingsSync.push(stamped) }
     }
@@ -291,14 +304,36 @@ enum AssistantSettingsSync {
         try JSONDecoder().decode(AssistantSettings.self, from: CloudEncryption.open(data, key: key))
     }
 
-    /// The local settings after taking in an iCloud copy, or nil when the local copy is as new.
-    /// When a legacy iCloud copy left out the reference files, this device keeps its own.
+    /// The local settings after taking in an iCloud copy, or nil when nothing changes. Changes the two
+    /// copies made to different settings, providers, or reference files are all kept; for the same one,
+    /// the later change wins. When a legacy iCloud copy left out the reference files, this device keeps its own.
     static func merged(local: AssistantSettings, cloud: AssistantSettings) -> AssistantSettings? {
-        guard cloud.updatedAt > local.updatedAt else { return nil }
-        var merged = cloud
-        if cloud.documentsOmitted { merged.documents = local.documents }
+        var remote = cloud
+        if cloud.documentsOmitted {
+            remote.documents = local.documents
+            remote.fieldDates = remote.fieldDates.filter { !$0.key.hasPrefix("documents") }
+                .merging(local.fieldDates.filter { $0.key.hasPrefix("documents") }) { _, new in new }
+        }
+        var merged: AssistantSettings
+        if let localObject = JSONFieldMerge.object(local), let remoteObject = JSONFieldMerge.object(remote) {
+            let (object, dates) = JSONFieldMerge.merge(
+                local: localObject, localDates: local.fieldDates, localBase: local.updatedAt,
+                remote: remoteObject, remoteDates: remote.fieldDates, remoteBase: remote.updatedAt,
+                excluding: AssistantSettings.unmergedKeys)
+            guard let value = JSONFieldMerge.value(AssistantSettings.self, from: object) else { return nil }
+            merged = value
+            merged.fieldDates = dates
+        } else {
+            guard remote.updatedAt > local.updatedAt else { return nil }
+            merged = remote
+        }
+        merged.updatedAt = max(local.updatedAt, remote.updatedAt)
         merged.documentsOmitted = false
-        return merged
+        // Field dates filled in for the first time aren't a change of their own.
+        var withoutDates = merged, localWithoutDates = local
+        withoutDates.fieldDates = [:]; withoutDates.updatedAt = .distantPast
+        localWithoutDates.fieldDates = [:]; localWithoutDates.updatedAt = .distantPast
+        return withoutDates == localWithoutDates ? nil : merged
     }
 
     private static let queue = DispatchQueue(label: "Portbase.AssistantSettingsSync", qos: .utility)
@@ -339,10 +374,17 @@ enum AssistantSettingsSync {
         queue.async {
             guard let cloud = encryptedCopy() ?? legacyCopy() else { return }
             DispatchQueue.main.async {
-                guard let merged = merged(local: .load(), cloud: cloud),
-                      let encoded = try? JSONEncoder().encode(merged) else { return }
+                let local = AssistantSettings.load()
+                guard let merged = merged(local: local, cloud: cloud),
+                      let encoded = try? JSONEncoder().encode(merged) else {
+                    // The iCloud copy lacks changes made here: send them.
+                    if cloud != local, local.updatedAt > .distantPast { push(local) }
+                    return
+                }
                 UserDefaults.standard.set(encoded, forKey: AssistantSettings.storageKey)
                 NotificationCenter.default.post(name: .assistantSettingsDidChange, object: nil)
+                // A merge of changes from both sides goes back to iCloud for the other devices.
+                if merged != cloud { push(merged) }
             }
         }
     }
