@@ -1549,3 +1549,11 @@
 "You declined this query" = "Вы отклонили этот запрос";
 "New Connection…" = "Новое подключение…";
 "New SQLite Database…" = "Новая база данных SQLite…";
+"%@ isn't in this database anymore." = "%@ больше нет в этой базе данных.";
+"Close Tab" = "Закрыть вкладку";
+"Keep Open" = "Оставить открытой";
+"New Chat" = "Новый чат";
+"Open %@" = "Открыть %@";
+"Open a Tab" = "Открыть вкладку";
+"Open in New Tab" = "Открыть в новой вкладке";
+"Table not found" = "Таблица не найдена";

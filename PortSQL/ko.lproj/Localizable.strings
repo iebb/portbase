@@ -1549,3 +1549,11 @@
 "You declined this query" = "이 쿼리를 거부했습니다";
 "New Connection…" = "새 연결…";
 "New SQLite Database…" = "새 SQLite 데이터베이스…";
+"%@ isn't in this database anymore." = "%@이(가) 더 이상 이 데이터베이스에 없습니다.";
+"Close Tab" = "탭 닫기";
+"Keep Open" = "열어 두기";
+"New Chat" = "새 채팅";
+"Open %@" = "%@ 열기";
+"Open a Tab" = "탭 열기";
+"Open in New Tab" = "새 탭에서 열기";
+"Table not found" = "테이블을 찾을 수 없음";

@@ -27,7 +27,6 @@ struct DesktopWorkspaceView: View {
             }
         }
         /// The views inside a connection tab.
-        static let sessionCases: [Destination] = [.console, .explorer, .structure, .assistant]
     }
 
     /// Sections of the home tab, like Termius's Hosts, Keychain, and Snippets.
@@ -55,8 +54,10 @@ struct DesktopWorkspaceView: View {
     @Environment(\.openSettings) private var openSettings
     @State private var showsHome: Bool
     @State private var homeSection = HomeSection.servers
-    /// Each connection tab remembers whether it shows the console, data, or structure.
-    @State private var destinations: [UUID: Destination] = [:]
+    /// Each connection tab's own tabs: its console, open tables, chats, and pages.
+    @State private var tabSets: [UUID: SessionTabSet] = [:]
+    /// The conversation of each chat tab, by tab.
+    @State private var chats: [UUID: AssistantSession] = [:]
     @State private var showsSidebar = true
     @State private var search = ""
     @State private var expandedDatabases: Set<String> = []
@@ -70,8 +71,19 @@ struct DesktopWorkspaceView: View {
         _showsHome = State(initialValue: startsAtHome)
     }
 
-    private var sessionDestination: Destination { destinations[consoles.selectedID] ?? .console }
-    private var destination: Destination { showsHome ? .home : sessionDestination }
+    private var tabs: SessionTabSet { tabSets[consoles.selectedID] ?? SessionTabSet() }
+    private var selectedTab: SessionTabSet.Tab { tabs.selected }
+
+    @discardableResult
+    private func updateTabs<Result>(_ change: (inout SessionTabSet) -> Result) -> Result {
+        var set = tabs
+        let result = change(&set)
+        tabSets[consoles.selectedID] = set
+        return result
+    }
+
+    /// Redis and Elasticsearch browse keys and indexes in one page rather than a tab per table.
+    private var usesKeyBrowser: Bool { [.redis, .elasticsearch].contains(workspace.selectedBookmark?.engine) }
 
     private var pinScope: String {
         PinnedTableStore.scope(profileID: workspace.selectedBookmarkID, database: workspace.activeDatabaseName)
@@ -113,11 +125,52 @@ struct DesktopWorkspaceView: View {
         switch target {
         case .home: showsHome = true
         case .connections: homeSection = .servers; showsHome = true
-        case .charts: homeSection = .charts; showsHome = true
-        case .console, .explorer, .structure, .assistant:
-            destinations[consoles.selectedID] = target
+        case .charts:
+            // In a connection tab, charts open beside its other tabs.
+            if showsHome || workspace.selectedBookmark == nil { homeSection = .charts; showsHome = true }
+            else { updateTabs { $0.show(.charts) } }
+        case .console: updateTabs { $0.show(.console) }; showsHome = false
+        case .structure: updateTabs { $0.show(.structure) }; showsHome = false
+        case .assistant: showChat(); showsHome = false
+        case .explorer:
+            if usesKeyBrowser { updateTabs { $0.show(.explorer) } }
+            else if let table = workspace.selectedExplorerTable ?? workspace.schemaCatalog.first { open(table) }
+            else { updateTabs { $0.show(.console) } }
             showsHome = false
         }
+    }
+
+    /// Shows a table's rows in its tab. A single click previews it in place of the last table previewed.
+    private func open(_ table: SchemaTableDescriptor, keeps: Bool = false) {
+        if usesKeyBrowser {
+            updateTabs { $0.show(.explorer) }
+        } else {
+            updateTabs { $0.openTable(table.displayName, keeps: keeps) }
+        }
+        if workspace.selectedExplorerTableID != table.id { workspace.selectExplorerTable(table) }
+    }
+
+    private func newChat() {
+        // The console's own conversation goes to its first chat, so a chat started elsewhere carries on here.
+        let inUse = Set(tabs.chatIDs.compactMap { chats[$0].map(ObjectIdentifier.init) })
+        let session = inUse.contains(ObjectIdentifier(workspace.assistant)) ? AssistantSession() : workspace.assistant
+        let id = updateTabs { $0.addChat() }
+        chats[id] = session
+    }
+
+    private func showChat() {
+        if tabs.chatIDs.isEmpty { newChat() } else { updateTabs { $0.showChat() } }
+    }
+
+    private func closeTab(_ id: UUID) {
+        if let session = chats.removeValue(forKey: id) {
+            if session === workspace.assistant { session.reset() } else { session.cancel() }
+        }
+        updateTabs { $0.close(id) }
+    }
+
+    private func closeTabs(otherThan id: UUID) {
+        for other in tabs.tabs where other.id != id && tabs.canClose(other.id) { closeTab(other.id) }
     }
 
     /// Opens a connection the way Termius opens a host: in its existing tab, in the current tab when
@@ -133,7 +186,6 @@ struct DesktopWorkspaceView: View {
             consoles.active.workspace.selectBookmark(id)
         }
         then?(consoles.active.workspace)
-        if destinations[consoles.selectedID] == nil { destinations[consoles.selectedID] = .console }
         showsHome = false
     }
 
@@ -186,6 +238,40 @@ struct DesktopWorkspaceView: View {
             // The active database opens in the sidebar; switching databases keeps the current view.
             if let id = workspace.selectedBookmarkID, let database { expandedDatabases.insert(databaseKey(id, database)) }
         }
+        // Table tabs belong to the schema they were opened in, so another connection or database closes them.
+        .onChange(of: SessionScope(console: consoles.selectedID, bookmark: workspace.selectedBookmarkID, database: workspace.activeDatabaseName)) { old, new in
+            guard old.console == new.console else { return }
+            updateTabs { $0.closeTables() }
+        }
+        // A table tab shows its table's rows: the explorer follows the tab, and the tab follows the
+        // explorer when something else, like Structure, opens a table.
+        .onChange(of: TableSyncKey(console: consoles.selectedID, tab: selectedTab, tables: workspace.schemaCatalog.count), initial: true) { _, _ in
+            guard case .table(let name) = selectedTab.kind, workspace.selectedExplorerTable?.displayName != name,
+                  let table = workspace.schemaCatalog.first(where: { $0.displayName == name }) else { return }
+            workspace.selectExplorerTable(table)
+        }
+        .onChange(of: workspace.selectedExplorerTableID) { _, _ in
+            guard case .table(let name) = selectedTab.kind, let table = workspace.selectedExplorerTable,
+                  table.displayName != name else { return }
+            updateTabs { $0.openTable(table.displayName) }
+        }
+        .onChange(of: consoles.consoles.map(\.id)) { _, open in
+            tabSets = tabSets.filter { open.contains($0.key) }
+            let openChats = Set(tabSets.values.flatMap(\.chatIDs))
+            chats = chats.filter { openChats.contains($0.key) }
+        }
+    }
+
+    private struct SessionScope: Equatable {
+        let console: UUID
+        let bookmark: UUID?
+        let database: String?
+    }
+
+    private struct TableSyncKey: Equatable {
+        let console: UUID
+        let tab: SessionTabSet.Tab
+        let tables: Int
     }
 
     /// Steps through the home tab and the connection tabs, wrapping around.
@@ -343,9 +429,20 @@ struct DesktopWorkspaceView: View {
             .buttonStyle(.plain)
             .foregroundStyle(PortSQLPalette.muted)
             .help(showsSidebar ? L10n.text("Hide Sidebar") : L10n.text("Show Sidebar"))
-            PortbasePillTabs(selection: Binding(get: { sessionDestination }, set: { show($0) }),
-                             options: Destination.sessionCases.map { PortbaseChoice(value: $0, title: L10n.text($0.title), systemImage: $0.symbol) })
-                .fixedSize()
+            if workspace.selectedBookmark != nil {
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 2) {
+                            ForEach(tabs.tabs) { tab in subTab(tab).id(tab.id) }
+                        }
+                        .padding(.vertical, Spacing.xxs)
+                    }
+                    .scrollIndicators(.never)
+                    .onChange(of: tabs.selectedID) { _, id in withAnimation { proxy.scrollTo(id) } }
+                }
+                .layoutPriority(1)
+                newTabMenu
+            }
             Spacer(minLength: Spacing.s)
             if workspace.selectedBookmark != nil {
                 DatabasePicker().labelsHidden().fixedSize()
@@ -367,7 +464,9 @@ struct DesktopWorkspaceView: View {
         if workspace.selectedBookmark == nil {
             DesktopServerPicker(onOpen: { id in workspace.selectBookmark(id) }, onNewConnection: { workspace.createBookmark() })
         } else {
-            switch sessionDestination {
+            switch selectedTab.kind {
+            case .console: console
+            case .table(let name): tablePage(name)
             case .explorer:
                 if workspace.selectedBookmark?.engine == .redis { RedisExplorerView() }
                 else if workspace.selectedBookmark?.engine == .elasticsearch { ElasticsearchExplorerView() }
@@ -382,16 +481,92 @@ struct DesktopWorkspaceView: View {
                     }
                 } else {
                     DesktopStructureView(
-                        onOpenData: { table in workspace.selectExplorerTable(table); show(.explorer) },
+                        onOpenData: { table in open(table, keeps: true) },
                         onQuery: { table in workspace.queryText = workspace.defaultQuery(for: table); show(.console) },
                         onOpenSQL: { sql in workspace.applyAssistantQuery(sql, replacing: false); show(.console) }
                     )
                 }
-            case .assistant:
-                AssistantChatView(session: workspace.assistant, onShowConsole: { show(.console) })
-            default: console
+            case .chat:
+                AssistantChatView(session: chats[selectedTab.id] ?? workspace.assistant, onShowConsole: { show(.console) })
+                    .id(selectedTab.id)
+            case .charts:
+                NavigationStack { VisualizerView() }
             }
         }
+    }
+
+    @ViewBuilder private func tablePage(_ name: String) -> some View {
+        if workspace.schemaCatalog.contains(where: { $0.displayName == name }) {
+            DesktopTableBrowser()
+        } else if workspace.isLoadingSchema {
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            PortbaseEmptyState(title: L10n.text("Table not found"),
+                               message: L10n.format("%@ isn't in this database anymore.", name),
+                               systemImage: "tablecells",
+                               actionTitle: L10n.text("Close Tab"),
+                               action: { closeTab(selectedTab.id) })
+        }
+    }
+
+    // MARK: Connection tab's tabs
+
+    private func subTab(_ tab: SessionTabSet.Tab) -> some View {
+        DesktopSubTab(
+            tab: tab,
+            title: subTabTitle(tab),
+            symbol: subTabSymbol(tab),
+            chat: chats[tab.id],
+            isSelected: tab.id == tabs.selectedID,
+            canClose: tabs.canClose(tab.id),
+            onSelect: { updateTabs { $0.select(tab.id) } },
+            onKeep: { updateTabs { $0.keep(tab.id) } },
+            onClose: { closeTab(tab.id) },
+            onCloseOthers: { closeTabs(otherThan: tab.id) }
+        )
+    }
+
+    private func subTabTitle(_ tab: SessionTabSet.Tab) -> String {
+        switch tab.kind {
+        case .console: L10n.text("Console")
+        case .table(let name): workspace.schemaCatalog.first { $0.displayName == name }?.name ?? name
+        case .explorer: L10n.text("Explorer")
+        case .structure: L10n.text("Structure")
+        case .chat: L10n.text("New Chat")
+        case .charts: L10n.text("Charts")
+        }
+    }
+
+    private func subTabSymbol(_ tab: SessionTabSet.Tab) -> String {
+        switch tab.kind {
+        case .console: "terminal"
+        case .table(let name):
+            workspace.isDocumentDatabase ? "doc.on.doc"
+                : workspace.schemaCatalog.first { $0.displayName == name }?.objectKind?.symbol ?? "tablecells"
+        case .explorer: "square.stack.3d.up"
+        case .structure: "list.bullet.rectangle"
+        case .chat: "sparkles"
+        case .charts: "chart.bar.xaxis"
+        }
+    }
+
+    private var newTabMenu: some View {
+        Menu {
+            Button("New Chat", systemImage: "sparkles") { newChat() }
+            if usesKeyBrowser {
+                Button("Explorer", systemImage: "square.stack.3d.up") { updateTabs { $0.show(.explorer) } }
+            } else if let table = workspace.selectedExplorerTable ?? workspace.schemaCatalog.first {
+                Button(L10n.format("Open %@", table.name), systemImage: "tablecells") { open(table, keeps: true) }
+            }
+            Button("Structure", systemImage: "list.bullet.rectangle") { updateTabs { $0.show(.structure) } }
+            Button("Charts", systemImage: "chart.bar.xaxis") { updateTabs { $0.show(.charts) } }
+        } label: {
+            Image(systemName: "plus").frame(width: Sizes.tool, height: Sizes.tool)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(L10n.text("Open a Tab"))
     }
 
     private var sessionSidebar: some View {
@@ -511,12 +686,15 @@ struct DesktopWorkspaceView: View {
     }
 
     private func tableRow(_ table: SchemaTableDescriptor) -> some View {
-        let selected = workspace.selectedExplorerTableID == table.id && sessionDestination != .console
+        let selected: Bool = switch selectedTab.kind {
+        case .table(let name): name == table.displayName
+        case .structure, .explorer: workspace.selectedExplorerTableID == table.id
+        default: false
+        }
         let pinned = pinnedTables.isPinned(table.displayName, in: pinScope)
         return Button {
-            workspace.selectExplorerTable(table)
-            // Choosing a table shows its data, or its structure when that's open.
-            if sessionDestination != .structure { show(.explorer) }
+            // Choosing a table shows its rows, or its structure when that's open.
+            if selectedTab.kind == .structure { workspace.selectExplorerTable(table) } else { open(table) }
         } label: {
             HStack(spacing: Spacing.xs) {
                 Image(systemName: workspace.isDocumentDatabase ? "doc.on.doc" : table.objectKind?.symbol ?? "tablecells")
@@ -535,9 +713,12 @@ struct DesktopWorkspaceView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
         }.buttonStyle(.plain)
+        // A double click keeps the table's tab open rather than previewing it.
+        .simultaneousGesture(TapGesture(count: 2).onEnded { if selectedTab.kind != .structure { open(table, keeps: true) } })
         .foregroundStyle(selected ? PortSQLPalette.accent : PortSQLPalette.ink)
         .fontWeight(selected ? .semibold : .regular)
         .contextMenu {
+            if !usesKeyBrowser { Button("Open in New Tab") { open(table, keeps: true) } }
             Button("Query") { workspace.queryText = workspace.defaultQuery(for: table); show(.console) }
             Button("Structure") { workspace.selectExplorerTable(table); show(.structure) }
             Button("Copy") { PortbaseClipboard.copy(table.displayName) }
@@ -748,6 +929,90 @@ private struct DesktopSessionTab: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+}
+
+/// A tab inside a connection tab. A previewed table's title is italic until it's kept, by a double click
+/// or from the menu, as in an editor.
+private struct DesktopSubTab: View {
+    let tab: SessionTabSet.Tab
+    let title: String
+    let symbol: String
+    let chat: AssistantSession?
+    let isSelected: Bool
+    let canClose: Bool
+    let onSelect: () -> Void
+    let onKeep: () -> Void
+    let onClose: () -> Void
+    let onCloseOthers: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: Spacing.xs) {
+            Image(systemName: symbol)
+                .font(.system(size: TypeSize.detail, weight: .semibold))
+                .frame(width: TypeSize.detail + 4)
+            Group {
+                if let chat { DesktopChatTitle(session: chat, fallback: title) } else { Text(title) }
+            }
+            .font(PortbaseFonts.ui(TypeSize.detail, isSelected ? .semibold : .medium))
+            .italic(tab.isPreview)
+            .lineLimit(1)
+            if canClose {
+                Button(action: onClose) {
+                    Image(systemName: "xmark").font(.system(size: 8, weight: .bold)).frame(width: 14, height: 14).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .opacity(isSelected || isHovered ? 1 : 0)
+                .accessibilityLabel(L10n.text("Close Tab"))
+            }
+        }
+        .foregroundStyle(isSelected ? PortSQLPalette.accent : (isHovered ? PortSQLPalette.ink : PortSQLPalette.muted))
+        .padding(.leading, Spacing.s)
+        .padding(.trailing, canClose ? Spacing.xxs : Spacing.s)
+        .frame(minHeight: Sizes.control)
+        .frame(maxWidth: 200)
+        .background {
+            if isSelected {
+                RoundedRectangle(cornerRadius: Radius.button + 1, style: .continuous)
+                    .fill(PortSQLPalette.accentSoft)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Radius.button + 1, style: .continuous)
+                            .strokeBorder(PortSQLPalette.accent.opacity(0.25), lineWidth: 1)
+                    }
+            } else if isHovered {
+                RoundedRectangle(cornerRadius: Radius.button + 1, style: .continuous).fill(PortSQLPalette.ink.opacity(0.06))
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+        // Simultaneous, so a single click switches tabs without waiting to rule out a double click.
+        .simultaneousGesture(TapGesture(count: 2).onEnded(onKeep))
+        .onHover { isHovered = $0 }
+        .help(helpText)
+        .contextMenu {
+            if tab.isPreview { Button("Keep Open", action: onKeep) }
+            if canClose { Button("Close Tab", action: onClose) }
+            Button("Close Other Tabs", action: onCloseOthers)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    private var helpText: String {
+        if case .table(let name) = tab.kind { return name }
+        return title
+    }
+}
+
+/// A chat tab is titled by its first question.
+private struct DesktopChatTitle: View {
+    @ObservedObject var session: AssistantSession
+    let fallback: String
+
+    var body: some View {
+        Text(session.turns.first { $0.role == .user }?.text.replacingOccurrences(of: "\n", with: " ") ?? fallback)
+            .truncationMode(.tail)
     }
 }
 

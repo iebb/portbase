@@ -1549,3 +1549,11 @@
 "You declined this query" = "You declined this query";
 "New Connection…" = "New Connection…";
 "New SQLite Database…" = "New SQLite Database…";
+"%@ isn't in this database anymore." = "%@ isn't in this database anymore.";
+"Close Tab" = "Close Tab";
+"Keep Open" = "Keep Open";
+"New Chat" = "New Chat";
+"Open %@" = "Open %@";
+"Open a Tab" = "Open a Tab";
+"Open in New Tab" = "Open in New Tab";
+"Table not found" = "Table not found";

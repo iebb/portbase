@@ -1549,3 +1549,11 @@
 "You declined this query" = "Du hast diese Abfrage abgelehnt";
 "New Connection…" = "Neue Verbindung …";
 "New SQLite Database…" = "Neue SQLite-Datenbank …";
+"%@ isn't in this database anymore." = "%@ ist nicht mehr in dieser Datenbank.";
+"Close Tab" = "Tab schließen";
+"Keep Open" = "Geöffnet lassen";
+"New Chat" = "Neuer Chat";
+"Open %@" = "%@ öffnen";
+"Open a Tab" = "Tab öffnen";
+"Open in New Tab" = "In neuem Tab öffnen";
+"Table not found" = "Tabelle nicht gefunden";

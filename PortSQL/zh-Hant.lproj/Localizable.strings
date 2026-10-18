@@ -1549,3 +1549,11 @@
 "You declined this query" = "你拒絕了此查詢";
 "New Connection…" = "新增連線…";
 "New SQLite Database…" = "新增 SQLite 資料庫…";
+"%@ isn't in this database anymore." = "%@ 已不在此資料庫中。";
+"Close Tab" = "關閉標籤頁";
+"Keep Open" = "保持開啟";
+"New Chat" = "新增聊天";
+"Open %@" = "打開 %@";
+"Open a Tab" = "打開標籤頁";
+"Open in New Tab" = "在新標籤頁中打開";
+"Table not found" = "找不到資料表";

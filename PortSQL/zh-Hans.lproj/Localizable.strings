@@ -1549,3 +1549,11 @@
 "You declined this query" = "你拒绝了此查询";
 "New Connection…" = "新建连接…";
 "New SQLite Database…" = "新建 SQLite 数据库…";
+"%@ isn't in this database anymore." = "%@ 已不在此数据库中。";
+"Close Tab" = "关闭标签页";
+"Keep Open" = "保持打开";
+"New Chat" = "新建聊天";
+"Open %@" = "打开 %@";
+"Open a Tab" = "打开标签页";
+"Open in New Tab" = "在新标签页中打开";
+"Table not found" = "找不到表";

@@ -1549,3 +1549,11 @@
 "You declined this query" = "このクエリを拒否しました";
 "New Connection…" = "新規接続…";
 "New SQLite Database…" = "新規SQLiteデータベース…";
+"%@ isn't in this database anymore." = "%@ はこのデータベースにもうありません。";
+"Close Tab" = "タブを閉じる";
+"Keep Open" = "開いたままにする";
+"New Chat" = "新規チャット";
+"Open %@" = "%@ を開く";
+"Open a Tab" = "タブを開く";
+"Open in New Tab" = "新規タブで開く";
+"Table not found" = "テーブルが見つかりません";

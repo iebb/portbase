@@ -128,6 +128,7 @@
 		45E5890A451EF53BDB4FD33A /* BookmarkStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85F6694B9F386DC2E470A14 /* BookmarkStore.swift */; };
 		4854FCCA39674D68F3AF2C46 /* SQLTemplateMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200D0F941E7FC63F89876E24 /* SQLTemplateMenu.swift */; };
 		486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23331E5633F855E60F40421E /* VisualizationServiceTests.swift */; };
+		9EF5142ED1FDCF6E4736A433 /* SessionTabSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */; };
 		4940EBB3BE4C24F23B1E0271 /* Inter-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 85933FC85A65CAEAEEE98DA9 /* Inter-Medium.otf */; };
 		4974231030C743F5C928FC15 /* WorkspaceLibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1001B5EA1E7C1F6390D53AB0 /* WorkspaceLibraryStore.swift */; };
 		4BCB65540C496B30A9F91A12 /* DatabaseService+Redis.swift in Sources */ = {isa = PBXBuildFile; fileRef = C05652535CA38CA654159765 /* DatabaseService+Redis.swift */; };
@@ -248,6 +249,7 @@
 		951EF16B96D362BC1F847A0F /* ResultInsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDEC7CD18B27601AF3A8FF44 /* ResultInsightsService.swift */; };
 		96D448BE52D74DC81A9E700E /* ElasticsearchQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E631A350C0B3328E7171FF4E /* ElasticsearchQueryService.swift */; };
 		977D88BA24232D50370E0062 /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E43B7EE9DE024E2C885B4C /* Bookmark.swift */; };
+		E217B12E2BA9972F4573FD04 /* SessionTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C79581B0D33FB96B56253D /* SessionTabs.swift */; };
 		97AFC55F0ED658B5831DA75E /* SQLStructureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09EFF3B085748734815401FF /* SQLStructureService.swift */; };
 		98243B77E6974EFEEC60C584 /* CopyFormatsAndEnvironmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D6719856F1A43DE76F9253 /* CopyFormatsAndEnvironmentTests.swift */; };
 		9A4C2244264E44A75AD686FB /* SQLiteDatabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B03DA5F64AAE6D4280F68B27 /* SQLiteDatabaseClient.swift */; };
@@ -284,6 +286,7 @@
 		B485056180E0AE5A1FE6F40A /* SQLiteDatabaseClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D580722EA09FAA6C99677231 /* SQLiteDatabaseClientTests.swift */; };
 		B4E24475FA87F9BC6230C56E /* HTTPDatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2223930E01B8FF700FD2C741 /* HTTPDatabaseModels.swift */; };
 		B665D7AB1A670C85278FBF52 /* VisualizationServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23331E5633F855E60F40421E /* VisualizationServiceTests.swift */; };
+		8A8B037E5BC89BACC769EA6D /* SessionTabSetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */; };
 		B771B5A8BF74390DD3463C36 /* VisualizationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5EF3726F667E1FB0E249A5C /* VisualizationModels.swift */; };
 		B7F7C457C77714C92C455934 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 226965703EF45A1026AA878E /* libsqlite3.tbd */; };
 		B949CFA9C1A1EA3AF1B4E8A9 /* RedisRESPCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D686DBEF679D564B9F556AC8 /* RedisRESPCodec.swift */; };
@@ -379,6 +382,7 @@
 		FB0FE49BD48960B2516A5933 /* RedisModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A887225E2DFA64C5FF390AD9 /* RedisModels.swift */; };
 		FB86C00623F934C24861C780 /* SQLiteConnectionSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D099F14C26E51D6333F2A1 /* SQLiteConnectionSection.swift */; };
 		FCCD7A2C653B30FFFFE39383 /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E43B7EE9DE024E2C885B4C /* Bookmark.swift */; };
+		2E273338879E38F633F27CAF /* SessionTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17C79581B0D33FB96B56253D /* SessionTabs.swift */; };
 		FD25D4E5069B4FCF01F5AACB /* Inter-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */; };
 		FD71A9BE44BD55F69553FE3D /* ClickHouseQueryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C1A047C32455B83058889ED /* ClickHouseQueryService.swift */; };
 		FDA4F18C3290D9B3B6F6B017 /* ElasticsearchExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C56566958B819CACCAFF882 /* ElasticsearchExplorerView.swift */; };
@@ -432,6 +436,7 @@
 		226965703EF45A1026AA878E /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		22AFD3BD8AC9A13A7B595C68 /* ClickHouseDatabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClickHouseDatabaseClient.swift; sourceTree = "<group>"; };
 		23331E5633F855E60F40421E /* VisualizationServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizationServiceTests.swift; sourceTree = "<group>"; };
+		DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTabSetTests.swift; sourceTree = "<group>"; };
 		251D87D88DCD9B94086CB2C2 /* ResultGridChartTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultGridChartTests.swift; sourceTree = "<group>"; };
 		266104AD5AF46E38E1A8CD0F /* ElasticsearchDatabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElasticsearchDatabaseClient.swift; sourceTree = "<group>"; };
 		28B25BDE7E7A65B66500341C /* DataTransferServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataTransferServiceTests.swift; sourceTree = "<group>"; };
@@ -480,6 +485,7 @@
 		5067D006A54ABF72E4234A1E /* es */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = es; path = es.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		50BB47279C113C0DDAD076A2 /* SQLSafetyService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SQLSafetyService.swift; sourceTree = "<group>"; };
 		51E43B7EE9DE024E2C885B4C /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
+		17C79581B0D33FB96B56253D /* SessionTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTabs.swift; sourceTree = "<group>"; };
 		52B935258BC11A1A55ACB262 /* HTTPDatabaseClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HTTPDatabaseClientTests.swift; sourceTree = "<group>"; };
 		52D16A9DA7C565C1D6AF7543 /* MongoQueryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoQueryService.swift; sourceTree = "<group>"; };
 		53B0A9515212C5B43A9BB714 /* SourceCodePro-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SourceCodePro-Bold.ttf"; sourceTree = "<group>"; };
@@ -846,6 +852,7 @@
 				ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */,
 				CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */,
 				23331E5633F855E60F40421E /* VisualizationServiceTests.swift */,
+				DA12E882A11D52E1BD41927A /* SessionTabSetTests.swift */,
 				660C54E07DFDB131EF53BD67 /* WorkspaceCloudSyncTests.swift */,
 				FB916A717C2969270CA24E3C /* WorkspaceInsightsAndPaletteTests.swift */,
 				85FF698B692E31F5D83E3B42 /* WorkspaceToolsTests.swift */,
@@ -957,6 +964,7 @@
 			isa = PBXGroup;
 			children = (
 				51E43B7EE9DE024E2C885B4C /* Bookmark.swift */,
+				17C79581B0D33FB96B56253D /* SessionTabs.swift */,
 				6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */,
 				87A5A8BD8B3776437D1D7D3C /* DataTransferModels.swift */,
 				B8B685BE103998684123BF20 /* ElasticsearchModels.swift */,
@@ -1190,6 +1198,7 @@
 			files = (
 				3BC432B4A551638A44DB271A /* AdaptiveWorkspaceView.swift in Sources */,
 				977D88BA24232D50370E0062 /* Bookmark.swift in Sources */,
+				E217B12E2BA9972F4573FD04 /* SessionTabs.swift in Sources */,
 				BAF1A917DE7EFEBD71C31664 /* BookmarkIconCatalog.swift in Sources */,
 				45E5890A451EF53BDB4FD33A /* BookmarkStore.swift in Sources */,
 				DD3C41B87E7D3F09D90C8278 /* CertificateTrustSheet.swift in Sources */,
@@ -1354,6 +1363,7 @@
 				5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */,
 				1134B1656EE5F55C435A8F6B /* ServerCertificateProbeTests.swift in Sources */,
 				486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */,
+				9EF5142ED1FDCF6E4736A433 /* SessionTabSetTests.swift in Sources */,
 				345DFC6BED4439E0FF46D1C0 /* WorkspaceCloudSyncTests.swift in Sources */,
 				ACE31021F0B2122FEC8B2880 /* WorkspaceInsightsAndPaletteTests.swift in Sources */,
 				80CE4D0B6F55A75F0234E21F /* WorkspaceToolsTests.swift in Sources */,
@@ -1389,6 +1399,7 @@
 				2DE3A2F6FFF1DBB0B49E3B23 /* SSHTunnelServiceTests.swift in Sources */,
 				889126422DD80E52074C5413 /* ServerCertificateProbeTests.swift in Sources */,
 				B665D7AB1A670C85278FBF52 /* VisualizationServiceTests.swift in Sources */,
+				8A8B037E5BC89BACC769EA6D /* SessionTabSetTests.swift in Sources */,
 				FEF32D0898A63764D9A1E596 /* WorkspaceCloudSyncTests.swift in Sources */,
 				66506F6452C6FCC12E773D42 /* WorkspaceInsightsAndPaletteTests.swift in Sources */,
 				61A2A544A05FFF53B1AEB148 /* WorkspaceToolsTests.swift in Sources */,
@@ -1401,6 +1412,7 @@
 			files = (
 				1C0D87518414AD3198B63443 /* AdaptiveWorkspaceView.swift in Sources */,
 				FCCD7A2C653B30FFFFE39383 /* Bookmark.swift in Sources */,
+				2E273338879E38F633F27CAF /* SessionTabs.swift in Sources */,
 				0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */,
 				22A06DB93DF8644C3D8CCF05 /* BookmarkStore.swift in Sources */,
 				9B86CAA3380D7F1A640BFC25 /* CertificateTrustSheet.swift in Sources */,
