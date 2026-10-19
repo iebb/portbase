@@ -4,15 +4,18 @@ import SwiftUI
 /// the warnings sit in the connection button in the navigation bar instead, and only the stripe shows here.
 struct ConnectionStatusLine: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    /// Whether the badges show here; nil decides by width.
+    var showsBadges: Bool?
 #if os(iOS)
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 #endif
 
     private var showsBadgesHere: Bool {
+        if let showsBadges { return showsBadges }
 #if os(iOS)
-        horizontalSizeClass != .regular
+        return horizontalSizeClass != .regular
 #else
-        true
+        return true
 #endif
     }
 

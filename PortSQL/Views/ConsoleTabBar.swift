@@ -2,6 +2,9 @@ import SwiftUI
 
 struct ConsoleTabBar: View {
     @EnvironmentObject private var consoles: ConsoleStore
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+    /// Shows the connection's environment and warnings beside the tabs, where a phone has room for them.
+    var showsConnectionBadges = false
     @State private var renamingID: UUID?
     @State private var title = ""
     @State private var closingID: UUID?
@@ -23,6 +26,9 @@ struct ConsoleTabBar: View {
                 .onChange(of: consoles.selectedID) { _, id in
                     withAnimation(.easeOut(duration: 0.2)) { proxy.scrollTo(id, anchor: .center) }
                 }
+            }
+            if showsConnectionBadges, let profile = workspace.selectedBookmark, ConnectionStatusBadges.hasBadges(profile) {
+                ConnectionStatusBadges(profile: profile).fixedSize()
             }
             Menu {
                 Button("New Console", systemImage: "plus") { consoles.add() }

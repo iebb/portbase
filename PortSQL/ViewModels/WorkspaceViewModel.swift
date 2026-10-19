@@ -256,7 +256,7 @@ final class WorkspaceViewModel: ObservableObject {
             let completion = SQLCompletionEngine.complete(query, cursor: cursorOffset, catalog: catalog,
                                                           activeDatabase: activeDatabase, engine: engine, usage: usage)
             // Unknown tables first: they're about this text and this database, not general advice.
-            let hints = SQLInspection.hints(for: query, catalog: catalog, engine: engine) + SQLAssistService.hints(for: query)
+            let hints = SQLInspection.hints(for: query, catalog: catalog, engine: engine, cursor: cursorOffset) + SQLAssistService.hints(for: query)
 
             await MainActor.run {
                 guard self.queryText == query, self.queryCursorOffset == cursorOffset else { return }

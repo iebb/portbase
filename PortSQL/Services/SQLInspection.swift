@@ -11,7 +11,8 @@ enum SQLInspection {
     /// Names that every engine accepts without a table of that name.
     private static let builtIns: Set<String> = ["dual", "sqlite_master", "sqlite_schema", "sqlite_sequence", "sqlite_temp_master", "pragma_table_info"]
 
-    static func unknownTables(in sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine) -> [UnknownTable] {
+    /// Names that touch `cursor` (UTF-16) are still being typed and aren't flagged yet.
+    static func unknownTables(in sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine, cursor: Int? = nil) -> [UnknownTable] {
         guard !catalog.isEmpty else { return [] }
         let tokens = SQLEditingService.tokens(sql, engine: engine)
         let names = Set(catalog.flatMap { [$0.name.lowercased(), $0.displayName.lowercased()] })
@@ -44,6 +45,7 @@ enum SQLInspection {
                 name = tokens[position + 2].text
                 position += 2
             }
+            if let cursor, isTyping(tokens[index + 1].range.lowerBound..<tokens[position].range.upperBound, at: cursor, in: sql) { continue }
             // A table function like generate_series(…), a variable, or a system schema isn't checked.
             if position + 1 < tokens.count, tokens[position + 1].text == "(" { continue }
             if name.hasPrefix("@") || name.hasPrefix("$") || name.hasPrefix(":") { continue }
@@ -66,14 +68,16 @@ enum SQLInspection {
 
     /// Qualified columns, like o.totl, whose qualifier is a table in scope at that spot that has no such
     /// column. Unqualified names and sources whose columns aren't known are left alone, so nothing is guessed.
-    static func unknownColumns(in sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine) -> [UnknownColumn] {
+    static func unknownColumns(in sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine, cursor: Int? = nil) -> [UnknownColumn] {
         guard !catalog.isEmpty else { return [] }
         let tokens = SQLEditingService.tokens(sql, engine: engine)
         var found: [UnknownColumn] = []
         var seen = Set<String>()
         for index in tokens.indices where index + 2 < tokens.count && tokens[index + 1].text == "." {
             let qualifier = tokens[index], column = tokens[index + 2]
-            guard qualifier.isIdentifier, column.isIdentifier,
+            // A keyword after the dot is the next line's statement, not a column: "o." left unfinished.
+            guard qualifier.isIdentifier, column.isIdentifier, column.quoted || !SQLCompletionEngine.Lexer.reserved.contains(column.keyword),
+                  cursor.map({ !isTyping(qualifier.range.lowerBound..<column.range.upperBound, at: $0, in: sql) }) ?? true,
                   index == 0 || tokens[index - 1].text != ".",
                   index + 3 >= tokens.count || tokens[index + 3].text != "." && tokens[index + 3].text != "(" else { continue }
             let cursor = qualifier.range.lowerBound.utf16Offset(in: sql)
@@ -89,14 +93,19 @@ enum SQLInspection {
         return found
     }
 
-    static func hints(for sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine) -> [EditorHint] {
-        let tables = unknownTables(in: sql, catalog: catalog, engine: engine).map { unknown in
+    private static func isTyping(_ range: Range<String.Index>, at cursor: Int, in sql: String) -> Bool {
+        let start = range.lowerBound.utf16Offset(in: sql), end = range.upperBound.utf16Offset(in: sql)
+        return start <= cursor && cursor <= end
+    }
+
+    static func hints(for sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine, cursor: Int? = nil) -> [EditorHint] {
+        let tables = unknownTables(in: sql, catalog: catalog, engine: engine, cursor: cursor).map { unknown in
             EditorHint(title: L10n.format("Unknown table “%@”", unknown.name),
                        message: unknown.suggestion.map { L10n.format("It isn't in this database. Did you mean “%@”?", $0) }
                            ?? L10n.text("It isn't in this database, or the table list needs refreshing."),
                        severity: .warning)
         }
-        let columns = unknownColumns(in: sql, catalog: catalog, engine: engine).map { unknown in
+        let columns = unknownColumns(in: sql, catalog: catalog, engine: engine, cursor: cursor).map { unknown in
             EditorHint(title: L10n.format("Unknown column “%@”", unknown.reference),
                        message: unknown.suggestion.map { L10n.format("%1$@ has no such column. Did you mean “%2$@”?", unknown.table, $0) }
                            ?? L10n.format("%@ has no such column.", unknown.table),

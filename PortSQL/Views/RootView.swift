@@ -243,6 +243,12 @@ struct QueryLibraryButton: View {
 
 struct WorkbenchView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+#if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var isPhone: Bool { horizontalSizeClass == .compact }
+#else
+    private let isPhone = false
+#endif
 
     var body: some View {
         AdaptiveWorkspaceView {
@@ -254,7 +260,13 @@ struct WorkbenchView: View {
             ResultsCard()
         }
         .background(WorkbenchBackground().ignoresSafeArea())
-        .safeAreaInset(edge: .top, spacing: 0) { VStack(spacing: 0) { ConsoleTabBar(); ConnectionStatusLine() } }
+        // On phones the connection's badges share the console tabs' row rather than taking one of their own.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            VStack(spacing: 0) {
+                ConsoleTabBar(showsConnectionBadges: isPhone)
+                ConnectionStatusLine(showsBadges: isPhone ? false : nil)
+            }
+        }
         .navigationTitle("Console")
         .portbaseTitleDisplayMode(.inline)
         .toolbar {
@@ -431,6 +443,7 @@ struct QueryEditorCard: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var bookmarks: BookmarkStore
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.workspaceIsFlat) private var flat
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ScaledMetric(relativeTo: .body) private var editorMinimumHeight: CGFloat = 160
@@ -439,7 +452,7 @@ struct QueryEditorCard: View {
 
     var body: some View {
         PanelCard {
-            VStack(alignment: .leading, spacing: Spacing.m) {
+            VStack(alignment: .leading, spacing: flat ? Spacing.s : Spacing.m) {
                 if bookmarks.bookmarks.isEmpty {
                     connectionSection
                 }
@@ -612,14 +625,24 @@ struct QueryEditorCard: View {
             }
         }
         .background(
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+            RoundedRectangle(cornerRadius: flat ? 0 : Radius.card, style: .continuous)
                 .fill(editorBackgroundColor)
         )
-        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: flat ? 0 : Radius.card, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .strokeBorder(workspace.queryErrorRange == nil ? editorBorderColor : Color.red.opacity(0.5), lineWidth: 1)
+            if flat {
+                // Edge to edge on phones: lines above and below, red while the query has an error.
+                VStack(spacing: 0) {
+                    Rectangle().fill(workspace.queryErrorRange == nil ? editorBorderColor : Color.red.opacity(0.5)).frame(height: 1)
+                    Spacer(minLength: 0)
+                    Rectangle().fill(workspace.queryErrorRange == nil ? editorBorderColor : Color.red.opacity(0.5)).frame(height: 1)
+                }
+            } else {
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .strokeBorder(workspace.queryErrorRange == nil ? editorBorderColor : Color.red.opacity(0.5), lineWidth: 1)
+            }
         }
+        .padding(.horizontal, flat ? -Spacing.m : 0)
     }
 
     private var editorBackgroundColor: Color {
@@ -638,11 +661,23 @@ struct QueryEditorCard: View {
         }
 
         ForEach(workspace.hints) { hint in
-            StatusBanner(
-                title: hint.title,
-                message: hint.message,
-                tint: hint.severity.tint
-            )
+            if flat {
+                // On phones, a compact line per hint instead of a banner.
+                Label {
+                    (Text(hint.title).font(.rowDetail.weight(.semibold)) + Text(verbatim: "  ") + Text(hint.message).font(.captionText).foregroundColor(.secondary))
+                        .lineLimit(2)
+                } icon: {
+                    Image(systemName: hint.severity == .info ? "info.circle" : "exclamationmark.triangle.fill").foregroundStyle(hint.severity.tint)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityElement(children: .combine)
+            } else {
+                StatusBanner(
+                    title: hint.title,
+                    message: hint.message,
+                    tint: hint.severity.tint
+                )
+            }
         }
     }
 
@@ -2418,14 +2453,27 @@ struct SectionHeader: View {
 
 struct PanelCard<Content: View>: View {
     @ViewBuilder let content: Content
+    @Environment(\.workspaceIsFlat) private var flat
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            content
+        if flat {
+            // On phones: a full-width section with a divider below, not a card inside the page's padding.
+            VStack(alignment: .leading, spacing: 0) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Spacing.m)
+            .padding(.vertical, Spacing.s)
+            .background(PortSQLPalette.surface)
+            .overlay(alignment: .bottom) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                content
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Spacing.card)
+            .portbaseCardSurface()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.card)
-        .portbaseCardSurface()
     }
 }
 

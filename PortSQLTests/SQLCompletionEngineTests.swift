@@ -228,4 +228,14 @@ final class SQLEditorSmartsTests: XCTestCase {
         XCTAssertTrue(SQLInspection.unknownColumns(in: nested, catalog: catalog, engine: .postgresql).isEmpty, "Each reference uses the alias in scope where it is")
         XCTAssertTrue(SQLInspection.unknownColumns(in: "SELECT t.whatever FROM (SELECT 1 AS n) t", catalog: catalog, engine: .postgresql).isEmpty)
     }
+
+    func testNamesBeingTypedAndKeywordsAfterADotAreNotFlagged() {
+        let unfinished = "SELECT * FROM orders o WHERE o.\nSELECT 1"
+        XCTAssertTrue(SQLInspection.unknownColumns(in: unfinished, catalog: catalog, engine: .postgresql).isEmpty)
+        let typing = "SELECT * FROM ord"
+        XCTAssertTrue(SQLInspection.unknownTables(in: typing, catalog: catalog, engine: .postgresql, cursor: (typing as NSString).length).isEmpty)
+        XCTAssertFalse(SQLInspection.unknownTables(in: typing, catalog: catalog, engine: .postgresql, cursor: 0).isEmpty, "Flagged once the caret moves on")
+        let column = "SELECT o.to FROM orders o"
+        XCTAssertTrue(SQLInspection.unknownColumns(in: column, catalog: catalog, engine: .postgresql, cursor: 11).isEmpty)
+    }
 }

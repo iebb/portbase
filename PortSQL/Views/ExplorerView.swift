@@ -16,6 +16,8 @@ struct ExplorerView: View {
     /// Where there's room, the table, its clauses, and the run button share one row, and the rows
     /// below take the rest of the screen.
     private var isWide: Bool { horizontalSizeClass == .regular && !dynamicTypeSize.isAccessibilitySize }
+    /// Phones lay the panels out edge to edge, without cards inside the page's padding.
+    private var isFlat: Bool { horizontalSizeClass == .compact }
 
     private var runButton: some View {
         Button {
@@ -49,7 +51,7 @@ struct ExplorerView: View {
     var body: some View {
         GeometryReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.l) {
+                VStack(alignment: .leading, spacing: isFlat ? 0 : Spacing.l) {
                     // Browsing needs a connection; without one, only the empty state below is shown.
                     if workspace.selectedBookmark != nil, isWide, let selectedTable = workspace.selectedExplorerTable {
                         HStack(alignment: .top, spacing: Spacing.s) {
@@ -69,15 +71,21 @@ struct ExplorerView: View {
 
                                 if let selectedTable = workspace.selectedExplorerTable {
 
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: Spacing.xs) {
-                                            // Column count and editability already show above the results.
-                                            if let estimate = selectedTable.rowCountEstimate {
-                                                PortbaseChip(title: L10n.plural("row_count", count: estimate), systemImage: "list.number", tint: PortSQLPalette.accent)
+                                    HStack(spacing: Spacing.xs) {
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack(spacing: Spacing.xs) {
+                                                // Column count and editability already show above the results.
+                                                if let estimate = selectedTable.rowCountEstimate {
+                                                    PortbaseChip(title: L10n.plural("row_count", count: estimate), systemImage: "list.number", tint: PortSQLPalette.accent)
+                                                }
+                                                if !selectedTable.primaryKeyColumns.isEmpty {
+                                                    PortbaseChip(title: selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill", tint: .orange)
+                                                }
                                             }
-                                            if !selectedTable.primaryKeyColumns.isEmpty {
-                                                PortbaseChip(title: selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill", tint: .orange)
-                                            }
+                                        }
+                                        // On phones the connection's badges share this row rather than taking one of their own.
+                                        if isFlat, let profile = workspace.selectedBookmark, ConnectionStatusBadges.hasBadges(profile) {
+                                            ConnectionStatusBadges(profile: profile).fixedSize()
                                         }
                                     }
 
@@ -149,7 +157,8 @@ struct ExplorerView: View {
                     }
                 }
                 .environment(\.workspaceFillsHeight, isWide)
-                .padding(Spacing.l)
+                .environment(\.workspaceIsFlat, isFlat)
+                .padding(isFlat ? 0 : Spacing.l)
                 .frame(width: proxy.size.width,
                        height: isWide ? max(proxy.size.height, WorkspaceLayout.minimumFillHeight) : nil,
                        alignment: .topLeading)

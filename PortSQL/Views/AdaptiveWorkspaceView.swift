@@ -4,6 +4,9 @@ extension EnvironmentValues {
     /// Set where a workspace gives its results the rest of the screen, so the grid fills it rather
     /// than stopping at a fixed height.
     @Entry var workspaceFillsHeight = false
+    /// Set on phones, where a workspace's panels run edge to edge between dividers instead of sitting
+    /// in cards inside the page's padding.
+    @Entry var workspaceIsFlat = false
 }
 
 enum WorkspaceLayout {
@@ -31,8 +34,9 @@ struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
 #endif
             let columns = WorkspaceLayout.usesColumns(width: geometry.size.width, height: geometry.size.height,
                 regularWidth: regularWidth, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
+            let flat = !regularWidth
             let layout = columns ? AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.l))
-                                 : AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.l))
+                                 : AnyLayout(VStackLayout(alignment: .leading, spacing: flat ? 0 : Spacing.l))
             // With a regular width, the results take the rest of the screen: the full column side by
             // side, or what's left under the editor when stacked.
             let fills = regularWidth && !dynamicTypeSize.isAccessibilitySize
@@ -44,7 +48,8 @@ struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
                     trailing.frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .topLeading)
                         .environment(\.workspaceFillsHeight, fills)
                 }
-                .padding(Spacing.l)
+                .environment(\.workspaceIsFlat, flat)
+                .padding(flat ? 0 : Spacing.l)
                 .frame(width: geometry.size.width,
                        height: fills ? max(geometry.size.height, WorkspaceLayout.minimumFillHeight) : nil,
                        alignment: .topLeading)
@@ -56,6 +61,16 @@ struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
 
 struct ExplorerWorkspaceView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+#if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    /// On phones the table browser shows the badges in its own row; key browsers keep them here.
+    private var badgesInStatusLine: Bool? {
+        let tableBrowser = workspace.selectedBookmark.map { ![.redis, .elasticsearch].contains($0.engine) && !workspace.isDocumentDatabase } ?? false
+        return horizontalSizeClass == .compact && tableBrowser && workspace.selectedExplorerTable != nil ? false : nil
+    }
+#else
+    private let badgesInStatusLine: Bool? = nil
+#endif
     var showsConsole = false
     @State private var search = ""
     @State private var preferredColumn: NavigationSplitViewColumn = .detail
@@ -128,7 +143,7 @@ struct ExplorerWorkspaceView: View {
                     }
                 }
                 // Inside the detail column, so the stripe sits under the navigation bar rather than over it.
-                .safeAreaInset(edge: .top, spacing: 0) { ConnectionStatusLine() }
+                .safeAreaInset(edge: .top, spacing: 0) { ConnectionStatusLine(showsBadges: badgesInStatusLine) }
             }
         }
         .navigationSplitViewStyle(.balanced)
