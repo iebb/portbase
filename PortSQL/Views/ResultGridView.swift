@@ -186,11 +186,39 @@ struct ResultGridView: View {
     @State private var showsColumns = false
     @State private var focusedColumn: Int?
     @State private var filter = LoadedResultFilter()
+    /// The loaded rows shown, in display order, when a filter or local sort applies; nil shows them all as loaded.
     @State private var filteredRows: [Int]?
+    /// A sort of the loaded rows, for results the host doesn't sort itself (a console query's rows).
+    @State private var localSort: LoadedResultSort?
     @State private var showsFilter = false
     @State private var inspectedCell: ResultCellSelection?
 
     private var rowIndices: [Int] { filteredRows ?? Array(result.rows.indices) }
+
+    /// Without a host sort, header clicks sort the loaded rows here.
+    private var sortsLocally: Bool { onSort == nil && onSortDirection == nil }
+    private var shownSortColumn: String? {
+        guard sortsLocally else { return sortedColumn }
+        return localSort.flatMap { result.columns.indices.contains($0.column) ? result.columns[$0.column].name : nil }
+    }
+    private var shownSortDirection: String? {
+        guard sortsLocally else { return sortDirection }
+        return localSort.map { $0.descending ? "DESC" : "ASC" }
+    }
+    private var sortHandler: ((String) -> Void)? {
+        guard sortsLocally else { return onSort }
+        return { name in
+            guard let column = result.columns.firstIndex(where: { $0.name == name }) else { return }
+            localSort = LoadedResultSort.next(after: localSort, column: column)
+        }
+    }
+    private var sortDirectionHandler: ((String, Bool?) -> Void)? {
+        guard sortsLocally else { return onSortDirection }
+        return { name, descending in
+            guard let column = result.columns.firstIndex(where: { $0.name == name }) else { return }
+            localSort = descending.map { LoadedResultSort(column: column, descending: $0) }
+        }
+    }
     private var displayedResult: QueryResultTable {
         var table = result
         if let filteredRows {
@@ -314,9 +342,9 @@ struct ResultGridView: View {
             GridCollectionBridge(
                 result: displayedResult, visibleColumns: visibleColumns,
                 configuration: configuration, selection: $selection, extendsSelection: $extendsSelection,
-                rowHeight: rowHeight, primaryKeys: primaryKeys, sortedColumn: sortedColumn, sortDirection: sortDirection,
+                rowHeight: rowHeight, primaryKeys: primaryKeys, sortedColumn: shownSortColumn, sortDirection: shownSortDirection,
                 headerStyle: headerStyle,
-                onSort: onSort,
+                onSort: sortHandler,
                 onOpenRow: onOpenRow == nil ? nil : { row in if rowIndices.indices.contains(row) { onOpenRow?(rowIndices[row]) } },
                 actionsForCell: { row, column in rowIndices.indices.contains(row) ? actionsForCell?(rowIndices[row], column) ?? [] : [] },
                 onInspectCell: { row, column in inspect(row: row, column: column) },
@@ -349,7 +377,8 @@ struct ResultGridView: View {
         .sheet(isPresented: $showsColumns) { columnSettings.portbaseDesktopSheetSize() }
         .sheet(isPresented: $showsFilter) { filterSettings.portbaseDesktopSheetSize(width: 480, height: 320) }
         .sheet(item: $inspectedCell) { ResultCellInspector(selection: $0).portbaseDesktopSheetSize() }
-        .onChange(of: result.columns.map { $0.name + ":" + $0.type }) { _, _ in filter = LoadedResultFilter(); updateFilter() }
+        .onChange(of: result.columns.map { $0.name + ":" + $0.type }) { _, _ in filter = LoadedResultFilter(); localSort = nil; updateFilter() }
+        .onChange(of: localSort) { _, _ in updateFilter() }
         .onChange(of: result) { _, _ in updateFilter() }
         .onChange(of: filter) { _, _ in updateFilter() }
         .task(id: selection) {
@@ -392,7 +421,12 @@ struct ResultGridView: View {
 
     private func updateFilter() {
         if let column = filter.column, !result.columns.indices.contains(column) { filter.column = nil }
-        filteredRows = filter.isActive ? filter.matchingRows(in: result) : nil
+        let rows = filter.isActive ? filter.matchingRows(in: result) : nil
+        if sortsLocally, let localSort {
+            filteredRows = localSort.ordered(rows ?? Array(result.rows.indices), in: result)
+        } else {
+            filteredRows = rows
+        }
         selection = nil; extendsSelection = false
     }
 
@@ -521,12 +555,12 @@ struct ResultGridView: View {
         var items: [ResultGridMenuItem] = [
             .action(L10n.text("Copy Column Name"), "doc.on.doc") { PortbaseClipboard.copy(name) },
         ]
-        if let onSortDirection {
+        if let onSortDirection = sortDirectionHandler {
             items += [
                 .separator,
                 .action(L10n.text("Sort Ascending"), "arrow.up") { onSortDirection(name, false) },
                 .action(L10n.text("Sort Descending"), "arrow.down") { onSortDirection(name, true) },
-                .action(L10n.text("Clear Sort"), "arrow.up.arrow.down", enabled: sortedColumn != nil) { onSortDirection(name, nil) },
+                .action(L10n.text("Clear Sort"), "arrow.up.arrow.down", enabled: shownSortColumn != nil) { onSortDirection(name, nil) },
             ]
         }
         items += [
@@ -616,7 +650,7 @@ struct ResultGridView: View {
             items.append(.separator)
             items += rowActions.map { action in .action(action.title, action.symbolName, action.perform) }
         }
-        if let onSortDirection {
+        if let onSortDirection = sortDirectionHandler {
             items += [.separator, .submenu(L10n.format("Sort by %@", name), "arrow.up.arrow.down", [
                 .action(L10n.text("Sort Ascending"), "arrow.up") { onSortDirection(name, false) },
                 .action(L10n.text("Sort Descending"), "arrow.down") { onSortDirection(name, true) },

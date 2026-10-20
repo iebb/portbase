@@ -34,6 +34,73 @@ struct LoadedResultFilter: Equatable {
     }
 }
 
+/// Sorts loaded rows by one column without asking the server again, as TablePlus and DataGrip sort a
+/// query's fetched rows. Values compare by type: numbers exactly, text in natural order, NULLs last.
+struct LoadedResultSort: Equatable {
+    var column: Int
+    var descending = false
+
+    /// The rows, in the given order, sorted by the column; ties keep their order.
+    func ordered(_ rows: [Int], in result: QueryResultTable) -> [Int] {
+        guard result.columns.indices.contains(column) else { return rows }
+        let keys = rows.map { row in Key(result.rows[row].cells.indices.contains(column) ? result.rows[row].cells[column] : .null) }
+        let order = rows.indices.sorted { left, right in
+            let a = keys[left], b = keys[right]
+            // NULLs stay last whichever way the column sorts.
+            if a.isNull != b.isNull { return b.isNull }
+            let comparison = a.compare(b)
+            if comparison != .orderedSame { return descending ? comparison == .orderedDescending : comparison == .orderedAscending }
+            return left < right
+        }
+        return order.map { rows[$0] }
+    }
+
+    /// The next sort when a header is clicked: ascending, then descending, then none.
+    static func next(after current: LoadedResultSort?, column: Int) -> LoadedResultSort? {
+        guard let current, current.column == column else { return LoadedResultSort(column: column) }
+        return current.descending ? nil : LoadedResultSort(column: column, descending: true)
+    }
+
+    private enum Key {
+        case null, boolean(Bool), number(Decimal), text(String), binary(Data)
+
+        init(_ cell: QueryCell) {
+            switch cell {
+            case .null: self = .null
+            case .boolean(let value): self = .boolean(value)
+            case .integer(let text), .decimal(let text):
+                self = Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")).map { .number($0) } ?? .text(text)
+            case .text(let text), .json(let text), .dateTime(let text): self = .text(text)
+            case .binary(let data): self = .binary(data)
+            }
+        }
+
+        var isNull: Bool { if case .null = self { true } else { false } }
+
+        private var rank: Int {
+            switch self {
+            case .boolean: 0
+            case .number: 1
+            case .text: 2
+            case .binary: 3
+            case .null: 4
+            }
+        }
+
+        func compare(_ other: Key) -> ComparisonResult {
+            switch (self, other) {
+            case (.boolean(let a), .boolean(let b)): return a == b ? .orderedSame : (a ? .orderedDescending : .orderedAscending)
+            case (.number(let a), .number(let b)): return a == b ? .orderedSame : (a < b ? .orderedAscending : .orderedDescending)
+            // Natural order, so item2 comes before item10; ISO dates and times sort in time order this way too.
+            case (.text(let a), .text(let b)): return a.localizedStandardCompare(b)
+            case (.binary(let a), .binary(let b)):
+                return a == b ? .orderedSame : (a.lexicographicallyPrecedes(b) ? .orderedAscending : .orderedDescending)
+            default: return rank == other.rank ? .orderedSame : (rank < other.rank ? .orderedAscending : .orderedDescending)
+            }
+        }
+    }
+}
+
 enum ResultInspectionService {
     static func typeName(_ cell: QueryCell) -> String {
         switch cell {
