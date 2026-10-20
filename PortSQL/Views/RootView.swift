@@ -610,7 +610,8 @@ struct QueryEditorCard: View {
                 isJSON: workspace.usesJSONEditor,
                 allowsSQLComments: workspace.isSQLDatabase,
                 completion: workspace.isSQLDatabase ? workspace.completion : nil,
-                errorRange: workspace.queryErrorRange
+                errorRange: workspace.queryErrorRange,
+                engine: workspace.isSQLDatabase ? workspace.selectedBookmark?.engine : nil
             )
                 .frame(minHeight: min(max(editorMinimumHeight, 160), 360))
 

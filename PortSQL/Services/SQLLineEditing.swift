@@ -89,3 +89,69 @@ enum SQLLineEditing {
 
     private static func lineEnding(of text: String) -> String { text.contains("\r\n") ? "\r\n" : "\n" }
 }
+
+/// What an editor marks around the caret, as DataGrip does: the statement Run would execute, when the
+/// script has more than one, and the bracket matching the one beside the caret. Strings and comments
+/// are skipped, so a parenthesis in a literal neither matches nor is matched.
+enum SQLEditorDecorations {
+    struct Marks: Equatable {
+        var statement: NSRange?
+        var brackets: [NSRange] = []
+    }
+
+    /// Past this length the editor skips the marks rather than rescan the text on every caret move.
+    static let maximumLength = 200_000
+
+    static func marks(in text: String, selection: NSRange, engine: DatabaseEngine?) -> Marks {
+        let source = text as NSString
+        guard selection.location != NSNotFound, NSMaxRange(selection) <= source.length, source.length <= maximumLength else { return Marks() }
+        let protected = SQLEditingService.protectedRanges(in: text, engine: engine ?? .postgresql).map { NSRange($0, in: text) }
+        var marks = Marks()
+        if selection.length == 0 {
+            marks.brackets = matchingBrackets(source, caret: selection.location, protected: protected)
+        }
+        // A selection runs as it is, and a single statement needs no marking.
+        if let engine, engine.isSQL, selection.length == 0,
+           SQLEditingService.statementRanges(in: text, engine: engine).count > 1,
+           let range = SQLEditingService.statement(in: text, atUTF16: selection.location, engine: engine) {
+            marks.statement = NSRange(range, in: text)
+        }
+        return marks
+    }
+
+    private static let pairs: [unichar: unichar] = [40: 41, 91: 93, 123: 125]  // ( ) [ ] { }
+
+    private static func matchingBrackets(_ source: NSString, caret: Int, protected: [NSRange]) -> [NSRange] {
+        func isProtected(_ index: Int) -> Bool { protected.contains { NSLocationInRange(index, $0) } }
+        // The bracket just before the caret first, as after typing one; otherwise the one after it.
+        for index in [caret - 1, caret] where index >= 0 && index < source.length && !isProtected(index) {
+            let character = source.character(at: index)
+            if let closer = pairs[character] {
+                if let match = scan(source, from: index, open: character, close: closer, step: 1, isProtected: isProtected) {
+                    return [NSRange(location: index, length: 1), NSRange(location: match, length: 1)]
+                }
+            } else if let opener = pairs.first(where: { $0.value == character })?.key {
+                if let match = scan(source, from: index, open: character, close: opener, step: -1, isProtected: isProtected) {
+                    return [NSRange(location: match, length: 1), NSRange(location: index, length: 1)]
+                }
+            }
+        }
+        return []
+    }
+
+    /// Walks from a bracket to its partner, counting nested pairs of the same kind.
+    private static func scan(_ source: NSString, from start: Int, open: unichar, close: unichar, step: Int,
+                             isProtected: (Int) -> Bool) -> Int? {
+        var depth = 0
+        var index = start
+        while index >= 0, index < source.length {
+            if !isProtected(index) {
+                let character = source.character(at: index)
+                if character == open { depth += 1 }
+                else if character == close { depth -= 1; if depth == 0 { return index } }
+            }
+            index += step
+        }
+        return nil
+    }
+}

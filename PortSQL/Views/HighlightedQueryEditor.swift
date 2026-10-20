@@ -407,6 +407,8 @@ struct HighlightedQueryEditor: UIViewRepresentable {
     /// Completions at the caret, shown in the keyboard bar.
     var completion: SQLCompletionResult?
     var errorRange: NSRange?
+    /// The SQL engine, for marking the statement at the caret; nil marks brackets only.
+    var engine: DatabaseEngine?
     @AppStorage(EditorTheme.storageKey) private var themeName = EditorTheme.portbase.rawValue
 
     private var palette: EditorPalette { (EditorTheme(rawValue: themeName) ?? .portbase).palette(for: colorScheme) }
@@ -465,6 +467,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         uiView.tintColor = palette.caretColor
         let diagnosticChanged = context.coordinator.errorRange != errorRange
         context.coordinator.errorRange = errorRange
+        context.coordinator.engine = engine
         uiView.accessibilityLabel = L10n.text(isJSON ? "JSON Editor" : "SQL query editor")
         uiView.accessibilityHint = isJSON ? L10n.text("Enter a MongoDB Extended JSON command") : L10n.text("Enter the SQL statement to run against the selected database")
         uiView.keyboardAppearance = palette.isDark ? .dark : .light
@@ -504,6 +507,9 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         var lastAppliedPalette: EditorPalette?
         var lastAppliedJSON: Bool?
         var errorRange: NSRange?
+        var engine: DatabaseEngine?
+        /// Ranges tinted for the statement and bracket at the caret, cleared before the next marks.
+        private var decoratedRanges: [NSRange] = []
         var font = SQLEditorTypography.queryFont()
         var lastAppliedFontSize: CGFloat?
         private var isApplyingHighlight = false
@@ -537,6 +543,34 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             guard !isApplyingHighlight else { return }
             cursorOffset = min(textView.selectedRange.location, textView.textStorage.length)
             selectionLength = textView.selectedRange.length
+            updateDecorations(textView)
+        }
+
+        /// Tints the statement Run would execute and the bracket pair at the caret. Only the background
+        /// attribute changes, so the text, its undo history, and the syntax colors are untouched.
+        func updateDecorations(_ textView: UITextView) {
+            guard textView.markedTextRange == nil else { return }
+            let storage = textView.textStorage
+            let marks = SQLEditorDecorations.marks(in: storage.string, selection: textView.selectedRange, engine: isJSON ? nil : engine)
+            var tints: [(NSRange, UIColor)] = []
+            // An error's own highlight wins over the statement tint.
+            if let statement = marks.statement, errorRange == nil { tints.append((statement, palette.caretColor.withAlphaComponent(0.07))) }
+            tints += marks.brackets.map { ($0, palette.caretColor.withAlphaComponent(0.28)) }
+            let ranges = tints.map(\.0)
+            guard ranges != decoratedRanges else { return }
+            let previous = isApplyingHighlight
+            isApplyingHighlight = true
+            defer { isApplyingHighlight = previous }
+            let selection = textView.selectedRange
+            storage.beginEditing()
+            for range in decoratedRanges where NSMaxRange(range) <= storage.length { storage.removeAttribute(.backgroundColor, range: range) }
+            for (range, color) in tints where NSMaxRange(range) <= storage.length { storage.addAttribute(.backgroundColor, value: color, range: range) }
+            if let errorRange, NSMaxRange(errorRange) <= storage.length {
+                storage.addAttribute(.backgroundColor, value: UIColor.systemRed.withAlphaComponent(0.18), range: errorRange)
+            }
+            storage.endEditing()
+            textView.selectedRange = Self.clampedRange(selection, length: storage.length)
+            decoratedRanges = ranges
         }
 
         private var completion = SQLCompletionResult.empty
@@ -603,6 +637,9 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             storage.endEditing()
             textView.typingAttributes = baseAttributes
             textView.selectedRange = Self.clampedRange(selectedRange, length: storage.length)
+            // Every attribute was reset, the old marks with them.
+            decoratedRanges = []
+            updateDecorations(textView)
         }
 
         private func scheduleHighlight(for textView: UITextView, preserving selectedRange: NSRange) {

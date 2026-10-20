@@ -164,6 +164,8 @@ struct HighlightedQueryEditor: NSViewRepresentable {
     /// Completions at the caret; when set, a list opens at the caret as you type.
     var completion: SQLCompletionResult?
     var errorRange: NSRange?
+    /// The SQL engine, for marking the statement at the caret; nil marks brackets only.
+    var engine: DatabaseEngine?
     @AppStorage("Portbase.editorFontSize") private var editorFontSize = 13.0
     @AppStorage(EditorTheme.storageKey) private var themeName = EditorTheme.portbase.rawValue
     fileprivate var palette: EditorPalette { (EditorTheme(rawValue: themeName) ?? .portbase).palette(for: colorScheme) }
@@ -277,6 +279,25 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             if view.string == lastString, parent.completion != nil { typing = false; popup.hide() }
             lastString = view.string
             updateSelection(view)
+            updateDecorations(view)
+        }
+
+        /// Tints the statement Run would execute and the bracket pair at the caret, as layout-only
+        /// attributes that leave the text and its undo history alone.
+        func updateDecorations(_ view: NSTextView) {
+            guard let manager = view.layoutManager else { return }
+            let length = (view.string as NSString).length
+            manager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: NSRange(location: 0, length: length))
+            guard !view.hasMarkedText() else { return }
+            let marks = SQLEditorDecorations.marks(in: view.string, selection: view.selectedRange(), engine: parent.isJSON ? nil : parent.engine)
+            let tint = parent.palette.caretColor
+            // An error's own highlight wins over the statement tint.
+            if let statement = marks.statement, parent.errorRange == nil, NSMaxRange(statement) <= length {
+                manager.addTemporaryAttribute(.backgroundColor, value: tint.withAlphaComponent(0.07), forCharacterRange: statement)
+            }
+            for bracket in marks.brackets where NSMaxRange(bracket) <= length {
+                manager.addTemporaryAttribute(.backgroundColor, value: tint.withAlphaComponent(0.28), forCharacterRange: bracket)
+            }
         }
         func textDidEndEditing(_ notification: Notification) { popup.hide(); signaturePopup.hide() }
 
@@ -377,6 +398,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             storage.endEditing()
             view.typingAttributes = base
             view.setSelectedRange(selection)
+            updateDecorations(view)
         }
     }
 }

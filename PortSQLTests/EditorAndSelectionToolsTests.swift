@@ -72,4 +72,47 @@ final class EditorAndSelectionToolsTests: XCTestCase {
         XCTAssertEqual(dates.maximum, "2026-03-01")
         XCTAssertNil(dates.sum)
     }
+
+    func testLoadedRowsSortByTypeWithNullsLast() {
+        let result = QueryResultTable(columns: [QueryColumn(name: "n", type: "numeric"), QueryColumn(name: "name", type: "text")], rows: [
+            QueryRow(cells: [.decimal("10.5"), .text("item10")]),
+            QueryRow(cells: [.null, .text("item2")]),
+            QueryRow(cells: [.decimal("9"), .null]),
+            QueryRow(cells: [.decimal("-3"), .text("Item1")]),
+            QueryRow(cells: [.decimal("9.00"), .text("item2")]),
+        ], executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: nil, sourceQuery: nil)
+        let all = Array(result.rows.indices)
+        XCTAssertEqual(LoadedResultSort(column: 0).ordered(all, in: result), [3, 2, 4, 0, 1], "Numerically, not as text; ties keep their order")
+        XCTAssertEqual(LoadedResultSort(column: 0, descending: true).ordered(all, in: result), [0, 2, 4, 3, 1], "NULLs stay last")
+        XCTAssertEqual(LoadedResultSort(column: 1).ordered(all, in: result), [3, 1, 4, 0, 2], "Natural order: item2 before item10")
+        XCTAssertEqual(LoadedResultSort(column: 0).ordered([4, 0, 3], in: result), [3, 4, 0], "Sorts within a filtered set")
+        XCTAssertEqual(LoadedResultSort.next(after: nil, column: 1), LoadedResultSort(column: 1))
+        XCTAssertEqual(LoadedResultSort.next(after: LoadedResultSort(column: 1), column: 1), LoadedResultSort(column: 1, descending: true))
+        XCTAssertNil(LoadedResultSort.next(after: LoadedResultSort(column: 1, descending: true), column: 1))
+        XCTAssertEqual(LoadedResultSort.next(after: LoadedResultSort(column: 1, descending: true), column: 0), LoadedResultSort(column: 0))
+    }
+
+    func testEditorMarksTheStatementAndMatchingBracket() {
+        let script = "SELECT COUNT(*) FROM t;\nSELECT ')' AS x, (1 + (2)) FROM u;"
+        let source = script as NSString
+        let caretAfterCount = source.range(of: "COUNT(").location + 6
+        let marks = SQLEditorDecorations.marks(in: script, selection: NSRange(location: caretAfterCount, length: 0), engine: .postgresql)
+        XCTAssertEqual(marks.brackets, [NSRange(location: caretAfterCount - 1, length: 1), NSRange(location: caretAfterCount + 1, length: 1)])
+        XCTAssertEqual(marks.statement.map { source.substring(with: $0) }?.hasPrefix("SELECT COUNT(*) FROM t"), true)
+
+        let outer = source.range(of: "(1 + (2))").location
+        let nested = SQLEditorDecorations.marks(in: script, selection: NSRange(location: outer, length: 0), engine: .postgresql)
+        XCTAssertEqual(nested.brackets, [NSRange(location: outer, length: 1), NSRange(location: outer + 8, length: 1)],
+                       "Nested pairs count, and the ')' in the string doesn't")
+        XCTAssertEqual(nested.statement.map { source.substring(with: $0) }?.hasPrefix("SELECT ')'"), true)
+
+        let inString = source.range(of: "')'").location + 2
+        XCTAssertTrue(SQLEditorDecorations.marks(in: script, selection: NSRange(location: inString, length: 0), engine: .postgresql).brackets.isEmpty)
+        XCTAssertNil(SQLEditorDecorations.marks(in: "SELECT (1)", selection: NSRange(location: 3, length: 0), engine: .postgresql).statement,
+                     "One statement needs no mark")
+        XCTAssertNil(SQLEditorDecorations.marks(in: script, selection: NSRange(location: 0, length: 6), engine: .postgresql).statement,
+                     "A selection runs as it is")
+        XCTAssertEqual(SQLEditorDecorations.marks(in: "{\"a\": [1, 2]}", selection: NSRange(location: 1, length: 0), engine: nil).brackets.count, 2,
+                       "JSON brackets match too")
+    }
 }

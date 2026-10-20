@@ -1154,7 +1154,8 @@ private struct DesktopSQLEditor: View {
             Divider()
             HighlightedQueryEditor(text: $workspace.queryText, cursorOffset: $workspace.queryCursorOffset,
                                    selectionLength: $workspace.querySelectionLength, colorScheme: colorScheme, isJSON: workspace.usesJSONEditor,
-                                   allowsSQLComments: isSQL, completion: isSQL ? workspace.completion : nil, errorRange: workspace.queryErrorRange)
+                                   allowsSQLComments: isSQL, completion: isSQL ? workspace.completion : nil, errorRange: workspace.queryErrorRange,
+                                   engine: isSQL ? workspace.selectedBookmark?.engine : nil)
                 .frame(maxWidth: .infinity, maxHeight: .infinity).clipped().layoutPriority(1)
             HStack(spacing: Spacing.s) {
                 Text(workspace.editorPositionLabel).monospacedDigit().foregroundStyle(.secondary)
