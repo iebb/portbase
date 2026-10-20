@@ -181,6 +181,7 @@ struct ResultGridView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var configuration = ResultGridConfiguration()
     @State private var selection: ResultGridSelection?
+    @State private var selectionSummary: ResultSelectionSummary?
     @State private var extendsSelection = false
     @State private var showsColumns = false
     @State private var focusedColumn: Int?
@@ -276,20 +277,24 @@ struct ResultGridView: View {
                     }
                     .menuStyle(.button)
                     .disabled(selection == nil && result.rows.isEmpty)
-                    if let selection {
-                        Text(L10n.format("Cells: %d", selection.count))
-                            .font(.captionText.monospacedDigit()).foregroundStyle(.secondary)
-                        Button { self.selection = nil; extendsSelection = false } label: {
-                            Image(systemName: "xmark").frame(width: controlHeight, height: controlHeight)
-                        }
-                        .accessibilityLabel("Clear selection")
-                    }
                 }
                 .buttonStyle(.portbaseToolbar)
                 .font(.rowDetail)
 #if os(macOS)
                 .font(.bodyText).padding(.horizontal, Spacing.s)
 #endif
+            }
+            // Pinned rather than scrolled with the tools, as a status bar keeps it in one place.
+            if let selection {
+                HStack(spacing: 0) {
+                    selectionSummaryMenu(cells: selection.count)
+                    Button { self.selection = nil; extendsSelection = false } label: {
+                        Image(systemName: "xmark").font(.captionText).frame(width: controlHeight, height: controlHeight)
+                    }
+                    .buttonStyle(.portbaseToolbar)
+                    .accessibilityLabel("Clear selection")
+                }
+                .fixedSize()
             }
             if let trailingAccessory { trailingAccessory }
             }
@@ -347,6 +352,13 @@ struct ResultGridView: View {
         .onChange(of: result.columns.map { $0.name + ":" + $0.type }) { _, _ in filter = LoadedResultFilter(); updateFilter() }
         .onChange(of: result) { _, _ in updateFilter() }
         .onChange(of: filter) { _, _ in updateFilter() }
+        .task(id: selection) {
+            // Figures for the selection, worked out off the main thread so a large selection doesn't stall the grid.
+            guard let selection, selection.count > 1 else { selectionSummary = nil; return }
+            let payload = ResultGridClipboard.payload(result: displayedResult, visibleColumns: visibleColumns, selection: selection)
+            let summary = await Task.detached(priority: .userInitiated) { ResultSelectionSummary.make(payload) }.value
+            if !Task.isCancelled { selectionSummary = summary }
+        }
         .onChange(of: selection) { _, value in
             guard let onSelectRow else { return }
             if let row = value?.end.row, rowIndices.indices.contains(row) { onSelectRow(rowIndices[row]) } else { onSelectRow(nil) }
@@ -669,6 +681,57 @@ struct ResultGridView: View {
     private func copySelection(headers: Bool = false) {
         guard let selection else { return }
         ResultGridClipboard.copy(result: displayedResult, visibleColumns: visibleColumns, selection: selection, headers: headers)
+    }
+
+    /// The selection's size, and for numbers its sum and average, as TablePlus and DataGrip show them.
+    /// Opening it lists every figure; choosing one copies it as a plain number.
+    @ViewBuilder
+    private func selectionSummaryMenu(cells: Int) -> some View {
+        let summary = selectionSummary.flatMap { $0.cells == cells ? $0 : nil }
+        let label: String = {
+            guard let summary, cells > 1 else { return L10n.format("Cells: %d", cells) }
+            if let sum = summary.sumText, let average = summary.averageText {
+                return L10n.format("Sum %1$@ · Avg %2$@", sum, average)
+            }
+            if let minimum = summary.minimumText, let maximum = summary.maximumText, minimum != maximum {
+                return minimum + " – " + maximum
+            }
+            return L10n.format("Cells: %d", cells)
+        }()
+        Menu {
+            if let summary {
+                Section(L10n.text("Copy Value")) {
+                    figure(L10n.text("Cells"), String(summary.cells), copy: String(summary.cells))
+                    figure(L10n.text("Values"), String(summary.values), copy: String(summary.values))
+                    if summary.nulls > 0 { figure(L10n.text("NULL"), String(summary.nulls), copy: String(summary.nulls)) }
+                    figure(L10n.text("Distinct"), String(summary.distinct), copy: String(summary.distinct))
+                    if let sum = summary.sum, let text = summary.sumText {
+                        figure(L10n.text("Sum"), text, copy: ResultSelectionSummary.plain(sum, scale: summary.scale))
+                    }
+                    if let average = summary.average, let text = summary.averageText {
+                        figure(L10n.text("Average"), text, copy: ResultSelectionSummary.plain(average, scale: max(summary.scale, 2)))
+                    }
+                    if let minimum = summary.minimum, let text = summary.minimumText { figure(L10n.text("Minimum"), text, copy: minimum) }
+                    if let maximum = summary.maximum, let text = summary.maximumText { figure(L10n.text("Maximum"), text, copy: maximum) }
+                }
+            }
+        } label: {
+            Text(verbatim: label)
+                .font(.captionText.monospacedDigit()).foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .menuStyle(.button)
+        .buttonStyle(.portbaseToolbar)
+        .disabled(summary == nil)
+        .accessibilityLabel(summary.map { summary in
+            [L10n.format("Cells: %d", summary.cells), summary.sumText.map { L10n.format("Sum %@", $0) }, summary.averageText.map { L10n.format("Average %@", $0) }]
+                .compactMap { $0 }.joined(separator: ", ")
+        } ?? L10n.format("Cells: %d", cells))
+        .help(L10n.text("Selection summary. Choose a figure to copy it."))
+    }
+
+    private func figure(_ title: String, _ value: String, copy: String) -> some View {
+        Button { PortbaseClipboard.copy(copy) } label: { Text(verbatim: title + "  " + value) }
     }
 
     /// Copies the selection, or every loaded row when nothing is selected, in the given format.
