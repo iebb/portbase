@@ -64,6 +64,12 @@ private final class QueryTextView: UITextView {
         if allowsSQLComments {
             actions.append(UIAction(title: L10n.text("Toggle SQL Comment"), image: UIImage(systemName: "text.bubble")) { [weak self] _ in self?.toggleComment() })
         }
+        actions += [
+            UIAction(title: L10n.text("Duplicate Line"), image: UIImage(systemName: "plus.square.on.square")) { [weak self] _ in self?.duplicateLines() },
+            UIAction(title: L10n.text("Move Line Up"), image: UIImage(systemName: "arrow.up.to.line")) { [weak self] _ in self?.moveLinesUp() },
+            UIAction(title: L10n.text("Move Line Down"), image: UIImage(systemName: "arrow.down.to.line")) { [weak self] _ in self?.moveLinesDown() },
+            UIAction(title: L10n.text("Toggle Case"), image: UIImage(systemName: "textformat")) { [weak self] _ in self?.toggleCase() },
+        ]
         let editingTools = UIBarButtonItem(image: UIImage(systemName: "ellipsis.circle"), menu: UIMenu(children: actions))
         editingTools.accessibilityLabel = L10n.text("Editing Tools")
         editingTools.width = 44
@@ -248,7 +254,11 @@ private final class QueryTextView: UITextView {
         (super.keyCommands ?? []) + [
             UIKeyCommand(title: L10n.text("Indent"), action: #selector(indent), input: "]", modifierFlags: .command),
             UIKeyCommand(title: L10n.text("Outdent"), action: #selector(outdent), input: "[", modifierFlags: .command),
-            UIKeyCommand(title: L10n.text("Go to Line"), action: #selector(goToLine), input: "l", modifierFlags: .command)
+            UIKeyCommand(title: L10n.text("Go to Line"), action: #selector(goToLine), input: "l", modifierFlags: .command),
+            UIKeyCommand(title: L10n.text("Duplicate Line"), action: #selector(duplicateLines), input: "d", modifierFlags: .command),
+            UIKeyCommand(title: L10n.text("Move Line Up"), action: #selector(moveLinesUp), input: "[", modifierFlags: [.command, .alternate]),
+            UIKeyCommand(title: L10n.text("Move Line Down"), action: #selector(moveLinesDown), input: "]", modifierFlags: [.command, .alternate]),
+            UIKeyCommand(title: L10n.text("Toggle Case"), action: #selector(toggleCase), input: "u", modifierFlags: [.command, .shift])
         ] + (allowsSQLComments ? [UIKeyCommand(title: L10n.text("Toggle SQL Comment"), action: #selector(toggleComment), input: "/", modifierFlags: .command)] : [])
     }
 
@@ -264,6 +274,22 @@ private final class QueryTextView: UITextView {
               let range = textRange(from: beginningOfDocument, to: endOfDocument) else { return }
         replace(range, withText: edit.text)
         selectedRange = edit.selection
+    }
+
+    @objc private func duplicateLines() { applyLineEdit(SQLLineEditing.duplicateLines(text ?? "", selection: selectedRange)) }
+    @objc private func moveLinesUp() { applyLineEdit(SQLLineEditing.moveLines(text ?? "", selection: selectedRange, up: true)) }
+    @objc private func moveLinesDown() { applyLineEdit(SQLLineEditing.moveLines(text ?? "", selection: selectedRange, up: false)) }
+    @objc private func toggleCase() { applyLineEdit(SQLLineEditing.toggleCase(text ?? "", selection: selectedRange)) }
+
+    /// Replaces just the edited range, so Undo reverts it in one step.
+    private func applyLineEdit(_ edit: SQLLineEditing.RangeEdit?) {
+        guard markedTextRange == nil, let edit,
+              let start = position(from: beginningOfDocument, offset: edit.range.location),
+              let end = position(from: start, offset: edit.range.length), let range = textRange(from: start, to: end) else { return }
+        replace(range, withText: edit.replacement)
+        selectedRange = edit.selection
+        scrollRangeToVisible(edit.selection)
+        delegate?.textViewDidChangeSelection?(self)
     }
 
     @objc private func goToLine() {

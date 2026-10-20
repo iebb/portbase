@@ -108,6 +108,13 @@ struct DesktopCommands: Commands {
                 NSApp.sendAction(#selector(NSTextView.performFindPanelAction(_:)), to: nil, from: item)
             }.keyboardShortcut("f")
             Divider()
+            // Sent to whichever query editor has focus; nothing happens elsewhere.
+            Button("Toggle Comment") { NSApp.sendAction(Selector(("toggleSQLComment:")), to: nil, from: nil) }.keyboardShortcut("/")
+            Button("Duplicate Line") { NSApp.sendAction(Selector(("duplicateLines:")), to: nil, from: nil) }.keyboardShortcut("d")
+            Button("Move Line Up") { NSApp.sendAction(Selector(("moveLinesUp:")), to: nil, from: nil) }.keyboardShortcut("[", modifiers: [.command, .option])
+            Button("Move Line Down") { NSApp.sendAction(Selector(("moveLinesDown:")), to: nil, from: nil) }.keyboardShortcut("]", modifiers: [.command, .option])
+            Button("Toggle Case") { NSApp.sendAction(Selector(("toggleSQLCase:")), to: nil, from: nil) }.keyboardShortcut("u", modifiers: [.command, .shift])
+            Divider()
             Button("Increase Text Size") { editorFontSize = min(24, editorFontSize + 1) }.keyboardShortcut("+")
             Button("Decrease Text Size") { editorFontSize = max(10, editorFontSize - 1) }.keyboardShortcut("-")
         }

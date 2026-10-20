@@ -127,6 +127,24 @@ private final class QueryTextView: NSTextView {
         let prefix = source.substring(with: NSRange(location: line.location, length: selection.location - line.location))
         insertText("\n" + prefix.prefix(while: { $0 == " " || $0 == "\t" }), replacementRange: selection)
     }
+    // Line commands, sent from the Edit menu through the responder chain to the focused editor.
+    @objc func duplicateLines(_ sender: Any?) { applyRangeEdit(SQLLineEditing.duplicateLines(string, selection: selectedRange())) }
+    @objc func moveLinesUp(_ sender: Any?) { applyRangeEdit(SQLLineEditing.moveLines(string, selection: selectedRange(), up: true)) }
+    @objc func moveLinesDown(_ sender: Any?) { applyRangeEdit(SQLLineEditing.moveLines(string, selection: selectedRange(), up: false)) }
+    @objc func toggleSQLCase(_ sender: Any?) { applyRangeEdit(SQLLineEditing.toggleCase(string, selection: selectedRange())) }
+    @objc func toggleSQLComment(_ sender: Any?) {
+        guard allowsSQLComments, let edit = SQLEditingService.toggleLineComments(string, selection: selectedRange()) else { return }
+        apply(edit)
+    }
+
+    /// Replaces just the edited range, so Undo reverts it in one step.
+    private func applyRangeEdit(_ edit: SQLLineEditing.RangeEdit?) {
+        guard !hasMarkedText(), let edit else { return }
+        insertText(edit.replacement, replacementRange: edit.range)
+        setSelectedRange(edit.selection)
+        scrollRangeToVisible(edit.selection)
+    }
+
     private func apply(_ edit: SQLEditingService.Edit) {
         let full = NSRange(location: 0, length: string.utf16.count)
         insertText(edit.text, replacementRange: full)
