@@ -53,6 +53,10 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var pendingAssistantChart: AssistantChartSuggestion?
     @Published private(set) var resultSets: [QueryResultTable] = []
     @Published private(set) var selectedResultIndex = 0
+    /// While a script runs, which of its statements is running, for "Running 2 of 5".
+    @Published private(set) var runProgress: ScriptRunProgress?
+    /// The statement a script stopped at, shown as a failed tab after the results before it.
+    @Published private(set) var failedStatement: FailedScriptStatement?
     @Published var selectedProfileForEdit: ConnectionProfile?
     @Published var isRunning = false
     @Published var errorMessage: String? {
@@ -936,6 +940,8 @@ final class WorkspaceViewModel: ObservableObject {
         }
         let database = activeDatabaseName
         let capturedQuery = queryText
+        runProgress = nil
+        failedStatement = nil
         let currentRange = SQLEditingService.statement(in: queryText, atUTF16: queryCursorOffset, engine: profile?.engine ?? .postgresql)
         let executionOffset = currentRange.flatMap { String(queryText[$0]).trimmingCharacters(in: .whitespacesAndNewlines) == sql ? NSRange($0, in: queryText).location : nil }
             ?? (queryText as NSString).range(of: sql).location
@@ -947,14 +953,22 @@ final class WorkspaceViewModel: ObservableObject {
             var failureSQL = sql
             var failureOffset = executionOffset
             var completed: [QueryResultTable] = []
+            var statementCount = 1
             do {
                 let ranges = SQLEditingService.statementRanges(in: sql, engine: profile?.engine ?? .postgresql)
                 if ranges.count > 1, !values.isEmpty {
                     throw NSError(domain: "PortSQL.Parameters", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.text("Run parameterized statements individually.")])
                 }
                 let statements = ranges.isEmpty ? [sql] : ranges.map { String(sql[$0]) }
+                statementCount = statements.count
                 for (index, statement) in statements.enumerated() {
                     try Task.checkCancellation()
+                    if statements.count > 1 {
+                        await MainActor.run {
+                            guard self.runToken == currentRunToken else { return }
+                            self.runProgress = ScriptRunProgress(current: index + 1, total: statements.count)
+                        }
+                    }
                     failureSQL = statement
                     failureOffset = executionOffset == NSNotFound ? NSNotFound : executionOffset + (ranges.indices.contains(index) ? NSRange(ranges[index], in: sql).location : 0)
                     var table = try await DatabaseService.shared.execute(
@@ -974,6 +988,7 @@ final class WorkspaceViewModel: ObservableObject {
                     self.resultSets = completed
                     self.selectedResultIndex = max(0, completed.count - 1)
                     self.hasOpenTransaction = transactionOpen
+                    self.runProgress = nil
                     self.loadRelationships(for: explorerTable, profile: profile, database: database)
                     self.queryTask = nil
                     self.cancellationWriteWarning = nil
@@ -1001,12 +1016,28 @@ final class WorkspaceViewModel: ObservableObject {
                     self.resultSets = completed
                     self.selectedResultIndex = max(0, completed.count - 1)
                     self.result = completed.last ?? .empty
+                    self.runProgress = nil
+                    // In a script, the tabs show where it stopped; a single statement's error speaks for itself.
+                    if statementCount > 1, !(error is CancellationError) {
+                        self.failedStatement = FailedScriptStatement(number: completed.count + 1, total: statementCount,
+                                                                     sql: failureSQL.trimmingCharacters(in: .whitespacesAndNewlines),
+                                                                     message: self.errorMessage ?? "")
+                    }
                     self.queryTask = nil
                     self.cancellationWriteWarning = nil
                     self.isRunning = false
                 }
             }
         }
+    }
+
+    /// Selects a statement in the editor, as a result tab's Show in Editor does; nothing happens once it's been edited away.
+    func revealStatement(_ sql: String) {
+        let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
+        let range = (queryText as NSString).range(of: trimmed)
+        guard !trimmed.isEmpty, range.location != NSNotFound else { return }
+        queryCursorOffset = range.location
+        querySelectionLength = range.length
     }
 
     func selectResult(_ index: Int) {
@@ -1656,6 +1687,8 @@ final class WorkspaceViewModel: ObservableObject {
         explorerPageIndex = 0
         result = QueryResultTable.empty
         resultSets = []
+        failedStatement = nil
+        runProgress = nil
         runToken = nil
         isRunning = false
         schemaCatalog = []
@@ -1682,6 +1715,8 @@ final class WorkspaceViewModel: ObservableObject {
         explorerPageIndex = 0
         result = QueryResultTable.empty
         resultSets = []
+        failedStatement = nil
+        runProgress = nil
         runToken = nil
         isRunning = false
         schemaCatalog = []

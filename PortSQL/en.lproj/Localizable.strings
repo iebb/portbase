@@ -1656,3 +1656,8 @@
 "Toggle Case" = "Toggle Case";
 "Toggle Comment" = "Toggle Comment";
 "Values" = "Values";
+"Copy Statement" = "Copy Statement";
+"Result %1$d of %2$d" = "Result %1$d of %2$d";
+"Running %1$d of %2$d" = "Running %1$d of %2$d";
+"Show in Editor" = "Show in Editor";
+"Statement %1$d of %2$d failed" = "Statement %1$d of %2$d failed";

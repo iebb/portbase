@@ -1656,3 +1656,8 @@
 "Toggle Case" = "切换大小写";
 "Toggle Comment" = "切换注释";
 "Values" = "值";
+"Copy Statement" = "拷贝语句";
+"Result %1$d of %2$d" = "结果 %1$d/%2$d";
+"Running %1$d of %2$d" = "正在运行 %1$d/%2$d";
+"Show in Editor" = "在编辑器中显示";
+"Statement %1$d of %2$d failed" = "语句 %1$d/%2$d 失败";

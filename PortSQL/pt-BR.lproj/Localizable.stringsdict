@@ -34,6 +34,22 @@
             <string>%d cols.</string>
         </dict>
     </dict>
+    <key>affected_count</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key>
+        <string>%#@rows@</string>
+        <key>rows</key>
+        <dict>
+            <key>NSStringFormatSpecTypeKey</key>
+            <string>NSStringPluralRuleType</string>
+            <key>NSStringFormatValueTypeKey</key>
+            <string>d</string>
+            <key>one</key>
+            <string>%d linha afetada</string>
+            <key>other</key>
+            <string>%d linhas afetadas</string>
+        </dict>
+    </dict>
     <key>row_count</key>
     <dict>
         <key>NSStringLocalizedFormatKey</key>

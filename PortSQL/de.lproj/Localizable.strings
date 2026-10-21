@@ -1656,3 +1656,8 @@
 "Toggle Case" = "Groß-/Kleinschreibung umschalten";
 "Toggle Comment" = "Kommentar umschalten";
 "Values" = "Werte";
+"Copy Statement" = "Anweisung kopieren";
+"Result %1$d of %2$d" = "Ergebnis %1$d von %2$d";
+"Running %1$d of %2$d" = "Läuft: %1$d von %2$d";
+"Show in Editor" = "Im Editor zeigen";
+"Statement %1$d of %2$d failed" = "Anweisung %1$d von %2$d fehlgeschlagen";

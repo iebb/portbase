@@ -897,14 +897,8 @@ struct ResultsCard: View {
                     }
                 }
 
-                if workspace.resultSets.count > 1 {
-                    Picker("Result Set", selection: Binding(get: { workspace.selectedResultIndex }, set: { workspace.selectResult($0) })) {
-                        ForEach(workspace.resultSets.indices, id: \.self) { index in
-                            Text(L10n.format("Result %d", index + 1)).tag(index)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .frame(minHeight: Sizes.touchTarget)
+                if ResultSetTabs.isVisible(workspace) {
+                    ResultSetTabs()
                 }
 
                 if let errorMessage = workspace.errorMessage {

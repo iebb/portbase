@@ -1656,3 +1656,8 @@
 "Toggle Case" = "Alternar maiúsculas";
 "Toggle Comment" = "Alternar comentário";
 "Values" = "Valores";
+"Copy Statement" = "Copiar instrução";
+"Result %1$d of %2$d" = "Resultado %1$d de %2$d";
+"Running %1$d of %2$d" = "Executando %1$d de %2$d";
+"Show in Editor" = "Mostrar no editor";
+"Statement %1$d of %2$d failed" = "A instrução %1$d de %2$d falhou";

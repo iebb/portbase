@@ -1656,3 +1656,8 @@
 "Toggle Case" = "Inverser la casse";
 "Toggle Comment" = "Commenter/décommenter";
 "Values" = "Valeurs";
+"Copy Statement" = "Copier l’instruction";
+"Result %1$d of %2$d" = "Résultat %1$d sur %2$d";
+"Running %1$d of %2$d" = "Exécution %1$d sur %2$d";
+"Show in Editor" = "Afficher dans l’éditeur";
+"Statement %1$d of %2$d failed" = "Échec de l’instruction %1$d sur %2$d";

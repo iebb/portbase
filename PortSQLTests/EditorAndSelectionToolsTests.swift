@@ -115,4 +115,26 @@ final class EditorAndSelectionToolsTests: XCTestCase {
         XCTAssertEqual(SQLEditorDecorations.marks(in: "{\"a\": [1, 2]}", selection: NSRange(location: 1, length: 0), engine: nil).brackets.count, 2,
                        "JSON brackets match too")
     }
+
+    func testResultTabsNameWhatEachStatementDid() {
+        func result(_ sql: String, table: String?, rows: Int = 0, columns: Int = 1, affected: Int? = nil) -> QueryResultTable {
+            var table = QueryResultTable(columns: (0..<columns).map { QueryColumn(name: "c\($0)", type: "text") },
+                                         rows: Array(repeating: QueryRow(cells: Array(repeating: .text("x"), count: columns)), count: rows),
+                                         executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: table, sourceQuery: sql)
+            table.affectedRowCount = affected
+            return table
+        }
+        XCTAssertEqual(ResultTabLabel.title(for: result("SELECT * FROM \"main\".\"orders\"", table: "\"main\".\"orders\""), number: 1, engine: .postgresql), "orders")
+        XCTAssertEqual(ResultTabLabel.title(for: result("update customers set vip = 1", table: "customers"), number: 2, engine: .postgresql), "UPDATE customers")
+        XCTAssertEqual(ResultTabLabel.title(for: result("SELECT 1", table: nil), number: 3, engine: .postgresql), "SELECT")
+        XCTAssertEqual(ResultTabLabel.title(for: result("-- note\nWITH x AS (SELECT 1) SELECT * FROM x", table: "x"), number: 1, engine: .postgresql), "x",
+                       "Comments are skipped")
+        XCTAssertEqual(ResultTabLabel.title(for: result("", table: nil), number: 4, engine: .postgresql), L10n.format("Result %d", 4))
+        XCTAssertEqual(ResultTabLabel.detail(for: result("SELECT", table: nil, rows: 3)), L10n.plural("row_count", count: 3))
+        XCTAssertEqual(ResultTabLabel.detail(for: result("DELETE", table: nil, columns: 0, affected: 2)), L10n.plural("affected_count", count: 2))
+        XCTAssertEqual(ResultTabLabel.shortName("`shop`.`line_items`"), "line_items")
+        XCTAssertEqual(ResultTabLabel.titles(for: [result("SELECT * FROM orders", table: "orders"), result("SELECT 1", table: nil),
+                                                   result("SELECT n FROM orders", table: "orders")], engine: .postgresql),
+                       ["orders", "SELECT", "orders (2)"])
+    }
 }

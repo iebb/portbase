@@ -1298,7 +1298,7 @@ private struct DesktopResultsView: View {
     /// disabled Export button.
     private var showsResultBar: Bool {
         !workspace.result.columns.isEmpty || workspace.result.documents != nil || workspace.isRunning
-            || workspace.isDocumentDatabase || workspace.resultSets.count > 1
+            || workspace.isDocumentDatabase
     }
 
     @ViewBuilder private var modeControls: some View {
@@ -1315,11 +1315,6 @@ private struct DesktopResultsView: View {
                     PortbaseChoice(value: "chart", title: L10n.text("Chart")), PortbaseChoice(value: "insights", title: L10n.text("Insights")),
                 ])
                 .accessibilityLabel("Results")
-            }
-            if workspace.resultSets.count > 1 {
-                Picker("Result Set", selection: Binding(get: { workspace.selectedResultIndex }, set: { workspace.selectResult($0) })) {
-                    ForEach(workspace.resultSets.indices, id: \.self) { index in Text(L10n.format("Result %d", index + 1)).tag(index) }
-                }.labelsHidden().fixedSize()
             }
             if workspace.isRunning { ProgressView().controlSize(.small) }
         }
@@ -1354,6 +1349,11 @@ private struct DesktopResultsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // One tab per statement of a script, above the selected result's own bar.
+            if ResultSetTabs.isVisible(workspace) {
+                ResultSetTabs().padding(.horizontal, Spacing.m).portbaseBar(Sizes.toolbar)
+                Divider()
+            }
             if !showsGrid && showsResultBar {
                 HStack(spacing: Spacing.s) {
                     modeControls

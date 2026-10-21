@@ -1656,3 +1656,8 @@
 "Toggle Case" = "大文字/小文字を切り替え";
 "Toggle Comment" = "コメントを切り替え";
 "Values" = "値";
+"Copy Statement" = "ステートメントをコピー";
+"Result %1$d of %2$d" = "結果 %1$d/%2$d";
+"Running %1$d of %2$d" = "実行中 %1$d/%2$d";
+"Show in Editor" = "エディタで表示";
+"Statement %1$d of %2$d failed" = "ステートメント %1$d/%2$d が失敗";

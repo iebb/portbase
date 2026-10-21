@@ -1656,3 +1656,8 @@
 "Toggle Case" = "대소문자 전환";
 "Toggle Comment" = "주석 전환";
 "Values" = "값";
+"Copy Statement" = "문 복사";
+"Result %1$d of %2$d" = "결과 %1$d/%2$d";
+"Running %1$d of %2$d" = "실행 중 %1$d/%2$d";
+"Show in Editor" = "편집기에서 보기";
+"Statement %1$d of %2$d failed" = "문 %1$d/%2$d 실패";

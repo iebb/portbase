@@ -69,7 +69,7 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
     }
 
     func testPluralCatalogsDefineEveryRuntimePluralWithSemanticForms() throws {
-        let expectedKeys: Set<String> = ["column_count", "column_count_short", "row_count", "metric_count", "connection_count"]
+        let expectedKeys: Set<String> = ["column_count", "column_count_short", "row_count", "metric_count", "connection_count", "affected_count"]
 
         for locale in locales {
             let catalog = try localizablePluralRules(for: locale)
@@ -92,6 +92,9 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
         XCTAssertEqual(russianRows["one"], "%d строка")
         XCTAssertEqual(russianRows["few"], "%d строки")
         XCTAssertEqual(russianRows["many"], "%d строк")
+        let russianAffected = try pluralForms(for: "affected_count", locale: "ru")
+        XCTAssertEqual(russianAffected["one"], "затронута %d строка")
+        XCTAssertEqual(russianAffected["many"], "затронуто %d строк")
     }
 
     func testNonEnglishCatalogsHaveNoUnexpectedEnglishIdentityFallbacks() throws {
