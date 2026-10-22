@@ -711,7 +711,13 @@ actor DatabaseService {
             )
             let rows = metadata.rows
             let definitions = metadata.columns ?? rows.first?.columnDefinitions ?? []
-            let columns = definitions.map { QueryColumn(name: $0.name, type: Self.mysqlTypeName($0)) }
+            let columns = definitions.map { definition in
+                // The original table and column; empty for computed values.
+                QueryColumn(name: definition.name, type: Self.mysqlTypeName(definition),
+                            origin: definition.orgTable.isEmpty || definition.orgName.isEmpty ? nil
+                                : QueryColumnOrigin(schema: definition.schema.isEmpty ? nil : definition.schema,
+                                                    table: definition.orgTable, column: definition.orgName))
+            }
             let mappedRows = rows.map { row in
                 QueryRow(cells: row.columnDefinitions.indices.map { index in
                     let definition = row.columnDefinitions[index]
@@ -1188,8 +1194,12 @@ actor DatabaseService {
                             PostgresQuery(unsafeSQL: query, binds: bindings),
                             logger: logger
                         )
-                        let columns = sequence.columns.map {
-                            QueryColumn(name: $0.name, type: "\($0.dataType)")
+                        let columns = sequence.columns.map { column in
+                            // A table column's OID and attribute number; zero for computed values.
+                            QueryColumn(name: column.name, type: "\(column.dataType)",
+                                        origin: column.tableOID == 0 || column.columnAttributeNumber <= 0 ? nil
+                                            : QueryColumnOrigin(postgresTableOID: UInt32(bitPattern: column.tableOID),
+                                                                postgresAttributeNumber: Int(column.columnAttributeNumber)))
                         }
                         var rows: [QueryRow] = []
                         rows.reserveCapacity(min(Self.maximumMaterializedRows, 256))

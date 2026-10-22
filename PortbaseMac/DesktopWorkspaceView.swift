@@ -1037,7 +1037,6 @@ struct DesktopServerPicker: View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             if !compact {
                 Text("Choose a server").font(.sectionTitle).foregroundStyle(PortSQLPalette.ink)
-                Text("This tab connects to the server you choose.").font(.footnoteText).foregroundStyle(.secondary)
             }
             PortbaseSearchField(prompt: L10n.text("Search servers"), text: $search)
                 .font(.bodyText)
@@ -1440,10 +1439,8 @@ private struct DesktopResultsView: View {
                     PortbaseEmptyState(title: L10n.text("Statement executed"), message: workspace.result.executionSummary, systemImage: "checkmark.circle")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    // A quiet hint, not an illustration: the pane is a work area waiting for a query.
-                    Text("Run a query to see results here.")
-                        .font(.rowDetail).foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    // An empty work area until a query runs; nothing to explain.
+                    Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             Divider()
@@ -1473,7 +1470,7 @@ private struct DesktopResultsView: View {
     }
     private var grid: some View {
         ResultGridView(result: workspace.result, fillsAvailableSpace: true,
-            primaryKeys: Set(workspace.isShowingExplorerResult ? workspace.selectedExplorerTable?.primaryKeyColumns.map(\.name) ?? [] : []),
+            primaryKeys: workspace.resultKeyColumnNames,
             sortedColumn: workspace.isShowingExplorerResult ? workspace.explorerSortColumn : nil, sortDirection: workspace.explorerSortDirection,
             persistenceKey: [workspace.selectedBookmark?.id.uuidString ?? "", workspace.activeDatabaseName ?? "", workspace.result.sourceTableReference ?? "console"].joined(separator: "."),
             onSort: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0) } : nil,
@@ -1813,10 +1810,7 @@ private struct RowDetailsPanel: View {
                 }
                 .listStyle(.inset)
             } else {
-                Text("Select a cell to see its row.")
-                    .font(.rowDetail)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                Color.clear.frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .background(PortSQLPalette.surface)

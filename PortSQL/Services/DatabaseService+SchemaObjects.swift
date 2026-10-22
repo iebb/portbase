@@ -139,6 +139,36 @@ extension DatabaseService {
         }
     }
 
+    /// Names for PostgreSQL result columns that the server identified only by table OID and attribute
+    /// number, with one read-only catalog lookup. Columns without an origin are returned as they were.
+    func resolvePostgresColumnOrigins(_ columns: [QueryColumn], profile: ConnectionProfile, database: String?) async throws -> [QueryColumn] {
+        guard profile.engine == .postgresql else { return columns }
+        let oids = Set(columns.compactMap { $0.origin?.postgresTableOID })
+        guard !oids.isEmpty else { return columns }
+        let records = try await execute(query: """
+            SELECT c.oid::int8 AS table_oid, n.nspname AS schema_name, c.relname AS table_name,
+                   a.attnum::int4 AS attribute_number, a.attname AS column_name
+            FROM pg_attribute a JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE a.attrelid = ANY(string_to_array($1, ',')::oid[]) AND a.attnum > 0 AND NOT a.attisdropped
+            """, values: [.string(oids.sorted().map(String.init).joined(separator: ","))],
+            profile: profile, database: database, policy: .readOnly).records()
+        var names: [String: (schema: String, table: String, column: String)] = [:]
+        for row in records {
+            guard let oid = row["table_oid"]?.displayValue, let number = row["attribute_number"]?.displayValue else { continue }
+            names[oid + ":" + number] = (row["schema_name"]?.displayValue ?? "", row["table_name"]?.displayValue ?? "", row["column_name"]?.displayValue ?? "")
+        }
+        return columns.map { column in
+            guard var origin = column.origin, let oid = origin.postgresTableOID, let number = origin.postgresAttributeNumber,
+                  let name = names[String(oid) + ":" + String(number)] else { return column }
+            origin.schema = name.schema
+            origin.table = name.table
+            origin.column = name.column
+            var resolved = column
+            resolved.origin = origin
+            return resolved
+        }
+    }
+
     func schemaObjectDetails(_ object: SchemaObject, profile: ConnectionProfile, database: String?) async throws -> SchemaObjectDetails {
         if profile.engine == .sqlite { return try await SQLiteDatabaseClient.schemaObjectDetails(profile: profile, object: object) }
         guard profile.engine.supportsSchemaObjects else { throw DatabaseServiceError.unsupported }

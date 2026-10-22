@@ -248,12 +248,20 @@ final class SQLiteConnection {
         }
     }
 
+    /// The table column a result column reads, as SQLite reports it; nil for computed values.
+    static func origin(_ statement: OpaquePointer, index: Int32) -> QueryColumnOrigin? {
+        guard let table = sqlite3_column_table_name(statement, index), let column = sqlite3_column_origin_name(statement, index) else { return nil }
+        return QueryColumnOrigin(schema: sqlite3_column_database_name(statement, index).map(String.init(cString:)),
+                                 table: String(cString: table), column: String(cString: column))
+    }
+
     func read(_ statement: OpaquePointer, maximumRows: Int?, onColumns: (([QueryColumn]) -> Void)? = nil,
               onRow: ((QueryRow) throws -> Void)? = nil) throws -> SQLiteRows {
         let count = sqlite3_column_count(statement)
-        var columns = (0..<count).map {
-            QueryColumn(name: String(cString: sqlite3_column_name(statement, $0)),
-                type: sqlite3_column_decltype(statement, $0).map(String.init(cString:)) ?? "ANY")
+        var columns = (0..<count).map { index in
+            QueryColumn(name: String(cString: sqlite3_column_name(statement, index)),
+                type: sqlite3_column_decltype(statement, index).map(String.init(cString:)) ?? "ANY",
+                origin: Self.origin(statement, index: index))
         }
         var rows: [QueryRow] = []
         var materializedBytes = 0
@@ -266,7 +274,8 @@ final class SQLiteConnection {
             guard code == SQLITE_ROW else { throw error(code) }
             if !emittedColumns {
                 columns = columns.enumerated().map { index, column in
-                    column.type == "ANY" ? QueryColumn(name: column.name, type: Self.storageType(sqlite3_column_type(statement, Int32(index)))) : column
+                    column.type == "ANY" ? QueryColumn(name: column.name, type: Self.storageType(sqlite3_column_type(statement, Int32(index))),
+                                                       origin: column.origin) : column
                 }
                 onColumns?(columns); emittedColumns = true
             }

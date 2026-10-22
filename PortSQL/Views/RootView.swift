@@ -917,10 +917,7 @@ struct ResultsCard: View {
                 }
 
                 if workspace.isRunning {
-                    LoadingStateView(
-                        title: L10n.text("Loading results"),
-                        message: L10n.text("Fetching rows for the current request.")
-                    )
+                    LoadingStateView(title: L10n.text("Loading results"))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.l)
                 } else if workspace.result.documents != nil && mongoResultView == "chart" {
@@ -937,7 +934,7 @@ struct ResultsCard: View {
                 } else if workspace.result.columns.isEmpty {
                     PortbaseEmptyState(
                         title: L10n.text("No live rows yet"),
-                        message: workspace.result.affectedRowCount == nil ? L10n.text("Run a query to see results here.") : workspace.result.executionSummary,
+                        message: workspace.result.affectedRowCount == nil ? nil : workspace.result.executionSummary,
                         systemImage: "tablecells"
                     )
                 } else if workspace.result.documents == nil && tableResultView == "insights" {
@@ -1036,8 +1033,9 @@ struct ResultsCard: View {
                    PortbaseChoice(value: "insights", title: L10n.text("Insights"), systemImage: "sparkles")])
             .accessibilityLabel("Results")
         } else {
-            Text("Results")
-                .font(.sectionTitle)
+            // A heading over the results says nothing the panel doesn't; it stays for VoiceOver only.
+            Color.clear.frame(width: 0, height: 0)
+                .accessibilityLabel("Results")
                 .accessibilityAddTraits(.isHeader)
         }
     }
@@ -1050,7 +1048,7 @@ struct ResultsCard: View {
         ResultGridView(
             result: workspace.result,
             fillsAvailableSpace: fillsHeight,
-            primaryKeys: Set(workspace.isShowingExplorerResult ? (workspace.selectedExplorerTable?.primaryKeyColumns.map(\.name) ?? []) : []),
+            primaryKeys: workspace.resultKeyColumnNames,
             sortedColumn: workspace.isShowingExplorerResult ? workspace.explorerSortColumn : nil,
             sortDirection: workspace.explorerSortDirection,
             persistenceKey: [workspace.selectedBookmark?.id.uuidString ?? "", workspace.activeDatabaseName ?? "", workspace.result.sourceTableReference ?? "console"].joined(separator: "."),
@@ -1220,11 +1218,7 @@ struct ResultsCard: View {
                     .listStyle(.portbaseGrouped)
                     .scrollContentBackground(.hidden)
                 } else {
-                    ContentUnavailableView(
-                        "No table selected",
-                        systemImage: "tablecells",
-                        description: Text("Choose a table to inspect its schema.")
-                    )
+                    ContentUnavailableView("No table selected", systemImage: "tablecells")
                 }
             }
         } footer: {
@@ -1268,10 +1262,6 @@ private struct SchemaColumnEditorSheet: View {
                             Text(L10n.format("Editing `%@`", originalName))
                                 .font(.captionText)
                                 .foregroundStyle(.secondary)
-                        } else {
-                            Text("Add a new column to the live table schema.")
-                                .font(.captionText)
-                                .foregroundStyle(.secondary)
                         }
                     }
                     .padding(.vertical, Spacing.xxs)
@@ -1282,17 +1272,12 @@ private struct SchemaColumnEditorSheet: View {
                         .portbaseTextCapitalization(.never)
                         .autocorrectionDisabled()
 
-                    TextField("Column type", text: $draft.type)
+                    // An example type as the placeholder rather than a line of examples.
+                    TextField("Column type", text: $draft.type, prompt: Text(verbatim: "VARCHAR(255)"))
                         .portbaseTextCapitalization(.never)
                         .autocorrectionDisabled()
 
                     Toggle("Nullable", isOn: $draft.isNullable)
-                }
-
-                Section {
-                    Text("Examples: `VARCHAR(255)`, `INT`, `TIMESTAMP`, `DECIMAL(10,2)`.")
-                        .font(.captionText)
-                        .foregroundStyle(.secondary)
                 }
 
                 Section("SQL Preview") {
@@ -1300,10 +1285,6 @@ private struct SchemaColumnEditorSheet: View {
                         Text(plan.previewSQL)
                             .font(.codeCaption)
                             .textSelection(.enabled)
-                    } else {
-                        Text("Enter a supported column definition to preview the exact schema change.")
-                            .font(.captionText)
-                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -1588,8 +1569,6 @@ struct BookmarkEditorView: View {
                     EnvironmentPicker(selection: $profile.environment)
                 } header: {
                     Text("Environment")
-                } footer: {
-                    Text("A labeled environment shows a colored stripe and badge wherever this connection is open.")
                 }
 
                 Section {
@@ -1615,8 +1594,6 @@ struct BookmarkEditorView: View {
                     ConnectionColorPicker(selection: $profile.colorTag)
                 } header: {
                     Text("Appearance")
-                } footer: {
-                    Text("The color fills this connection's icon on every device signed in to the same iCloud account.")
                 }
 
                 if profile.engine.isLocal { SQLiteConnectionSection(profile: $profile) }
@@ -1683,14 +1660,6 @@ struct BookmarkEditorView: View {
                             in: 1...168,
                             step: 1
                         )
-
-                        Text("Table and column metadata is reused until this duration expires. The refresh button bypasses the cache.")
-                            .font(.captionText)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("When caching is off, Portbase always reloads table lists from the database and hides manual refresh controls.")
-                            .font(.captionText)
-                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -1740,8 +1709,6 @@ struct BookmarkEditorView: View {
                     case nil:
                         EmptyView()
                     }
-                } footer: {
-                    Text("Testing uses read-only requests and doesn’t save the connection.")
                 }
                 .onChange(of: profile) { _, _ in testResult = nil }
 
@@ -2433,7 +2400,7 @@ struct PanelCard<Content: View>: View {
 
 struct LoadingStateView: View {
     let title: String
-    let message: String
+    var message: String? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: Spacing.m) {
@@ -2447,9 +2414,11 @@ struct LoadingStateView: View {
                 Text(title)
                     .font(.rowTitle)
                     .foregroundStyle(PortSQLPalette.ink)
-                Text(message)
-                    .font(.captionText)
-                    .foregroundStyle(.secondary)
+                if let message {
+                    Text(message)
+                        .font(.captionText)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -4,11 +4,29 @@ struct QueryColumn: Identifiable, Codable, Hashable {
     let id = UUID()
     let name: String
     let type: String
+    /// The table column this result column came from, as the database reports it, or nil for a computed
+    /// value. Editing a query's results relies on this, never on reading the SQL text.
+    var origin: QueryColumnOrigin? = nil
 
     private enum CodingKeys: String, CodingKey {
         case name
         case type
+        case origin
     }
+}
+
+/// Where a result column came from, from the database's own result metadata: MySQL's original table and
+/// column, SQLite's column origin, or PostgreSQL's table OID and attribute number until they're resolved
+/// to names.
+struct QueryColumnOrigin: Codable, Hashable, Sendable {
+    var schema: String?
+    var table: String?
+    var column: String?
+    var postgresTableOID: UInt32?
+    var postgresAttributeNumber: Int?
+
+    /// Whether the table and column are known by name.
+    var isResolved: Bool { table?.isEmpty == false && column?.isEmpty == false }
 }
 
 enum QueryCell: Codable, Hashable, Sendable {
@@ -126,7 +144,7 @@ struct DataEditorField: Identifiable, Hashable {
 /// Identifies a staged cell edit: the loaded row and the column's normalized name.
 struct PendingCellKey: Hashable {
     let rowID: QueryRow.ID
-    let column: String
+    let column: Int
 }
 
 /// An action that would replace loaded rows with staged edits, waiting for Discard or Keep Editing.

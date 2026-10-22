@@ -112,6 +112,108 @@ final class ConsoleStorageAndSQLTests: XCTestCase {
         if !exercised { throw XCTSkip("Local relational fixtures are not configured") }
     }
 
+    /// Server engines report where each result column came from, and that's enough to edit a join's
+    /// tables: MySQL and MariaDB name the table directly, PostgreSQL by OID until it's looked up.
+    func testServerEnginesReportColumnOriginsForEditableJoins() async throws {
+        var exercised = false
+        for engine in [DatabaseEngine.mysql, .mariadb, .postgresql] {
+            let key = engine == .mariadb ? "PORTBASE_TEST_MARIADB_PORT" : engine == .mysql ? "PORTSQL_TEST_MYSQL_PORT" : "PORTSQL_TEST_POSTGRES_PORT"
+            guard let raw = ProcessInfo.processInfo.environment[key], let port = Int(raw) else { continue }
+            exercised = true
+            let profile = ConnectionProfile(name: "Disposable origin fixture", engine: engine, host: "127.0.0.1", port: port,
+                username: "test_username", password: "test_password", defaultDatabase: "test_database", transportSecurityMode: .plaintext)
+            let service = DatabaseService.shared
+            let suffix = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12).lowercased()
+            let customers = "origin_customers_" + suffix, orders = "origin_orders_" + suffix
+            do {
+                for sql in ["CREATE TABLE \(customers) (id INTEGER PRIMARY KEY, name VARCHAR(40))",
+                            "CREATE TABLE \(orders) (id INTEGER PRIMARY KEY, customer_id INTEGER, total INTEGER)",
+                            "INSERT INTO \(customers) (id, name) VALUES (1, 'Ada')",
+                            "INSERT INTO \(orders) (id, customer_id, total) VALUES (10, 1, 5)"] {
+                    _ = try await service.execute(query: sql, profile: profile, policy: .userQuery(confirmed: true))
+                }
+                let sql = "SELECT o.id, o.total AS amount, c.id AS cid, c.name, o.total * 2 AS doubled FROM \(orders) o JOIN \(customers) c ON c.id = o.customer_id"
+                var result = try await service.execute(query: sql, profile: profile, database: "test_database", policy: .readOnly)
+                XCTAssertNil(result.columns[4].origin, "\(engine): a computed value has no origin")
+                if engine == .postgresql {
+                    XCTAssertNotNil(result.columns[1].origin?.postgresTableOID)
+                    result.columns = try await service.resolvePostgresColumnOrigins(result.columns, profile: profile, database: "test_database")
+                }
+                XCTAssertEqual(result.columns[1].origin?.table, orders, "\(engine)")
+                XCTAssertEqual(result.columns[1].origin?.column, "total", "\(engine): an alias reads its real column")
+                XCTAssertEqual(result.columns[3].origin?.table, customers)
+                let catalog = try await service.loadSchema(profile: profile, database: "test_database")
+                let plan = ResultEditPlanner.originPlan(columns: result.columns, statement: sql, catalog: catalog, engine: engine)
+                XCTAssertEqual(plan?.targets.map(\.table.name).sorted(), [customers, orders].sorted(), "\(engine): both tables' keys are in the result")
+                XCTAssertEqual(plan?.editableColumn(at: 1)?.column.name, "total")
+                XCTAssertNil(plan?.editableColumn(at: 4))
+                let union = "SELECT id, name FROM \(customers) UNION SELECT id, name FROM \(customers)"
+                let unioned = try await service.execute(query: union, profile: profile, database: "test_database", policy: .readOnly)
+                XCTAssertNil(ResultEditPlanner.originPlan(columns: unioned.columns, statement: union, catalog: catalog, engine: engine))
+            } catch {
+                for table in [orders, customers] {
+                    _ = try? await service.execute(query: "DROP TABLE \(table)", profile: profile, policy: .userQuery(confirmed: true))
+                }
+                throw error
+            }
+            for table in [orders, customers] {
+                _ = try? await service.execute(query: "DROP TABLE \(table)", profile: profile, policy: .userQuery(confirmed: true))
+            }
+        }
+        if !exercised { throw XCTSkip("Local relational fixtures are not configured") }
+    }
+
+    /// The whole path on PostgreSQL: a console join runs, its columns' names arrive after the rows, and
+    /// edits to both tables are written as single-row updates while the console's SQL stays as typed.
+    @MainActor
+    func testConsoleJoinOnPostgresIsEditableOnceOriginsResolve() async throws {
+        guard let port = Int(ProcessInfo.processInfo.environment["PORTSQL_TEST_POSTGRES_PORT"] ?? "") else {
+            throw XCTSkip("Local PostgreSQL fixture is not configured")
+        }
+        let profile = ConnectionProfile(name: "Disposable origin fixture", engine: .postgresql, host: "127.0.0.1", port: port,
+            username: "test_username", password: "test_password", defaultDatabase: "test_database", transportSecurityMode: .plaintext)
+        let service = DatabaseService.shared
+        let suffix = UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12).lowercased()
+        let customers = "vm_customers_" + suffix, orders = "vm_orders_" + suffix
+        for sql in ["CREATE TABLE \(customers) (id INTEGER PRIMARY KEY, name TEXT)",
+                    "CREATE TABLE \(orders) (id INTEGER PRIMARY KEY, customer_id INTEGER, total INTEGER)",
+                    "INSERT INTO \(customers) VALUES (1, 'Ada')", "INSERT INTO \(orders) VALUES (10, 1, 5)"] {
+            _ = try await service.execute(query: sql, profile: profile, policy: .userQuery(confirmed: true))
+        }
+        defer {
+            Task { for table in [orders, customers] { _ = try? await service.execute(query: "DROP TABLE \(table)", profile: profile, policy: .userQuery(confirmed: true)) } }
+        }
+        let dir = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([profile]).write(to: dir.appendingPathComponent("bookmarks.json"))
+        let bookmarks = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        let library = WorkspaceLibraryStore(directory: dir, cloudSyncEnabled: false)
+        let workspace = WorkspaceViewModel()
+        workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
+        workspace.selectedBookmarkID = profile.id
+        for _ in 0..<250 where workspace.isRunning || workspace.isLoadingSchema { try await Task.sleep(nanoseconds: 20_000_000) }
+        workspace.schemaCatalog = try await service.loadSchema(profile: profile, database: "test_database")
+
+        let sql = "SELECT o.id, o.total, c.id AS cid, c.name FROM \(orders) o JOIN \(customers) c ON c.id = o.customer_id"
+        workspace.queryText = sql
+        workspace.queryCursorOffset = 0
+        workspace.runQuery()
+        for _ in 0..<250 where workspace.isRunning || !workspace.canEditCurrentRows { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertNil(workspace.errorMessage)
+        XCTAssertTrue(workspace.canEditCurrentRows, "Editable once PostgreSQL's column origins have names")
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "9"))
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 3, text: "Grace"))
+        workspace.submitPendingEdits()
+        for _ in 0..<250 where workspace.isSubmittingPendingEdits { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertNil(workspace.pendingEditError)
+        XCTAssertEqual(workspace.queryText, sql)
+        let stored = try await service.execute(query: "SELECT o.total, c.name FROM \(orders) o JOIN \(customers) c ON c.id = o.customer_id",
+                                               profile: profile, policy: .readOnly)
+        XCTAssertEqual(stored.rows.first?.cells.map(\.displayValue), ["9", "Grace"])
+        withExtendedLifetime((bookmarks, library)) {}
+    }
+
     private func temporaryDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

@@ -224,6 +224,8 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
         let workspace = WorkspaceViewModel()
         workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
         workspace.selectedBookmarkID = profile.id
+        // Selecting the bookmark starts reading the file; writing to it at the same time can find it busy.
+        for _ in 0..<250 where workspace.isRunning || workspace.isLoadingSchema { try await Task.sleep(nanoseconds: 20_000_000) }
 
         let service = DatabaseService.shared
         _ = try await service.execute(query: "CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT NOT NULL, visits INTEGER)",
@@ -261,6 +263,89 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
         let stored = try await service.execute(query: "SELECT id, name, visits FROM people ORDER BY id", profile: profile, policy: .readOnly)
         XCTAssertEqual(stored.rows.map { $0.cells.map(\.displayValue) }, [["1", "Grace", ""], ["2", "Lin", "8"], ["3", "Kay", "1"]])
         XCTAssertTrue(stored.rows[0].cells[2].isNull)
+        withExtendedLifetime((bookmarks, library)) {}
+    }
+
+    /// A console join's results are editable through the column origins SQLite reports: each table whose
+    /// key is in the result, by its real column names, with computed values left alone.
+    @MainActor
+    func testConsoleJoinResultsEditEachTableThroughColumnOrigins() async throws {
+        let file = try await SQLiteFileStore.shared.create(name: "join-edit-\(UUID().uuidString.prefix(8))")
+        defer { try? SQLiteFileStore.shared.remove(fileName: file.fileName) }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("join-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var profile = ConnectionProfile(name: "Scratch", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        profile.sqliteFileName = file.fileName
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([profile]).write(to: dir.appendingPathComponent("bookmarks.json"))
+        let bookmarks = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        let library = WorkspaceLibraryStore(directory: dir, cloudSyncEnabled: false)
+        let workspace = WorkspaceViewModel()
+        workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
+        workspace.selectedBookmarkID = profile.id
+        // Selecting the bookmark starts reading the file; writing to it at the same time can find it busy.
+        for _ in 0..<250 where workspace.isRunning || workspace.isLoadingSchema { try await Task.sleep(nanoseconds: 20_000_000) }
+        let service = DatabaseService.shared
+        for sql in ["CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+                    "CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER, total INTEGER)",
+                    "INSERT INTO customers VALUES (1, 'Ada'), (2, 'Lin')",
+                    "INSERT INTO orders VALUES (10, 1, 5), (11, 2, 7)"] {
+            _ = try await service.execute(query: sql, profile: profile, policy: .userQuery(confirmed: true))
+        }
+        // Let the load started by selecting the bookmark finish, so it can't replace what's set below.
+        for _ in 0..<250 where workspace.isRunning || workspace.isLoadingSchema { try await Task.sleep(nanoseconds: 20_000_000) }
+        workspace.schemaCatalog = try await service.loadSchema(profile: profile, database: "main")
+
+        let sql = "SELECT o.id, o.total AS amount, c.id AS cid, c.name, o.total * 2 AS doubled FROM orders o JOIN customers c ON c.id = o.customer_id ORDER BY o.id"
+        var loaded = try await service.execute(query: sql, profile: profile, policy: .readOnly)
+        XCTAssertEqual(loaded.columns[1].origin?.column, "total", "SQLite reports the column an alias reads")
+        XCTAssertNil(loaded.columns[4].origin, "and nothing for a computed value")
+        loaded.sourceQuery = sql
+        workspace.queryText = sql
+        workspace.result = loaded
+        XCTAssertTrue(workspace.canEditCurrentRows)
+        XCTAssertEqual(workspace.resultKeyColumnNames, ["id", "cid"])
+        XCTAssertNotNil(workspace.editableField(rowIndex: 0, columnIndex: 1), "orders.total, through its alias")
+        XCTAssertNotNil(workspace.editableField(rowIndex: 0, columnIndex: 3), "customers.name")
+        XCTAssertNil(workspace.editableField(rowIndex: 0, columnIndex: 4), "A computed value can't be written back")
+        XCTAssertNil(workspace.editableField(rowIndex: 0, columnIndex: 0), "Keys name the row")
+
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "9"))
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 3, text: "Grace"))
+        workspace.submitPendingEdits()
+        for _ in 0..<200 where workspace.isSubmittingPendingEdits { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertNil(workspace.pendingEditError)
+        XCTAssertTrue(workspace.pendingCellEdits.isEmpty)
+        XCTAssertEqual(workspace.result.rows[0].cells[1], .integer("9"))
+        XCTAssertEqual(workspace.queryText, sql, "The console's SQL is left as it was")
+
+        let orders = try await service.execute(query: "SELECT id, total FROM orders ORDER BY id", profile: profile, policy: .readOnly)
+        XCTAssertEqual(orders.rows.map { $0.cells.map(\.displayValue) }, [["10", "9"], ["11", "7"]])
+        let customers = try await service.execute(query: "SELECT id, name FROM customers ORDER BY id", profile: profile, policy: .readOnly)
+        XCTAssertEqual(customers.rows.map { $0.cells.map(\.displayValue) }, [["1", "Grace"], ["2", "Lin"]])
+
+        // A customer shown on two orders: writing their name updates both rows on screen.
+        _ = try await service.execute(query: "INSERT INTO orders VALUES (12, 1, 3)", profile: profile, policy: .userQuery(confirmed: true))
+        let both = "SELECT o.id, c.id AS cid, c.name FROM orders o JOIN customers c ON c.id = o.customer_id WHERE c.id = 1 ORDER BY o.id"
+        var twice = try await service.execute(query: both, profile: profile, policy: .readOnly)
+        twice.sourceQuery = both
+        workspace.result = twice
+        XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 2, text: "Ada L."))
+        workspace.submitPendingEdits()
+        for _ in 0..<200 where workspace.isSubmittingPendingEdits { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertEqual(workspace.result.rows.map { $0.cells[2] }, [.text("Ada L."), .text("Ada L.")])
+
+        // A union or a self-join can't say which row a value belongs to.
+        var union = try await service.execute(query: "SELECT id, name FROM customers UNION SELECT id, name FROM customers", profile: profile, policy: .readOnly)
+        union.sourceQuery = "SELECT id, name FROM customers UNION SELECT id, name FROM customers"
+        workspace.result = union
+        XCTAssertFalse(workspace.canEditCurrentRows)
+        let selfJoin = "SELECT a.id, a.name, b.id FROM customers a JOIN customers b ON b.id <> a.id"
+        var paired = try await service.execute(query: selfJoin, profile: profile, policy: .readOnly)
+        paired.sourceQuery = selfJoin
+        workspace.result = paired
+        XCTAssertFalse(workspace.canEditCurrentRows)
         withExtendedLifetime((bookmarks, library)) {}
     }
 #endif

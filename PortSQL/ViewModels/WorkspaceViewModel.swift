@@ -177,13 +177,46 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     var canEditCurrentRows: Bool {
-        guard let table = currentEditableTable, !result.rows.isEmpty else { return false }
-        let normalizedResultColumns = result.columns.map { normalizedIdentifier($0.name) }
-        guard Set(normalizedResultColumns).count == normalizedResultColumns.count else { return false }
-        let resultColumnNames = Set(normalizedResultColumns)
-        let identifiers = table.editingIdentifierColumns
-        return !identifiers.isEmpty
-            && identifiers.allSatisfy { resultColumnNames.contains(normalizedIdentifier($0.name)) }
+        editPlan != nil && !result.rows.isEmpty
+    }
+
+    /// Result columns shown with a key icon: the browsed table's primary key, or the columns that identify
+    /// rows in an editable query result.
+    var resultKeyColumnNames: Set<String> {
+        if isShowingExplorerResult { return Set(selectedExplorerTable?.primaryKeyColumns.map(\.name) ?? []) }
+        guard let plan = editPlan else { return [] }
+        return Set(plan.targets.flatMap(\.keyColumns).compactMap { result.columns[safe: $0.resultIndex]?.name })
+    }
+
+    private var editPlanCache: (key: Int, plan: ResultEditPlan?)?
+
+    /// What in the current result can be edited. An Explorer browse maps its columns to the table by name,
+    /// as row editing always has; a console query's results map through the column origins the database
+    /// reported, never through the SQL text. Console results aren't edited while the console holds an open
+    /// transaction, whose locks a save on another connection would wait behind.
+    var editPlan: ResultEditPlan? {
+        var hasher = Hasher()
+        hasher.combine(result.columns.map(\.id))
+        hasher.combine(result.columns.map(\.origin))
+        hasher.combine(result.isExplorerGenerated)
+        hasher.combine(result.sourceTableReference)
+        hasher.combine(result.sourceQuery)
+        hasher.combine(schemaCatalog.map(\.id))
+        hasher.combine(hasOpenTransaction)
+        hasher.combine(selectedBookmark?.engine)
+        let key = hasher.finalize()
+        if let editPlanCache, editPlanCache.key == key { return editPlanCache.plan }
+        let plan = makeEditPlan()
+        editPlanCache = (key, plan)
+        return plan
+    }
+
+    private func makeEditPlan() -> ResultEditPlan? {
+        guard let engine = selectedBookmark?.engine, engine.supportsRowEditing, result.documents == nil else { return nil }
+        if let table = currentEditableTable { return ResultEditPlanner.explorerPlan(table: table, columns: result.columns) }
+        guard result.isExplorerGenerated != true, !hasOpenTransaction, let statement = result.sourceQuery,
+              SQLSafetyService.isReadOnlySQL(statement, engine: engine) else { return nil }
+        return ResultEditPlanner.originPlan(columns: result.columns, statement: statement, catalog: schemaCatalog, engine: engine)
     }
 
     var isShowingExplorerResult: Bool {
@@ -995,6 +1028,7 @@ final class WorkspaceViewModel: ObservableObject {
                     self.hasOpenTransaction = transactionOpen
                     self.runProgress = nil
                     self.loadRelationships(for: explorerTable, profile: profile, database: database)
+                    if explorerTable == nil { self.resolveColumnOrigins(profile: profile, database: database, token: currentRunToken) }
                     self.queryTask = nil
                     self.cancellationWriteWarning = nil
                     self.isRunning = false
@@ -1049,6 +1083,27 @@ final class WorkspaceViewModel: ObservableObject {
     var hasResultsToShow: Bool {
         isRunning || errorMessage != nil || !resultSets.isEmpty || failedStatement != nil
             || !result.columns.isEmpty || result.documents != nil || result.affectedRowCount != nil || result.generatedMutation != nil
+    }
+
+    /// PostgreSQL names a result column's table only by OID, so the names come from a read-only catalog
+    /// lookup once the rows are shown; they're patched in only if no other run has replaced the results.
+    private func resolveColumnOrigins(profile: ConnectionProfile?, database: String?, token: UUID) {
+        guard let profile, profile.engine == .postgresql,
+              resultSets.contains(where: { $0.columns.contains { $0.origin?.postgresTableOID != nil && $0.origin?.isResolved != true } }) else { return }
+        let sets = resultSets
+        Task {
+            var resolved = sets
+            for index in sets.indices where sets[index].columns.contains(where: { $0.origin?.postgresTableOID != nil }) {
+                // Without names the results simply stay read-only.
+                guard let columns = try? await DatabaseService.shared.resolvePostgresColumnOrigins(sets[index].columns, profile: profile, database: database) else { return }
+                resolved[index].columns = columns
+            }
+            guard self.runToken == token, self.resultSets.map({ $0.columns.map(\.id) }) == sets.map({ $0.columns.map(\.id) }) else { return }
+            for index in resolved.indices { self.resultSets[index].columns = resolved[index].columns }
+            if resolved.indices.contains(self.selectedResultIndex), self.result.columns.map(\.id) == resolved[self.selectedResultIndex].columns.map(\.id) {
+                self.result.columns = resolved[self.selectedResultIndex].columns
+            }
+        }
     }
 
     func selectResult(_ index: Int) {
@@ -1253,71 +1308,55 @@ final class WorkspaceViewModel: ObservableObject {
         dataEditorErrorMessage = nil
     }
 
+    /// The row editor's draft: an update of the result's one editable table, or a read-only view of
+    /// every column when the result spans several tables or none can be updated.
     private func editDraft(for row: QueryRow) -> DataEditorDraft {
-        let resultColumnNames = result.columns.map(\.name)
-        let table = currentEditableTable ?? SchemaTableDescriptor(
+        if let plan = editPlan, plan.targets.count == 1 { return editDraft(for: row, target: 0, plan: plan) }
+        let table = SchemaTableDescriptor(
             schemaName: "",
-            name: inferredTableReference(in: queryText) ?? L10n.text("Result Row"),
+            name: inferredTableReference(in: result.sourceQuery ?? queryText) ?? L10n.text("Result Row"),
             columns: result.columns.map {
                 SchemaColumnDescriptor(name: $0.name, type: $0.type, isNullable: true, isPrimaryKey: false, isUnique: false)
             },
             rowCountEstimate: nil
         )
-
-        let normalizedNames = resultColumnNames.map(normalizedIdentifier)
-        let hasDuplicateColumns = Set(normalizedNames).count != normalizedNames.count
-        var resultNormalized: [String: QueryCell] = [:]
-        if !hasDuplicateColumns {
-            for (index, name) in normalizedNames.enumerated() {
-                resultNormalized[name] = row.cells[safe: index] ?? .null
-            }
+        let fields = result.columns.enumerated().map { index, column -> DataEditorField in
+            let cell = row.cells[safe: index] ?? .null
+            return DataEditorField(column: table.columns[index], value: cell.displayValue, originalValue: cell.displayValue,
+                                   isNull: cell.isNull, originalIsNull: cell.isNull, isEditable: false)
         }
-        let editableIdentifierColumnNames = Set(
-            (currentEditableTable?.editingIdentifierColumns ?? [])
-                .map(\.name)
-                .map(normalizedIdentifier)
-        )
-        let canUpdateRow = currentEditableTable.map { editableTable in
-            let identifiers = editableTable.editingIdentifierColumns
-            return !hasDuplicateColumns && !identifiers.isEmpty
-                && identifiers.allSatisfy { resultNormalized[normalizedIdentifier($0.name)] != nil }
-        } ?? false
+        return DataEditorDraft(mode: .view, table: table, fields: fields, rowID: row.id)
+    }
 
-        let fields = result.columns.enumerated().map { index, resultColumn -> DataEditorField in
-            let schemaColumn = currentEditableTable?.column(named: resultColumn.name)
-                ?? SchemaColumnDescriptor(name: resultColumn.name, type: resultColumn.type, isNullable: true, isPrimaryKey: false, isUnique: false)
-            let currentCell = row.cells[safe: index] ?? .null
-            let currentValue = currentCell.displayValue
+    /// An update of one table's part of a row: its key, which names the row, and its other columns.
+    private func editDraft(for row: QueryRow, target: Int, plan: ResultEditPlan) -> DataEditorDraft {
+        let table = plan.targets[target].table
+        let readOnly = selectedBookmark?.isReadOnly == true
+        let fields = plan.columns(of: target).map { index, mapped -> DataEditorField in
+            let cell = row.cells[safe: index] ?? .null
             return DataEditorField(
-                column: schemaColumn,
-                value: currentValue,
-                originalValue: currentValue,
-                isNull: currentCell.isNull,
-                originalIsNull: currentCell.isNull,
-                isEditable: selectedBookmark?.isReadOnly != true
-                    && canUpdateRow
-                    && schemaColumn.isGenerated != true
-                    && !currentCell.isBinary
-                    && !Self.isUnsupportedBinaryColumn(schemaColumn)
-                    && !editableIdentifierColumnNames.contains(normalizedIdentifier(schemaColumn.name))
+                column: mapped.column,
+                value: cell.displayValue,
+                originalValue: cell.displayValue,
+                isNull: cell.isNull,
+                originalIsNull: cell.isNull,
+                isEditable: !readOnly && mapped.isEditable && !cell.isBinary && !Self.isUnsupportedBinaryColumn(mapped.column)
             )
         }
-
-        return DataEditorDraft(mode: selectedBookmark?.isReadOnly == true ? .view : (canUpdateRow ? .update : .view), table: table, fields: fields, rowID: row.id)
+        return DataEditorDraft(mode: readOnly ? .view : .update, table: table, fields: fields, rowID: row.id)
     }
 
     /// The value editor's field for one loaded cell, or nil when that row can't be updated safely.
     /// A staged edit for the cell is carried over, with the loaded value kept as the original.
     func editableField(rowIndex: Int, columnIndex: Int) -> DataEditorField? {
         // While a query runs its rows are about to be replaced, which would drop anything staged now.
-        guard canEditCurrentRows, !isRunning, result.documents == nil,
+        guard !isRunning, let plan = editPlan, let mapped = plan.editableColumn(at: columnIndex),
               result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return nil }
         let row = result.rows[rowIndex]
-        let draft = editDraft(for: row)
-        guard draft.mode == .update else { return nil }
-        let name = normalizedIdentifier(result.columns[columnIndex].name)
-        guard var field = draft.fields.first(where: { $0.isEditable && normalizedIdentifier($0.column.name) == name }) else { return nil }
-        if let staged = pendingCellEdits[PendingCellKey(rowID: row.id, column: name)] {
+        let draft = editDraft(for: row, target: mapped.target, plan: plan)
+        guard draft.mode == .update,
+              var field = draft.fields.first(where: { $0.isEditable && $0.column.name == mapped.column.name }) else { return nil }
+        if let staged = pendingCellEdits[PendingCellKey(rowID: row.id, column: columnIndex)] {
             field.value = staged.value
             field.isNull = staged.isNull
         }
@@ -1330,20 +1369,20 @@ final class WorkspaceViewModel: ObservableObject {
               let engine = selectedBookmark?.engine else { return nil }
         let rowID = result.rows[rowIndex].id
         return ResultCellEdit(field: field, engine: engine) { [weak self] field in
-            try self?.stageCell(rowID: rowID, field: field)
+            try self?.stageCell(rowID: rowID, columnIndex: columnIndex, field: field)
         }
     }
 
     /// The staged value for a loaded cell, typed like the column, or nil when the cell has no pending edit.
     func pendingCell(rowIndex: Int, columnIndex: Int) -> QueryCell? {
         guard !pendingCellEdits.isEmpty, result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex),
-              let field = pendingCellEdits[PendingCellKey(rowID: result.rows[rowIndex].id, column: normalizedIdentifier(result.columns[columnIndex].name))]
+              let field = pendingCellEdits[PendingCellKey(rowID: result.rows[rowIndex].id, column: columnIndex)]
         else { return nil }
         return Self.stagedCell(for: field)
     }
 
     /// Stages a value for one cell after validating it. Setting a cell back to its loaded value drops the edit.
-    func stageCell(rowID: QueryRow.ID, field: DataEditorField) throws {
+    func stageCell(rowID: QueryRow.ID, columnIndex: Int, field: DataEditorField) throws {
         guard let bookmark = selectedBookmark else {
             throw NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.text("Choose a server first.")])
         }
@@ -1351,7 +1390,7 @@ final class WorkspaceViewModel: ObservableObject {
         if let message = DataEditorValidationService.validate(fields: [field], mode: .update, engine: bookmark.engine).values.first {
             throw NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
         }
-        let key = PendingCellKey(rowID: rowID, column: normalizedIdentifier(field.column.name))
+        let key = PendingCellKey(rowID: rowID, column: columnIndex)
         let originalIsNull = field.originalIsNull ?? false
         if field.isNull == originalIsNull && (field.isNull || field.value == (field.originalValue ?? "")) {
             pendingCellEdits[key] = nil
@@ -1368,7 +1407,7 @@ final class WorkspaceViewModel: ObservableObject {
         }
         field.value = text
         field.isNull = false
-        do { try stageCell(rowID: result.rows[rowIndex].id, field: field); return nil }
+        do { try stageCell(rowID: result.rows[rowIndex].id, columnIndex: columnIndex, field: field); return nil }
         catch {
             pendingEditError = error.localizedDescription
             return error.localizedDescription
@@ -1378,13 +1417,13 @@ final class WorkspaceViewModel: ObservableObject {
     func stageCellNull(rowIndex: Int, columnIndex: Int) {
         guard var field = editableField(rowIndex: rowIndex, columnIndex: columnIndex), field.column.isNullable else { return }
         field.isNull = true
-        do { try stageCell(rowID: result.rows[rowIndex].id, field: field) }
+        do { try stageCell(rowID: result.rows[rowIndex].id, columnIndex: columnIndex, field: field) }
         catch { pendingEditError = error.localizedDescription }
     }
 
     func revertPendingCell(rowIndex: Int, columnIndex: Int) {
         guard result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return }
-        pendingCellEdits[PendingCellKey(rowID: result.rows[rowIndex].id, column: normalizedIdentifier(result.columns[columnIndex].name))] = nil
+        pendingCellEdits[PendingCellKey(rowID: result.rows[rowIndex].id, column: columnIndex)] = nil
     }
 
     /// Returns true when an action that replaces the loaded rows can go ahead now. With staged edits it
@@ -1414,12 +1453,11 @@ final class WorkspaceViewModel: ObservableObject {
     /// Staged values typed like their columns, keyed by loaded row and column index for the grid.
     var pendingGridCells: [ResultGridCellKey: QueryCell] {
         guard !pendingCellEdits.isEmpty else { return [:] }
-        let columns = Dictionary(result.columns.enumerated().map { (normalizedIdentifier($0.element.name), $0.offset) }, uniquingKeysWith: { first, _ in first })
         let rows = Set(pendingCellEdits.keys.map(\.rowID))
         var cells: [ResultGridCellKey: QueryCell] = [:]
         for (rowIndex, row) in result.rows.enumerated() where rows.contains(row.id) {
-            for (key, field) in pendingCellEdits where key.rowID == row.id {
-                if let column = columns[key.column] { cells[ResultGridCellKey(row: rowIndex, column: column)] = Self.stagedCell(for: field) }
+            for (key, field) in pendingCellEdits where key.rowID == row.id && result.columns.indices.contains(key.column) {
+                cells[ResultGridCellKey(row: rowIndex, column: key.column)] = Self.stagedCell(for: field)
             }
         }
         return cells
@@ -1433,30 +1471,44 @@ final class WorkspaceViewModel: ObservableObject {
         guard !pendingCellEdits.isEmpty, !isSubmittingPendingEdits, !isRunning else { return }
         guard let bookmark = selectedBookmark else { return }
         do { try enforceWritableConnection(bookmark) } catch { pendingEditError = error.localizedDescription; return }
-        var plans: [(rowID: QueryRow.ID, keys: [PendingCellKey], fields: [DataEditorField], mutation: BoundQuery)] = []
+        guard let editPlan else {
+            pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
+            return
+        }
+        // One update per row and table: a joined row's edits to two tables are two single-row updates.
+        var plans: [(rowID: QueryRow.ID, keys: [PendingCellKey], fields: [(index: Int, field: DataEditorField)], mutation: BoundQuery)] = []
         for row in result.rows {
             let entries = pendingCellEdits.filter { $0.key.rowID == row.id }
             guard !entries.isEmpty else { continue }
-            var draft = editDraft(for: row)
-            guard draft.mode == .update else {
-                pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
-                return
+            let byTarget = Dictionary(grouping: entries) { editPlan.columns[$0.key.column]?.target ?? -1 }
+            for target in byTarget.keys.sorted() {
+                guard target >= 0, let staged = byTarget[target] else {
+                    pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
+                    return
+                }
+                var draft = editDraft(for: row, target: target, plan: editPlan)
+                guard draft.mode == .update else {
+                    pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
+                    return
+                }
+                var changed: [(index: Int, field: DataEditorField)] = []
+                for (key, value) in staged {
+                    guard let name = editPlan.editableColumn(at: key.column)?.column.name,
+                          let fieldIndex = draft.fields.firstIndex(where: { $0.isEditable && $0.column.name == name }) else { continue }
+                    draft.fields[fieldIndex].value = value.value
+                    draft.fields[fieldIndex].isNull = value.isNull
+                    changed.append((key.column, draft.fields[fieldIndex]))
+                }
+                if let message = DataEditorValidationService.validate(fields: changed.map(\.field), mode: .update, engine: bookmark.engine).values.first {
+                    pendingEditError = message
+                    return
+                }
+                guard let mutation = mutationSQL(for: draft, engine: bookmark.engine) else {
+                    pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
+                    return
+                }
+                plans.append((row.id, staged.map(\.key), changed, mutation))
             }
-            for (key, staged) in entries {
-                guard let index = draft.fields.firstIndex(where: { $0.isEditable && normalizedIdentifier($0.column.name) == key.column }) else { continue }
-                draft.fields[index].value = staged.value
-                draft.fields[index].isNull = staged.isNull
-            }
-            let changed = draft.fields.filter { field in entries.keys.contains { $0.column == normalizedIdentifier(field.column.name) } }
-            if let message = DataEditorValidationService.validate(fields: changed, mode: .update, engine: bookmark.engine).values.first {
-                pendingEditError = message
-                return
-            }
-            guard let mutation = mutationSQL(for: draft, engine: bookmark.engine) else {
-                pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
-                return
-            }
-            plans.append((row.id, Array(entries.keys), Array(entries.values), mutation))
         }
         guard !plans.isEmpty else { return }
         isSubmittingPendingEdits = true
@@ -1489,18 +1541,29 @@ final class WorkspaceViewModel: ObservableObject {
     }
 
     /// Shows written values in place, so rows saved before a failure don't look unsaved while others stay pending.
-    private func applyWrittenEdits(rowID: QueryRow.ID, fields: [DataEditorField]) {
+    private func applyWrittenEdits(rowID: QueryRow.ID, fields: [(index: Int, field: DataEditorField)]) {
         guard let rowIndex = result.rows.firstIndex(where: { $0.id == rowID }) else { return }
-        let names = result.columns.map { normalizedIdentifier($0.name) }
-        for field in fields {
-            guard let column = names.firstIndex(of: normalizedIdentifier(field.column.name)),
-                  result.rows[rowIndex].cells.indices.contains(column) else { continue }
-            result.rows[rowIndex].cells[column] = Self.stagedCell(for: field)
+        // In a join, one table row can appear on several result rows (a customer on each of their
+        // orders); every row showing the same key gets the written value, not just the one edited.
+        var rows = [rowIndex]
+        if let plan = editPlan, let target = fields.first.flatMap({ plan.columns[$0.index]?.target }) {
+            let keys = plan.targets[target].keyColumns.map(\.resultIndex)
+            let key = keys.map { result.rows[rowIndex].cells[safe: $0] }
+            rows = result.rows.indices.filter { index in keys.map { result.rows[index].cells[safe: $0] } == key }
         }
+        for row in rows {
+            for (column, field) in fields where result.rows[row].cells.indices.contains(column) {
+                result.rows[row].cells[column] = Self.stagedCell(for: field)
+            }
+        }
+        // The tab's copy of the result keeps the written values too.
+        if resultSets.indices.contains(selectedResultIndex) { resultSets[selectedResultIndex] = result }
     }
 
+    /// An Explorer page is browsed again; a console query isn't re-run on the user's behalf, since its
+    /// written values are already shown in place.
     private func reloadAfterEdit() {
-        if isShowingExplorerResult { browse() } else { runQuery() }
+        if isShowingExplorerResult { browse() }
     }
 
     /// Drops staged edits for rows that are no longer loaded, such as after a reload or page change.
@@ -1603,6 +1666,10 @@ final class WorkspaceViewModel: ObservableObject {
         mutationToken = token
         let databaseName = activeDatabaseName
         let table = draft.table
+        // A console query's row is updated where it is shown; its SQL is never replaced or re-run.
+        let consoleRow: (rowID: QueryRow.ID, columns: [(index: Int, column: ResultEditPlan.MappedColumn)])? =
+            draft.mode == .update && result.isExplorerGenerated != true
+                ? draft.rowID.flatMap { id in editPlan.map { (id, $0.columns(of: 0)) } } : nil
         mutationTask = Task {
             do {
                 _ = try await DatabaseService.shared.execute(
@@ -1620,6 +1687,13 @@ final class WorkspaceViewModel: ObservableObject {
                     self.isSavingMutation = false
                     self.dataEditorDraft = nil
                     self.dataEditorValidation = [:]
+                    if let consoleRow {
+                        let written = consoleRow.columns.compactMap { index, mapped in
+                            draft.fields.first { $0.column.name == mapped.column.name }.map { (index, $0) }
+                        }
+                        self.applyWrittenEdits(rowID: consoleRow.rowID, fields: written)
+                        return
+                    }
                     if self.result.sourceTableReference == nil || self.currentEditableTable?.id != table.id {
                         self.queryText = self.defaultQuery(for: table)
                     }
