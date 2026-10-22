@@ -1703,3 +1703,8 @@
 "The query moves into the new folder." = "쿼리가 새 폴더로 이동합니다.";
 "Primary key: %@" = "기본 키: %@";
 "Requests go straight from this device to the provider." = "요청은 이 기기에서 제공자에게 직접 전송됩니다.";
+"Delete Row" = "행 삭제";
+"Marked for deletion" = "삭제 표시됨";
+"Pending Changes" = "대기 중인 변경";
+"Restore Row" = "행 복원";
+"Submit and Delete %d" = "제출하고 %d개 삭제";

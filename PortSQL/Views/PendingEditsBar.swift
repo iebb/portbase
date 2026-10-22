@@ -5,14 +5,14 @@ struct PendingEditsBar: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
 
     var body: some View {
-        if !workspace.pendingCellEdits.isEmpty || workspace.pendingEditError != nil {
+        if workspace.hasPendingChanges || workspace.pendingEditError != nil {
             HStack(spacing: Spacing.s) {
                 Image(systemName: workspace.pendingEditError == nil ? "pencil.circle.fill" : "exclamationmark.triangle.fill")
                     .foregroundStyle(workspace.pendingEditError == nil ? Color.orange : Color.red)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    if !workspace.pendingCellEdits.isEmpty {
-                        Text(L10n.format("Pending changes: %d", workspace.pendingCellEdits.count))
+                    if workspace.hasPendingChanges {
+                        Text(L10n.format("Pending changes: %d", workspace.pendingChangeCount))
                             .font(.captionStrong)
                     }
                     if let error = workspace.pendingEditError {
@@ -20,7 +20,7 @@ struct PendingEditsBar: View {
                     }
                 }
                 Spacer(minLength: Spacing.s)
-                if workspace.pendingCellEdits.isEmpty {
+                if !workspace.hasPendingChanges {
                     Button { workspace.pendingEditError = nil } label: {
                         Image(systemName: "xmark").frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
                     }
@@ -28,6 +28,9 @@ struct PendingEditsBar: View {
                     .accessibilityLabel("Dismiss")
                 } else {
                     Button("Revert", systemImage: "arrow.uturn.backward") { workspace.discardPendingEdits() }
+                        .buttonStyle(.portbaseSecondary)
+                        .disabled(workspace.isSubmittingPendingEdits)
+                    Button("Preview", systemImage: "eye") { workspace.isShowingChangePreview = true }
                         .buttonStyle(.portbaseSecondary)
                         .disabled(workspace.isSubmittingPendingEdits)
                     Button {
@@ -47,7 +50,77 @@ struct PendingEditsBar: View {
             .background(Color.orange.opacity(0.1))
             .overlay(alignment: .bottom) { Divider() }
             .accessibilityElement(children: .contain)
+            .sheet(isPresented: $workspace.isShowingChangePreview) {
+                PendingChangesPreview().portbaseDesktopSheetSize(width: 640, height: 480)
+            }
         }
+    }
+}
+
+/// The statements Submit will run, with their values written in for reading. What runs is the bound
+/// statement; the literals here are only for the eye.
+struct PendingChangesPreview: View {
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        let planned = workspace.plannedPendingWrites()
+        let writes = (try? planned.get()) ?? []
+        let deletions = writes.filter { $0.kind == .delete }.count
+        PortbaseSheet(L10n.text("Pending Changes")) {
+            List {
+                if case .failure(let error) = planned {
+                    ExecutionErrorLine(message: error.message)
+                }
+                ForEach(writes) { write in
+                    Text(verbatim: Self.readable(write.mutation, engine: workspace.selectedBookmark?.engine ?? .postgresql))
+                        .font(.codeCaption)
+                        .foregroundStyle(write.kind == .delete ? Color.red : PortSQLPalette.ink)
+                        .textSelection(.enabled)
+                        .padding(.vertical, Spacing.xxs)
+                }
+            }
+            .listStyle(.plain)
+        } footer: {
+            Button("Cancel", role: .cancel) { dismiss() }
+                .buttonStyle(.portbaseSecondary)
+            Button {
+                workspace.submitPendingEdits(confirmed: true)
+            } label: {
+                Text(deletions > 0 ? L10n.format("Submit and Delete %d", deletions) : L10n.text("Submit"))
+            }
+            .buttonStyle(PortbasePrimaryButtonStyle(tint: deletions > 0 ? PortbasePrimaryButtonStyle.portbaseDestructive.tint : nil))
+            .disabled(writes.isEmpty || workspace.isSubmittingPendingEdits)
+            .keyboardShortcut(.defaultAction)
+        }
+    }
+
+    /// The statement with each placeholder replaced by its value as a SQL literal, for display only.
+    static func readable(_ query: BoundQuery, engine: DatabaseEngine) -> String {
+        var text = query.sql
+        if engine == .postgresql {
+            for index in query.values.indices.reversed() {
+                text = text.replacingOccurrences(of: "$\(index + 1)", with: query.values[index].previewLiteral)
+            }
+            return text
+        }
+        var output = ""
+        var values = query.values.makeIterator()
+        var quote: Character?
+        for character in text {
+            if let open = quote {
+                output.append(character)
+                if character == open { quote = nil }
+            } else if character == "\"" || character == "`" || character == "'" {
+                quote = character
+                output.append(character)
+            } else if character == "?", let value = values.next() {
+                output += value.previewLiteral
+            } else {
+                output.append(character)
+            }
+        }
+        return output
     }
 }
 

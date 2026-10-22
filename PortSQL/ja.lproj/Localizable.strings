@@ -1703,3 +1703,8 @@
 "The query moves into the new folder." = "クエリは新しいフォルダに移動します。";
 "Primary key: %@" = "主キー：%@";
 "Requests go straight from this device to the provider." = "リクエストはこのデバイスからプロバイダへ直接送られます。";
+"Delete Row" = "行を削除";
+"Marked for deletion" = "削除予定";
+"Pending Changes" = "保留中の変更";
+"Restore Row" = "行を元に戻す";
+"Submit and Delete %d" = "送信して%d件削除";

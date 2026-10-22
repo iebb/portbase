@@ -123,7 +123,7 @@ struct ConsoleTabBar: View {
     /// Asks before closing a console with unsubmitted cell edits, then before rolling back an open transaction.
     private func close(_ id: UUID, discardingEdits: Bool = false) {
         let workspace = consoles.consoles.first(where: { $0.id == id })?.workspace
-        if !discardingEdits, workspace?.pendingCellEdits.isEmpty == false { discardingID = id }
+        if !discardingEdits, workspace?.hasPendingChanges == true { discardingID = id }
         else if workspace?.hasOpenTransaction == true { closingID = id }
         else { consoles.close(id) }
     }

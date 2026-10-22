@@ -1703,3 +1703,8 @@
 "The query moves into the new folder." = "La requête est déplacée dans le nouveau dossier.";
 "Primary key: %@" = "Clé primaire : %@";
 "Requests go straight from this device to the provider." = "Les requêtes vont directement de cet appareil au fournisseur.";
+"Delete Row" = "Supprimer la ligne";
+"Marked for deletion" = "Marquée pour suppression";
+"Pending Changes" = "Modifications en attente";
+"Restore Row" = "Restaurer la ligne";
+"Submit and Delete %d" = "Envoyer et supprimer %d";

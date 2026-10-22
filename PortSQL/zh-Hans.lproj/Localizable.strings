@@ -1703,3 +1703,8 @@
 "The query moves into the new folder." = "查询将移到新文件夹中。";
 "Primary key: %@" = "主键：%@";
 "Requests go straight from this device to the provider." = "请求直接从此设备发送到提供方。";
+"Delete Row" = "删除行";
+"Marked for deletion" = "已标记为删除";
+"Pending Changes" = "待处理的更改";
+"Restore Row" = "恢复行";
+"Submit and Delete %d" = "提交并删除 %d 行";

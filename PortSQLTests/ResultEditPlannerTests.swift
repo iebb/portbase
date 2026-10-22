@@ -77,4 +77,11 @@ final class ResultEditPlannerTests: XCTestCase {
         XCTAssertEqual(Set((0..<3).filter { plan?.editableColumn(at: $0) != nil }), [1, 2])
         XCTAssertNil(ResultEditPlanner.explorerPlan(table: table, columns: ["total"].map { QueryColumn(name: $0, type: "text") }))
     }
+
+    func testThePreviewWritesValuesInWithoutTouchingQuotedText() {
+        let mysql = BoundQuery(sql: "UPDATE `t` SET `note` = ? WHERE `id` = ? AND `label` = '?';", values: [.string("it's"), .integer(7)])
+        XCTAssertEqual(PendingChangesPreview.readable(mysql, engine: .mysql), "UPDATE `t` SET `note` = 'it''s' WHERE `id` = 7 AND `label` = '?';")
+        let postgres = BoundQuery(sql: "UPDATE t SET a = $1, b = $10 WHERE id = $2", values: (1...10).map { .integer(Int64($0)) })
+        XCTAssertEqual(PendingChangesPreview.readable(postgres, engine: .postgresql), "UPDATE t SET a = 1, b = 10 WHERE id = 2")
+    }
 }

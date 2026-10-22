@@ -171,6 +171,8 @@ struct ResultGridView: View {
     var editCell: ((Int, Int) -> ResultCellEdit?)?
     /// Staged values shown in place of loaded ones until they're submitted, keyed by loaded row and column.
     var pendingCells: [ResultGridCellKey: QueryCell] = [:]
+    /// Loaded rows marked for deletion, drawn struck through until they're written or restored.
+    var deletedRows: Set<Int> = []
     /// Stages text typed into a cell in place; returns a message when the text isn't valid for the column.
     var onEditCellText: ((Int, Int, String) -> String?)?
     var onSetCellNull: ((Int, Int) -> Void)?
@@ -230,6 +232,13 @@ struct ResultGridView: View {
         }
         return table
     }
+    /// Rows marked for deletion, by displayed row.
+    private var displayedDeletedRows: Set<Int> {
+        guard !deletedRows.isEmpty else { return [] }
+        guard let filteredRows else { return deletedRows }
+        return Set(filteredRows.enumerated().compactMap { deletedRows.contains($0.element) ? $0.offset : nil })
+    }
+
     /// Staged cells keyed by displayed row, which differs from the loaded row while rows are filtered.
     private var displayedPendingCells: [ResultGridCellKey: QueryCell] {
         guard !pendingCells.isEmpty else { return [:] }
@@ -369,6 +378,7 @@ struct ResultGridView: View {
                 headerMenu: { headerMenu(for: $0) },
                 cellMenu: { cellMenu(row: $0, column: $1) },
                 pendingKeys: Set(displayedPendingCells.keys),
+                deletedRows: displayedDeletedRows,
                 canEditCell: { row, column in
                     onEditCellText != nil && rowIndices.indices.contains(row) && editCell?(rowIndices[row], column) != nil
                 },
@@ -814,6 +824,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
     var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
     var cellMenu: (Int, Int) -> [ResultGridMenuItem] = { _, _ in [] }
     var pendingKeys: Set<ResultGridCellKey> = []
+    var deletedRows: Set<Int> = []
     var canEditCell: (Int, Int) -> Bool = { _, _ in false }
     var onCommitEdit: (Int, Int, String) -> String? = { _, _, _ in nil }
 
@@ -901,6 +912,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
     @MainActor final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegate, UITextFieldDelegate {
         static let headerColor = UIColor(PortSQLPalette.sunken)
         static let pendingColor = UIColor.systemOrange.withAlphaComponent(0.2)
+        static let deletedColor = UIColor.systemRed.withAlphaComponent(0.12)
         static let rowColor = UIColor(PortSQLPalette.surface)
         static let stripeColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(rgb: 0x161A23) : UIColor(rgb: 0xFAFBFC) }
         var parent: GridCollectionBridge
@@ -928,6 +940,8 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let pending = !header && !rowNumber && parent.visibleColumns.indices.contains(path.item - 1)
                 && parent.pendingKeys.contains(ResultGridCellKey(row: path.section - 1, column: parent.visibleColumns[path.item - 1]))
             if pending && !selected { cell.backgroundColor = Self.pendingColor }
+            let deleted = !header && parent.deletedRows.contains(path.section - 1)
+            if deleted && !selected { cell.backgroundColor = Self.deletedColor }
             cell.label.font = header ? PortbaseFonts.codeFont(TypeSize.caption, textStyle: .caption1)
                 : PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
             cell.label.textColor = header || rowNumber ? .secondaryLabel : .label
@@ -972,11 +986,15 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let value = row.cells.indices.contains(index) ? row.cells[index] : .null
             cell.label.text = value.isNull ? "NULL" : (value.displayValue.isEmpty ? "\"\"" : value.displayValue)
             if value.isNull { cell.label.textColor = .tertiaryLabel }
+            if deleted {
+                cell.label.attributedText = NSAttributedString(string: cell.label.text ?? "", attributes: [
+                    .strikethroughStyle: NSUnderlineStyle.single.rawValue, .foregroundColor: UIColor.secondaryLabel, .font: cell.label.font as Any])
+            }
             if case .integer = value { cell.label.textAlignment = .right }
             if case .decimal = value { cell.label.textAlignment = .right }
             cell.accessibilityLabel = L10n.format("Row %d, %@", path.section, column.name)
             cell.accessibilityValue = ResultGridAccessibility.rowLabel(columns: [column], cells: [value])
-                + (pending ? ", " + L10n.text("Pending change") : "")
+                + (pending ? ", " + L10n.text("Pending change") : "") + (deleted ? ", " + L10n.text("Marked for deletion") : "")
             cell.accessibilityCustomActions = [
                 UIAccessibilityCustomAction(name: L10n.text("Inspect Cell")) { [weak self] _ in
                     self?.parent.onInspectCell(path.section - 1, index); return true

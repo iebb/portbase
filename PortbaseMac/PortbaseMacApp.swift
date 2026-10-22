@@ -46,7 +46,7 @@ final class PortbaseAppDelegate: NSObject, NSApplicationDelegate {
     weak var consoles: ConsoleStore?
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         // Unsubmitted cell edits live only in memory, so quitting would lose them.
-        let edited = consoles?.consoles.filter { !$0.workspace.pendingCellEdits.isEmpty } ?? []
+        let edited = consoles?.consoles.filter { $0.workspace.hasPendingChanges } ?? []
         if let first = edited.first {
             let count = edited.reduce(0) { $0 + $1.workspace.pendingCellEdits.count }
             let alert = NSAlert()

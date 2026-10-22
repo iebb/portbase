@@ -1703,3 +1703,8 @@
 "The query moves into the new folder." = "Запрос будет перемещён в новую папку.";
 "Primary key: %@" = "Первичный ключ: %@";
 "Requests go straight from this device to the provider." = "Запросы отправляются напрямую с этого устройства провайдеру.";
+"Delete Row" = "Удалить строку";
+"Marked for deletion" = "Помечена для удаления";
+"Pending Changes" = "Ожидающие изменения";
+"Restore Row" = "Восстановить строку";
+"Submit and Delete %d" = "Отправить и удалить %d";

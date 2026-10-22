@@ -1703,3 +1703,8 @@
 "The query moves into the new folder." = "查詢將移到新的檔案夾中。";
 "Primary key: %@" = "主鍵：%@";
 "Requests go straight from this device to the provider." = "要求直接從此裝置傳送到供應商。";
+"Delete Row" = "刪除列";
+"Marked for deletion" = "已標記為刪除";
+"Pending Changes" = "待處理的變更";
+"Restore Row" = "復原列";
+"Submit and Delete %d" = "提交並刪除 %d 列";

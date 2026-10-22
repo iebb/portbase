@@ -831,7 +831,7 @@ struct DesktopTabStrip: View {
     /// Asks before closing a console with unsubmitted cell edits, then before rolling back an open transaction.
     private func close(_ id: UUID, discardingEdits: Bool = false) {
         let workspace = consoles.consoles.first(where: { $0.id == id })?.workspace
-        if !discardingEdits, workspace?.pendingCellEdits.isEmpty == false { discardingID = id }
+        if !discardingEdits, workspace?.hasPendingChanges == true { discardingID = id }
         else if workspace?.hasOpenTransaction == true { closingID = id }
         else {
             consoles.close(id)
@@ -1489,6 +1489,11 @@ private struct DesktopResultsView: View {
                         workspace.prepareDuplicate(row: value)
                     }, at: 0)
                 }
+                if workspace.isRowMarkedForDeletion(rowIndex: row) {
+                    actions.append(ResultGridRowAction(title: L10n.text("Restore Row"), symbolName: "arrow.uturn.backward") { workspace.toggleRowDeletion(rowIndex: row) })
+                } else if workspace.canDeleteRow(rowIndex: row) {
+                    actions.append(ResultGridRowAction(title: L10n.text("Delete Row"), symbolName: "trash") { workspace.toggleRowDeletion(rowIndex: row) })
+                }
                 return actions
             },
             copyEngine: workspace.selectedBookmark?.engine,
@@ -1499,6 +1504,7 @@ private struct DesktopResultsView: View {
             onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil,
             editCell: { workspace.cellEdit(rowIndex: $0, columnIndex: $1) },
             pendingCells: workspace.pendingGridCells,
+            deletedRows: workspace.pendingDeletedGridRows,
             onEditCellText: { workspace.stageCellText(rowIndex: $0, columnIndex: $1, text: $2) },
             onSetCellNull: { workspace.stageCellNull(rowIndex: $0, columnIndex: $1) },
             onRevertCell: { workspace.revertPendingCell(rowIndex: $0, columnIndex: $1) },

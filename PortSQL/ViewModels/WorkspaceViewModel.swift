@@ -42,6 +42,13 @@ final class WorkspaceViewModel: ObservableObject {
     }
     /// Cell values edited in the grid but not yet written, keyed by loaded row and column.
     @Published private(set) var pendingCellEdits: [PendingCellKey: DataEditorField] = [:]
+    /// Rows marked for deletion, written with the cell edits on Submit.
+    @Published private(set) var pendingRowDeletions: Set<QueryRow.ID> = []
+    /// Shows the statements Submit will run; pending deletions always pass through it first.
+    @Published var isShowingChangePreview = false
+
+    var hasPendingChanges: Bool { !pendingCellEdits.isEmpty || !pendingRowDeletions.isEmpty }
+    var pendingChangeCount: Int { pendingCellEdits.count + pendingRowDeletions.count }
     @Published private(set) var isSubmittingPendingEdits = false
     @Published var pendingEditError: String?
     /// An action that would replace the loaded rows, held until staged edits are discarded or kept.
@@ -1429,7 +1436,7 @@ final class WorkspaceViewModel: ObservableObject {
     /// Returns true when an action that replaces the loaded rows can go ahead now. With staged edits it
     /// asks first, and runs the action only after the edits are discarded.
     private func proceedDiscardingPendingEdits(_ action: @escaping () -> Void, onCancel: (() -> Void)? = nil) -> Bool {
-        guard !pendingCellEdits.isEmpty else { return true }
+        guard hasPendingChanges else { return true }
         if pendingDiscardRequest == nil { pendingDiscardRequest = PendingDiscardRequest(proceed: action, cancel: onCancel) }
         return false
     }
@@ -1447,7 +1454,42 @@ final class WorkspaceViewModel: ObservableObject {
 
     func discardPendingEdits() {
         pendingCellEdits = [:]
+        pendingRowDeletions = []
         pendingEditError = nil
+        isShowingChangePreview = false
+    }
+
+    // MARK: Row deletion
+
+    /// Whether a loaded row can be marked for deletion: a result of one editable table whose key
+    /// values are all present. In a join, which table "this row" means is ambiguous, so it can't.
+    func canDeleteRow(rowIndex: Int) -> Bool {
+        guard !isRunning, selectedBookmark?.isReadOnly != true, result.documents == nil,
+              let plan = editPlan, plan.targets.count == 1, result.rows.indices.contains(rowIndex) else { return false }
+        let row = result.rows[rowIndex]
+        return plan.targets[0].keyColumns.allSatisfy { key in row.cells[safe: key.resultIndex].map { !$0.isNull && !$0.isBinary } ?? false }
+    }
+
+    func isRowMarkedForDeletion(rowIndex: Int) -> Bool {
+        result.rows.indices.contains(rowIndex) && pendingRowDeletions.contains(result.rows[rowIndex].id)
+    }
+
+    /// Marks or unmarks a row; a row marked for deletion drops its pending cell edits.
+    func toggleRowDeletion(rowIndex: Int) {
+        guard result.rows.indices.contains(rowIndex) else { return }
+        let id = result.rows[rowIndex].id
+        if pendingRowDeletions.remove(id) == nil {
+            guard canDeleteRow(rowIndex: rowIndex) else { return }
+            pendingRowDeletions.insert(id)
+            pendingCellEdits = pendingCellEdits.filter { $0.key.rowID != id }
+        }
+        pendingEditError = nil
+    }
+
+    /// Loaded row indexes marked for deletion, for the grid.
+    var pendingDeletedGridRows: Set<Int> {
+        guard !pendingRowDeletions.isEmpty else { return [] }
+        return Set(result.rows.indices.filter { pendingRowDeletions.contains(result.rows[$0].id) })
     }
 
     /// Staged values typed like their columns, keyed by loaded row and column index for the grid.
@@ -1465,32 +1507,40 @@ final class WorkspaceViewModel: ObservableObject {
 
     var pendingEditedRowCount: Int { Set(pendingCellEdits.keys.map(\.rowID)).count }
 
-    /// Writes staged edits one row at a time, each as a bound, single-row transactional update.
-    /// A failure stops the run: rows already written stay written and the rest stay pending.
-    func submitPendingEdits() {
-        guard !pendingCellEdits.isEmpty, !isSubmittingPendingEdits, !isRunning else { return }
-        guard let bookmark = selectedBookmark else { return }
-        do { try enforceWritableConnection(bookmark) } catch { pendingEditError = error.localizedDescription; return }
-        guard let editPlan else {
-            pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
-            return
-        }
-        // One update per row and table: a joined row's edits to two tables are two single-row updates.
-        var plans: [(rowID: QueryRow.ID, keys: [PendingCellKey], fields: [(index: Int, field: DataEditorField)], mutation: BoundQuery)] = []
+    /// One statement Submit will run: a single-row UPDATE of one table's edited columns, or a DELETE.
+    struct PendingWrite: Identifiable {
+        enum Kind { case update, delete }
+        let id = UUID()
+        let kind: Kind
+        let rowID: QueryRow.ID
+        let keys: [PendingCellKey]
+        let fields: [(index: Int, field: DataEditorField)]
+        let mutation: BoundQuery
+    }
+
+    /// The statements for every pending change, in row order, or a message saying why they can't be written.
+    func plannedPendingWrites() -> Result<[PendingWrite], PendingWriteError> {
+        guard let bookmark = selectedBookmark else { return .failure(.init(L10n.text("Choose a server first."))) }
+        do { try enforceWritableConnection(bookmark) } catch { return .failure(.init(error.localizedDescription)) }
+        let missingKey = PendingWriteError(L10n.text("This row cannot be saved because the primary key context is missing."))
+        guard let editPlan else { return .failure(missingKey) }
+        var writes: [PendingWrite] = []
         for row in result.rows {
+            if pendingRowDeletions.contains(row.id) {
+                guard editPlan.targets.count == 1, let delete = deleteSQL(for: row, target: editPlan.targets[0], engine: bookmark.engine) else {
+                    return .failure(missingKey)
+                }
+                writes.append(PendingWrite(kind: .delete, rowID: row.id, keys: [], fields: [], mutation: delete))
+                continue
+            }
             let entries = pendingCellEdits.filter { $0.key.rowID == row.id }
             guard !entries.isEmpty else { continue }
+            // One update per row and table: a joined row's edits to two tables are two single-row updates.
             let byTarget = Dictionary(grouping: entries) { editPlan.columns[$0.key.column]?.target ?? -1 }
             for target in byTarget.keys.sorted() {
-                guard target >= 0, let staged = byTarget[target] else {
-                    pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
-                    return
-                }
+                guard target >= 0, let staged = byTarget[target] else { return .failure(missingKey) }
                 var draft = editDraft(for: row, target: target, plan: editPlan)
-                guard draft.mode == .update else {
-                    pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
-                    return
-                }
+                guard draft.mode == .update else { return .failure(missingKey) }
                 var changed: [(index: Int, field: DataEditorField)] = []
                 for (key, value) in staged {
                     guard let name = editPlan.editableColumn(at: key.column)?.column.name,
@@ -1500,44 +1550,90 @@ final class WorkspaceViewModel: ObservableObject {
                     changed.append((key.column, draft.fields[fieldIndex]))
                 }
                 if let message = DataEditorValidationService.validate(fields: changed.map(\.field), mode: .update, engine: bookmark.engine).values.first {
-                    pendingEditError = message
-                    return
+                    return .failure(.init(message))
                 }
-                guard let mutation = mutationSQL(for: draft, engine: bookmark.engine) else {
-                    pendingEditError = L10n.text("This row cannot be saved because the primary key context is missing.")
-                    return
-                }
-                plans.append((row.id, staged.map(\.key), changed, mutation))
+                guard let mutation = mutationSQL(for: draft, engine: bookmark.engine) else { return .failure(missingKey) }
+                writes.append(PendingWrite(kind: .update, rowID: row.id, keys: staged.map(\.key), fields: changed, mutation: mutation))
             }
         }
-        guard !plans.isEmpty else { return }
+        return .success(writes)
+    }
+
+    struct PendingWriteError: Error {
+        let message: String
+        init(_ message: String) { self.message = message }
+    }
+
+    /// A DELETE of one row by its key, matched on the key's loaded values.
+    private func deleteSQL(for row: QueryRow, target: ResultEditPlan.Target, engine: DatabaseEngine) -> BoundQuery? {
+        guard engine.supportsRowEditing else { return nil }
+        var values: [QueryBoundValue] = []
+        var predicates: [String] = []
+        for key in target.keyColumns {
+            guard let cell = row.cells[safe: key.resultIndex], !cell.isNull, !cell.isBinary else { return nil }
+            let field = DataEditorField(column: key.column, value: cell.displayValue, originalValue: cell.displayValue, isEditable: false)
+            guard let value = DataEditorValidationService.boundValue(for: field) else { return nil }
+            values.append(value)
+            predicates.append(sqlIdentifier(key.column.name, engine: engine) + " = " + (engine == .postgresql ? "$\(values.count)" : "?"))
+        }
+        guard !predicates.isEmpty else { return nil }
+        return BoundQuery(sql: "DELETE FROM \(sqlQualifiedTable(target.table, engine: engine))\nWHERE \(predicates.joined(separator: " AND "));", values: values)
+    }
+
+    /// Writes pending changes one statement at a time, each a bound single-row update or delete in a
+    /// transaction that rolls back unless exactly one row changes. Deletions are shown in the preview
+    /// before they run. A failure stops the run: statements already written stay written, the rest stay pending.
+    func submitPendingEdits(confirmed: Bool = false) {
+        guard hasPendingChanges, !isSubmittingPendingEdits, !isRunning, let bookmark = selectedBookmark else { return }
+        if !pendingRowDeletions.isEmpty && !confirmed {
+            isShowingChangePreview = true
+            return
+        }
+        let writes: [PendingWrite]
+        switch plannedPendingWrites() {
+        case .success(let planned): writes = planned
+        case .failure(let error): pendingEditError = error.message; return
+        }
+        guard !writes.isEmpty else { return }
+        isShowingChangePreview = false
         isSubmittingPendingEdits = true
         pendingEditError = nil
         let databaseName = activeDatabaseName
         Task {
             var saved = 0
-            for plan in plans {
+            for write in writes {
                 do {
                     _ = try await DatabaseService.shared.execute(
-                        query: plan.mutation.sql,
-                        values: plan.mutation.values,
+                        query: write.mutation.sql,
+                        values: write.mutation.values,
                         profile: bookmark,
                         database: databaseName,
                         policy: .mutation(expectedAffectedRows: 1)
                     )
                     saved += 1
-                    applyWrittenEdits(rowID: plan.rowID, fields: plan.fields)
-                    for key in plan.keys { pendingCellEdits[key] = nil }
-                    result.generatedMutation = plan.mutation.sql
+                    switch write.kind {
+                    case .update:
+                        applyWrittenEdits(rowID: write.rowID, fields: write.fields)
+                        for key in write.keys { pendingCellEdits[key] = nil }
+                    case .delete:
+                        removeDeletedRow(write.rowID)
+                    }
                 } catch {
                     let message = DatabaseErrorFormatter.message(for: error)
-                    pendingEditError = saved == 0 ? message : L10n.format("Saved %1$d of %2$d rows. %3$@", saved, plans.count, message)
+                    pendingEditError = saved == 0 ? message : L10n.format("Saved %1$d of %2$d rows. %3$@", saved, writes.count, message)
                     break
                 }
             }
             isSubmittingPendingEdits = false
             if pendingEditError == nil { reloadAfterEdit() }
         }
+    }
+
+    private func removeDeletedRow(_ id: QueryRow.ID) {
+        pendingRowDeletions.remove(id)
+        pendingCellEdits = pendingCellEdits.filter { $0.key.rowID != id }
+        result.rows.removeAll { $0.id == id }
+        if resultSets.indices.contains(selectedResultIndex) { resultSets[selectedResultIndex] = result }
     }
 
     /// Shows written values in place, so rows saved before a failure don't look unsaved while others stay pending.
@@ -1568,10 +1664,12 @@ final class WorkspaceViewModel: ObservableObject {
 
     /// Drops staged edits for rows that are no longer loaded, such as after a reload or page change.
     private func prunePendingCellEdits() {
-        guard !pendingCellEdits.isEmpty else { return }
+        guard hasPendingChanges else { return }
         let loaded = Set(result.rows.map(\.id))
         let kept = pendingCellEdits.filter { loaded.contains($0.key.rowID) }
         if kept.count != pendingCellEdits.count { pendingCellEdits = kept }
+        let keptDeletions = pendingRowDeletions.intersection(loaded)
+        if keptDeletions.count != pendingRowDeletions.count { pendingRowDeletions = keptDeletions }
     }
 
     static func stagedCell(for field: DataEditorField) -> QueryCell {
@@ -1683,7 +1781,6 @@ final class WorkspaceViewModel: ObservableObject {
                     guard self.mutationToken == token else { return }
                     self.mutationToken = nil
                     self.mutationTask = nil
-                    self.result.generatedMutation = mutation.sql
                     self.isSavingMutation = false
                     self.dataEditorDraft = nil
                     self.dataEditorValidation = [:]

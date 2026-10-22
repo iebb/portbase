@@ -48,6 +48,7 @@ struct GridCollectionBridge: NSViewRepresentable {
     var headerMenu: (Int) -> [ResultGridMenuItem] = { _ in [] }
     var cellMenu: (Int, Int) -> [ResultGridMenuItem] = { _, _ in [] }
     var pendingKeys: Set<ResultGridCellKey> = []
+    var deletedRows: Set<Int> = []
     var canEditCell: (Int, Int) -> Bool = { _, _ in false }
     var onCommitEdit: (Int, Int, String) -> String? = { _, _, _ in nil }
 
@@ -132,7 +133,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             column.headerToolTip = primaryKeys.contains(name) ? L10n.text("Primary key") + " · " + type : type
         }
         let changed = old.result != result || old.selection != selection || old.visibleColumns != visibleColumns
-            || old.pendingKeys != pendingKeys || table.numberOfRows != result.rows.count
+            || old.pendingKeys != pendingKeys || old.deletedRows != deletedRows || table.numberOfRows != result.rows.count
         // Reloading would tear down the field being edited; the edit's own commit reloads afterwards.
         if changed, !context.coordinator.isEditing { table.reloadData() }
     }
@@ -180,11 +181,19 @@ struct GridCollectionBridge: NSViewRepresentable {
             field.isEditable = false
             let pending = parent.pendingKeys.contains(ResultGridCellKey(row: row, column: index))
             if pending { field.setAccessibilityValue((field.toolTip ?? "") + ", " + L10n.text("Pending change")) }
+            let deleted = parent.deletedRows.contains(row)
+            if deleted {
+                field.attributedStringValue = NSAttributedString(string: field.stringValue, attributes: [
+                    .strikethroughStyle: NSUnderlineStyle.single.rawValue, .foregroundColor: NSColor.secondaryLabelColor, .font: field.font as Any])
+                field.setAccessibilityValue((field.toolTip ?? "") + ", " + L10n.text("Marked for deletion"))
+            }
             // Tint the whole cell, not just the text, for selection and staged edits.
             field.drawsBackground = false
             container.wantsLayer = true
             if let position = parent.visibleColumns.firstIndex(of: index), parent.selection?.contains(row: row, column: position) == true {
                 container.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
+            } else if deleted {
+                container.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.12).cgColor
             } else if pending {
                 container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.22).cgColor
             } else { container.layer?.backgroundColor = nil }

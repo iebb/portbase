@@ -902,20 +902,6 @@ struct ResultsCard: View {
                         .textSelection(.enabled)
                 }
 
-                if let sql = workspace.result.generatedMutation {
-                    VStack(alignment: .leading, spacing: Spacing.s) {
-                        Label("Generated mutation", systemImage: "pencil.and.list.clipboard")
-                            .font(.rowTitle)
-                            .foregroundStyle(.orange)
-                        Text(sql)
-                            .font(.codeCaption)
-                            .textSelection(.enabled)
-                    }
-                    .padding(Spacing.l)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                }
-
                 if workspace.isRunning {
                     LoadingStateView(title: L10n.text("Loading results"))
                     .frame(maxWidth: .infinity)
@@ -1074,6 +1060,11 @@ struct ResultsCard: View {
                         workspace.prepareDuplicate(row: row)
                     }, at: 0)
                 }
+                if workspace.isRowMarkedForDeletion(rowIndex: rowIndex) {
+                    actions.append(ResultGridRowAction(title: L10n.text("Restore Row"), symbolName: "arrow.uturn.backward") { workspace.toggleRowDeletion(rowIndex: rowIndex) })
+                } else if workspace.canDeleteRow(rowIndex: rowIndex) {
+                    actions.append(ResultGridRowAction(title: L10n.text("Delete Row"), symbolName: "trash") { workspace.toggleRowDeletion(rowIndex: rowIndex) })
+                }
                 return actions
             },
             copyEngine: workspace.selectedBookmark?.engine,
@@ -1081,6 +1072,7 @@ struct ResultsCard: View {
             onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil,
             editCell: { workspace.cellEdit(rowIndex: $0, columnIndex: $1) },
             pendingCells: workspace.pendingGridCells,
+            deletedRows: workspace.pendingDeletedGridRows,
             onEditCellText: { workspace.stageCellText(rowIndex: $0, columnIndex: $1, text: $2) },
             onSetCellNull: { workspace.stageCellNull(rowIndex: $0, columnIndex: $1) },
             onRevertCell: { workspace.revertPendingCell(rowIndex: $0, columnIndex: $1) },

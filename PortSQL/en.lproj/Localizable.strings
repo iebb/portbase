@@ -1703,3 +1703,8 @@
 "The query moves into the new folder." = "The query moves into the new folder.";
 "Primary key: %@" = "Primary key: %@";
 "Requests go straight from this device to the provider." = "Requests go straight from this device to the provider.";
+"Delete Row" = "Delete Row";
+"Marked for deletion" = "Marked for deletion";
+"Pending Changes" = "Pending Changes";
+"Restore Row" = "Restore Row";
+"Submit and Delete %d" = "Submit and Delete %d";

@@ -348,5 +348,65 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
         XCTAssertFalse(workspace.canEditCurrentRows)
         withExtendedLifetime((bookmarks, library)) {}
     }
+
+    /// Rows of a single-table result can be deleted, only after the preview is confirmed, one row per
+    /// statement; a join's rows can't, since which table "this row" means is ambiguous.
+    @MainActor
+    func testDeletingRowsNeedsConfirmationAndRemovesExactlyThoseRows() async throws {
+        let file = try await SQLiteFileStore.shared.create(name: "delete-\(UUID().uuidString.prefix(8))")
+        defer { try? SQLiteFileStore.shared.remove(fileName: file.fileName) }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("delete-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var profile = ConnectionProfile(name: "Scratch", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        profile.sqliteFileName = file.fileName
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([profile]).write(to: dir.appendingPathComponent("bookmarks.json"))
+        let bookmarks = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        let library = WorkspaceLibraryStore(directory: dir, cloudSyncEnabled: false)
+        let workspace = WorkspaceViewModel()
+        workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
+        workspace.selectedBookmarkID = profile.id
+        for _ in 0..<250 where workspace.isRunning || workspace.isLoadingSchema { try await Task.sleep(nanoseconds: 20_000_000) }
+        let service = DatabaseService.shared
+        for sql in ["CREATE TABLE tags (id INTEGER PRIMARY KEY, label TEXT)", "INSERT INTO tags VALUES (1, 'a'), (2, 'b'), (3, 'c')",
+                    "CREATE TABLE notes (id INTEGER PRIMARY KEY, tag_id INTEGER)", "INSERT INTO notes VALUES (10, 1)"] {
+            _ = try await service.execute(query: sql, profile: profile, policy: .userQuery(confirmed: true))
+        }
+        workspace.schemaCatalog = try await service.loadSchema(profile: profile, database: "main")
+
+        let sql = "SELECT id, label FROM tags ORDER BY id"
+        var tags = try await service.execute(query: sql, profile: profile, policy: .readOnly)
+        tags.sourceQuery = sql
+        workspace.result = tags
+        XCTAssertTrue(workspace.canDeleteRow(rowIndex: 0))
+        workspace.toggleRowDeletion(rowIndex: 0)
+        workspace.toggleRowDeletion(rowIndex: 2)
+        XCTAssertEqual(workspace.pendingDeletedGridRows, [0, 2])
+        XCTAssertNil(workspace.stageCellText(rowIndex: 1, columnIndex: 1, text: "B"))
+        XCTAssertEqual(workspace.pendingChangeCount, 3)
+
+        let planned = try workspace.plannedPendingWrites().get()
+        XCTAssertEqual(planned.map(\.kind), [.delete, .update, .delete])
+        XCTAssertEqual(PendingChangesPreview.readable(planned[0].mutation, engine: .sqlite), "DELETE FROM \"main\".\"tags\"\nWHERE \"id\" = 1;")
+
+        workspace.submitPendingEdits()
+        XCTAssertTrue(workspace.isShowingChangePreview, "Deletions wait for the preview")
+        XCTAssertFalse(workspace.isSubmittingPendingEdits)
+        workspace.submitPendingEdits(confirmed: true)
+        for _ in 0..<200 where workspace.isSubmittingPendingEdits { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertNil(workspace.pendingEditError)
+        XCTAssertFalse(workspace.hasPendingChanges)
+        XCTAssertEqual(workspace.result.rows.map { $0.cells.map(\.displayValue) }, [["2", "B"]], "Deleted rows leave the results")
+        let stored = try await service.execute(query: sql, profile: profile, policy: .readOnly)
+        XCTAssertEqual(stored.rows.map { $0.cells.map(\.displayValue) }, [["2", "B"]])
+
+        let join = "SELECT n.id, t.id AS tid, t.label FROM notes n JOIN tags t ON t.id = n.tag_id"
+        var joined = try await service.execute(query: join, profile: profile, policy: .readOnly)
+        joined.sourceQuery = join
+        workspace.result = joined
+        XCTAssertFalse(workspace.canDeleteRow(rowIndex: 0), "A join's row belongs to two tables")
+        withExtendedLifetime((bookmarks, library)) {}
+    }
 #endif
 }
