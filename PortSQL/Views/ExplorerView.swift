@@ -13,6 +13,7 @@ struct ExplorerView: View {
     /// On phones the ORDER field waits until there's a clause or it's asked for; header taps sort too.
     @State private var showsOrderField = false
     @State private var showsDiagram = false
+    @State private var showsCompare = false
     @State private var focusedClause: ClauseField?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -196,6 +197,9 @@ struct ExplorerView: View {
                 .presentationSizing(.page)
 #endif
         }
+        .sheet(isPresented: $showsCompare) {
+            SchemaCompareView().portbaseDesktopSheetSize(width: 640, height: 640)
+        }
     }
 
     private var filteredTables: [SchemaTableDescriptor] {
@@ -216,6 +220,7 @@ struct ExplorerView: View {
             if workspace.selectedBookmark?.engine.isRelational == true {
                 Section {
                     Button("Schema Diagram", systemImage: "point.3.connected.trianglepath.dotted") { showsDiagram = true }
+                    Button("Compare Schema…", systemImage: "arrow.left.arrow.right.square") { showsCompare = true }
                 }
             }
             ForEach(filteredTables) { table in

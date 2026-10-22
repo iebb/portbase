@@ -18,6 +18,7 @@ struct DesktopStructureView: View {
     @State private var detailsError: String?
     @State private var loadingDetails = false
     @State private var showsDiagram = false
+    @State private var showsCompare = false
 
     private var selected: SchemaObject? { objects.first { $0.id == selectedID } }
     private var loadKey: String { (workspace.selectedBookmarkID?.uuidString ?? "") + "/" + (workspace.activeDatabaseName ?? "") }
@@ -36,6 +37,9 @@ struct DesktopStructureView: View {
         .onChange(of: workspace.selectedExplorerTableID) { _, _ in selectSidebarTable() }
         .sheet(isPresented: $showsDiagram) {
             SchemaDiagramView { table in onOpenData(table) }.portbaseDesktopSheetSize(width: 1100, height: 760)
+        }
+        .sheet(isPresented: $showsCompare) {
+            SchemaCompareView().portbaseDesktopSheetSize(width: 640, height: 640)
         }
     }
 
@@ -62,6 +66,13 @@ struct DesktopStructureView: View {
                     .foregroundStyle(PortSQLPalette.muted)
                     .help(L10n.text("Schema Diagram"))
                     .accessibilityLabel("Schema Diagram")
+                    Button { showsCompare = true } label: {
+                        Image(systemName: "arrow.left.arrow.right.square").frame(width: Sizes.tool, height: Sizes.tool)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(PortSQLPalette.muted)
+                    .help(L10n.text("Compare Schema…"))
+                    .accessibilityLabel("Compare Schema…")
                 }
             }
             .padding(Spacing.s)
