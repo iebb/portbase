@@ -359,8 +359,6 @@ private struct RedisMutationEditor: View {
                 Section("Command") {
                     if let command = try? command() {
                         Text(command.preview).font(.codeDetail).textSelection(.enabled)
-                    } else {
-                        Text("Complete the fields to preview the command.").foregroundStyle(.secondary)
                     }
                 }
                 if let error { Section { Text(error).foregroundStyle(.red).textSelection(.enabled) } }

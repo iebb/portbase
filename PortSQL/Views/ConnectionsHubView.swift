@@ -62,7 +62,6 @@ struct ConnectionsHubView: View {
                     if bookmarks.bookmarks.isEmpty {
                         PortbaseEmptyState(
                             title: L10n.text("No servers saved"),
-                            message: L10n.text("Add a connection to browse tables, run queries, and build charts."),
                             systemImage: "server.rack"
                         )
                         .frame(maxWidth: .infinity)

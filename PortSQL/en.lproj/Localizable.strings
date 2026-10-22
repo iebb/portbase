@@ -1701,3 +1701,5 @@
 "Other Queries" = "Other Queries";
 "Remove from Folder" = "Remove from Folder";
 "The query moves into the new folder." = "The query moves into the new folder.";
+"Primary key: %@" = "Primary key: %@";
+"Requests go straight from this device to the provider." = "Requests go straight from this device to the provider.";

@@ -1701,3 +1701,5 @@
 "Other Queries" = "Другие запросы";
 "Remove from Folder" = "Убрать из папки";
 "The query moves into the new folder." = "Запрос будет перемещён в новую папку.";
+"Primary key: %@" = "Первичный ключ: %@";
+"Requests go straight from this device to the provider." = "Запросы отправляются напрямую с этого устройства провайдеру.";

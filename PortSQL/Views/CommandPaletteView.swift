@@ -121,7 +121,6 @@ struct CommandPaletteView: View {
 
             if results.isEmpty {
                 PortbaseEmptyState(title: L10n.text("No matches"),
-                                   message: L10n.text("Try a table name, a saved query, or an action such as Format."),
                                    systemImage: "sparkle.magnifyingglass")
                     .frame(maxHeight: .infinity)
             } else {

@@ -54,8 +54,6 @@ struct ConnectionStringImportSection: View {
             }
         } header: {
             Text("Connection String")
-        } footer: {
-            Text("Generated from the server details above, without the password. Paste a PostgreSQL, MySQL, MariaDB, Redis, ClickHouse, or Elasticsearch URL (JDBC prefixes work) and choose Apply to fill them in.")
         }
         .onAppear { reset() }
         // Follow the fields as they change, unless the user is editing the string.

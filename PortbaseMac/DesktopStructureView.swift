@@ -162,8 +162,6 @@ struct DesktopStructureView: View {
             VStack(spacing: Spacing.s) {
                 Image(systemName: "list.bullet.rectangle").font(.emptyStateSymbol).foregroundStyle(PortSQLPalette.muted)
                 Text("Choose an object").font(.rowTitle)
-                Text("Its columns, indexes, keys, and definition appear here.")
-                    .font(.footnoteText).foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

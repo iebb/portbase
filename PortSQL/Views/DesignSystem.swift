@@ -1311,7 +1311,8 @@ struct PortbaseLogoMark: View {
 /// A friendly empty state with an optional call to action.
 struct PortbaseEmptyState: View {
     let title: String
-    let message: String
+    /// Only for what the title and layout can't say, such as an error's cause.
+    var message: String? = nil
     let systemImage: String
     var actionTitle: String?
     var action: (() -> Void)?
@@ -1326,7 +1327,9 @@ struct PortbaseEmptyState: View {
                 .accessibilityHidden(true)
             VStack(spacing: Spacing.xs) {
                 Text(title).font(.cardTitle).multilineTextAlignment(.center)
-                Text(message).font(.rowDetail).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                if let message, !message.isEmpty {
+                    Text(message).font(.rowDetail).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                }
             }
             if let actionTitle, let action {
                 Button(action: action) {

@@ -419,10 +419,6 @@ struct AssistantChatView: View {
             Spacer(minLength: 0)
             Image(systemName: "sparkles").font(.emptyStateSymbol).foregroundStyle(PortSQLPalette.accent)
             Text("Set up an AI provider").font(.sectionTitle).foregroundStyle(PortSQLPalette.ink)
-            Text("Add Anthropic, OpenAI, OpenRouter, a local server such as Ollama or LM Studio, or any OpenAI-compatible endpoint. Keys sync to your devices through iCloud Keychain.")
-                .font(.footnoteText)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
                 .frame(maxWidth: 420)
             Button("Set Up Providers", systemImage: "gearshape") { showsSettings = true }
                 .buttonStyle(.portbasePrimary)
@@ -487,9 +483,6 @@ struct AssistantChatView: View {
 
     private var suggestions: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            Text("Ask about this database, or describe the query or chart you need.")
-                .font(.rowDetail)
-                .foregroundStyle(PortSQLPalette.muted)
             ForEach([
                 L10n.text("Explain how these tables relate"),
                 L10n.text("Write a query for the 10 most recent rows of the busiest table"),
@@ -921,7 +914,7 @@ struct AssistantSettingsSections: View {
         } header: {
             Text("AI Providers")
         } footer: {
-            Text("The checked provider and its model are the default for new chats; each chat can pick its own. API keys sync through iCloud Keychain, and requests go straight from this device to the provider.")
+            Text("Requests go straight from this device to the provider.")
         }
 
         Section {
@@ -1098,8 +1091,6 @@ struct AssistantProviderEditor: View {
                     if let error { Text(error).font(.captionText).foregroundStyle(.red).textSelection(.enabled) }
                 } header: {
                     Text("Model")
-                } footer: {
-                    Text("Models are listed from the provider’s models endpoint.")
                 }
             }
             .portbaseForm()

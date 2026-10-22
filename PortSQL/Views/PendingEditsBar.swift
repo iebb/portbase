@@ -14,8 +14,6 @@ struct PendingEditsBar: View {
                     if !workspace.pendingCellEdits.isEmpty {
                         Text(L10n.format("Pending changes: %d", workspace.pendingCellEdits.count))
                             .font(.captionStrong)
-                        Text(L10n.format("Rows: %d", workspace.pendingEditedRowCount))
-                            .font(.captionText).foregroundStyle(.secondary)
                     }
                     if let error = workspace.pendingEditError {
                         Text(error).font(.captionText).foregroundStyle(.red).lineLimit(3)

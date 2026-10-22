@@ -1701,3 +1701,5 @@
 "Other Queries" = "其他查询";
 "Remove from Folder" = "从文件夹中移除";
 "The query moves into the new folder." = "查询将移到新文件夹中。";
+"Primary key: %@" = "主键：%@";
+"Requests go straight from this device to the provider." = "请求直接从此设备发送到提供方。";

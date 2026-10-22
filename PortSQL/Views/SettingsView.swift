@@ -394,8 +394,6 @@ struct ResultHeaderStyleSettingsSection: View {
             .accessibilityHidden(true)
         } header: {
             Text("Results")
-        } footer: {
-            Text("How result tables show each column's type. A hidden type still shows when you point at the header and to VoiceOver.")
         }
     }
 

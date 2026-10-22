@@ -221,7 +221,6 @@ struct DataTransferSheet: View {
                         .font(.codeCaption).textSelection(.enabled)
                 }
             } else { Text("Select a query or table to export.").foregroundStyle(.secondary) }
-            if model.exportsQuery { Text("Explicit LIMIT and filters are preserved.").font(.footnoteText).foregroundStyle(.secondary) }
             Button("Export All Rows") { model.runExport() }
                 .disabled(model.exportQuery == nil || model.isWorking)
                 .frame(minHeight: Sizes.control)

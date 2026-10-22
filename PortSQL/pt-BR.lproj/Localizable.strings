@@ -1701,3 +1701,5 @@
 "Other Queries" = "Outras consultas";
 "Remove from Folder" = "Remover da pasta";
 "The query moves into the new folder." = "A consulta será movida para a nova pasta.";
+"Primary key: %@" = "Chave primária: %@";
+"Requests go straight from this device to the provider." = "As solicitações vão direto deste dispositivo para o provedor.";

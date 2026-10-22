@@ -279,8 +279,6 @@ private struct ChartDashboard: View, @MainActor Equatable {
         VStack(spacing: Spacing.s) {
             Image(systemName: "rectangle.3.group").font(.emptyStateSymbol).foregroundStyle(PortSQLPalette.muted)
             Text("No charts on this page").font(.rowTitle)
-            Text("Drag a chart onto this page's tab, or save a chart while this page is open.")
-                .font(.footnoteText).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, minHeight: 240)
         .portbaseCardSurface()
@@ -869,26 +867,21 @@ private struct ChartPageFiltersSheet: View {
                 } footer: {
                     Text("Charts on this page receive the range as :start and :end, in UTC. Use them in a query, for example WHERE created_at >= :start AND created_at < :end.")
                 }
-                Section {
-                    if parameters.isEmpty {
-                        Text("No other parameters. Add :name placeholders to a chart query to set their values here.")
-                            .font(.footnoteText)
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(parameters, id: \.self) { name in
-                        LabeledContent {
-                            TextField("Value", text: Binding(get: { values[name] ?? "" }, set: { values[name] = $0 }))
-                                .multilineTextAlignment(.trailing)
-                                .portbaseTextCapitalization(.never)
-                                .autocorrectionDisabled()
-                        } label: {
-                            Text(verbatim: ":" + name).font(.codeText)
+                if !parameters.isEmpty {
+                    Section {
+                        ForEach(parameters, id: \.self) { name in
+                            LabeledContent {
+                                TextField("Value", text: Binding(get: { values[name] ?? "" }, set: { values[name] = $0 }))
+                                    .multilineTextAlignment(.trailing)
+                                    .portbaseTextCapitalization(.never)
+                                    .autocorrectionDisabled()
+                            } label: {
+                                Text(verbatim: ":" + name).font(.codeText)
+                            }
                         }
+                    } header: {
+                        Text("Parameters")
                     }
-                } header: {
-                    Text("Parameters")
-                } footer: {
-                    Text("Values are sent as bound parameters, never written into the SQL.")
                 }
             }
             .portbaseForm()

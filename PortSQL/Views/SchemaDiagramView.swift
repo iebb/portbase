@@ -45,9 +45,7 @@ struct SchemaDiagramView: View {
         } else if relationships == nil {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if layout.nodes.isEmpty {
-            PortbaseEmptyState(title: L10n.text("No foreign keys"),
-                               message: L10n.text("These tables don’t reference each other. Show unrelated tables to see them all."),
-                               systemImage: "point.3.connected.trianglepath.dotted")
+            PortbaseEmptyState(title: L10n.text("No foreign keys"), systemImage: "point.3.connected.trianglepath.dotted")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             let layout = layout
@@ -99,12 +97,8 @@ struct SchemaDiagramView: View {
 
     @ViewBuilder private var focusBar: some View {
         if let focused, let node = layout.nodes.first(where: { $0.id == focused }) {
-            let count = layout.edges.filter { $0.from == focused || $0.to == focused }.count
             HStack(spacing: Spacing.m) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: node.table.displayName).font(.rowTitle).lineLimit(1)
-                    Text(L10n.format("Relationships: %d", count)).font(.captionText).foregroundStyle(.secondary)
-                }
+                Text(verbatim: node.table.displayName).font(.rowTitle).lineLimit(1)
                 Spacer()
                 Button("Open") { dismiss(); onOpen(node.table) }.buttonStyle(.portbasePrimary)
             }

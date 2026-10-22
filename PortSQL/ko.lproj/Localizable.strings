@@ -1701,3 +1701,5 @@
 "Other Queries" = "기타 쿼리";
 "Remove from Folder" = "폴더에서 제거";
 "The query moves into the new folder." = "쿼리가 새 폴더로 이동합니다.";
+"Primary key: %@" = "기본 키: %@";
+"Requests go straight from this device to the provider." = "요청은 이 기기에서 제공자에게 직접 전송됩니다.";

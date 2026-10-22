@@ -24,9 +24,6 @@ struct QueryPlanView: View {
                 }
             }
             .portbaseCardSurface(radius: Radius.control)
-            Text("Costs are the planner’s estimates in its own units, not times.")
-                .font(.captionText)
-                .foregroundStyle(.secondary)
         }
     }
 }

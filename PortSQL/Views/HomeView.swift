@@ -101,9 +101,6 @@ struct HomeView: View {
             // Saved connections exist but none is active yet.
             VStack(alignment: .leading, spacing: Spacing.m) {
                 Text("Choose a connection").font(.cardTitle)
-                Text("Pick a saved connection to browse its tables and run queries.")
-                    .font(.rowDetail)
-                    .foregroundStyle(.secondary)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: Spacing.s)], spacing: Spacing.s) {
                     ForEach(bookmarks.bookmarks.prefix(6)) { profile in
                         Button { workspace.selectBookmark(profile.id) } label: {
@@ -126,9 +123,6 @@ struct HomeView: View {
         } else {
             VStack(alignment: .leading, spacing: Spacing.m) {
                 Text("Connect your first database").font(.cardTitle)
-                Text("Portbase works with MySQL, MariaDB, PostgreSQL, SQLite, ClickHouse, MongoDB, Redis, and Elasticsearch.")
-                    .font(.rowDetail)
-                    .foregroundStyle(.secondary)
                 // Side by side when both titles fit on one line; otherwise stacked at full width.
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: Spacing.s) { onboardingButtons }

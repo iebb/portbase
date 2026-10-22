@@ -15,12 +15,9 @@ struct ResultInsightsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.l) {
             if isComputing {
-                LoadingStateView(title: L10n.text("Analyzing results"), message: L10n.text("Summarizing loaded rows."))
+                LoadingStateView(title: L10n.text("Analyzing results"))
             } else if insights.columns.isEmpty {
-                Text("Run a query to see column insights.")
-                    .font(.rowDetail)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 90)
+                Color.clear.frame(maxWidth: .infinity, minHeight: 90)
             } else {
                 summary
                 if insights.columns.count > 6 {
@@ -41,9 +38,6 @@ struct ResultInsightsView: View {
                         ColumnInsightCard(column: column)
                     }
                 }
-                Text("Statistics describe loaded rows only. They do not query the database again.")
-                    .font(.captionText)
-                    .foregroundStyle(.secondary)
             }
         }
         .task(id: result) {

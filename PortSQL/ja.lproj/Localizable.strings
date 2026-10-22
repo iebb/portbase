@@ -1701,3 +1701,5 @@
 "Other Queries" = "その他のクエリ";
 "Remove from Folder" = "フォルダから取り除く";
 "The query moves into the new folder." = "クエリは新しいフォルダに移動します。";
+"Primary key: %@" = "主キー：%@";
+"Requests go straight from this device to the provider." = "リクエストはこのデバイスからプロバイダへ直接送られます。";

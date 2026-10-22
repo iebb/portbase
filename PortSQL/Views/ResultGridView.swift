@@ -443,7 +443,7 @@ struct ResultGridView: View {
     }
 
     private var filterSettings: some View {
-        PortbaseSheet(L10n.text("Filter Loaded Rows"), subtitle: L10n.text("Filters apply to loaded rows only."), onClose: { showsFilter = false }) {
+        PortbaseSheet(L10n.text("Filter Loaded Rows"), onClose: { showsFilter = false }) {
             Form {
                 Picker("Column", selection: $filter.column) {
                     Text("All Columns").tag(Optional<Int>.none)
@@ -492,8 +492,6 @@ struct ResultGridView: View {
                         }
                     } header: {
                         Text("Order").textCase(nil)
-                    } footer: {
-                        Text("Drag to reorder. The order is remembered for this table.")
                     }
                     ForEach(Array(result.columns.enumerated()), id: \.offset) { index, column in
                         Section {

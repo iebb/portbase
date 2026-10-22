@@ -72,8 +72,11 @@ struct SchemaCompareView: View {
     }
 
     @ViewBuilder private func results(_ comparison: SchemaComparison) -> some View {
-        Section {
-            Text(verbatim: summary(comparison)).font(.rowDetail).foregroundStyle(.secondary)
+        // The sections say what differs; only "no differences" needs saying.
+        if comparison.isIdentical {
+            Section {
+                Text(L10n.format("No differences across %d tables.", comparison.identicalTables)).font(.rowDetail).foregroundStyle(.secondary)
+            }
         }
         if !comparison.changed.isEmpty {
             Section(L10n.text("Different")) {
@@ -93,11 +96,7 @@ struct SchemaCompareView: View {
                             .accessibilityElement(children: .combine)
                         }
                     } label: {
-                        HStack {
-                            Text(verbatim: table.name).font(.codeText)
-                            Spacer()
-                            Text(L10n.format("Columns: %d", table.columns.count)).font(.captionText).foregroundStyle(.secondary)
-                        }
+                        Text(verbatim: table.name).font(.codeText)
                     }
                 }
             }
@@ -118,14 +117,6 @@ struct SchemaCompareView: View {
                 }
             }
         }
-    }
-
-    private func summary(_ comparison: SchemaComparison) -> String {
-        if comparison.isIdentical { return L10n.format("No differences across %d tables.", comparison.identicalTables) }
-        return [L10n.format("Different: %d", comparison.changed.count),
-                L10n.format("Only here: %d", comparison.onlyInSource.count),
-                L10n.format("Only there: %d", comparison.onlyInTarget.count),
-                L10n.format("Same: %d", comparison.identicalTables)].joined(separator: " · ")
     }
 
     private func name(_ profile: ConnectionProfile?, database: String?) -> String {

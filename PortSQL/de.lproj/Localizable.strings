@@ -1701,3 +1701,5 @@
 "Other Queries" = "Weitere Abfragen";
 "Remove from Folder" = "Aus Ordner entfernen";
 "The query moves into the new folder." = "Die Abfrage wird in den neuen Ordner bewegt.";
+"Primary key: %@" = "Primärschlüssel: %@";
+"Requests go straight from this device to the provider." = "Anfragen gehen direkt von diesem Gerät an den Anbieter.";

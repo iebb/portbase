@@ -34,9 +34,7 @@ struct SchemaBrowserView: View {
         .overlay {
             if loading { ProgressView() }
             else if objects.isEmpty && error == nil {
-                PortbaseEmptyState(title: L10n.text("No database objects"),
-                                   message: L10n.text("Tables, views, and routines in this database appear here."),
-                                   systemImage: "square.stack.3d.up")
+                PortbaseEmptyState(title: L10n.text("No database objects"), systemImage: "square.stack.3d.up")
             }
         }
         .toolbar { Button("Refresh", systemImage: "arrow.clockwise") { Task { await load() } }.disabled(loading) }

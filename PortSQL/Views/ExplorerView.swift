@@ -80,11 +80,21 @@ struct ExplorerView: View {
 
                                     HStack(spacing: Spacing.s) {
                                         // The table's size and key as one quiet line; column count and editability show above the results.
-                                        Text(verbatim: tableFacts(selectedTable))
-                                            .font(.captionText.monospacedDigit())
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                            .truncationMode(.middle)
+                                        // The size, then the key with its icon rather than a "Key:" prefix.
+                                        HStack(spacing: Spacing.s) {
+                                            if let estimate = selectedTable.rowCountEstimate {
+                                                Text(verbatim: "≈ " + L10n.plural("row_count", count: estimate))
+                                            }
+                                            if !selectedTable.primaryKeyColumns.isEmpty {
+                                                Label(selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill")
+                                                    .labelStyle(.titleAndIcon)
+                                                    .accessibilityLabel(L10n.format("Primary key: %@", selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", ")))
+                                            }
+                                        }
+                                        .font(.captionText.monospacedDigit())
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
                                         Spacer(minLength: 0)
                                         // On phones the connection's badges share this row rather than taking one of their own.
                                         if horizontalSizeClass == .compact, let profile = workspace.selectedBookmark, ConnectionStatusBadges.hasBadges(profile) {
@@ -110,23 +120,6 @@ struct ExplorerView: View {
                                         whereRow(selectedTable)
                                         if horizontalSizeClass == .regular || showsOrder { orderRow(selectedTable) }
                                     }
-                                } else {
-                                    HStack(spacing: Spacing.s) {
-                                        Image(systemName: "tablecells")
-                                            .font(.rowTitle)
-                                            .foregroundStyle(.secondary)
-                                        Text("Choose a table to browse and filter rows.")
-                                            .font(.rowDetail)
-                                            .foregroundStyle(.secondary)
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal, Spacing.m)
-                                    .padding(.vertical, Spacing.s)
-                                    .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                                            .stroke(PortSQLPalette.stroke, lineWidth: 1)
-                                    }
                                 }
 
                             }
@@ -148,7 +141,6 @@ struct ExplorerView: View {
                             if workspace.selectedBookmark == nil {
                                 PortbaseEmptyState(
                                     title: L10n.text("Add a database connection"),
-                                    message: L10n.text("Add a connection to browse tables, run queries, and build charts."),
                                     systemImage: "server.rack",
                                     actionTitle: L10n.text("Add Connection"),
                                     action: { workspace.createBookmark() }
@@ -156,7 +148,6 @@ struct ExplorerView: View {
                             } else {
                                 PortbaseEmptyState(
                                     title: L10n.text("No schema metadata"),
-                                    message: L10n.text("Choose a database or refresh the schema."),
                                     systemImage: "square.stack.3d.up.slash",
                                     actionTitle: L10n.text("Refresh Tables"),
                                     action: { workspace.refreshSchemaCatalog() }
@@ -345,15 +336,6 @@ struct ExplorerView: View {
     }
 
     private var showsOrder: Bool { showsOrderField || !workspace.explorerOrderByClause.isEmpty }
-
-    private func tableFacts(_ table: SchemaTableDescriptor) -> String {
-        var facts: [String] = []
-        if let estimate = table.rowCountEstimate { facts.append("≈ " + L10n.plural("row_count", count: estimate)) }
-        if !table.primaryKeyColumns.isEmpty {
-            facts.append(L10n.format("Key: %@", table.primaryKeyColumns.map(\.name).joined(separator: ", ")))
-        }
-        return facts.joined(separator: " · ")
-    }
 
     private var loadingDatabaseMessage: String {
         if let database = workspace.activeDatabaseName {
@@ -630,8 +612,6 @@ struct LibrarySheetView: View {
                 filing = nil
             }
             .disabled(folderName.trimmingCharacters(in: .whitespaces).isEmpty)
-        } message: {
-            Text("The query moves into the new folder.")
         }
         .overlay {
             if selection == .history ? history.isEmpty : snippets.isEmpty { emptyState }
@@ -642,8 +622,6 @@ struct LibrarySheetView: View {
         let filtered = !search.isEmpty || outcome != nil || currentConnectionOnly
         return PortbaseEmptyState(
             title: filtered ? L10n.text("No matching queries") : (selection == .history ? L10n.text("No queries yet") : L10n.text("No saved queries")),
-            message: selection == .history ? L10n.text("Queries you run appear here. Loading one never runs it.")
-                                           : L10n.text("Save a query from the console to keep it one tap away."),
             systemImage: selection == .history ? "clock.arrow.circlepath" : "bookmark",
             secondaryTitle: filtered ? L10n.text("Reset Filters") : nil,
             secondaryAction: filtered ? { search = ""; outcome = nil; currentConnectionOnly = false } : nil
