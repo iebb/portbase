@@ -73,10 +73,11 @@ enum EditorTheme: String, CaseIterable, Identifiable {
         switch self {
         case .portbase:
             colorScheme == .dark
-                ? EditorPalette(background: 0x0B1020, gutter: 0x0E1427, plain: 0xC9CEDB, keyword: 0x3FC48A, string: 0xF7C14D,
-                                number: 0x5AA8F8, comment: 0x5A5E73, identifier: 0xEDF1F2, symbol: 0xE0649F, isDark: true)
-                : EditorPalette(background: 0xFFFFFF, gutter: 0xF3F5F7, plain: 0x101525, keyword: 0x158A4E, string: 0xA86A12,
-                                number: 0x0B6BCB, comment: 0x8D91A5, identifier: 0x101525, symbol: 0xB8327C, isDark: false)
+                // Keywords in a quiet indigo and punctuation in gray, so green stays the app's action color.
+                ? EditorPalette(background: 0x0B1020, gutter: 0x0E1427, plain: 0xC9CEDB, keyword: 0x93A6F2, string: 0xE6B85C,
+                                number: 0x5FC4BE, comment: 0x5A5E73, identifier: 0xE6E9F0, symbol: 0x7F869C, isDark: true)
+                : EditorPalette(background: 0xFFFFFF, gutter: 0xF5F6F8, plain: 0x101525, keyword: 0x3446A8, string: 0x9A5B0E,
+                                number: 0x0E7C78, comment: 0x8D91A5, identifier: 0x101525, symbol: 0x6E7387, isDark: false)
         case .midnight:
             EditorPalette(background: 0x0B1020, gutter: 0x0F1529, plain: 0xC9D1E5, keyword: 0x7AA2F7, string: 0x9ECE6A,
                           number: 0xFF9E64, comment: 0x565F89, identifier: 0xC0CAF5, symbol: 0xBB9AF7, isDark: true)

@@ -1661,3 +1661,7 @@
 "Running %1$d of %2$d" = "実行中 %1$d/%2$d";
 "Show in Editor" = "エディタで表示";
 "Statement %1$d of %2$d failed" = "ステートメント %1$d/%2$d が失敗";
+"Export Results" = "結果を書き出す";
+"Key: %@" = "キー：%@";
+"Shows the ORDER BY field" = "ORDER BY フィールドを表示します";
+"Transactions" = "トランザクション";

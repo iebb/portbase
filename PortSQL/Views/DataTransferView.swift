@@ -35,9 +35,9 @@ struct DataTransferMenu: View {
     }
 }
 
-private enum DataTransferMode { case importData, exportData }
+enum DataTransferMode { case importData, exportData }
 
-private struct DataTransferPresentation: Identifiable {
+struct DataTransferPresentation: Identifiable {
     let id = UUID()
     let mode: DataTransferMode
     let profile: ConnectionProfile
@@ -52,7 +52,7 @@ private struct StagedImportFileError: Error {
     let underlying: Error
 }
 
-private struct DataTransferSheet: View {
+struct DataTransferSheet: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var model: DataTransferViewModel
     @State private var showsFileImporter = false

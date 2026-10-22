@@ -10,14 +10,16 @@ struct ExplorerView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var clauseEditorHeight: CGFloat = 32
+    /// On phones the ORDER field waits until there's a clause or it's asked for; header taps sort too.
+    @State private var showsOrderField = false
     @State private var focusedClause: ClauseField?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     /// Where there's room, the table, its clauses, and the run button share one row, and the rows
     /// below take the rest of the screen.
     private var isWide: Bool { horizontalSizeClass == .regular && !dynamicTypeSize.isAccessibilitySize }
-    /// Phones lay the panels out edge to edge, without cards inside the page's padding.
-    private var isFlat: Bool { horizontalSizeClass == .compact }
+    /// Panels run edge to edge between hairlines at every width, without cards inside the page's padding.
+    private let isFlat = true
 
     private var runButton: some View {
         Button {
@@ -62,7 +64,7 @@ struct ExplorerView: View {
                         }
                     } else if workspace.selectedBookmark != nil {
                         PanelCard {
-                            VStack(alignment: .leading, spacing: Spacing.m) {
+                            VStack(alignment: .leading, spacing: Spacing.s) {
                                 // One row: the table and the run button (selecting a table browses it; run re-applies the clauses).
                                 HStack(alignment: .center, spacing: Spacing.s) {
                                     tableMenu
@@ -71,31 +73,37 @@ struct ExplorerView: View {
 
                                 if let selectedTable = workspace.selectedExplorerTable {
 
-                                    HStack(spacing: Spacing.xs) {
-                                        ScrollView(.horizontal, showsIndicators: false) {
-                                            HStack(spacing: Spacing.xs) {
-                                                // Column count and editability already show above the results.
-                                                if let estimate = selectedTable.rowCountEstimate {
-                                                    PortbaseChip(title: L10n.plural("row_count", count: estimate), systemImage: "list.number", tint: PortSQLPalette.accent)
-                                                }
-                                                if !selectedTable.primaryKeyColumns.isEmpty {
-                                                    PortbaseChip(title: selectedTable.primaryKeyColumns.map(\.name).joined(separator: ", "), systemImage: "key.fill", tint: .orange)
-                                                }
-                                            }
-                                        }
+                                    HStack(spacing: Spacing.s) {
+                                        // The table's size and key as one quiet line; column count and editability show above the results.
+                                        Text(verbatim: tableFacts(selectedTable))
+                                            .font(.captionText.monospacedDigit())
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+                                        Spacer(minLength: 0)
                                         // On phones the connection's badges share this row rather than taking one of their own.
-                                        if isFlat, let profile = workspace.selectedBookmark, ConnectionStatusBadges.hasBadges(profile) {
+                                        if horizontalSizeClass == .compact, let profile = workspace.selectedBookmark, ConnectionStatusBadges.hasBadges(profile) {
                                             ConnectionStatusBadges(profile: profile).fixedSize()
+                                        }
+                                        if horizontalSizeClass == .compact && !showsOrder {
+                                            Button { showsOrderField = true; focusedClause = .orderByClause } label: {
+                                                Label("Sort", systemImage: "arrow.up.arrow.down").font(.captionText)
+                                            }
+                                            .buttonStyle(.plain)
+                                            .foregroundStyle(PortSQLPalette.accent)
+                                            .contentShape(Rectangle())
+                                            .frame(minHeight: Sizes.control)
+                                            .accessibilityHint("Shows the ORDER BY field")
                                         }
                                     }
 
                                     // Side by side where there's room, as on the Mac; stacked on phones.
                                     let clauses = horizontalSizeClass == .regular
                                         ? AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.s))
-                                        : AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.m))
+                                        : AnyLayout(VStackLayout(alignment: .leading, spacing: Spacing.s))
                                     clauses {
                                         whereRow(selectedTable)
-                                        orderRow(selectedTable)
+                                        if horizontalSizeClass == .regular || showsOrder { orderRow(selectedTable) }
                                     }
                                 } else {
                                     HStack(spacing: Spacing.s) {
@@ -310,6 +318,17 @@ struct ExplorerView: View {
                 )
             }
         }
+    }
+
+    private var showsOrder: Bool { showsOrderField || !workspace.explorerOrderByClause.isEmpty }
+
+    private func tableFacts(_ table: SchemaTableDescriptor) -> String {
+        var facts: [String] = []
+        if let estimate = table.rowCountEstimate { facts.append("≈ " + L10n.plural("row_count", count: estimate)) }
+        if !table.primaryKeyColumns.isEmpty {
+            facts.append(L10n.format("Key: %@", table.primaryKeyColumns.map(\.name).joined(separator: ", ")))
+        }
+        return facts.joined(separator: " · ")
     }
 
     private var loadingDatabaseMessage: String {

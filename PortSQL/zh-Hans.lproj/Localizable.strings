@@ -1661,3 +1661,7 @@
 "Running %1$d of %2$d" = "正在运行 %1$d/%2$d";
 "Show in Editor" = "在编辑器中显示";
 "Statement %1$d of %2$d failed" = "语句 %1$d/%2$d 失败";
+"Export Results" = "导出结果";
+"Key: %@" = "键：%@";
+"Shows the ORDER BY field" = "显示 ORDER BY 字段";
+"Transactions" = "事务";

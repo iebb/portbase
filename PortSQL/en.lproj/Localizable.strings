@@ -1661,3 +1661,7 @@
 "Running %1$d of %2$d" = "Running %1$d of %2$d";
 "Show in Editor" = "Show in Editor";
 "Statement %1$d of %2$d failed" = "Statement %1$d of %2$d failed";
+"Export Results" = "Export Results";
+"Key: %@" = "Key: %@";
+"Shows the ORDER BY field" = "Shows the ORDER BY field";
+"Transactions" = "Transactions";

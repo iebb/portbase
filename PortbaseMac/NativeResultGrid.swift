@@ -99,7 +99,7 @@ struct GridCollectionBridge: NSViewRepresentable {
                 column.title = result.columns[index].name
                 column.minWidth = 64; column.maxWidth = 800
                 column.width = configuration.widths[index].map { CGFloat($0) } ?? Self.naturalWidth(result: result, column: index, headerStyle: headerStyle)
-                column.headerCell.font = PortbaseFonts.codeFont(TypeSize.detail, bold: true)
+                column.headerCell.font = PortbaseFonts.codeFont(TypeSize.detail)
                 table.addTableColumn(column)
             }
         }
@@ -120,7 +120,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             // Two lines share the header's height, so they're set a little smaller.
             let below = headerStyle == .typeBelow
             header.append(NSAttributedString(string: name + arrow,
-                                             attributes: [.font: PortbaseFonts.codeFont(below ? TypeSize.caption : TypeSize.detail, bold: true), .foregroundColor: NSColor.labelColor]))
+                                             attributes: [.font: PortbaseFonts.codeFont(below ? TypeSize.caption : TypeSize.detail), .foregroundColor: NSColor.labelColor]))
             if !type.isEmpty, headerStyle != .nameOnly {
                 header.append(NSAttributedString(string: (below ? "\n" : "  ") + type.lowercased(),
                                                  attributes: [.font: PortbaseFonts.codeFont(below ? TypeSize.micro - 1 : TypeSize.micro), .foregroundColor: NSColor.tertiaryLabelColor]))
@@ -184,7 +184,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             field.drawsBackground = false
             container.wantsLayer = true
             if let position = parent.visibleColumns.firstIndex(of: index), parent.selection?.contains(row: row, column: position) == true {
-                container.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15).cgColor
+                container.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
             } else if pending {
                 container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.22).cgColor
             } else { container.layer?.backgroundColor = nil }

@@ -258,7 +258,8 @@ struct ResultGridView: View {
 #if canImport(UIKit)
         max(44, UIFont.preferredFont(forTextStyle: .footnote).lineHeight + 22)
 #else
-        30
+        // Desktop density, as TablePlus and DataGrip: touch targets don't apply to a pointer.
+        24
 #endif
     }
     private var configurationKey: String? {
@@ -271,26 +272,34 @@ struct ResultGridView: View {
             if let leadingAccessory { leadingAccessory }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: Spacing.s) {
+                    // Icons with tooltips rather than a sentence of buttons; VoiceOver still reads each title.
                     Button { focusedColumn = nil; showsColumns = true } label: {
                         Label("Columns", systemImage: "tablecells")
                     }
-                    .frame(minHeight: controlHeight)
+                    .frame(minWidth: controlHeight, minHeight: controlHeight)
+                    .help(L10n.text("Columns"))
                     Button { showsFilter = true } label: {
                         Label("Filter Loaded Rows", systemImage: filter.isActive ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
                     }
-                    .frame(minHeight: controlHeight)
+                    .frame(minWidth: controlHeight, minHeight: controlHeight)
+                    .help(L10n.text("Filter Loaded Rows"))
                     Button {
                         if let cell = selection?.end, visibleColumns.indices.contains(cell.column) {
                             inspect(row: cell.row, column: visibleColumns[cell.column])
                         }
                     } label: { Label("Inspect Cell", systemImage: "arrow.up.left.and.arrow.down.right") }
-                    .frame(minHeight: controlHeight).disabled(selection == nil)
+                    .frame(minWidth: controlHeight, minHeight: controlHeight).disabled(selection == nil)
+                    .help(L10n.text("Inspect Cell"))
+#if canImport(UIKit)
+                    // Touch has no Shift-click, so a range is one toggle away; a keyboard or trackpad doesn't need it.
                     Toggle(isOn: $extendsSelection) {
                         Label("Range", systemImage: "rectangle.dashed")
                     }
                     .toggleStyle(.button)
-                    .frame(minHeight: controlHeight)
+                    .frame(minWidth: controlHeight, minHeight: controlHeight)
                     .accessibilityLabel("Extend cell selection")
+                    .help(L10n.text("Extend cell selection"))
+#endif
                     Menu {
                         Button("Copy Selected Cells") { copySelection() }.disabled(selection == nil)
                         Button("Copy with Headers") { copySelection(headers: true) }.disabled(selection == nil)
@@ -304,9 +313,12 @@ struct ResultGridView: View {
                         Label("Copy", systemImage: "doc.on.doc")
                     }
                     .menuStyle(.button)
+                    .menuIndicator(.hidden)
+                    .help(L10n.text("Copy"))
                     .disabled(selection == nil && result.rows.isEmpty)
                 }
                 .buttonStyle(.portbaseToolbar)
+                .labelStyle(.iconOnly)
                 .font(.rowDetail)
 #if os(macOS)
                 .font(.bodyText).padding(.horizontal, Spacing.s)
@@ -827,6 +839,10 @@ private struct GridCollectionBridge: UIViewRepresentable {
             coordinator?.moveSelection(row: row, column: column, extend: extend)
         }
         view.editSelection = { [weak coordinator = context.coordinator] in coordinator?.editSelectedCell() }
+        view.extendSelection = { [weak coordinator = context.coordinator] path, starting in coordinator?.dragSelect(to: path, starting: starting) }
+        let drag = UIPanGestureRecognizer(target: view, action: #selector(ResultCollectionView.pointerDragged(_:)))
+        drag.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirectPointer.rawValue)]
+        view.addGestureRecognizer(drag)
         context.coordinator.collectionView = view
         return view
     }
@@ -888,7 +904,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
         static let headerColor = UIColor(PortSQLPalette.sunken)
         static let pendingColor = UIColor.systemOrange.withAlphaComponent(0.2)
         static let rowColor = UIColor(PortSQLPalette.surface)
-        static let stripeColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(rgb: 0x191D27) : UIColor(rgb: 0xF8F9FC) }
+        static let stripeColor = UIColor { $0.userInterfaceStyle == .dark ? UIColor(rgb: 0x161A23) : UIColor(rgb: 0xFAFBFC) }
         var parent: GridCollectionBridge
         weak var collectionView: ResultCollectionView?
         private var editor: UITextField?
@@ -908,12 +924,13 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let header = path.section == 0
             let rowNumber = path.item == 0
             let selected = !header && !rowNumber && parent.selection?.contains(row: path.section - 1, column: path.item - 1) == true
-            cell.backgroundColor = selected ? UIColor(PortSQLPalette.accent).withAlphaComponent(0.19)
-                : (header || rowNumber ? Self.headerColor : (path.section.isMultiple(of: 2) ? Self.stripeColor : Self.rowColor))
+            // Only the header row is shaded; row numbers sit on the row's own background.
+            cell.backgroundColor = selected ? UIColor(PortSQLPalette.accent).withAlphaComponent(0.12)
+                : (header ? Self.headerColor : (path.section.isMultiple(of: 2) ? Self.stripeColor : Self.rowColor))
             let pending = !header && !rowNumber && parent.visibleColumns.indices.contains(path.item - 1)
                 && parent.pendingKeys.contains(ResultGridCellKey(row: path.section - 1, column: parent.visibleColumns[path.item - 1]))
             if pending && !selected { cell.backgroundColor = Self.pendingColor }
-            cell.label.font = header ? PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1)
+            cell.label.font = header ? PortbaseFonts.codeFont(TypeSize.caption, textStyle: .caption1)
                 : PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
             cell.label.textColor = header || rowNumber ? .secondaryLabel : .label
             cell.label.textAlignment = rowNumber ? .center : .left
@@ -935,7 +952,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
                 let sorted = parent.sortedColumn == column.name
                 cell.symbol.image = parent.primaryKeys.contains(column.name) ? UIImage(systemName: "key.fill") : nil
                 let title = NSMutableAttributedString(string: column.name + (sorted ? (parent.sortDirection == "DESC" ? " ↓" : " ↑") : ""),
-                                                      attributes: [.font: PortbaseFonts.codeFont(TypeSize.caption, bold: true, textStyle: .caption1),
+                                                      attributes: [.font: PortbaseFonts.codeFont(TypeSize.caption, textStyle: .caption1),
                                                                    .foregroundColor: UIColor.label])
                 // The column's type beside or under its name, in a quieter style, or hidden, per the setting.
                 if !column.type.isEmpty, parent.headerStyle != .nameOnly {
@@ -1098,7 +1115,18 @@ private struct GridCollectionBridge: UIViewRepresentable {
         func select(_ path: IndexPath) {
             guard path.section > 0, path.item > 0 else { return }
             let cell = ResultGridSelection.Cell(row: path.section - 1, column: path.item - 1)
-            parent.selection = ResultGridSelection(anchor: parent.extendsSelection ? (parent.selection?.anchor ?? cell) : cell, end: cell)
+            let extend = parent.extendsSelection || collectionView?.isShiftHeld == true
+            parent.selection = ResultGridSelection(anchor: extend ? (parent.selection?.anchor ?? cell) : cell, end: cell)
+        }
+
+        /// A pointer drag starts a range at the cell it begins on and stretches it to the current one.
+        func dragSelect(to path: IndexPath, starting: Bool) {
+            guard path.section > 0, path.item > 0 else { return }
+            let cell = ResultGridSelection.Cell(row: path.section - 1, column: path.item - 1)
+            if starting { endEditing(commit: true) }
+            let anchor = starting ? cell : (parent.selection?.anchor ?? cell)
+            guard parent.selection != ResultGridSelection(anchor: anchor, end: cell) else { return }
+            parent.selection = ResultGridSelection(anchor: anchor, end: cell)
         }
 
         func copySelectedCells() {
@@ -1278,6 +1306,9 @@ private final class GridCellEditorField: UITextField {
 }
 
 private final class ResultCollectionView: UICollectionView {
+    /// Whether Shift is held on a hardware keyboard, so a tap extends the selection as it does on the Mac.
+    private(set) var isShiftHeld = false
+    var extendSelection: ((IndexPath, Bool) -> Void)?
     var copySelection: (() -> Void)?
     var selectAllCells: (() -> Void)?
     var moveSelection: ((Int, Int, Bool) -> Void)?
@@ -1297,6 +1328,24 @@ private final class ResultCollectionView: UICollectionView {
         return editing + arrows + [edit]
     }
     @objc private func editSelectedCell() { editSelection?() }
+    override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        isShiftHeld = event?.modifierFlags.contains(.shift) ?? false
+        super.pressesBegan(presses, with: event)
+    }
+    override func pressesEnded(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        isShiftHeld = event?.modifierFlags.contains(.shift) ?? false
+        super.pressesEnded(presses, with: event)
+    }
+    override func pressesCancelled(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
+        isShiftHeld = false
+        super.pressesCancelled(presses, with: event)
+    }
+    /// Dragging with a trackpad or mouse selects a range; touch keeps scrolling the grid.
+    @objc func pointerDragged(_ recognizer: UIPanGestureRecognizer) {
+        guard recognizer.state == .began || recognizer.state == .changed,
+              let path = indexPathForItem(at: recognizer.location(in: self)) else { return }
+        extendSelection?(path, recognizer.state == .began)
+    }
     @objc private func copyCells() { copySelection?() }
     @objc private func selectAllCellsCommand() { selectAllCells?() }
     @objc private func moveGridSelection(_ command: UIKeyCommand) {

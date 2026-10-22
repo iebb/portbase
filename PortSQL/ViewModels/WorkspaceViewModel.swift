@@ -1040,6 +1040,12 @@ final class WorkspaceViewModel: ObservableObject {
         querySelectionLength = range.length
     }
 
+    /// Whether the results panel has anything to show: rows, a summary, an error, or a run in progress.
+    var hasResultsToShow: Bool {
+        isRunning || errorMessage != nil || !resultSets.isEmpty || failedStatement != nil
+            || !result.columns.isEmpty || result.documents != nil || result.affectedRowCount != nil || result.generatedMutation != nil
+    }
+
     func selectResult(_ index: Int) {
         guard proceedDiscardingPendingEdits({ [weak self] in self?.selectResult(index) }) else { return }
         guard resultSets.indices.contains(index) else { return }

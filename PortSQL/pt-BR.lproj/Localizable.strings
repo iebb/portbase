@@ -1661,3 +1661,7 @@
 "Running %1$d of %2$d" = "Executando %1$d de %2$d";
 "Show in Editor" = "Mostrar no editor";
 "Statement %1$d of %2$d failed" = "A instrução %1$d de %2$d falhou";
+"Export Results" = "Exportar resultados";
+"Key: %@" = "Chave: %@";
+"Shows the ORDER BY field" = "Mostra o campo ORDER BY";
+"Transactions" = "Transações";

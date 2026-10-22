@@ -337,7 +337,7 @@ struct DesktopWorkspaceView: View {
                                        onDelete: { deletingProfile = $0 })
                 case .charts: NavigationStack { VisualizerView() }
                 case .queries: LibrarySheetView(onOpened: { show(.console) })
-                case .activity: HomeView(onNavigate: navigate, onSearch: { showsPalette = true })
+                case .activity: HomeView(onNavigate: navigate)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1160,11 +1160,7 @@ private struct DesktopSQLEditor: View {
             HStack(spacing: Spacing.s) {
                 Text(workspace.editorPositionLabel).monospacedDigit().foregroundStyle(.secondary)
                 Spacer()
-                if let error = workspace.errorMessage {
-                    Label(ConnectionIssue.isConnectionProblem(error) ? ConnectionIssue.classify(error).title : error, systemImage: "xmark.octagon.fill")
-                        .foregroundStyle(.red).lineLimit(1).truncationMode(.tail).help(error)
-                        .layoutPriority(-1)
-                }
+                // A failed run's error shows once, above its results, rather than here as well.
                 // Warnings about the text, like an unknown table, as DataGrip's inspections show; general tips stay quiet here.
                 if workspace.errorMessage == nil, isSQL, let hint = workspace.hints.first(where: { $0.severity != .info }) {
                     let others = workspace.hints.filter { $0.severity != .info }.count - 1
@@ -1173,8 +1169,11 @@ private struct DesktopSQLEditor: View {
                         .help(workspace.hints.filter { $0.severity != .info }.map { $0.title + " — " + $0.message }.joined(separator: "\n"))
                         .layoutPriority(-1)
                 }
-                if let execution = workspace.lastExecution { ExecutionStatusChip(entry: execution) }
-                PortbaseChip(title: isSQL ? "SQL" : workspace.usesJSONEditor ? "JSON" : "Redis", tint: .secondary)
+                if let execution = workspace.lastExecution, execution.outcome != .failed {
+                    Text(verbatim: [execution.outcome == .cancelled ? execution.outcome?.title : nil,
+                                    execution.duration.map { WorkspaceActivityService.durationLabel($0) }].compactMap { $0 }.joined(separator: " · "))
+                        .monospacedDigit().foregroundStyle(.secondary)
+                }
             }.font(.rowDetail).portbaseBar(Sizes.statusBar)
         }
         .alert("Go to Line", isPresented: $showsGoToLine) {
@@ -1402,7 +1401,9 @@ private struct DesktopResultsView: View {
                     PortbaseEmptyState(title: L10n.text("Statement executed"), message: workspace.result.executionSummary, systemImage: "checkmark.circle")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    PortbaseEmptyState(title: L10n.text("No live rows yet"), message: L10n.text("Choose a table or run a query to see rows here."), systemImage: "tablecells")
+                    // A quiet hint, not an illustration: the pane is a work area waiting for a query.
+                    Text("Run a query to see results here.")
+                        .font(.rowDetail).foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)

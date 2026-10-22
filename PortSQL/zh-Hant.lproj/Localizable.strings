@@ -1661,3 +1661,7 @@
 "Running %1$d of %2$d" = "正在執行 %1$d/%2$d";
 "Show in Editor" = "在編輯器中顯示";
 "Statement %1$d of %2$d failed" = "陳述式 %1$d/%2$d 失敗";
+"Export Results" = "輸出結果";
+"Key: %@" = "鍵：%@";
+"Shows the ORDER BY field" = "顯示 ORDER BY 欄位";
+"Transactions" = "交易";

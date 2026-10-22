@@ -22,6 +22,8 @@ enum WorkspaceLayout {
 struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Whether the trailing panel has anything to show; without it the leading one takes the height.
+    var showsTrailing = true
     @ViewBuilder var leading: Leading
     @ViewBuilder var trailing: Trailing
 
@@ -34,19 +36,27 @@ struct AdaptiveWorkspaceView<Leading: View, Trailing: View>: View {
 #endif
             let columns = WorkspaceLayout.usesColumns(width: geometry.size.width, height: geometry.size.height,
                 regularWidth: regularWidth, accessibilitySize: dynamicTypeSize.isAccessibilitySize)
-            let flat = !regularWidth
-            let layout = columns ? AnyLayout(HStackLayout(alignment: .top, spacing: Spacing.l))
-                                 : AnyLayout(VStackLayout(alignment: .leading, spacing: flat ? 0 : Spacing.l))
+            // Panels are full-width sections between hairlines at every width, not cards inside cards.
+            let flat = true
+            let layout = columns ? AnyLayout(HStackLayout(alignment: .top, spacing: 0))
+                                 : AnyLayout(VStackLayout(alignment: .leading, spacing: 0))
             // With a regular width, the results take the rest of the screen: the full column side by
             // side, or what's left under the editor when stacked.
             let fills = regularWidth && !dynamicTypeSize.isAccessibilitySize
             ScrollView {
                 layout {
-                    // Stacked, the editor keeps its own height and the results get the rest.
-                    leading.frame(maxWidth: .infinity, alignment: .topLeading)
-                        .fixedSize(horizontal: false, vertical: fills && !columns)
-                    trailing.frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .topLeading)
-                        .environment(\.workspaceFillsHeight, fills)
+                    if showsTrailing {
+                        // Stacked, the editor keeps its own height and the results get the rest.
+                        leading.frame(maxWidth: .infinity, alignment: .topLeading)
+                            .fixedSize(horizontal: false, vertical: fills && !columns)
+                        if columns { Rectangle().fill(PortSQLPalette.stroke).frame(width: 1).frame(maxHeight: .infinity) }
+                        trailing.frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .topLeading)
+                            .environment(\.workspaceFillsHeight, fills)
+                    } else {
+                        // Nothing to show yet: no empty results panel, and the editor gets the room.
+                        leading.frame(maxWidth: .infinity, maxHeight: fills ? .infinity : nil, alignment: .topLeading)
+                            .environment(\.workspaceFillsHeight, fills)
+                    }
                 }
                 .environment(\.workspaceIsFlat, flat)
                 .padding(flat ? 0 : Spacing.l)

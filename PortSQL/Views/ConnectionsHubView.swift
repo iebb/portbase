@@ -68,7 +68,8 @@ struct ConnectionsHubView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, Spacing.xxl)
                     } else {
-                        foldersSection
+                        // No empty Folders heading until there's a folder; New Folder is in the list's menu too.
+                        if !bookmarks.folders.isEmpty { foldersSection }
                         connectionsSection
                     }
                     Label(ConnectionSecretLocation.serverListNote, systemImage: "icloud")
@@ -339,6 +340,11 @@ struct ConnectionsHubView: View {
 
     private var filterMenu: some View {
         Menu {
+            Button("New Folder", systemImage: "folder.badge.plus") {
+                folderName = ""
+                namingFolder = .new
+            }
+            Divider()
             // Environments are a connection's safety setting; they filter here, and folders group.
             let environments = ConnectionEnvironment.allCases.filter { environment in
                 environment != .none && bookmarks.bookmarks.contains { $0.environment == environment }

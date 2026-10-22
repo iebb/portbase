@@ -64,7 +64,7 @@ struct RootView: View {
         TabView(selection: $selectedTab) {
             Tab("Home", systemImage: "house.fill", value: RootTab.home) {
                 NavigationStack {
-                    HomeView(onNavigate: navigate, onSearch: { showsPalette = true })
+                    HomeView(onNavigate: navigate)
                         .navigationTitle("Home")
                         .portbaseTitleDisplayMode(.large)
                         .toolbar {
@@ -251,7 +251,7 @@ struct WorkbenchView: View {
 #endif
 
     var body: some View {
-        AdaptiveWorkspaceView {
+        AdaptiveWorkspaceView(showsTrailing: workspace.hasResultsToShow) {
             if workspace.isDocumentDatabase { MongoQueryEditorCard() }
             else if workspace.selectedBookmark?.engine == .redis { RedisQueryEditorCard() }
             else if workspace.selectedBookmark?.engine == .elasticsearch { ElasticsearchQueryEditorCard() }
@@ -447,6 +447,8 @@ struct QueryEditorCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @ScaledMetric(relativeTo: .body) private var editorMinimumHeight: CGFloat = 160
+    /// Set when there are no results yet, so the editor grows into the space they'd take.
+    @Environment(\.workspaceFillsHeight) private var fillsHeight
     @State private var isShowingExpandedEditor = false
     @State private var isShowingLibrarySheet = false
 
@@ -498,49 +500,26 @@ struct QueryEditorCard: View {
         .buttonStyle(.portbasePrimary)
     }
 
+    /// Run, Run All, Format, and Explain stay in view; everything else is one menu away, rather than
+    /// scrolling off the edge of a row where nothing says it's there.
     private var actionSection: some View {
         HStack(spacing: Spacing.s) {
             runButton
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: Spacing.s) {
-                    if workspace.isSQLDatabase {
-                        actionButton("Run All", systemImage: "play.rectangle", labeled: true, disabled: workspace.isRunning || workspace.selectedBookmark == nil) {
-                            workspace.runQuery(entireBuffer: true)
-                        }
-                    }
-                    actionButton("Format", systemImage: "text.alignleft", labeled: true, disabled: trimmedQuery.isEmpty) {
-                        workspace.formatQuery()
-                    }
-                    if workspace.isSQLDatabase || workspace.isDocumentDatabase {
-                        actionButton("Explain", systemImage: "waveform.path.ecg", labeled: true, disabled: workspace.selectedBookmark == nil || trimmedQuery.isEmpty) {
-                            workspace.runExplain()
-                        }
-                    }
-                    if workspace.isSQLDatabase { SQLTemplateMenu() }
-                    actionButton("SAVE", systemImage: "bookmark", disabled: trimmedQuery.isEmpty) {
-                        workspace.saveSnippet()
-                    }
-                    exportButton
-                    DataTransferMenu()
-                    ScriptFilesButton()
-                    if workspace.isDocumentDatabase { MongoIndexesButton() }
-                    ConsoleTransactionControls()
-                    if workspace.isSchemaCachingEnabled {
-                        actionButton("SCHEMA", systemImage: "arrow.clockwise", disabled: workspace.activeDatabaseName == nil || workspace.isLoadingSchema) {
-                            workspace.refreshSchemaCatalog()
-                        }
-                    }
-                }
-                .padding(.vertical, Spacing.xxxs)
-            }
-            .scrollClipDisabled()
-            .mask {
-                // Fades the scrolling tools under the fixed buttons instead of cutting them off.
-                HStack(spacing: 0) {
-                    Rectangle()
-                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: Spacing.l)
+            if workspace.isSQLDatabase {
+                actionButton("Run All", systemImage: "play.rectangle", labeled: true, disabled: workspace.isRunning || workspace.selectedBookmark == nil) {
+                    workspace.runQuery(entireBuffer: true)
                 }
             }
+            actionButton("Format", systemImage: "text.alignleft", labeled: true, disabled: trimmedQuery.isEmpty) {
+                workspace.formatQuery()
+            }
+            if workspace.isSQLDatabase || workspace.isDocumentDatabase {
+                actionButton("Explain", systemImage: "waveform.path.ecg", labeled: true, disabled: workspace.selectedBookmark == nil || trimmedQuery.isEmpty) {
+                    workspace.runExplain()
+                }
+            }
+            Spacer(minLength: 0)
+            ConsoleCommitControls()
             Button {
                 workspace.isShowingAssistant = true
             } label: {
@@ -548,20 +527,7 @@ struct QueryEditorCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Ask AI")
-            Button {
-                isShowingLibrarySheet = true
-            } label: {
-                Image(systemName: "books.vertical").toolIconChrome()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open query library")
-            Button {
-                isShowingExpandedEditor = true
-            } label: {
-                Image(systemName: "arrow.up.left.and.arrow.down.right").toolIconChrome()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(L10n.text(workspace.usesJSONEditor ? "Open JSON editor" : "Open full screen SQL editor"))
+            ConsoleMoreMenu(openLibrary: { isShowingLibrarySheet = true }, openFullScreen: { isShowingExpandedEditor = true })
         }
     }
 
@@ -574,30 +540,7 @@ struct QueryEditorCard: View {
                 PortbaseChip(title: L10n.text("Selection"), systemImage: "selection.pin.in.out", tint: PortSQLPalette.accent)
             }
             Spacer(minLength: 0)
-            PortbaseChip(title: workspace.usesJSONEditor ? "JSON" : workspace.isSQLDatabase ? "SQL" : "Redis", tint: .secondary)
         }
-    }
-
-    private var exportButton: some View {
-        Menu {
-            if let csvURL = workspace.exportResultURL(format: .csv) {
-                ShareLink(item: csvURL) {
-                    Label("CSV", systemImage: "tablecells")
-                }
-            }
-            if let jsonURL = workspace.exportResultURL(format: .json) {
-                ShareLink(item: jsonURL) {
-                    Label("JSON", systemImage: "curlybraces")
-                }
-            }
-        } label: {
-            Label("EXPORT", systemImage: "square.and.arrow.up")
-                .labelStyle(.iconOnly)
-                .toolIconChrome()
-        }
-        .menuIndicator(.hidden)
-        .buttonStyle(.plain)
-        .disabled(workspace.result.columns.isEmpty && workspace.result.documents == nil)
     }
 
     private var editorSection: some View {
@@ -613,7 +556,7 @@ struct QueryEditorCard: View {
                 errorRange: workspace.queryErrorRange,
                 engine: workspace.isSQLDatabase ? workspace.selectedBookmark?.engine : nil
             )
-                .frame(minHeight: min(max(editorMinimumHeight, 160), 360))
+                .frame(minHeight: min(max(editorMinimumHeight, 160), 360), maxHeight: fillsHeight ? .infinity : nil)
 
             if workspace.queryText.isEmpty {
                 Text(verbatim: workspace.editorPlaceholder)
@@ -661,9 +604,10 @@ struct QueryEditorCard: View {
                                   onReviewCertificate: { workspace.reviewServerCertificate() })
         }
 
-        ForEach(workspace.hints) { hint in
-            if flat {
-                // On phones, a compact line per hint instead of a banner.
+        // One line per hint, not a banner. Once a run has failed, its error says what's wrong and the
+        // advance warnings step aside rather than repeat it.
+        if workspace.errorMessage == nil {
+            ForEach(workspace.hints) { hint in
                 Label {
                     (Text(hint.title).font(.rowDetail.weight(.semibold)) + Text(verbatim: "  ") + Text(hint.message).font(.captionText).foregroundColor(.secondary))
                         .lineLimit(2)
@@ -672,12 +616,6 @@ struct QueryEditorCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .accessibilityElement(children: .combine)
-            } else {
-                StatusBanner(
-                    title: hint.title,
-                    message: hint.message,
-                    tint: hint.severity.tint
-                )
             }
         }
     }
@@ -746,6 +684,53 @@ struct QueryEditorCard: View {
 }
 
 /// The duration and outcome of the most recent console execution.
+/// What a result is, in one quiet line: "100 rows · 8 columns · 86 ms · Editable". Only a truncated
+/// result is colored, since that's the one fact that needs attention; a failure has its own error line.
+struct ResultFactsLine: View {
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+
+    var body: some View {
+        let result = workspace.result
+        var facts: [String] = []
+        if let documents = result.documents {
+            facts.append(L10n.format("Documents: %d", documents.count))
+        } else {
+            facts.append(L10n.plural("row_count", count: result.rows.count))
+        }
+        if !result.columns.isEmpty { facts.append(L10n.plural("column_count", count: result.columns.count)) }
+        if let execution = workspace.lastExecution, !workspace.isShowingExplorerResult {
+            if execution.outcome == .cancelled { facts.append(execution.outcome?.title ?? "") }
+            if execution.outcome != .failed, let duration = execution.duration { facts.append(WorkspaceActivityService.durationLabel(duration)) }
+        }
+        if workspace.canEditCurrentRows { facts.append(L10n.text("Editable")) }
+        else if workspace.selectedBookmark?.isReadOnly == true { facts.append(L10n.text("Read-only")) }
+        let line = Text(verbatim: facts.joined(separator: " · ")).foregroundColor(.secondary)
+        return (result.isTruncated == true ? line + Text(verbatim: " · ") .foregroundColor(.secondary) + Text(L10n.text("Result truncated")).foregroundColor(.orange) : line)
+            .font(.captionText.monospacedDigit())
+            .lineLimit(1)
+            .truncationMode(.middle)
+    }
+}
+
+/// A failed run's error as one compact line, selectable so it can be copied into a search.
+struct ExecutionErrorLine: View {
+    let message: String
+
+    var body: some View {
+        Label {
+            Text(message)
+                .font(.captionText)
+                .foregroundStyle(PortSQLPalette.ink)
+                .lineLimit(4)
+                .textSelection(.enabled)
+        } icon: {
+            Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel(L10n.text("Execution failed") + ", " + message)
+    }
+}
+
 struct ExecutionStatusChip: View {
     let entry: QueryHistoryEntry
 
@@ -906,11 +891,7 @@ struct ResultsCard: View {
                         ConnectionIssueBanner(message: errorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
                                   onReviewCertificate: { workspace.reviewServerCertificate() })
                     } else {
-                        StatusBanner(
-                            title: L10n.text("Execution failed"),
-                            message: errorMessage,
-                            tint: .red
-                        )
+                        ExecutionErrorLine(message: errorMessage)
                     }
                 }
 
@@ -1062,29 +1043,7 @@ struct ResultsCard: View {
     }
 
     private var resultChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: Spacing.xs) {
-                if let documents = workspace.result.documents {
-                    PortbaseChip(title: L10n.format("Documents: %d", documents.count), systemImage: "doc.on.doc", tint: PortSQLPalette.accent)
-                } else {
-                    PortbaseChip(title: L10n.plural("row_count", count: workspace.result.rows.count), systemImage: "list.number", tint: PortSQLPalette.accent)
-                }
-                if hasTabularResult {
-                    PortbaseChip(title: L10n.plural("column_count_short", count: workspace.result.columns.count), systemImage: "tablecells", tint: .teal)
-                }
-                if workspace.result.isTruncated == true {
-                    PortbaseChip(title: L10n.text("Result truncated"), systemImage: "exclamationmark.triangle.fill", tint: .orange)
-                }
-                if let execution = workspace.lastExecution, !workspace.isShowingExplorerResult {
-                    ExecutionStatusChip(entry: execution)
-                }
-                if workspace.canEditCurrentRows {
-                    PortbaseChip(title: L10n.text("Editable"), systemImage: "pencil", tint: .green)
-                } else if workspace.selectedBookmark?.isReadOnly == true {
-                    PortbaseChip(title: L10n.text("Read-only"), systemImage: "lock.fill", tint: .secondary)
-                }
-            }
-        }
+        ResultFactsLine()
     }
 
     private var resultTable: some View {

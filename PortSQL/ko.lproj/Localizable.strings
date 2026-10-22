@@ -1661,3 +1661,7 @@
 "Running %1$d of %2$d" = "실행 중 %1$d/%2$d";
 "Show in Editor" = "편집기에서 보기";
 "Statement %1$d of %2$d failed" = "문 %1$d/%2$d 실패";
+"Export Results" = "결과 내보내기";
+"Key: %@" = "키: %@";
+"Shows the ORDER BY field" = "ORDER BY 필드를 표시합니다";
+"Transactions" = "트랜잭션";

@@ -1661,3 +1661,7 @@
 "Running %1$d of %2$d" = "Выполняется %1$d из %2$d";
 "Show in Editor" = "Показать в редакторе";
 "Statement %1$d of %2$d failed" = "Инструкция %1$d из %2$d не выполнена";
+"Export Results" = "Экспортировать результаты";
+"Key: %@" = "Ключ: %@";
+"Shows the ORDER BY field" = "Показывает поле ORDER BY";
+"Transactions" = "Транзакции";

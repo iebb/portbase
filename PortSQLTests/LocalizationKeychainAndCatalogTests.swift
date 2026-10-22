@@ -105,7 +105,7 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
         let localeSpecificInvariantKeys: [String: Set<String>] = [
             "de": ["FORMAT", "EXPLAIN", "SCHEMA", "Server", "Name", "Host", "Port", "Auto", "Filter", "Staging", "Orange", "Indigo", "Alias", "Join", "Operator", "Schema", "Snippet", "Parameter %@", "Maximum", "Minimum"],
             "es": ["Host", "Auto", "No", "Color", "Alias", "Join"],
-            "fr": ["Mode", "Port", "Page %d", "Auto", "Date", "Production", "Orange", "Indigo", "Alias", "Maximum", "Minimum"],
+            "fr": ["Mode", "Port", "Page %d", "Auto", "Date", "Production", "Orange", "Indigo", "Alias", "Maximum", "Minimum", "Transactions"],
             "ja": [],
             "ko": [],
             "pt-BR": ["Host", "Auto", "Alias"],

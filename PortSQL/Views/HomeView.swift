@@ -8,7 +8,6 @@ struct HomeView: View {
     @EnvironmentObject private var library: WorkspaceLibraryStore
     @EnvironmentObject private var consoles: ConsoleStore
     let onNavigate: (PortbaseDestination) -> Void
-    var onSearch: () -> Void = {}
 
     @State private var now = Date.now
     @State private var createsSQLite = false
@@ -177,10 +176,9 @@ struct HomeView: View {
     }
 
     @ViewBuilder private var quickActionButtons: some View {
+        // Only what isn't already a tap away: Search is in the toolbar and Charts is a tab.
         QuickAction(title: L10n.text("New Query"), systemImage: "plus.rectangle.on.rectangle") { consoles.add(); onNavigate(.console) }
-        QuickAction(title: L10n.text("Search"), systemImage: "magnifyingglass") { onSearch() }
         QuickAction(title: L10n.text("Query Library"), systemImage: "books.vertical") { onNavigate(.library) }
-        QuickAction(title: L10n.text("Charts"), systemImage: "chart.bar.xaxis") { onNavigate(.charts) }
     }
 
     // MARK: Recent queries
