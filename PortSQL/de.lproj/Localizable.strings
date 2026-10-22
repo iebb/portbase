@@ -1695,3 +1695,9 @@
 "Schema comparison: %1$@ → %2$@" = "Schemavergleich: %1$@ → %2$@";
 "This database" = "Diese Datenbank";
 "only in %@" = "nur in %@";
+"Folder name" = "Ordnername";
+"Move" = "Bewegen";
+"New Folder…" = "Neuer Ordner …";
+"Other Queries" = "Weitere Abfragen";
+"Remove from Folder" = "Aus Ordner entfernen";
+"The query moves into the new folder." = "Die Abfrage wird in den neuen Ordner bewegt.";

@@ -421,6 +421,9 @@ struct LibrarySheetView: View {
     @State private var editing: SavedQuerySnippet?
     @State private var contextError: String?
     @State private var showsStorage = false
+    /// The query a new folder is being named for.
+    @State private var filing: SavedQuerySnippet?
+    @State private var folderName = ""
     @FocusState private var searchFocused: Bool
 
     private var history: [QueryHistoryEntry] {
@@ -433,7 +436,7 @@ struct LibrarySheetView: View {
     private var snippets: [SavedQuerySnippet] {
         library.snippets.filter { snippet in
             (!currentConnectionOnly || snippet.bookmarkID == workspace.selectedBookmark?.id)
-                && matches([snippet.title, snippet.sql, snippet.note, snippet.database ?? ""])
+                && matches([snippet.title, snippet.sql, snippet.note, snippet.database ?? "", snippet.folder ?? ""])
         }
     }
     private func matches(_ fields: [String]) -> Bool {
@@ -585,17 +588,42 @@ struct LibrarySheetView: View {
                     }
                 }
             } else {
-                ForEach(snippets) { snippet in
-                    LibrarySnippetRow(snippet: snippet, open: { load(snippet) }, edit: { editing = snippet })
-                        .libraryRow()
-                        .contextMenu { snippetMenu(snippet) }
-                        .swipeActions { Button("Delete", role: .destructive) { delete(snippet) } }
+                // Folders first, each under its name; queries in no folder follow, headed only when folders exist.
+                let groups = SavedQueryGrouping.groups(snippets)
+                ForEach(groups, id: \.folder) { group in
+                    if groups.count > 1 || group.folder != nil {
+                        Label(group.folder ?? L10n.text("Other Queries"), systemImage: group.folder == nil ? "tray" : "folder")
+                            .font(.captionStrong)
+                            .foregroundStyle(PortSQLPalette.muted)
+                            .padding(.horizontal, Spacing.m)
+                            .padding(.top, group.folder == groups.first?.folder ? 0 : Spacing.m)
+                            .padding(.bottom, Spacing.xxs)
+                            .libraryRow()
+                            .accessibilityAddTraits(.isHeader)
+                    }
+                    ForEach(group.snippets) { snippet in
+                        LibrarySnippetRow(snippet: snippet, open: { load(snippet) }, edit: { editing = snippet })
+                            .libraryRow()
+                            .contextMenu { snippetMenu(snippet) }
+                            .swipeActions { Button("Delete", role: .destructive) { delete(snippet) } }
+                    }
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 0)
+        .alert("New Folder", isPresented: Binding(get: { filing != nil }, set: { if !$0 { filing = nil } })) {
+            TextField("Folder name", text: $folderName)
+            Button("Cancel", role: .cancel) { filing = nil }
+            Button("Move") {
+                if let filing { library.moveSnippet(filing.id, toFolder: folderName) }
+                filing = nil
+            }
+            .disabled(folderName.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            Text("The query moves into the new folder.")
+        }
         .overlay {
             if selection == .history ? history.isEmpty : snippets.isEmpty { emptyState }
         }
@@ -690,6 +718,16 @@ struct LibrarySheetView: View {
         Button("Load into Console", systemImage: "arrow.down.doc") { load(snippet) }
         Button("Edit", systemImage: "pencil") { editing = snippet }
         Button("Copy SQL", systemImage: "doc.on.doc") { PortbaseClipboard.copy(snippet.sql) }
+        Menu("Move to Folder", systemImage: "folder") {
+            ForEach(SavedQueryGrouping.folders(library.snippets), id: \.self) { folder in
+                Button(folder, systemImage: snippet.folder == folder ? "checkmark" : "folder") { library.moveSnippet(snippet.id, toFolder: folder) }
+            }
+            Button("New Folder…", systemImage: "folder.badge.plus") { folderName = ""; filing = snippet }
+            if snippet.folder != nil {
+                Divider()
+                Button("Remove from Folder", systemImage: "folder.badge.minus") { library.moveSnippet(snippet.id, toFolder: nil) }
+            }
+        }
         Divider()
         Button("Delete", systemImage: "trash", role: .destructive) { delete(snippet) }
     }

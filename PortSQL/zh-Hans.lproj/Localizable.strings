@@ -1695,3 +1695,9 @@
 "Schema comparison: %1$@ → %2$@" = "架构比较：%1$@ → %2$@";
 "This database" = "此数据库";
 "only in %@" = "仅在 %@";
+"Folder name" = "文件夹名称";
+"Move" = "移动";
+"New Folder…" = "新建文件夹…";
+"Other Queries" = "其他查询";
+"Remove from Folder" = "从文件夹中移除";
+"The query moves into the new folder." = "查询将移到新文件夹中。";

@@ -47,4 +47,21 @@ final class SchemaComparisonTests: XCTestCase {
         XCTAssertTrue(report.contains("~ x  int → bigint"))
         XCTAssertTrue(SchemaComparison.compare(source: [], target: []).isIdentical)
     }
+
+    func testSavedQueriesGroupByFolderWithUnfiledLast() {
+        let queries = [
+            SavedQuerySnippet(title: "a", sql: "SELECT 1", folder: "Reports"),
+            SavedQuerySnippet(title: "b", sql: "SELECT 2"),
+            SavedQuerySnippet(title: "c", sql: "SELECT 3", folder: "Admin"),
+            SavedQuerySnippet(title: "d", sql: "SELECT 4", folder: "  "),
+            SavedQuerySnippet(title: "e", sql: "SELECT 5", folder: "Reports"),
+        ]
+        let groups = SavedQueryGrouping.groups(queries)
+        XCTAssertEqual(groups.map(\.folder), ["Admin", "Reports", nil])
+        XCTAssertEqual(groups[1].snippets.map(\.title), ["a", "e"], "Order within a folder is kept")
+        XCTAssertEqual(groups[2].snippets.map(\.title), ["b", "d"], "A blank folder counts as none")
+        // Copies saved before folders existed still decode.
+        let old = #"{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","title":"t","sql":"SELECT 1","note":"","createdAt":0}"#
+        XCTAssertNil(try JSONDecoder().decode(SavedQuerySnippet.self, from: Data(old.utf8)).folder)
+    }
 }

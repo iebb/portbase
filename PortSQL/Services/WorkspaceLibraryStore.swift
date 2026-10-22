@@ -127,6 +127,14 @@ final class WorkspaceLibraryStore: ObservableObject {
         persistSnippets()
     }
 
+    /// Files a saved query in a folder, or takes it out of one with nil.
+    func moveSnippet(_ id: UUID, toFolder folder: String?) {
+        guard var snippet = snippets.first(where: { $0.id == id }) else { return }
+        let name = folder?.trimmingCharacters(in: .whitespacesAndNewlines)
+        snippet.folder = name?.isEmpty == false ? name : nil
+        updateSnippet(snippet)
+    }
+
     func deleteHistory(at offsets: IndexSet) {
         history.remove(atOffsets: offsets)
         persistHistory()

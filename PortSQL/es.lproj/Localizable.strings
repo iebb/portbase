@@ -1695,3 +1695,9 @@
 "Schema comparison: %1$@ → %2$@" = "Comparación de esquemas: %1$@ → %2$@";
 "This database" = "Esta base de datos";
 "only in %@" = "solo en %@";
+"Folder name" = "Nombre de la carpeta";
+"Move" = "Mover";
+"New Folder…" = "Nueva carpeta…";
+"Other Queries" = "Otras consultas";
+"Remove from Folder" = "Quitar de la carpeta";
+"The query moves into the new folder." = "La consulta se mueve a la carpeta nueva.";

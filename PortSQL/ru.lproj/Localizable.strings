@@ -1695,3 +1695,9 @@
 "Schema comparison: %1$@ → %2$@" = "Сравнение схем: %1$@ → %2$@";
 "This database" = "Эта база данных";
 "only in %@" = "только в %@";
+"Folder name" = "Имя папки";
+"Move" = "Переместить";
+"New Folder…" = "Новая папка…";
+"Other Queries" = "Другие запросы";
+"Remove from Folder" = "Убрать из папки";
+"The query moves into the new folder." = "Запрос будет перемещён в новую папку.";

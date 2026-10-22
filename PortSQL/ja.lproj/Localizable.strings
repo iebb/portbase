@@ -1695,3 +1695,9 @@
 "Schema comparison: %1$@ → %2$@" = "スキーマの比較：%1$@ → %2$@";
 "This database" = "このデータベース";
 "only in %@" = "%@のみ";
+"Folder name" = "フォルダ名";
+"Move" = "移動";
+"New Folder…" = "新規フォルダ…";
+"Other Queries" = "その他のクエリ";
+"Remove from Folder" = "フォルダから取り除く";
+"The query moves into the new folder." = "クエリは新しいフォルダに移動します。";

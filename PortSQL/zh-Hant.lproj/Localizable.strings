@@ -1695,3 +1695,9 @@
 "Schema comparison: %1$@ → %2$@" = "結構比較：%1$@ → %2$@";
 "This database" = "此資料庫";
 "only in %@" = "僅在 %@";
+"Folder name" = "檔案夾名稱";
+"Move" = "移動";
+"New Folder…" = "新增檔案夾…";
+"Other Queries" = "其他查詢";
+"Remove from Folder" = "從檔案夾中移除";
+"The query moves into the new folder." = "查詢將移到新的檔案夾中。";

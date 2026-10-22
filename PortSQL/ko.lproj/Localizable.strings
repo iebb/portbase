@@ -1695,3 +1695,9 @@
 "Schema comparison: %1$@ → %2$@" = "스키마 비교: %1$@ → %2$@";
 "This database" = "이 데이터베이스";
 "only in %@" = "%@에만 있음";
+"Folder name" = "폴더 이름";
+"Move" = "이동";
+"New Folder…" = "새로운 폴더…";
+"Other Queries" = "기타 쿼리";
+"Remove from Folder" = "폴더에서 제거";
+"The query moves into the new folder." = "쿼리가 새 폴더로 이동합니다.";

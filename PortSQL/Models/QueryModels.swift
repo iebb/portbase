@@ -348,6 +348,24 @@ struct SavedQuerySnippet: Identifiable, Codable, Hashable {
     var bookmarkID: UUID?
     var database: String?
     var engine: DatabaseEngine?
+    /// The folder the query is filed in, by name; nil for none. Optional, so older copies decode and
+    /// field-by-field sync keeps a folder change made on another device.
+    var folder: String?
+}
+
+/// Saved queries grouped for the library: each folder in name order, then the queries in no folder.
+enum SavedQueryGrouping {
+    static func groups(_ snippets: [SavedQuerySnippet]) -> [(folder: String?, snippets: [SavedQuerySnippet])] {
+        let grouped = Dictionary(grouping: snippets) { snippet in
+            snippet.folder.flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 }
+        }
+        let folders = grouped.keys.compactMap { $0 }.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        return folders.map { ($0, grouped[$0] ?? []) } + (grouped[nil].map { [(nil, $0)] } ?? [])
+    }
+
+    static func folders(_ snippets: [SavedQuerySnippet]) -> [String] {
+        groups(snippets).compactMap(\.folder)
+    }
 }
 
 struct QueryResultTable: Codable, Hashable {
