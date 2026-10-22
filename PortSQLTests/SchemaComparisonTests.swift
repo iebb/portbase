@@ -65,3 +65,27 @@ final class SchemaComparisonTests: XCTestCase {
         XCTAssertNil(try JSONDecoder().decode(SavedQuerySnippet.self, from: Data(old.utf8)).folder)
     }
 }
+
+/// Completion and inspection run as the user types, so their cost must not grow with the square of the
+/// schema or the script. The limits are loose enough for a slow test machine and far below the seconds a
+/// quadratic pass took on this input.
+final class EditorAssistPerformanceTests: XCTestCase {
+    func testCompletionAndInspectionStayFastOnLargeSchemasAndScripts() {
+        let catalog = (0..<2000).map { t in
+            SchemaTableDescriptor(schemaName: "shop", name: "table_\(t)", columns: (0..<40).map { c in
+                SchemaColumnDescriptor(name: c == 0 ? "id" : (c == 1 ? "customer_id" : "col_\(c)_value"), type: "int",
+                                       isNullable: c != 0, isPrimaryKey: c == 0, isUnique: c == 0)
+            }, rowCountEstimate: 1000)
+        }
+        let script = (0..<300).map { "SELECT t.col_\($0 % 30)_value, COUNT(*) FROM table_\($0) t WHERE t.id > \($0);" }.joined(separator: "\n")
+        func seconds(_ body: () -> Void) -> Double {
+            let start = CFAbsoluteTimeGetCurrent(); body(); return CFAbsoluteTimeGetCurrent() - start
+        }
+        XCTAssertLessThan(seconds { _ = SQLInspection.hints(for: script, catalog: catalog, engine: .mysql, cursor: 5000) }, 0.5)
+        XCTAssertLessThan(seconds { _ = SQLInspection.unknownColumns(in: script, catalog: catalog, engine: .mysql) }, 1.0)
+        let join = "SELECT * FROM table_7 t JOIN "
+        XCTAssertLessThan(seconds { _ = SQLCompletionEngine.complete(join, cursor: (join as NSString).length, catalog: catalog, activeDatabase: "shop", engine: .mysql) }, 0.5)
+        XCTAssertLessThan(seconds { _ = SQLCompletionEngine.clauseSuggestions("col_3", kind: .filter, table: catalog[7], catalog: catalog, activeDatabase: "shop", engine: .mysql) }, 0.1)
+        XCTAssertLessThan(seconds { _ = SQLEditorDecorations.marks(in: script, selection: NSRange(location: 5000, length: 0), engine: .mysql) }, 0.3)
+    }
+}

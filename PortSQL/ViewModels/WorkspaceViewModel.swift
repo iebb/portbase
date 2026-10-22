@@ -259,14 +259,19 @@ final class WorkspaceViewModel: ObservableObject {
 
             let completion = SQLCompletionEngine.complete(query, cursor: cursorOffset, catalog: catalog,
                                                           activeDatabase: activeDatabase, engine: engine, usage: usage)
+            // A newer keystroke has taken over; don't spend the time on hints nobody will see.
+            guard !Task.isCancelled else { return }
             // Unknown tables first: they're about this text and this database, not general advice.
             let hints = SQLInspection.hints(for: query, catalog: catalog, engine: engine, cursor: cursorOffset) + SQLAssistService.hints(for: query)
 
             await MainActor.run {
                 guard self.queryText == query, self.queryCursorOffset == cursorOffset else { return }
-                self.completion = completion
+                // Only changes are published: every assignment redraws each view watching the workspace.
+                if self.completion != completion { self.completion = completion }
                 self.completionSource = (query, cursorOffset)
-                self.hints = hints
+                let same = self.hints.count == hints.count
+                    && zip(self.hints, hints).allSatisfy { $0.title == $1.title && $0.message == $1.message && $0.severity == $1.severity }
+                if !same { self.hints = hints }
             }
         }
     }

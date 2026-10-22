@@ -1237,22 +1237,34 @@ private struct DesktopTableBrowser: View {
 }
 
 extension DesktopTableBrowser {
-    func clauseSuggestions(_ text: String, kind: ClauseHistoryStore.Kind) -> [SQLClauseSuggestion] {
-        guard workspace.isSQLDatabase, let table = workspace.selectedExplorerTable,
-              !text.trimmingCharacters(in: .whitespaces).isEmpty else { return [] }
-        return SQLCompletionEngine.clauseSuggestions(text, kind: kind == .filter ? .filter : .sort, table: table,
-                                                     catalog: workspace.schemaCatalog, activeDatabase: workspace.activeDatabaseName,
-                                                     engine: workspace.selectedBookmark?.engine ?? .postgresql, limit: 10)
-    }
-
-    /// A clause keyword and its field, styled like the sidebar's search field.
     func clauseField(_ keyword: String, text: Binding<String>, prompt: String, kind: ClauseHistoryStore.Kind) -> some View {
+        DesktopClauseField(keyword: keyword, text: text, prompt: prompt, kind: kind)
+    }
+}
+
+/// A clause keyword and its field, styled like the sidebar's search field. Typing stays in the field
+/// and reaches the workspace once it pauses, so each keystroke doesn't redraw the whole window, and
+/// the completion engine's suggestions are worked out off the main thread, once per change.
+private struct DesktopClauseField: View {
+    @EnvironmentObject private var workspace: WorkspaceViewModel
+    let keyword: String
+    @Binding var text: String
+    let prompt: String
+    let kind: ClauseHistoryStore.Kind
+
+    @State private var draft = ""
+    @State private var suggestions: [SQLClauseSuggestion] = []
+    @FocusState private var focused: Bool
+
+    var body: some View {
         HStack(spacing: Spacing.xs) {
             Text(keyword).font(.codeCaption.weight(.semibold)).foregroundStyle(PortSQLPalette.muted).fixedSize()
-            TextField(prompt, text: text).textFieldStyle(.plain).font(.codeDetail).onSubmit { workspace.restartBrowse() }
+            TextField(prompt, text: $draft).textFieldStyle(.plain).font(.codeDetail)
+                .focused($focused)
+                .onSubmit { commit(); workspace.restartBrowse() }
                 // The console's completion engine, offering columns, operators, and values as the clause is typed.
                 .textInputSuggestions {
-                    ForEach(clauseSuggestions(text.wrappedValue, kind: kind)) { suggestion in
+                    ForEach(suggestions) { suggestion in
                         Label {
                             Text(suggestion.label) + Text(suggestion.detail.map { "  " + $0 } ?? "").foregroundColor(.secondary)
                         } icon: {
@@ -1261,9 +1273,36 @@ extension DesktopTableBrowser {
                         .textInputCompletion(suggestion.completedText)
                     }
                 }
-            ClauseHistoryMenu(kind: kind, text: text)
+            ClauseHistoryMenu(kind: kind, text: $text)
         }
         .portbaseFieldChrome()
+        .onAppear { draft = text }
+        // A clause set elsewhere, from history or another table, replaces what's in the field.
+        .onChange(of: text) { _, value in if value != draft { draft = value } }
+        .onChange(of: focused) { _, isFocused in if !isFocused { commit() } }
+        .task(id: draft) {
+            await updateSuggestions(for: draft)
+            // Written back once typing pauses; Return and leaving the field write at once.
+            try? await Task.sleep(for: .milliseconds(200))
+            if !Task.isCancelled { commit() }
+        }
+    }
+
+    private func commit() {
+        if text != draft { text = draft }
+    }
+
+    private func updateSuggestions(for text: String) async {
+        guard workspace.isSQLDatabase, let table = workspace.selectedExplorerTable,
+              !text.trimmingCharacters(in: .whitespaces).isEmpty else { suggestions = []; return }
+        let catalog = workspace.schemaCatalog, database = workspace.activeDatabaseName
+        let engine = workspace.selectedBookmark?.engine ?? .postgresql
+        let clause: SQLCompletionEngine.ClauseKind = kind == .filter ? .filter : .sort
+        let result = await Task.detached(priority: .userInitiated) {
+            SQLCompletionEngine.clauseSuggestions(text, kind: clause, table: table, catalog: catalog,
+                                                  activeDatabase: database, engine: engine, limit: 10)
+        }.value
+        if !Task.isCancelled { suggestions = result }
     }
 }
 

@@ -548,10 +548,26 @@ struct HighlightedQueryEditor: UIViewRepresentable {
 
         /// Tints the statement Run would execute and the bracket pair at the caret. Only the background
         /// attribute changes, so the text, its undo history, and the syntax colors are untouched.
+        private var decorationTask: Task<Void, Never>?
+
+        /// Works the marks out off the main thread, so a long script doesn't slow typing, and applies them
+        /// only if the text and caret are still what they were measured on.
         func updateDecorations(_ textView: UITextView) {
+            decorationTask?.cancel()
             guard textView.markedTextRange == nil else { return }
+            let text = textView.textStorage.string, selection = textView.selectedRange, engine = isJSON ? nil : engine
+            decorationTask = Task { [weak self, weak textView] in
+                let marks = await Task.detached(priority: .userInitiated) {
+                    SQLEditorDecorations.marks(in: text, selection: selection, engine: engine)
+                }.value
+                guard !Task.isCancelled, let self, let textView, textView.markedTextRange == nil,
+                      textView.selectedRange == selection, textView.textStorage.string == text else { return }
+                self.applyDecorations(marks, to: textView)
+            }
+        }
+
+        private func applyDecorations(_ marks: SQLEditorDecorations.Marks, to textView: UITextView) {
             let storage = textView.textStorage
-            let marks = SQLEditorDecorations.marks(in: storage.string, selection: textView.selectedRange, engine: isJSON ? nil : engine)
             var tints: [(NSRange, UIColor)] = []
             // An error's own highlight wins over the statement tint.
             if let statement = marks.statement, errorRange == nil { tints.append((statement, palette.caretColor.withAlphaComponent(0.07))) }

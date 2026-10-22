@@ -14,6 +14,8 @@ extension SQLCompletionEngine {
         let catalog: [SchemaTableDescriptor]
         let activeDatabase: String?
         let engine: DatabaseEngine
+        /// How many tables share each name, counted once rather than per table offered.
+        private let nameCounts: [String: Int]
 
         private(set) var opensAutomatically = true
 
@@ -31,6 +33,7 @@ extension SQLCompletionEngine {
             self.catalog = catalog
             self.activeDatabase = activeDatabase
             self.engine = engine
+            self.nameCounts = Dictionary(catalog.map { ($0.name.lowercased(), 1) }, uniquingKeysWith: +)
         }
 
         // MARK: Reading the context
@@ -352,13 +355,17 @@ extension SQLCompletionEngine {
             }
             for table in catalog {
                 let kind: SQLCompletionItem.Kind = table.objectKind == .view || table.objectKind == .materializedView ? .view : .table
-                items.append(SQLCompletionItem(kind: kind, label: table.name, detail: tableDetail(table), insertion: tableReference(table), score: 800))
+                var item = SQLCompletionItem(kind: kind, label: table.name, insertion: tableReference(table), score: 800)
+                item.tableID = table.id
+                items.append(item)
                 if insertStatement, kind == .table {
                     let columns = table.columns.filter { $0.isGenerated != true }
                     let list = columns.map { quote($0.name) }.joined(separator: ", ")
-                    items.append(SQLCompletionItem(kind: .snippet, label: table.name + " (…) VALUES (…)", detail: L10n.plural("column_count", count: columns.count),
-                                                   insertion: tableReference(table) + " (" + list + ") " + keyword("VALUES") + " ()",
-                                                   caretFromEnd: 1, score: 790))
+                    var snippet = SQLCompletionItem(kind: .snippet, label: table.name + " (…) VALUES (…)",
+                                                    insertion: tableReference(table) + " (" + list + ") " + keyword("VALUES") + " ()",
+                                                    caretFromEnd: 1, score: 790)
+                    snippet.tableID = table.id
+                    items.append(snippet)
                 }
             }
             let schemas = Set(catalog.map(\.schemaName)).filter { !$0.isEmpty }
@@ -366,6 +373,16 @@ extension SQLCompletionEngine {
                 items += schemas.sorted().map { SQLCompletionItem(kind: .schema, label: $0, detail: L10n.text("Schema"), insertion: quote($0) + ".", score: 500) }
             }
             return items
+        }
+
+        /// Writes the details of the table and INSERT items among those about to be shown.
+        func describeTables(in items: inout [SQLCompletionItem]) {
+            for index in items.indices where items[index].detail == nil {
+                guard let id = items[index].tableID, let table = catalog.first(where: { $0.id == id }) else { continue }
+                items[index].detail = items[index].kind == .snippet
+                    ? L10n.plural("column_count", count: table.columns.filter { $0.isGenerated != true }.count)
+                    : tableDetail(table)
+            }
         }
 
         private func tableDetail(_ table: SchemaTableDescriptor) -> String {
@@ -382,7 +399,7 @@ extension SQLCompletionEngine {
         }
 
         private func tableReference(_ table: SchemaTableDescriptor) -> String {
-            let clash = catalog.filter { $0.name.lowercased() == table.name.lowercased() }.count > 1
+            let clash = (nameCounts[table.name.lowercased()] ?? 0) > 1
             return isDefaultSchema(table.schemaName) && !clash ? quote(table.name) : quote(table.schemaName) + "." + quote(table.name)
         }
 
@@ -531,12 +548,15 @@ extension SQLCompletionEngine {
             guard !existing.isEmpty else { return [] }
             var used = Set(existing.map { $0.name.lowercased() })
             var items: [SQLCompletionItem] = []
+            let targets = existing.reversed().compactMap { source in source.table.map { JoinTarget(name: source.name, table: $0) } }
             for table in catalog where table.objectKind == nil || table.objectKind == .table || table.objectKind == .view {
-                for source in existing.reversed() {
+                let lowered = table.columns.map { ($0.name.lowercased(), $0) }
+                for target in targets {
                     // Self-joins aren't guessed: a table's key matches its own name.
-                    guard let other = source.table, other.id != table.id, other.name != table.name else { continue }
+                    guard target.table.id != table.id, target.table.name != table.name else { continue }
+                    guard let condition = Self.joinCondition(table, alias: Self.alias(for: table.name, avoiding: used), target,
+                                                             lowered: lowered, quote: quote) else { continue }
                     let alias = Self.alias(for: table.name, avoiding: used)
-                    guard let condition = Self.joinCondition(table, alias: alias, other, otherName: source.name, quote: quote) else { continue }
                     let reference = tableReference(table)
                     items.append(SQLCompletionItem(kind: .join, label: "\(table.name) \(alias)",
                                                    detail: keyword("ON") + " " + condition,
@@ -564,40 +584,65 @@ extension SQLCompletionEngine {
 
         /// A join condition between two tables from their keys: a foreign-key-like column named after the
         /// other table (customer_id → customers.id), or a shared key column name.
-        static func joinCondition(_ table: SchemaTableDescriptor, alias: String, _ other: SchemaTableDescriptor, otherName: String,
-                                  quote: (String) -> String) -> String? {
-            func key(_ table: SchemaTableDescriptor) -> SchemaColumnDescriptor? {
+        /// A table already in the query, indexed once so that matching it against every table in the
+        /// catalog after JOIN is one name lookup per column rather than a comparison of every pair.
+        struct JoinTarget {
+            let name: String
+            let table: SchemaTableDescriptor
+            let columns: [String: SchemaColumnDescriptor]
+            let key: SchemaColumnDescriptor?
+            /// Column names that would refer to this table from another, like customer_id for customers.
+            let referenceNames: Set<String>
+
+            init(name: String, table: SchemaTableDescriptor) {
+                self.name = name
+                self.table = table
+                columns = Dictionary(table.columns.map { ($0.name.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
+                key = JoinTarget.key(of: table)
+                referenceNames = JoinTarget.referenceNames(for: table.name)
+            }
+
+            static func key(of table: SchemaTableDescriptor) -> SchemaColumnDescriptor? {
                 table.columns.first(where: \.isPrimaryKey) ?? table.columns.first { $0.name.lowercased() == "id" }
             }
-            func stems(_ name: String) -> [String] {
-                let lower = name.lowercased()
-                var result = [lower]
-                if lower.hasSuffix("ies") { result.append(String(lower.dropLast(3)) + "y") }
-                else if lower.hasSuffix("ses") || lower.hasSuffix("xes") { result.append(String(lower.dropLast(2))) }
-                else if lower.hasSuffix("s") { result.append(String(lower.dropLast())) }
-                return result
+
+            static func referenceNames(for table: String) -> Set<String> {
+                let lower = table.lowercased()
+                var stems = [lower]
+                if lower.hasSuffix("ies") { stems.append(String(lower.dropLast(3)) + "y") }
+                else if lower.hasSuffix("ses") || lower.hasSuffix("xes") { stems.append(String(lower.dropLast(2))) }
+                else if lower.hasSuffix("s") { stems.append(String(lower.dropLast())) }
+                return Set(stems.flatMap { [$0 + "_id", $0 + "id"] })
             }
-            func reference(from source: SchemaTableDescriptor, to target: SchemaTableDescriptor) -> SchemaColumnDescriptor? {
-                let names = Set(stems(target.name).flatMap { [$0 + "_id", $0 + "id"] })
-                return source.columns.first { names.contains($0.name.lowercased()) }
+        }
+
+        static func joinCondition(_ table: SchemaTableDescriptor, alias: String, _ other: SchemaTableDescriptor, otherName: String,
+                                  quote: (String) -> String) -> String? {
+            joinCondition(table, alias: alias, JoinTarget(name: otherName, table: other), quote: quote)
+        }
+
+        /// How a table joins one already in the query: its foreign-key-like column to the other's key, the
+        /// other's to its key, or a shared key column. The alias is only worked out for a table that relates.
+        static func joinCondition(_ table: SchemaTableDescriptor, alias makeAlias: @autoclosure () -> String, _ target: JoinTarget,
+                                  lowered: [(String, SchemaColumnDescriptor)]? = nil, quote: (String) -> String) -> String? {
+            let lowered = lowered ?? table.columns.map { ($0.name.lowercased(), $0) }
+            if let column = lowered.first(where: { target.referenceNames.contains($0.0) })?.1, let targetKey = target.key {
+                return "\(quote(makeAlias())).\(quote(column.name)) = \(quote(target.name)).\(quote(targetKey.name))"
             }
-            if let column = reference(from: table, to: other), let targetKey = key(other) {
-                return "\(quote(alias)).\(quote(column.name)) = \(quote(otherName)).\(quote(targetKey.name))"
-            }
-            if let column = reference(from: other, to: table), let targetKey = key(table) {
-                return "\(quote(alias)).\(quote(targetKey.name)) = \(quote(otherName)).\(quote(column.name))"
+            if let column = JoinTarget.referenceNames(for: table.name).lazy.compactMap({ target.columns[$0] }).first,
+               let tableKey = JoinTarget.key(of: table) {
+                return "\(quote(makeAlias())).\(quote(tableKey.name)) = \(quote(target.name)).\(quote(column.name))"
             }
             // A key column with the same name in both, like order_id in order_items and payments.
-            if let shared = table.columns.first(where: { column in
-                column.name.lowercased().hasSuffix("_id") && other.columns.contains { $0.name.lowercased() == column.name.lowercased() }
-                    && (column.isPrimaryKey || other.columns.first { $0.name.lowercased() == column.name.lowercased() }?.isPrimaryKey == true)
-            }) {
-                return "\(quote(alias)).\(quote(shared.name)) = \(quote(otherName)).\(quote(shared.name))"
+            if let shared = lowered.first(where: { name, column in
+                guard name.hasSuffix("_id"), let match = target.columns[name] else { return false }
+                return column.isPrimaryKey || match.isPrimaryKey
+            })?.1 {
+                return "\(quote(makeAlias())).\(quote(shared.name)) = \(quote(target.name)).\(quote(shared.name))"
             }
             return nil
         }
 
-        /// A short alias from a table name's initials, like oi for order_items, made unique.
         static func alias(for table: String, avoiding used: Set<String>) -> String {
             let words = table.split { $0 == "_" || $0 == "." }.compactMap(\.first).map { String($0).lowercased() }
             let base = words.isEmpty ? "t" : words.joined()

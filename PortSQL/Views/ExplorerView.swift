@@ -14,6 +14,9 @@ struct ExplorerView: View {
     @State private var showsOrderField = false
     @State private var showsDiagram = false
     @State private var showsCompare = false
+    /// Suggestions for the focused clause, worked out off the main thread when its text changes rather
+    /// than on every redraw.
+    @State private var clauseSuggestionCache: [SQLClauseSuggestion] = []
     @State private var focusedClause: ClauseField?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -42,13 +45,13 @@ struct ExplorerView: View {
 
     private func whereRow(_ table: SchemaTableDescriptor) -> some View {
         clauseRow(field: .whereClause, title: "WHERE", text: $workspace.explorerWhereClause, placeholder: L10n.text("Filter"),
-                  suggestions: whereSuggestions(for: table), apply: applyWhereSuggestion)
+                  suggestions: focusedClause == .whereClause ? clauseSuggestionCache : [], apply: applyWhereSuggestion)
             .frame(maxWidth: .infinity)
     }
 
     private func orderRow(_ table: SchemaTableDescriptor) -> some View {
         clauseRow(field: .orderByClause, title: "ORDER", text: $workspace.explorerOrderByClause, placeholder: L10n.text("Sort"),
-                  suggestions: orderBySuggestions(for: table), apply: applyOrderSuggestion)
+                  suggestions: focusedClause == .orderByClause ? clauseSuggestionCache : [], apply: applyOrderSuggestion)
             .frame(maxWidth: .infinity)
     }
 
@@ -197,6 +200,7 @@ struct ExplorerView: View {
                 .presentationSizing(.page)
 #endif
         }
+        .task(id: clauseSuggestionKey) { await updateClauseSuggestions() }
         .sheet(isPresented: $showsCompare) {
             SchemaCompareView().portbaseDesktopSheetSize(width: 640, height: 640)
         }
@@ -358,20 +362,25 @@ struct ExplorerView: View {
         return L10n.text("Reading tables and columns from the selected database.")
     }
 
-    private func whereSuggestions(for table: SchemaTableDescriptor) -> [SQLClauseSuggestion] {
-        clauseSuggestions(workspace.explorerWhereClause, kind: .filter, table: table)
+    private var clauseSuggestionKey: String {
+        switch focusedClause {
+        case .whereClause?: "where|" + workspace.explorerWhereClause
+        case .orderByClause?: "order|" + workspace.explorerOrderByClause
+        case nil: ""
+        }
     }
 
-    private func orderBySuggestions(for table: SchemaTableDescriptor) -> [SQLClauseSuggestion] {
-        clauseSuggestions(workspace.explorerOrderByClause, kind: .sort, table: table)
-    }
-
-    /// Completions for a clause field from the same engine as the console, as if the field's text
-    /// followed SELECT * FROM the table.
-    private func clauseSuggestions(_ text: String, kind: SQLCompletionEngine.ClauseKind, table: SchemaTableDescriptor) -> [SQLClauseSuggestion] {
-        SQLCompletionEngine.clauseSuggestions(text, kind: kind, table: table, catalog: workspace.schemaCatalog,
-                                              activeDatabase: workspace.activeDatabaseName,
-                                              engine: workspace.selectedBookmark?.engine ?? .postgresql, limit: 8)
+    private func updateClauseSuggestions() async {
+        guard let field = focusedClause, let table = workspace.selectedExplorerTable else { clauseSuggestionCache = []; return }
+        let text = field == .whereClause ? workspace.explorerWhereClause : workspace.explorerOrderByClause
+        let kind: SQLCompletionEngine.ClauseKind = field == .whereClause ? .filter : .sort
+        let catalog = workspace.schemaCatalog, database = workspace.activeDatabaseName
+        let engine = workspace.selectedBookmark?.engine ?? .postgresql
+        let result = await Task.detached(priority: .userInitiated) {
+            SQLCompletionEngine.clauseSuggestions(text, kind: kind, table: table, catalog: catalog,
+                                                  activeDatabase: database, engine: engine, limit: 8)
+        }.value
+        if !Task.isCancelled { clauseSuggestionCache = result }
     }
 
     private func applyWhereSuggestion(_ suggestion: SQLClauseSuggestion) {

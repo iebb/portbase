@@ -112,13 +112,18 @@ enum SQLSymbolCompletion {
         let caret = String.Index(utf16Offset: min(offset, sql.utf16.count), in: sql)
         let scope = aliasScopes(in: sql, tokens: all, caret: caret)
         let visibleScopes = Set(scope.visible)
-        var sources: [String: [String]] = [:]
-        var tables: [String: SchemaTableDescriptor] = [:]
-        for table in catalog {
-            sources[table.name] = table.columns.map(\.name); sources[table.displayName] = table.columns.map(\.name)
-            if tables[table.name] == nil { tables[table.name] = table }
-            tables[table.displayName] = table
+        // Looked up as the statement names them, not indexed up front: a statement names a few tables,
+        // while a production catalog can hold thousands.
+        var cteFields: [String: [String]] = [:]
+        var tableCache: [String: SchemaTableDescriptor?] = [:]
+        func lookupTable(_ name: String) -> SchemaTableDescriptor? {
+            guard cteFields[name] == nil else { return nil }
+            if let cached = tableCache[name] { return cached }
+            let found = catalog.first { $0.displayName == name } ?? catalog.first { $0.name == name }
+            tableCache[name] = found
+            return found
         }
+        func columnNames(_ name: String) -> [String]? { cteFields[name] ?? lookupTable(name).map { $0.columns.map(\.name) } }
         var ctes: [(name: String, fields: [String])] = []
         /// The column names a SELECT produces: aliases, plain column names, or a star's table columns.
         func projectionFields(_ body: [SQLStructureToken]) -> [String] {
@@ -131,7 +136,7 @@ enum SQLSymbolCompletion {
                 } else if let last = projection.last, last.isIdentifier { fields.append(last.text) }
                 else if projection.contains(where: { $0.text == "*" }) {
                     if let from = body.firstIndex(where: { $0.keyword == "FROM" }), from + 1 < body.count {
-                        fields += sources[body[from + 1].text] ?? []
+                        fields += columnNames(body[from + 1].text) ?? []
                     }
                 }
                 projection = []
@@ -166,8 +171,7 @@ enum SQLSymbolCompletion {
                 while i < all.count, ["NOT", "MATERIALIZED"].contains(all[i].keyword) { i += 1 }
                 guard i < all.count, all[i].text == "(", let end = closing(i) else { break }
                 if fields.isEmpty { fields = projectionFields(Array(all[(i + 1)..<end])) }
-                sources[name] = fields; ctes.append((name, fields))
-                tables[name] = nil
+                cteFields[name] = fields; ctes.append((name, fields))
                 i = end + 1
                 guard i < all.count, all[i].text == "," else { break }; i += 1
             }
@@ -199,8 +203,8 @@ enum SQLSymbolCompletion {
                 var reference = all[j].text; let short = reference; j += 1
                 if j + 1 < all.count, all[j].text == ".", all[j + 1].isIdentifier { reference += "." + all[j + 1].text; j += 2 }
                 // An unresolved local source still shadows an outer alias with the same name.
-                let fields = sources[reference] ?? sources[short] ?? []
-                let table = cteNames.contains(reference) ? nil : (tables[reference] ?? tables[short])
+                let fields = columnNames(reference) ?? columnNames(short) ?? []
+                let table = cteNames.contains(reference) ? nil : (lookupTable(reference) ?? lookupTable(short))
                 let isCTE = cteNames.contains(reference)
                 bySource[scope.owners[i], default: [:]][reference] = SQLScopeSource(
                     name: reference, reference: reference, table: table, fields: fields, isAlias: false, isCTE: isCTE, position: position)

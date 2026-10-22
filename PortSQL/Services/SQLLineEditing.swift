@@ -105,33 +105,42 @@ enum SQLEditorDecorations {
     static func marks(in text: String, selection: NSRange, engine: DatabaseEngine?) -> Marks {
         let source = text as NSString
         guard selection.location != NSNotFound, NSMaxRange(selection) <= source.length, source.length <= maximumLength else { return Marks() }
-        let protected = SQLEditingService.protectedRanges(in: text, engine: engine ?? .postgresql).map { NSRange($0, in: text) }
         var marks = Marks()
-        if selection.length == 0 {
-            marks.brackets = matchingBrackets(source, caret: selection.location, protected: protected)
+        // Statements are found once; brackets are then matched within the caret's statement only, since a
+        // bracket never pairs across a semicolon, so a long script isn't rescanned on every caret move.
+        var scope = NSRange(location: 0, length: source.length)
+        if let engine, engine.isSQL {
+            let ranges = SQLEditingService.statementRanges(in: text, engine: engine)
+            let caret = String.Index(utf16Offset: selection.location, in: text)
+            if let range = ranges.first(where: { $0.upperBound >= caret }) ?? ranges.last {
+                let statement = NSRange(range, in: text)
+                // A selection runs as it is, and a single statement needs no marking.
+                if ranges.count > 1, selection.length == 0 { marks.statement = statement }
+                if NSLocationInRange(selection.location, statement) || NSMaxRange(statement) == selection.location { scope = statement }
+            }
         }
-        // A selection runs as it is, and a single statement needs no marking.
-        if let engine, engine.isSQL, selection.length == 0,
-           SQLEditingService.statementRanges(in: text, engine: engine).count > 1,
-           let range = SQLEditingService.statement(in: text, atUTF16: selection.location, engine: engine) {
-            marks.statement = NSRange(range, in: text)
+        if selection.length == 0 {
+            let part = source.substring(with: scope)
+            let protected = SQLEditingService.protectedRanges(in: part, engine: engine ?? .postgresql)
+                .map { NSRange($0, in: part) }.map { NSRange(location: $0.location + scope.location, length: $0.length) }
+            marks.brackets = matchingBrackets(source, caret: selection.location, protected: protected, within: scope)
         }
         return marks
     }
 
     private static let pairs: [unichar: unichar] = [40: 41, 91: 93, 123: 125]  // ( ) [ ] { }
 
-    private static func matchingBrackets(_ source: NSString, caret: Int, protected: [NSRange]) -> [NSRange] {
+    private static func matchingBrackets(_ source: NSString, caret: Int, protected: [NSRange], within scope: NSRange) -> [NSRange] {
         func isProtected(_ index: Int) -> Bool { protected.contains { NSLocationInRange(index, $0) } }
         // The bracket just before the caret first, as after typing one; otherwise the one after it.
-        for index in [caret - 1, caret] where index >= 0 && index < source.length && !isProtected(index) {
+        for index in [caret - 1, caret] where index >= scope.location && index < NSMaxRange(scope) && !isProtected(index) {
             let character = source.character(at: index)
             if let closer = pairs[character] {
-                if let match = scan(source, from: index, open: character, close: closer, step: 1, isProtected: isProtected) {
+                if let match = scan(source, from: index, open: character, close: closer, step: 1, within: scope, isProtected: isProtected) {
                     return [NSRange(location: index, length: 1), NSRange(location: match, length: 1)]
                 }
             } else if let opener = pairs.first(where: { $0.value == character })?.key {
-                if let match = scan(source, from: index, open: character, close: opener, step: -1, isProtected: isProtected) {
+                if let match = scan(source, from: index, open: character, close: opener, step: -1, within: scope, isProtected: isProtected) {
                     return [NSRange(location: match, length: 1), NSRange(location: index, length: 1)]
                 }
             }
@@ -141,10 +150,10 @@ enum SQLEditorDecorations {
 
     /// Walks from a bracket to its partner, counting nested pairs of the same kind.
     private static func scan(_ source: NSString, from start: Int, open: unichar, close: unichar, step: Int,
-                             isProtected: (Int) -> Bool) -> Int? {
+                             within scope: NSRange, isProtected: (Int) -> Bool) -> Int? {
         var depth = 0
         var index = start
-        while index >= 0, index < source.length {
+        while index >= scope.location, index < NSMaxRange(scope) {
             if !isProtected(index) {
                 let character = source.character(at: index)
                 if character == open { depth += 1 }

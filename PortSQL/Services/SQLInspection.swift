@@ -70,9 +70,29 @@ enum SQLInspection {
     /// column. Unqualified names and sources whose columns aren't known are left alone, so nothing is guessed.
     static func unknownColumns(in sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine, cursor: Int? = nil) -> [UnknownColumn] {
         guard !catalog.isEmpty else { return [] }
-        let tokens = SQLEditingService.tokens(sql, engine: engine)
+        // Each reference's scope comes from its own statement, so a long script costs its length, not its
+        // length squared; while editing, only the statement at the caret is checked.
+        let statements: [Range<String.Index>]
+        if let cursor {
+            statements = SQLEditingService.statement(in: sql, atUTF16: cursor, engine: engine).map { [$0] } ?? []
+        } else {
+            statements = SQLEditingService.statementRanges(in: sql, engine: engine)
+        }
         var found: [UnknownColumn] = []
         var seen = Set<String>()
+        for range in statements {
+            let statement = String(sql[range])
+            let base = range.lowerBound.utf16Offset(in: sql)
+            found += unknownColumns(inStatement: statement, catalog: catalog, engine: engine,
+                                    cursor: cursor.map { $0 - base }, seen: &seen)
+        }
+        return found
+    }
+
+    private static func unknownColumns(inStatement sql: String, catalog: [SchemaTableDescriptor], engine: DatabaseEngine,
+                                       cursor: Int?, seen: inout Set<String>) -> [UnknownColumn] {
+        let tokens = SQLEditingService.tokens(sql, engine: engine)
+        var found: [UnknownColumn] = []
         for index in tokens.indices where index + 2 < tokens.count && tokens[index + 1].text == "." {
             let qualifier = tokens[index], column = tokens[index + 2]
             // A keyword after the dot is the next line's statement, not a column: "o." left unfinished.
@@ -80,8 +100,8 @@ enum SQLInspection {
                   cursor.map({ !isTyping(qualifier.range.lowerBound..<column.range.upperBound, at: $0, in: sql) }) ?? true,
                   index == 0 || tokens[index - 1].text != ".",
                   index + 3 >= tokens.count || tokens[index + 3].text != "." && tokens[index + 3].text != "(" else { continue }
-            let cursor = qualifier.range.lowerBound.utf16Offset(in: sql)
-            let sources = SQLSymbolCompletion.scope(query: sql, cursor: cursor, catalog: catalog, engine: engine).sources
+            let position = qualifier.range.lowerBound.utf16Offset(in: sql)
+            let sources = SQLSymbolCompletion.scope(query: sql, cursor: position, catalog: catalog, engine: engine).sources
             guard let source = sources.first(where: { $0.name.lowercased() == qualifier.text.lowercased() }),
                   let table = source.table, !source.isCTE, !table.columns.isEmpty else { continue }
             let name = column.text.lowercased()

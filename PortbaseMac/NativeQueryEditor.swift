@@ -284,12 +284,27 @@ struct HighlightedQueryEditor: NSViewRepresentable {
 
         /// Tints the statement Run would execute and the bracket pair at the caret, as layout-only
         /// attributes that leave the text and its undo history alone.
+        private var decorationTask: Task<Void, Never>?
+
+        /// Works the marks out off the main thread, so a long script doesn't slow typing, and applies them
+        /// only if the text and caret are still what they were measured on.
         func updateDecorations(_ view: NSTextView) {
+            decorationTask?.cancel()
+            guard !view.hasMarkedText() else { return }
+            let text = view.string, selection = view.selectedRange(), engine = parent.isJSON ? nil : parent.engine
+            decorationTask = Task { [weak self, weak view] in
+                let marks = await Task.detached(priority: .userInitiated) {
+                    SQLEditorDecorations.marks(in: text, selection: selection, engine: engine)
+                }.value
+                guard !Task.isCancelled, let self, let view, view.selectedRange() == selection, view.string == text else { return }
+                self.applyDecorations(marks, to: view)
+            }
+        }
+
+        private func applyDecorations(_ marks: SQLEditorDecorations.Marks, to view: NSTextView) {
             guard let manager = view.layoutManager else { return }
             let length = (view.string as NSString).length
             manager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: NSRange(location: 0, length: length))
-            guard !view.hasMarkedText() else { return }
-            let marks = SQLEditorDecorations.marks(in: view.string, selection: view.selectedRange(), engine: parent.isJSON ? nil : parent.engine)
             let tint = parent.palette.caretColor
             // An error's own highlight wins over the statement tint.
             if let statement = marks.statement, parent.errorRange == nil, NSMaxRange(statement) <= length {

@@ -26,6 +26,8 @@ struct SQLCompletionItem: Identifiable, Hashable {
     let kind: Kind
     let label: String
     var detail: String?
+    /// The table a table or INSERT item stands for, so its detail is written only if the item is shown.
+    var tableID: UUID?
     /// The text that replaces the word being typed.
     let insertion: String
     /// Where the caret lands, counted back from the end of the insertion, such as inside parentheses.
@@ -75,17 +77,24 @@ enum SQLCompletionUsage {
 
     static func key(for item: SQLCompletionItem) -> String { item.kind.rawValue + "|" + item.insertion.lowercased() }
 
-    static func counts() -> [String: Int] {
-        UserDefaults.standard.dictionary(forKey: key) as? [String: Int] ?? [:]
+    /// Read from defaults once and kept, since completion asks on every keystroke.
+    @MainActor private static var cached: [String: Int]?
+
+    @MainActor static func counts() -> [String: Int] {
+        if let cached { return cached }
+        let stored = UserDefaults.standard.dictionary(forKey: key) as? [String: Int] ?? [:]
+        cached = stored
+        return stored
     }
 
-    static func record(_ item: SQLCompletionItem) {
+    @MainActor static func record(_ item: SQLCompletionItem) {
         var counts = counts()
         counts[key(for: item), default: 0] += 1
         // Keep the most used when the list grows long.
         if counts.count > limit {
             counts = Dictionary(uniqueKeysWithValues: counts.sorted { $0.value > $1.value }.prefix(limit * 3 / 4).map { ($0.key, $0.value) })
         }
+        cached = counts
         UserDefaults.standard.set(counts, forKey: key)
     }
 }
@@ -133,7 +142,10 @@ enum SQLCompletionEngine {
         items = rank(items, fragment: context.typedName)
         var seen = Set<String>()
         items = items.filter { seen.insert($0.kind.rawValue + "|" + $0.insertion.lowercased()).inserted }
-        return SQLCompletionResult(items: Array(items.prefix(limit)), fragmentRange: fragmentRange, fragment: fragment,
+        // Details like "12 columns · 3,400 rows" cost a plural lookup each, so only the items shown get one.
+        var shown = Array(items.prefix(limit))
+        context.describeTables(in: &shown)
+        return SQLCompletionResult(items: shown, fragmentRange: fragmentRange, fragment: fragment,
                                    opensAutomatically: context.opensAutomatically && context.opensWithoutTyping && !items.isEmpty,
                                    signature: signature(in: tokens, engine: engine))
     }
