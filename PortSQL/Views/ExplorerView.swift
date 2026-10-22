@@ -12,6 +12,7 @@ struct ExplorerView: View {
     @ScaledMetric(relativeTo: .body) private var clauseEditorHeight: CGFloat = 32
     /// On phones the ORDER field waits until there's a clause or it's asked for; header taps sort too.
     @State private var showsOrderField = false
+    @State private var showsDiagram = false
     @State private var focusedClause: ClauseField?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
@@ -187,6 +188,14 @@ struct ExplorerView: View {
                 DatabaseSwitcherButton()
             }
         }
+        .sheet(isPresented: $showsDiagram) {
+            SchemaDiagramView { table in workspace.selectExplorerTable(table) }
+                .portbaseDesktopSheetSize(width: 1000, height: 720)
+#if os(iOS)
+                // A diagram needs room: the page size on iPad, the full screen on iPhone.
+                .presentationSizing(.page)
+#endif
+        }
     }
 
     private var filteredTables: [SchemaTableDescriptor] {
@@ -203,6 +212,12 @@ struct ExplorerView: View {
     @ViewBuilder
     private var tableMenu: some View {
         Menu {
+            // The diagram sits with the tables it draws, rather than as another toolbar button.
+            if workspace.selectedBookmark?.engine.isRelational == true {
+                Section {
+                    Button("Schema Diagram", systemImage: "point.3.connected.trianglepath.dotted") { showsDiagram = true }
+                }
+            }
             ForEach(filteredTables) { table in
                 Button {
                     focusedClause = nil

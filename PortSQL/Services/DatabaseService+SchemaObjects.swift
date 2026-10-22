@@ -79,6 +79,66 @@ extension DatabaseService {
         }
     }
 
+    /// Every foreign key among the catalog's tables, for the schema diagram: one read-only metadata
+    /// query on server engines, and each table's own list on SQLite, whose file is local.
+    func schemaRelationships(catalog: [SchemaTableDescriptor], profile: ConnectionProfile, database: String?) async throws -> [SchemaRelationship] {
+        switch profile.engine {
+        case .sqlite:
+            var relationships: [SchemaRelationship] = []
+            for table in catalog.prefix(400) {
+                try Task.checkCancellation()
+                let keys = try await SQLiteDatabaseClient.foreignKeys(profile: profile, table: table)
+                relationships += keys.map { SchemaRelationship(schema: table.schemaName, table: table.name, key: $0) }
+            }
+            return relationships
+        case .postgresql, .mysql, .mariadb:
+            let schemas = Array(Set(catalog.map(\.schemaName))).sorted()
+            guard !schemas.isEmpty else { return [] }
+            let query: String
+            if profile.engine == .postgresql {
+                query = """
+                SELECT n.nspname AS schema_name, cl.relname AS table_name, c.conname AS name, a.attname AS column_name,
+                       rn.nspname AS referenced_schema, rc.relname AS referenced_table, ra.attname AS referenced_column
+                FROM pg_constraint c JOIN pg_class cl ON cl.oid = c.conrelid JOIN pg_namespace n ON n.oid = cl.relnamespace
+                JOIN pg_class rc ON rc.oid = c.confrelid JOIN pg_namespace rn ON rn.oid = rc.relnamespace
+                CROSS JOIN LATERAL unnest(c.conkey, c.confkey) WITH ORDINALITY AS k(local_key, foreign_key, ord)
+                JOIN pg_attribute a ON a.attrelid = cl.oid AND a.attnum = k.local_key
+                JOIN pg_attribute ra ON ra.attrelid = rc.oid AND ra.attnum = k.foreign_key
+                WHERE c.contype = 'f' AND n.nspname = ANY($1::text[]) ORDER BY n.nspname, cl.relname, c.conname, k.ord
+                """
+            } else {
+                query = """
+                SELECT TABLE_SCHEMA AS schema_name, TABLE_NAME AS table_name, CONSTRAINT_NAME AS name, COLUMN_NAME AS column_name,
+                       REFERENCED_TABLE_SCHEMA AS referenced_schema, REFERENCED_TABLE_NAME AS referenced_table,
+                       REFERENCED_COLUMN_NAME AS referenced_column
+                FROM information_schema.KEY_COLUMN_USAGE
+                WHERE TABLE_SCHEMA IN (\(schemas.map { _ in "?" }.joined(separator: ", "))) AND REFERENCED_TABLE_NAME IS NOT NULL
+                ORDER BY TABLE_SCHEMA, TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION
+                """
+            }
+            // PostgreSQL takes the schema list as one array literal; MySQL binds each name.
+            let values: [QueryBoundValue] = profile.engine == .postgresql
+                ? [.string("{" + schemas.map { "\"" + $0.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }.joined(separator: ",") + "}")]
+                : schemas.map { .string($0) }
+            let records = try await execute(query: query, values: values, profile: profile, database: database, policy: .readOnly).records()
+            let grouped = Dictionary(grouping: records) { row in
+                [row["schema_name"], row["table_name"], row["name"]].map { $0?.displayValue ?? "" }.joined(separator: "\u{1F}")
+            }
+            return grouped.keys.sorted().compactMap { key in
+                guard let rows = grouped[key], let first = rows.first else { return nil }
+                let schema = first["schema_name"]?.displayValue ?? "", table = first["table_name"]?.displayValue ?? ""
+                return SchemaRelationship(schema: schema, table: table, key: SchemaForeignKey(
+                    id: schema + "." + table + "." + (first["name"]?.displayValue ?? ""), name: first["name"]?.displayValue ?? "",
+                    columns: rows.compactMap { $0["column_name"]?.displayValue },
+                    referencedSchema: first["referenced_schema"]?.displayValue ?? "",
+                    referencedTable: first["referenced_table"]?.displayValue ?? "",
+                    referencedColumns: rows.compactMap { $0["referenced_column"]?.displayValue }))
+            }
+        case .mongodb, .redis, .clickhouse, .elasticsearch:
+            return []
+        }
+    }
+
     func schemaObjectDetails(_ object: SchemaObject, profile: ConnectionProfile, database: String?) async throws -> SchemaObjectDetails {
         if profile.engine == .sqlite { return try await SQLiteDatabaseClient.schemaObjectDetails(profile: profile, object: object) }
         guard profile.engine.supportsSchemaObjects else { throw DatabaseServiceError.unsupported }

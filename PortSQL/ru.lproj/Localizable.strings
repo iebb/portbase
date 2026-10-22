@@ -1665,3 +1665,12 @@
 "Key: %@" = "Ключ: %@";
 "Shows the ORDER BY field" = "Показывает поле ORDER BY";
 "Transactions" = "Транзакции";
+"+%d more" = "ещё %d";
+"Couldn’t load relationships" = "Не удалось загрузить связи";
+"No foreign keys" = "Нет внешних ключей";
+"Relationships: %d" = "Связи: %d";
+"Schema Diagram" = "Схема базы данных";
+"Show Unrelated Tables" = "Показать несвязанные таблицы";
+"These tables don’t reference each other. Show unrelated tables to see them all." = "Эти таблицы не ссылаются друг на друга. Покажите несвязанные таблицы, чтобы увидеть все.";
+"Zoom In" = "Увеличить";
+"Zoom Out" = "Уменьшить";

@@ -1665,3 +1665,12 @@
 "Key: %@" = "键：%@";
 "Shows the ORDER BY field" = "显示 ORDER BY 字段";
 "Transactions" = "事务";
+"+%d more" = "另外 %d 个";
+"Couldn’t load relationships" = "无法载入关系";
+"No foreign keys" = "没有外键";
+"Relationships: %d" = "关系：%d";
+"Schema Diagram" = "架构图";
+"Show Unrelated Tables" = "显示无关联的表";
+"These tables don’t reference each other. Show unrelated tables to see them all." = "这些表互不引用。显示无关联的表即可全部查看。";
+"Zoom In" = "放大";
+"Zoom Out" = "缩小";

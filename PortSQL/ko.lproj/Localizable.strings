@@ -1665,3 +1665,12 @@
 "Key: %@" = "키: %@";
 "Shows the ORDER BY field" = "ORDER BY 필드를 표시합니다";
 "Transactions" = "트랜잭션";
+"+%d more" = "+%d개 더";
+"Couldn’t load relationships" = "관계를 불러올 수 없습니다";
+"No foreign keys" = "외래 키 없음";
+"Relationships: %d" = "관계: %d";
+"Schema Diagram" = "스키마 다이어그램";
+"Show Unrelated Tables" = "관계없는 테이블 표시";
+"These tables don’t reference each other. Show unrelated tables to see them all." = "이 테이블들은 서로 참조하지 않습니다. 모두 보려면 관계없는 테이블을 표시하세요.";
+"Zoom In" = "확대";
+"Zoom Out" = "축소";

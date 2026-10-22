@@ -35,6 +35,13 @@ struct SchemaForeignKey: Identifiable, Hashable {
     var summary: String { columns.joined(separator: ", ") + " → " + referencedSchema + "." + referencedTable + " (" + referencedColumns.joined(separator: ", ") + ")" }
 }
 
+/// A foreign key with the table it belongs to, for drawing the schema as a diagram.
+struct SchemaRelationship: Hashable {
+    let schema: String
+    let table: String
+    let key: SchemaForeignKey
+}
+
 struct SchemaObjectDetails {
     var definition = ""
     var indexes: [String] = []

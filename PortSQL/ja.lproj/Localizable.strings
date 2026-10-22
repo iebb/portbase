@@ -1665,3 +1665,12 @@
 "Key: %@" = "キー：%@";
 "Shows the ORDER BY field" = "ORDER BY フィールドを表示します";
 "Transactions" = "トランザクション";
+"+%d more" = "ほか%d件";
+"Couldn’t load relationships" = "リレーションを読み込めませんでした";
+"No foreign keys" = "外部キーがありません";
+"Relationships: %d" = "リレーション：%d";
+"Schema Diagram" = "スキーマ図";
+"Show Unrelated Tables" = "関連のないテーブルを表示";
+"These tables don’t reference each other. Show unrelated tables to see them all." = "これらのテーブルは互いを参照していません。すべて見るには関連のないテーブルを表示してください。";
+"Zoom In" = "拡大";
+"Zoom Out" = "縮小";

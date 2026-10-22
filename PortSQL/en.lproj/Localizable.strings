@@ -1665,3 +1665,12 @@
 "Key: %@" = "Key: %@";
 "Shows the ORDER BY field" = "Shows the ORDER BY field";
 "Transactions" = "Transactions";
+"+%d more" = "+%d more";
+"Couldn’t load relationships" = "Couldn’t load relationships";
+"No foreign keys" = "No foreign keys";
+"Relationships: %d" = "Relationships: %d";
+"Schema Diagram" = "Schema Diagram";
+"Show Unrelated Tables" = "Show Unrelated Tables";
+"These tables don’t reference each other. Show unrelated tables to see them all." = "These tables don’t reference each other. Show unrelated tables to see them all.";
+"Zoom In" = "Zoom In";
+"Zoom Out" = "Zoom Out";

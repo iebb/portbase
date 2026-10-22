@@ -17,6 +17,7 @@ struct DesktopStructureView: View {
     @State private var details: SchemaObjectDetails?
     @State private var detailsError: String?
     @State private var loadingDetails = false
+    @State private var showsDiagram = false
 
     private var selected: SchemaObject? { objects.first { $0.id == selectedID } }
     private var loadKey: String { (workspace.selectedBookmarkID?.uuidString ?? "") + "/" + (workspace.activeDatabaseName ?? "") }
@@ -33,6 +34,9 @@ struct DesktopStructureView: View {
         }
         .task(id: loadKey) { await load() }
         .onChange(of: workspace.selectedExplorerTableID) { _, _ in selectSidebarTable() }
+        .sheet(isPresented: $showsDiagram) {
+            SchemaDiagramView { table in onOpenData(table) }.portbaseDesktopSheetSize(width: 1100, height: 760)
+        }
     }
 
     // MARK: Object list
@@ -50,6 +54,15 @@ struct DesktopStructureView: View {
                 .foregroundStyle(PortSQLPalette.muted)
                 .disabled(loading)
                 .help(L10n.text("Refresh"))
+                if workspace.selectedBookmark?.engine.isRelational == true {
+                    Button { showsDiagram = true } label: {
+                        Image(systemName: "point.3.connected.trianglepath.dotted").frame(width: Sizes.tool, height: Sizes.tool)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(PortSQLPalette.muted)
+                    .help(L10n.text("Schema Diagram"))
+                    .accessibilityLabel("Schema Diagram")
+                }
             }
             .padding(Spacing.s)
             Divider()

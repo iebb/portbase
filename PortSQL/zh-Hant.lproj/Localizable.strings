@@ -1665,3 +1665,12 @@
 "Key: %@" = "鍵：%@";
 "Shows the ORDER BY field" = "顯示 ORDER BY 欄位";
 "Transactions" = "交易";
+"+%d more" = "另外 %d 個";
+"Couldn’t load relationships" = "無法載入關係";
+"No foreign keys" = "沒有外部鍵";
+"Relationships: %d" = "關係：%d";
+"Schema Diagram" = "結構圖";
+"Show Unrelated Tables" = "顯示無關聯的資料表";
+"These tables don’t reference each other. Show unrelated tables to see them all." = "這些資料表互不參照。顯示無關聯的資料表即可全部查看。";
+"Zoom In" = "放大";
+"Zoom Out" = "縮小";

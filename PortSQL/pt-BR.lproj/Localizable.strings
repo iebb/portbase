@@ -1665,3 +1665,12 @@
 "Key: %@" = "Chave: %@";
 "Shows the ORDER BY field" = "Mostra o campo ORDER BY";
 "Transactions" = "Transações";
+"+%d more" = "+%d mais";
+"Couldn’t load relationships" = "Não foi possível carregar os relacionamentos";
+"No foreign keys" = "Nenhuma chave estrangeira";
+"Relationships: %d" = "Relacionamentos: %d";
+"Schema Diagram" = "Diagrama do esquema";
+"Show Unrelated Tables" = "Mostrar tabelas sem relacionamentos";
+"These tables don’t reference each other. Show unrelated tables to see them all." = "Essas tabelas não fazem referência umas às outras. Mostre as tabelas sem relacionamentos para ver todas.";
+"Zoom In" = "Ampliar";
+"Zoom Out" = "Reduzir";
