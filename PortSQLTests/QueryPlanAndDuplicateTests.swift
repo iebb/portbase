@@ -133,6 +133,40 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
                                       sourceQuery: nil, affectedRowCount: nil, isTruncated: false, isExplorerGenerated: true)
         workspace.result = loaded
 
+        let rectangle = [ResultGridCellKey(row: 0, column: 1), .init(row: 0, column: 2),
+                         .init(row: 1, column: 1), .init(row: 1, column: 2)]
+        let bulk = try XCTUnwrap(workspace.cellsEdit(cells: rectangle))
+        XCTAssertFalse(bulk.allowsNull, "One required column rules out setting the selection to NULL")
+        XCTAssertNotNil(bulk.validationMessage(value: "many", isNull: false))
+        XCTAssertThrowsError(try workspace.stageCells(cells: rectangle, value: "many", isNull: false))
+        XCTAssertTrue(workspace.pendingCellEdits.isEmpty, "Invalid cells prevent the whole selection from staging")
+        try bulk.save("7", false)
+        XCTAssertEqual(workspace.pendingCellEdits.count, 4)
+        XCTAssertEqual(workspace.pendingGridCells[.init(row: 0, column: 1)], .text("7"))
+        XCTAssertEqual(workspace.pendingGridCells[.init(row: 1, column: 2)], .integer("7"))
+        let plannedBulk = try workspace.plannedPendingWrites().get()
+        XCTAssertEqual(plannedBulk.count, 2, "Columns of each row share one single-row UPDATE")
+        XCTAssertTrue(plannedBulk.allSatisfy { $0.fields.count == 2 })
+        XCTAssertEqual(workspace.result, loaded, "Bulk Apply only stages; Submit writes the database")
+        XCTAssertThrowsError(try workspace.stageCells(cells: rectangle, value: "", isNull: true))
+        XCTAssertEqual(workspace.pendingCellEdits.count, 4, "A failed batch preserves existing edits")
+        XCTAssertThrowsError(try workspace.stageCells(cells: rectangle + [.init(row: 0, column: 0)], value: "8", isNull: false))
+        XCTAssertEqual(workspace.pendingGridCells[.init(row: 0, column: 1)], .text("7"), "A key in the selection prevents every change")
+        workspace.discardPendingEdits()
+        let names = [ResultGridCellKey(row: 0, column: 1), .init(row: 1, column: 1)]
+        try workspace.stageCells(cells: names, value: "", isNull: false)
+        XCTAssertEqual(workspace.pendingGridCells[.init(row: 0, column: 1)], .text(""), "Empty text stays distinct from NULL")
+        let visits = [ResultGridCellKey(row: 0, column: 2), .init(row: 1, column: 2)]
+        try workspace.stageCells(cells: visits, value: "", isNull: true)
+        XCTAssertEqual(workspace.pendingGridCells[.init(row: 0, column: 2)], .null)
+        XCTAssertNil(workspace.pendingGridCells[.init(row: 1, column: 2)], "Restoring the original NULL removes its edit")
+        workspace.discardPendingEdits()
+        workspace.toggleRowDeletion(rowIndex: 1)
+        XCTAssertNil(workspace.cellsEdit(cells: names), "Rows marked for deletion cannot receive edits")
+        XCTAssertThrowsError(try bulk.save("9", false), "An open editor rechecks all destinations")
+        XCTAssertTrue(workspace.pendingCellEdits.isEmpty)
+        workspace.discardPendingEdits()
+
         XCTAssertNil(workspace.editableField(rowIndex: 0, columnIndex: 0), "Key columns identify the row and aren't edited in place")
         XCTAssertNil(workspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "Grace"))
         XCTAssertNotNil(workspace.stageCellText(rowIndex: 0, columnIndex: 2, text: "many"), "Integers are validated before staging")
@@ -187,6 +221,8 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
                                             executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: "main.people",
                                             sourceQuery: nil, affectedRowCount: nil, isTruncated: false, isExplorerGenerated: true)
         XCTAssertTrue(workspace.pendingCellEdits.isEmpty, "Edits for rows that are no longer loaded are dropped")
+        XCTAssertThrowsError(try bulk.save("9", false), "An editor opened for old row identities cannot affect replacement results")
+        XCTAssertTrue(workspace.pendingCellEdits.isEmpty)
 
         // A read-only server, loaded from its own bookmark file so nothing touches the Keychain.
         var readOnly = profile
@@ -203,10 +239,64 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
         XCTAssertNil(readOnlyWorkspace.editableField(rowIndex: 0, columnIndex: 1), "Read-only servers can't edit in place")
         XCTAssertNotNil(readOnlyWorkspace.stageCellText(rowIndex: 0, columnIndex: 1, text: "Grace"))
         XCTAssertTrue(readOnlyWorkspace.pendingCellEdits.isEmpty)
+        XCTAssertNil(readOnlyWorkspace.cellsEdit(cells: names))
+        XCTAssertThrowsError(try readOnlyWorkspace.stageCells(cells: names, value: "Grace", isNull: false))
+        XCTAssertTrue(readOnlyWorkspace.pendingCellEdits.isEmpty)
         withExtendedLifetime((bookmarks, library, readOnlyBookmarks)) {}
     }
 
 #if canImport(UIKit)
+    @MainActor
+    func testBulkValuesSubmitAsBoundSingleRowUpdates() async throws {
+        let file = try await SQLiteFileStore.shared.create(name: "bulk-\(UUID().uuidString.prefix(8))")
+        defer { try? SQLiteFileStore.shared.remove(fileName: file.fileName) }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("bulk-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        var profile = ConnectionProfile(name: "Scratch", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        profile.sqliteFileName = file.fileName
+        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([profile]).write(to: dir.appendingPathComponent("bookmarks.json"))
+        let bookmarks = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        let library = WorkspaceLibraryStore(directory: dir, cloudSyncEnabled: false)
+        let workspace = WorkspaceViewModel()
+        workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
+        workspace.selectedBookmarkID = profile.id
+        for _ in 0..<250 where workspace.isRunning || workspace.isLoadingSchema { try await Task.sleep(nanoseconds: 20_000_000) }
+        let service = DatabaseService.shared
+        for sql in ["CREATE TABLE notes (id INTEGER PRIMARY KEY, label TEXT, body TEXT)",
+                    "INSERT INTO notes VALUES (1, 'a', 'first'), (2, 'b', 'second'), (3, 'c', 'untouched')"] {
+            _ = try await service.execute(query: sql, profile: profile, policy: .userQuery(confirmed: true))
+        }
+        workspace.schemaCatalog = try await service.loadSchema(profile: profile, database: "main")
+        let sql = "SELECT id, label, body FROM notes ORDER BY id"
+        var loaded = try await service.execute(query: sql, profile: profile, policy: .readOnly)
+        loaded.sourceQuery = sql
+        workspace.result = loaded
+        workspace.queryText = sql
+        let rectangle = ResultGridSelection(anchor: .init(row: 0, column: 0), end: .init(row: 1, column: 1))
+        let cells = rectangle.loadedCells(rowIndices: [1, 0, 2], visibleColumns: [2, 1])
+        let edit = try XCTUnwrap(workspace.cellsEdit(cells: cells))
+        let text = "it's ?; DROP TABLE notes; --"
+        try edit.save(text, false)
+        let writes = try workspace.plannedPendingWrites().get()
+        XCTAssertEqual(writes.count, 2)
+        XCTAssertTrue(writes.allSatisfy { !$0.mutation.sql.contains(text) && $0.mutation.values.contains(.string(text)) })
+        workspace.submitPendingEdits()
+        XCTAssertThrowsError(try edit.save("changed during submit", false))
+        for _ in 0..<200 where workspace.isSubmittingPendingEdits { try await Task.sleep(nanoseconds: 20_000_000) }
+        XCTAssertNil(workspace.pendingEditError)
+        XCTAssertFalse(workspace.hasPendingChanges)
+        XCTAssertEqual(workspace.queryText, sql)
+        let stored = try await service.execute(query: sql, profile: profile, policy: .readOnly)
+        XCTAssertEqual(stored.rows.map(\.cells), [
+            [.integer("1"), .text(text), .text(text)], [.integer("2"), .text(text), .text(text)],
+            [.integer("3"), .text("c"), .text("untouched")],
+        ])
+        XCTAssertEqual(workspace.result.rows.map(\.cells), stored.rows.map(\.cells), "Console results update without rerunning the query")
+        withExtendedLifetime((bookmarks, library)) {}
+    }
+
     /// Writes through a scratch SQLite file in the simulator's app container, then removes it.
     @MainActor
     func testSubmitWritesEachEditedRowAndReportsAFailedRow() async throws {

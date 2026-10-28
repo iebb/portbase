@@ -1708,4 +1708,18 @@
 "Pending Changes" = "保留中の変更";
 "Restore Row" = "行を元に戻す";
 "Submit and Delete %d" = "送信して%d件削除";
+
+"Set Selected Values…" = "選択したセルの値を設定…";
+"The selected cells are no longer editable." = "選択したセルは編集できなくなりました。";
 "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "%@ の一部のテーブル（MyISAM テーブルなど）は、失敗した保存を取り消せません。保存ごとに変更されるのは最大 1 行です。";
+
+"Paste" = "ペースト";
+"Revert Selected" = "選択範囲を元に戻す";
+"Delete Selected Rows" = "選択した行を削除";
+"Restore Selected Rows" = "選択した行を元に戻す";
+"Select Row" = "行を選択";
+"Select Column" = "列を選択";
+"Go to Row…" = "行へ移動…";
+"Go to Row" = "行へ移動";
+"Row" = "行";
+"Referenced by %@" = "%@から参照";

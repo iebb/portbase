@@ -36,6 +36,8 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var schema: [SchemaSuggestion] = []
     @Published var schemaCatalog: [SchemaTableDescriptor] = []
     @Published private(set) var foreignKeys: [SchemaForeignKey] = []
+    /// Foreign keys in other tables that point at the browsed table, for opening the rows that reference a row.
+    @Published private(set) var referencingKeys: [SchemaRelationship] = []
     private var relationshipTask: Task<Void, Never>?
     @Published var result = QueryResultTable.empty {
         didSet { prunePendingCellEdits() }
@@ -1119,28 +1121,49 @@ final class WorkspaceViewModel: ObservableObject {
         selectedResultIndex = index
         result = resultSets[index]
         foreignKeys = []
+        referencingKeys = []
     }
 
     private func loadRelationships(for table: SchemaTableDescriptor?, profile: ConnectionProfile?, database: String?) {
         relationshipTask?.cancel()
         foreignKeys = []
+        referencingKeys = []
         guard let table, let profile, profile.engine.isRelational else { return }
         let expectedResult = result.sourceQuery
+        let catalog = schemaCatalog
         relationshipTask = Task {
             do {
                 let keys = try await DatabaseService.shared.schemaForeignKeys(table: table, profile: profile, database: database)
                 guard !Task.isCancelled, result.sourceQuery == expectedResult else { return }
                 foreignKeys = keys
+                let references = try await DatabaseService.shared.schemaReferencingKeys(table: table, catalog: catalog, profile: profile, database: database)
+                guard !Task.isCancelled, result.sourceQuery == expectedResult else { return }
+                referencingKeys = references
             } catch { /* Data browsing stays available when metadata privileges are limited. */ }
         }
     }
 
     func followForeignKey(_ key: SchemaForeignKey, row: QueryRow) {
         guard proceedDiscardingPendingEdits({ [weak self] in self?.followForeignKey(key, row: row) }) else { return }
+        let target = schemaCatalog.first { $0.schemaName == key.referencedSchema && $0.name == key.referencedTable }
+            ?? SchemaTableDescriptor(schemaName: key.referencedSchema, name: key.referencedTable, columns: [], rowCountEstimate: nil)
+        openRelatedRows(in: target, matching: key.referencedColumns, valuesOf: key.columns, row: row)
+    }
+
+    /// Opens the rows of another table whose foreign key points at this row.
+    func followReference(_ reference: SchemaRelationship, row: QueryRow) {
+        guard proceedDiscardingPendingEdits({ [weak self] in self?.followReference(reference, row: row) }) else { return }
+        let source = schemaCatalog.first { $0.schemaName == reference.schema && $0.name == reference.table }
+            ?? SchemaTableDescriptor(schemaName: reference.schema, name: reference.table, columns: [], rowCountEstimate: nil)
+        openRelatedRows(in: source, matching: reference.key.columns, valuesOf: reference.key.referencedColumns, row: row)
+    }
+
+    /// Browses a table's rows whose columns equal this row's values, bound as parameters, read-only.
+    private func openRelatedRows(in target: SchemaTableDescriptor, matching targetColumns: [String], valuesOf columns: [String], row: QueryRow) {
         guard let profile = selectedBookmark, profile.engine.isRelational,
-              !key.columns.isEmpty, key.columns.count == key.referencedColumns.count else { return }
+              !columns.isEmpty, columns.count == targetColumns.count else { return }
         var values: [QueryBoundValue] = []
-        for column in key.columns {
+        for column in columns {
             guard let index = result.columns.firstIndex(where: { $0.name == column }), row.cells.indices.contains(index) else { return }
             switch row.cells[index] {
             case .text(let value), .dateTime(let value): values.append(.string(value))
@@ -1151,9 +1174,7 @@ final class WorkspaceViewModel: ObservableObject {
             default: errorMessage = L10n.text("This reference has a NULL or unsupported key value."); return
             }
         }
-        let target = schemaCatalog.first { $0.schemaName == key.referencedSchema && $0.name == key.referencedTable }
-            ?? SchemaTableDescriptor(schemaName: key.referencedSchema, name: key.referencedTable, columns: [], rowCountEstimate: nil)
-        let clauses = key.referencedColumns.enumerated().map { index, column in
+        let clauses = targetColumns.enumerated().map { index, column in
             sqlIdentifier(column, engine: profile.engine) + " = " + (profile.engine == .postgresql ? "$\(index + 1)" : "?")
         }
         let sql = "SELECT * FROM " + sqlQualifiedTable(target, engine: profile.engine) + " WHERE " + clauses.joined(separator: " AND ") + " LIMIT 100;"
@@ -1357,9 +1378,14 @@ final class WorkspaceViewModel: ObservableObject {
     /// A staged edit for the cell is carried over, with the loaded value kept as the original.
     func editableField(rowIndex: Int, columnIndex: Int) -> DataEditorField? {
         // While a query runs its rows are about to be replaced, which would drop anything staged now.
-        guard !isRunning, let plan = editPlan, let mapped = plan.editableColumn(at: columnIndex),
+        guard !isRunning, !isSubmittingPendingEdits, !isRowMarkedForDeletion(rowIndex: rowIndex),
+              let plan = editPlan, let mapped = plan.editableColumn(at: columnIndex),
               result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return nil }
         let row = result.rows[rowIndex]
+        guard row.cells.indices.contains(columnIndex) else { return nil }
+        guard plan.targets[mapped.target].keyColumns.allSatisfy({ key in
+            row.cells[safe: key.resultIndex].map { !$0.isNull && !$0.isBinary } ?? false
+        }) else { return nil }
         let draft = editDraft(for: row, target: mapped.target, plan: plan)
         guard draft.mode == .update,
               var field = draft.fields.first(where: { $0.isEditable && $0.column.name == mapped.column.name }) else { return nil }
@@ -1378,6 +1404,107 @@ final class WorkspaceViewModel: ObservableObject {
         return ResultCellEdit(field: field, engine: engine) { [weak self] field in
             try self?.stageCell(rowID: rowID, columnIndex: columnIndex, field: field)
         }
+    }
+
+    /// Capture row identities so an open bulk editor cannot stage into a replacement result or connection.
+    func cellsEdit(cells: [ResultGridCellKey]) -> ResultCellsEdit? {
+        guard cells.count > 1, let fields = editableFields(cells: cells), let bookmark = selectedBookmark else { return nil }
+        let keys = cells.map { PendingCellKey(rowID: result.rows[$0.row].id, column: $0.column) }
+        let columns = result.columns
+        let database = activeDatabaseName
+        return ResultCellsEdit(fields: fields, engine: bookmark.engine) { [weak self] value, isNull in
+            guard let self, self.selectedBookmarkID == bookmark.id, self.activeDatabaseName == database,
+                  self.result.columns == columns,
+                  zip(cells, keys).allSatisfy({ cell, key in
+                      self.result.rows.indices.contains(cell.row) && self.result.rows[cell.row].id == key.rowID
+                  }) else { throw Self.selectionEditError() }
+            try self.stageCells(cells: cells, value: value, isNull: isNull)
+        }
+    }
+
+    private func editableFields(cells: [ResultGridCellKey]) -> [DataEditorField]? {
+        guard !cells.isEmpty, Set(cells).count == cells.count else { return nil }
+        var fields: [DataEditorField] = []
+        for cell in cells {
+            guard let field = editableField(rowIndex: cell.row, columnIndex: cell.column) else { return nil }
+            fields.append(field)
+        }
+        return fields
+    }
+
+    private static func selectionEditError() -> NSError {
+        NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.text("The selected cells are no longer editable.")])
+    }
+
+    /// Validate the entire rectangle before changing any pending value. Submit keeps the existing
+    /// bound, transactional single-row updates, grouped by row and source table.
+    func stageCells(cells: [ResultGridCellKey], value: String, isNull: Bool) throws {
+        try stageCellValues(cells.map { ($0, isNull ? nil : value) })
+    }
+
+    /// Stages a value for each cell, nil meaning NULL, as one change: a paste, a fill, or generated values.
+    /// Every cell is checked before any is staged, so a block that's partly invalid stages nothing.
+    func stageCellValues(_ values: [(cell: ResultGridCellKey, value: String?)]) throws {
+        let cells = values.map(\.cell)
+        guard let bookmark = selectedBookmark, let fields = editableFields(cells: cells) else { throw Self.selectionEditError() }
+        try enforceWritableConnection(bookmark)
+        let replacements = zip(fields, values).map { field, entry in
+            var field = field
+            field.value = entry.value ?? ""
+            field.isNull = entry.value == nil
+            return field
+        }
+        let validation = DataEditorValidationService.validate(fields: replacements, mode: .update, engine: bookmark.engine)
+        if let field = replacements.first(where: { validation[$0.id] != nil }), let message = validation[field.id] {
+            throw NSError(domain: "PortSQL.CellEditor", code: 1, userInfo: [NSLocalizedDescriptionKey: field.column.name + ": " + message])
+        }
+        var edits = pendingCellEdits
+        for (cell, field) in zip(cells, replacements) {
+            let key = PendingCellKey(rowID: result.rows[cell.row].id, column: cell.column)
+            let unchanged = field.isNull == (field.originalIsNull ?? false) && (field.isNull || field.value == (field.originalValue ?? ""))
+            edits[key] = unchanged ? nil : field
+        }
+        pendingCellEdits = edits
+        pendingEditError = nil
+    }
+
+    /// Stages values from the grid and reports a failure on the edits bar; returns its message.
+    func stageGridValues(_ values: [(cell: ResultGridCellKey, value: String?)]) -> String? {
+        do { try stageCellValues(values); return nil }
+        catch {
+            pendingEditError = error.localizedDescription
+            return error.localizedDescription
+        }
+    }
+
+    /// Drops staged values in the cells and restores the rows among them marked for deletion.
+    func revertGridCells(_ cells: [ResultGridCellKey], rows: [Int]) {
+        let keys = Set(cells.compactMap { cell in
+            result.rows.indices.contains(cell.row) ? PendingCellKey(rowID: result.rows[cell.row].id, column: cell.column) : nil
+        })
+        if !keys.isEmpty { pendingCellEdits = pendingCellEdits.filter { !keys.contains($0.key) } }
+        let ids = Set(rows.compactMap { result.rows.indices.contains($0) ? result.rows[$0].id : nil })
+        if !pendingRowDeletions.isDisjoint(with: ids) { pendingRowDeletions.subtract(ids) }
+        pendingEditError = nil
+    }
+
+    /// Whether any of the rows can be marked for deletion, or restored when they all are.
+    func canToggleRowsDeletion(_ rows: [Int]) -> Bool {
+        rows.contains { isRowMarkedForDeletion(rowIndex: $0) || canDeleteRow(rowIndex: $0) }
+    }
+
+    /// Marks every deletable row among them, or restores them all when each is already marked.
+    func toggleRowsDeletion(_ rows: [Int]) {
+        let loaded = rows.filter { result.rows.indices.contains($0) }
+        if !loaded.isEmpty, loaded.allSatisfy({ isRowMarkedForDeletion(rowIndex: $0) }) {
+            pendingRowDeletions.subtract(loaded.map { result.rows[$0].id })
+        } else {
+            let ids = Set(loaded.filter { canDeleteRow(rowIndex: $0) }.map { result.rows[$0].id })
+            guard !ids.isEmpty else { return }
+            pendingRowDeletions.formUnion(ids)
+            pendingCellEdits = pendingCellEdits.filter { !ids.contains($0.key.rowID) }
+        }
+        pendingEditError = nil
     }
 
     /// The staged value for a loaded cell, typed like the column, or nil when the cell has no pending edit.

@@ -21,6 +21,79 @@ struct ResultCellEdit {
     let save: @MainActor (DataEditorField) async throws -> Void
 }
 
+/// A snapshot of an editable rectangle. Every destination validates the same input using its own type.
+struct ResultCellsEdit: Identifiable {
+    let id = UUID()
+    let fields: [DataEditorField]
+    let engine: DatabaseEngine
+    let save: @MainActor (String, Bool) throws -> Void
+
+    var allowsNull: Bool { fields.allSatisfy { $0.column.isNullable } }
+
+    func validationMessage(value: String, isNull: Bool) -> String? {
+        let replacements = fields.map { field in
+            var field = field
+            field.value = value
+            field.isNull = isNull
+            return field
+        }
+        let errors = DataEditorValidationService.validate(fields: replacements, mode: .update, engine: engine)
+        guard let field = replacements.first(where: { errors[$0.id] != nil }), let message = errors[field.id] else { return nil }
+        return field.column.name + ": " + message
+    }
+}
+
+struct ResultCellsEditor: View {
+    let edit: ResultCellsEdit
+    @Environment(\.dismiss) private var dismiss
+    @State private var value = ""
+    @State private var isNull = false
+    @State private var error: String?
+
+    var body: some View {
+        PortbaseSheet(L10n.text("Set Selected Values…"), subtitle: L10n.format("Cells: %d", edit.fields.count), onClose: { dismiss() }) {
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                if edit.allowsNull {
+                    Toggle("Set to NULL", isOn: $isNull).frame(minHeight: Sizes.touchTarget)
+                }
+                if isNull {
+                    Text(verbatim: "NULL").font(.codeText).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else {
+                    TextEditor(text: $value)
+                        .font(.codeText)
+                        .portbaseTextCapitalization(.never)
+                        .autocorrectionDisabled()
+                        .frame(minHeight: 120)
+                        .accessibilityLabel(L10n.text("Value"))
+                }
+                if let message = error ?? edit.validationMessage(value: value, isNull: isNull) {
+                    Text(message).font(.captionText).foregroundStyle(.red)
+                }
+            }
+            .padding(.horizontal, Spacing.xl)
+            .padding(.bottom, Spacing.l)
+        } footer: {
+            Button("Cancel") { dismiss() }.buttonStyle(.portbaseSecondary)
+            Button("Apply") {
+                do { try edit.save(value, isNull); dismiss() }
+                catch { self.error = DatabaseErrorFormatter.message(for: error) }
+            }
+            .buttonStyle(.portbasePrimary)
+            .keyboardShortcut(.defaultAction)
+            .disabled(edit.validationMessage(value: value, isNull: isNull) != nil)
+        }
+        .onAppear {
+            if let first = edit.fields.first, edit.fields.allSatisfy({ $0.isNull == first.isNull && $0.value == first.value }) {
+                value = first.value
+                isNull = first.isNull && edit.allowsNull
+            }
+        }
+        .onChange(of: value) { _, _ in error = nil }
+        .onChange(of: isNull) { _, _ in error = nil }
+    }
+}
+
 struct ResultCellInspector: View {
     let selection: ResultCellSelection
     @Environment(\.dismiss) private var dismiss

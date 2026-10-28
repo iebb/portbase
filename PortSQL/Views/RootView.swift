@@ -1046,36 +1046,20 @@ struct ResultsCard: View {
                     workspace.prepareEdit(row: workspace.result.rows[offset])
                 }
             },
-            actionsForCell: { rowIndex, columnIndex in
-                guard workspace.result.rows.indices.contains(rowIndex), workspace.result.columns.indices.contains(columnIndex) else { return [] }
-                let row = workspace.result.rows[rowIndex]
-                var actions = workspace.foreignKeys.filter { $0.columns.contains(workspace.result.columns[columnIndex].name) }.map { key in
-                    ResultGridRowAction(title: L10n.format("Go to %@", key.referencedTable)) {
-                        guard workspace.result.rows.contains(where: { $0.id == row.id }) else { return }
-                        workspace.followForeignKey(key, row: row)
-                    }
-                }
-                if workspace.canInsertIntoCurrentTable, workspace.selectedBookmark?.isReadOnly != true, workspace.result.documents == nil {
-                    actions.insert(ResultGridRowAction(title: L10n.text("Duplicate Row"), symbolName: "plus.square.on.square") {
-                        workspace.prepareDuplicate(row: row)
-                    }, at: 0)
-                }
-                if workspace.isRowMarkedForDeletion(rowIndex: rowIndex) {
-                    actions.append(ResultGridRowAction(title: L10n.text("Restore Row"), symbolName: "arrow.uturn.backward") { workspace.toggleRowDeletion(rowIndex: rowIndex) })
-                } else if workspace.canDeleteRow(rowIndex: rowIndex) {
-                    actions.append(ResultGridRowAction(title: L10n.text("Delete Row"), symbolName: "trash") { workspace.toggleRowDeletion(rowIndex: rowIndex) })
-                }
-                return actions
-            },
+            actionsForCell: { workspace.gridRowActions(rowIndex: $0, columnIndex: $1) },
             copyEngine: workspace.selectedBookmark?.engine,
             copyTableName: workspace.result.sourceTableReference ?? workspace.selectedExplorerTable?.displayName,
             onSortDirection: workspace.isShowingExplorerResult ? { workspace.sortExplorer(by: $0, descending: $1) } : nil,
             editCell: { workspace.cellEdit(rowIndex: $0, columnIndex: $1) },
+            editCells: { workspace.cellsEdit(cells: $0) },
             pendingCells: workspace.pendingGridCells,
             deletedRows: workspace.pendingDeletedGridRows,
             onEditCellText: { workspace.stageCellText(rowIndex: $0, columnIndex: $1, text: $2) },
-            onSetCellNull: { workspace.stageCellNull(rowIndex: $0, columnIndex: $1) },
-            onRevertCell: { workspace.revertPendingCell(rowIndex: $0, columnIndex: $1) },
+            onStageCells: { workspace.stageGridValues($0) },
+            onRevertCells: { workspace.revertGridCells($0, rows: $1) },
+            onToggleRowsDeletion: { workspace.toggleRowsDeletion($0) },
+            canToggleRowsDeletion: { workspace.canToggleRowsDeletion($0) },
+            areRowsDeleted: { rows in rows.allSatisfy { workspace.isRowMarkedForDeletion(rowIndex: $0) } },
             editsBar: AnyView(PendingEditsBar())
         )
     }

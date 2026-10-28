@@ -27,6 +27,14 @@ struct ResultGridSelection: Equatable {
     func contains(row: Int, column: Int) -> Bool {
         rows.contains(row) && columns.contains(column)
     }
+
+    /// Resolve display positions through filtering, sorting, hiding and column reordering before editing.
+    /// A stale range fails as a whole rather than silently editing a smaller selection.
+    func loadedCells(rowIndices: [Int], visibleColumns: [Int]) -> [ResultGridCellKey] {
+        guard rowIndices.indices.contains(rows.lowerBound), rowIndices.indices.contains(rows.upperBound),
+              visibleColumns.indices.contains(columns.lowerBound), visibleColumns.indices.contains(columns.upperBound) else { return [] }
+        return rows.flatMap { row in columns.map { ResultGridCellKey(row: rowIndices[row], column: visibleColumns[$0]) } }
+    }
 }
 
 struct ResultGridConfiguration: Codable, Equatable {
@@ -89,11 +97,12 @@ struct ResultGridMenuItem {
     var systemImage: String?
     var isEnabled = true
     var isDestructive = false
+    var shortcut: ResultGridShortcut?
     var kind: Kind
 
     static func action(_ title: String, _ systemImage: String? = nil, enabled: Bool = true,
-                       destructive: Bool = false, _ perform: @escaping () -> Void) -> Self {
-        Self(title: title, systemImage: systemImage, isEnabled: enabled, isDestructive: destructive, kind: .action(perform))
+                       destructive: Bool = false, shortcut: ResultGridShortcut? = nil, _ perform: @escaping () -> Void) -> Self {
+        Self(title: title, systemImage: systemImage, isEnabled: enabled, isDestructive: destructive, shortcut: shortcut, kind: .action(perform))
     }
 
     static func submenu(_ title: String, _ systemImage: String?, _ items: [Self]) -> Self {
@@ -101,11 +110,44 @@ struct ResultGridMenuItem {
     }
 
     static var separator: Self { Self(kind: .separator) }
+
+    /// The enabled action among the items, or in their submenus, that a shortcut runs.
+    static func action(for shortcut: ResultGridShortcut, in items: [Self]) -> (() -> Void)? {
+        for item in items {
+            switch item.kind {
+            case .action(let perform) where item.shortcut == shortcut && item.isEnabled: return perform
+            case .submenu(let children): if let perform = action(for: shortcut, in: children) { return perform }
+            default: continue
+            }
+        }
+        return nil
+    }
+}
+
+/// Keyboard shortcuts for grid actions, after DataGrip's on the Mac. Each is shown beside its menu item
+/// and handled by the grid while it has focus, from a Mac or iPad keyboard.
+enum ResultGridShortcut: CaseIterable {
+    case paste, setNull, revert, deleteRows, cloneRow, goToRow
+
+    /// The key, as a menu shows it; Delete is the backspace character.
+    var key: String {
+        switch self {
+        case .paste: "v"
+        case .setNull: "n"
+        case .revert: "z"
+        case .deleteRows: "\u{8}"
+        case .cloneRow: "d"
+        case .goToRow: "l"
+        }
+    }
+    /// Command alone, or Command-Option.
+    var usesOption: Bool { self == .setNull || self == .revert }
 }
 
 struct ResultGridRowAction {
     let title: String
     var symbolName: String = "arrowshape.turn.up.right"
+    var shortcut: ResultGridShortcut?
     let perform: () -> Void
 }
 
@@ -138,11 +180,55 @@ enum ResultGridClipboard {
         return lines.joined(separator: "\n")
     }
 
+    static let typedCellsType = "ad.neko.portsql.typed-cells"
+
     @MainActor static func copy(result: QueryResultTable, visibleColumns: [Int], selection: ResultGridSelection, headers: Bool = false) {
         let value = payload(result: result, visibleColumns: visibleColumns, selection: selection)
         var item: [String: Any] = [UTType.utf8PlainText.identifier: text(value, headers: headers)]
-        if let data = try? JSONEncoder().encode(value) { item["ad.neko.portsql.typed-cells"] = data }
+        if let data = try? JSONEncoder().encode(value) { item[typedCellsType] = data }
         PortbaseClipboard.copy(items: [item])
+    }
+
+    /// The clipboard as rows of values, nil meaning NULL: cells Portbase copied, with their NULLs, or
+    /// tab-separated text such as a spreadsheet's.
+    @MainActor static func pastedValues() -> [[String?]]? {
+        if let data = PortbaseClipboard.data(typedCellsType), let payload = try? JSONDecoder().decode(Payload.self, from: data), !payload.rows.isEmpty {
+            return payload.rows.map { row in row.cells.map { $0.isNull ? nil : $0.displayValue } }
+        }
+        guard let text = PortbaseClipboard.text, !text.isEmpty else { return nil }
+        let rows = parse(text)
+        return rows.isEmpty ? nil : rows
+    }
+
+    /// Reads tab-separated text the way `text` writes it: a quoted field may hold tabs, line breaks and
+    /// doubled quotes, and an unquoted NULL is SQL NULL. A line break at the very end doesn't add a row.
+    static func parse(_ text: String) -> [[String?]] {
+        var rows: [[String?]] = []
+        var row: [String?] = []
+        var field = ""
+        var quoted = false, wasQuoted = false
+        var characters = Array(text.replacingOccurrences(of: "\r\n", with: "\n"))[...]
+        func endField() {
+            row.append(!wasQuoted && field == "NULL" ? nil : field)
+            field = ""; wasQuoted = false
+        }
+        while let character = characters.popFirst() {
+            if quoted {
+                if character == "\"" {
+                    if characters.first == "\"" { field.append("\""); characters.removeFirst() } else { quoted = false }
+                } else { field.append(character) }
+            } else if character == "\"" && field.isEmpty && !wasQuoted {
+                quoted = true; wasQuoted = true
+            } else if character == "\t" {
+                endField()
+            } else if character == "\n" {
+                endField(); rows.append(row); row = []
+            } else {
+                field.append(character)
+            }
+        }
+        if !field.isEmpty || wasQuoted || !row.isEmpty { endField(); rows.append(row) }
+        return rows
     }
 }
 
@@ -169,14 +255,22 @@ struct ResultGridView: View {
     var onSortDirection: ((String, Bool?) -> Void)?
     /// Makes a loaded cell editable in the value editor; return nil for cells that can't be updated safely.
     var editCell: ((Int, Int) -> ResultCellEdit?)?
+    var editCells: (([ResultGridCellKey]) -> ResultCellsEdit?)?
     /// Staged values shown in place of loaded ones until they're submitted, keyed by loaded row and column.
     var pendingCells: [ResultGridCellKey: QueryCell] = [:]
     /// Loaded rows marked for deletion, drawn struck through until they're written or restored.
     var deletedRows: Set<Int> = []
     /// Stages text typed into a cell in place; returns a message when the text isn't valid for the column.
     var onEditCellText: ((Int, Int, String) -> String?)?
-    var onSetCellNull: ((Int, Int) -> Void)?
-    var onRevertCell: ((Int, Int) -> Void)?
+    /// Stages a value for each loaded cell, nil meaning NULL, as one change; returns a message when it can't.
+    var onStageCells: (([(cell: ResultGridCellKey, value: String?)]) -> String?)?
+    /// Drops staged values in the loaded cells and restores the loaded rows among them marked for deletion.
+    var onRevertCells: (([ResultGridCellKey], [Int]) -> Void)?
+    /// Marks the loaded rows for deletion, or restores them when they all are; and whether it can.
+    var onToggleRowsDeletion: (([Int]) -> Void)?
+    var canToggleRowsDeletion: (([Int]) -> Bool)?
+    /// Whether every loaded row is marked for deletion, to name the action Restore.
+    var areRowsDeleted: (([Int]) -> Bool)?
     /// Shown between the grid's tools and its rows, such as the pending-changes bar.
     var editsBar: AnyView?
 
@@ -194,6 +288,11 @@ struct ResultGridView: View {
     @State private var localSort: LoadedResultSort?
     @State private var showsFilter = false
     @State private var inspectedCell: ResultCellSelection?
+    @State private var selectionEdit: ResultCellsEdit?
+    @State private var showsGoToRow = false
+    @State private var goToRowText = ""
+    /// Bumped to scroll the grid to the selection, after Go to Row.
+    @State private var revealSelection = 0
 
     private var rowIndices: [Int] { filteredRows ?? Array(result.rows.indices) }
 
@@ -299,6 +398,12 @@ struct ResultGridView: View {
                     } label: { Label("Inspect Cell", systemImage: "arrow.up.left.and.arrow.down.right") }
                     .frame(minWidth: controlHeight, minHeight: controlHeight).disabled(selection == nil)
                     .help(L10n.text("Inspect Cell"))
+                    if editCells != nil, let selection, selection.count > 1 {
+                        Button { editSelectedCells() } label: { Label("Set Selected Values…", systemImage: "square.and.pencil") }
+                            .frame(minWidth: controlHeight, minHeight: controlHeight)
+                            .disabled(selectedCellsEdit == nil)
+                            .help(L10n.text("Set Selected Values…"))
+                    }
 #if canImport(UIKit)
                     // Touch has no Shift-click, so a range is one toggle away; a keyboard or trackpad doesn't need it.
                     Toggle(isOn: $extendsSelection) {
@@ -369,6 +474,7 @@ struct ResultGridView: View {
                 onOpenRow: onOpenRow == nil ? nil : { row in if rowIndices.indices.contains(row) { onOpenRow?(rowIndices[row]) } },
                 actionsForCell: { row, column in rowIndices.indices.contains(row) ? actionsForCell?(rowIndices[row], column) ?? [] : [] },
                 onInspectCell: { row, column in inspect(row: row, column: column) },
+                onEditSelectedCells: { editSelectedCells() },
                 onConfigureColumn: { focusedColumn = $0; showsColumns = true },
                 onPinColumn: { index in togglePinned(index) },
                 onHideColumn: { index in hideColumn(index) },
@@ -385,7 +491,12 @@ struct ResultGridView: View {
                 onCommitEdit: { row, column, text in
                     guard rowIndices.indices.contains(row) else { return nil }
                     return onEditCellText?(rowIndices[row], column, text)
-                }
+                },
+                canEditSelection: { canEditSelectionInPlace },
+                selectionText: { selectionText },
+                onCommitSelection: { commitSelection($0) },
+                onShortcut: { performShortcut($0) },
+                revealSelection: revealSelection
             )
             .frame(height: gridHeight)
             .frame(maxWidth: .infinity, maxHeight: fillsAvailableSpace ? .infinity : nil)
@@ -399,6 +510,12 @@ struct ResultGridView: View {
         .sheet(isPresented: $showsColumns) { columnSettings.portbaseDesktopSheetSize() }
         .sheet(isPresented: $showsFilter) { filterSettings.portbaseDesktopSheetSize(width: 480, height: 320) }
         .sheet(item: $inspectedCell) { ResultCellInspector(selection: $0).portbaseDesktopSheetSize() }
+        .sheet(item: $selectionEdit) { ResultCellsEditor(edit: $0).portbaseDesktopSheetSize(width: 520, height: 360) }
+        .alert("Go to Row", isPresented: $showsGoToRow) {
+            TextField("Row", text: $goToRowText)
+            Button("Go") { if let number = Int(goToRowText.trimmingCharacters(in: .whitespaces)) { goToRow(number) } }
+            Button("Cancel", role: .cancel) {}
+        }
         .onChange(of: result.columns.map { $0.name + ":" + $0.type }) { _, _ in filter = LoadedResultFilter(); localSort = nil; updateFilter() }
         .onChange(of: localSort) { _, _ in updateFilter() }
         .onChange(of: result) { _, _ in updateFilter() }
@@ -439,6 +556,115 @@ struct ResultGridView: View {
         let value = pendingCells[ResultGridCellKey(row: original, column: column)]
             ?? (result.rows[original].cells.indices.contains(column) ? result.rows[original].cells[column] : .null)
         inspectedCell = ResultCellSelection(column: result.columns[column], cell: value, row: original, edit: editCell?(original, column))
+    }
+
+    private var selectedCellsEdit: ResultCellsEdit? {
+        guard let selection, selection.count > 1 else { return nil }
+        return editCells?(selection.loadedCells(rowIndices: rowIndices, visibleColumns: visibleColumns))
+    }
+
+    @discardableResult private func editSelectedCells() -> Bool {
+        guard let edit = selectedCellsEdit else { return false }
+        selectionEdit = edit
+        return true
+    }
+
+    /// The selection as loaded cells, or the one cell a menu was opened on when it's outside the selection.
+    private func selectedCells(orRow row: Int, column: Int) -> [ResultGridCellKey] {
+        if let selection, let position = visibleColumns.firstIndex(of: column), selection.contains(row: row, column: position) {
+            let cells = selection.loadedCells(rowIndices: rowIndices, visibleColumns: visibleColumns)
+            if !cells.isEmpty { return cells }
+        }
+        return rowIndices.indices.contains(row) ? [ResultGridCellKey(row: rowIndices[row], column: column)] : []
+    }
+
+    /// The cells' current fields when every one of them can be edited.
+    private func editableFields(_ cells: [ResultGridCellKey]) -> [DataEditorField]? {
+        guard !cells.isEmpty, onEditCellText != nil else { return nil }
+        if cells.count == 1 { return editCell?(cells[0].row, cells[0].column).map { [$0.field] } }
+        return editCells?(cells)?.fields
+    }
+
+    /// Whether typing can replace every selected cell at once.
+    private var canEditSelectionInPlace: Bool {
+        guard onStageCells != nil, let selection, selection.count > 1 else { return false }
+        return editableFields(selection.loadedCells(rowIndices: rowIndices, visibleColumns: visibleColumns)) != nil
+    }
+
+    /// The selected cells' shared value, for the editor to start from; empty when they differ.
+    private var selectionText: String {
+        guard let selection, let fields = editableFields(selection.loadedCells(rowIndices: rowIndices, visibleColumns: visibleColumns)),
+              let first = fields.first, !first.isNull,
+              fields.allSatisfy({ !$0.isNull && $0.value == first.value }) else { return "" }
+        return first.value
+    }
+
+    private func commitSelection(_ text: String) -> String? {
+        guard let onStageCells, let selection else { return nil }
+        return onStageCells(selection.loadedCells(rowIndices: rowIndices, visibleColumns: visibleColumns).map { ($0, text) })
+    }
+
+    /// Pastes the clipboard's cells from the selection's top-left cell. A block smaller than the
+    /// selection repeats to fill it, so one value fills every selected cell. Cells past the last row or
+    /// column are left out. The pasted cells are staged, all or none, and then selected.
+    @discardableResult private func paste() -> Bool {
+        guard let onStageCells, let selection, let values = ResultGridClipboard.pastedValues(),
+              let width = values.map(\.count).max(), width > 0 else { return false }
+        let fills = selection.count > 1 && selection.rows.count >= values.count && selection.columns.count >= width
+        let rowCount = fills ? selection.rows.count : values.count
+        let columnCount = fills ? selection.columns.count : width
+        var entries: [(cell: ResultGridCellKey, value: String?)] = []
+        var last = selection.anchor
+        for rowOffset in 0..<rowCount {
+            let source = values[rowOffset % values.count]
+            for columnOffset in 0..<columnCount {
+                let row = selection.rows.lowerBound + rowOffset, position = selection.columns.lowerBound + columnOffset
+                guard rowIndices.indices.contains(row), visibleColumns.indices.contains(position) else { continue }
+                // A short line in ragged text leaves the cells after it alone.
+                let index = columnOffset % width
+                guard source.indices.contains(index) else { continue }
+                entries.append((ResultGridCellKey(row: rowIndices[row], column: visibleColumns[position]), source[index]))
+                last = .init(row: row, column: position)
+            }
+        }
+        guard !entries.isEmpty, onStageCells(entries) == nil else { return false }
+        self.selection = ResultGridSelection(anchor: .init(row: selection.rows.lowerBound, column: selection.columns.lowerBound), end: last)
+        return true
+    }
+
+    /// Runs the action a grid shortcut names for the selected cell, as its menu would.
+    private func performShortcut(_ shortcut: ResultGridShortcut) -> Bool {
+        switch shortcut {
+        case .goToRow:
+            guard !rowIndices.isEmpty else { return false }
+            showsGoToRow = true
+            return true
+        case .paste:
+            return paste()
+        default:
+            guard let cell = selection?.end, visibleColumns.indices.contains(cell.column),
+                  let perform = ResultGridMenuItem.action(for: shortcut, in: cellMenu(row: cell.row, column: visibleColumns[cell.column])) else { return false }
+            perform()
+            return true
+        }
+    }
+
+    private func selectRow(_ row: Int) {
+        guard rowIndices.indices.contains(row), !visibleColumns.isEmpty else { return }
+        selection = ResultGridSelection(anchor: .init(row: row, column: 0), end: .init(row: row, column: visibleColumns.count - 1))
+    }
+
+    private func selectColumn(_ column: Int) {
+        guard let position = visibleColumns.firstIndex(of: column), !rowIndices.isEmpty else { return }
+        selection = ResultGridSelection(anchor: .init(row: 0, column: position), end: .init(row: rowIndices.count - 1, column: position))
+    }
+
+    private func goToRow(_ number: Int) {
+        guard !rowIndices.isEmpty, !visibleColumns.isEmpty else { return }
+        let row = min(max(number, 1), rowIndices.count) - 1
+        let column = min(selection?.end.column ?? 0, visibleColumns.count - 1)
+        selection = ResultGridSelection(anchor: .init(row: row, column: column), end: .init(row: row, column: column))
+        revealSelection += 1
     }
 
     private func updateFilter() {
@@ -573,6 +799,7 @@ struct ResultGridView: View {
         guard result.columns.indices.contains(column) else { return [] }
         let name = result.columns[column].name
         var items: [ResultGridMenuItem] = [
+            .action(L10n.text("Select Column"), "arrow.up.and.down.square") { selectColumn(column) },
             .action(L10n.text("Copy Column Name"), "doc.on.doc") { PortbaseClipboard.copy(name) },
         ]
         if let onSortDirection = sortDirectionHandler {
@@ -622,19 +849,35 @@ struct ResultGridView: View {
         let value = cellValue(row: row, column: column)
         let name = result.columns[column].name
         let edit = editCell?(rowIndices[row], column)
+        let cells = selectedCells(orRow: row, column: column)
+        let rows = Array(Set(cells.map(\.row))).sorted()
         var items: [ResultGridMenuItem] = [
             .action(L10n.text(edit == nil ? "Open in Value Editor" : "Edit Value…"), edit == nil ? "arrow.up.left.and.arrow.down.right" : "pencil") { inspect(row: row, column: column) },
         ]
-        if let edit {
-            if let onSetCellNull, edit.field.column.isNullable, !edit.field.isNull {
-                items.append(.action(L10n.text("Set to NULL"), "circle.slash") { onSetCellNull(rowIndices[row], column) })
+        if editCells != nil, let selection, selection.count > 1 {
+            items.append(.action(L10n.text("Set Selected Values…"), "square.and.pencil", enabled: selectedCellsEdit != nil) { editSelectedCells() })
+        }
+        if let onStageCells, let fields = editableFields(cells) {
+            items.append(.action(L10n.text("Paste"), "doc.on.clipboard", shortcut: .paste) { paste() })
+            if fields.allSatisfy(\.column.isNullable), !fields.allSatisfy(\.isNull) {
+                items.append(.action(L10n.text("Set to NULL"), "circle.slash", shortcut: .setNull) { _ = onStageCells(cells.map { ($0, nil) }) })
             }
-            if let onRevertCell, pendingCells[ResultGridCellKey(row: rowIndices[row], column: column)] != nil {
-                items.append(.action(L10n.text("Revert Change"), "arrow.uturn.backward") { onRevertCell(rowIndices[row], column) })
+            if fields.allSatisfy({ [.uuid, .text].contains(DataEditorValidationService.valueKind(for: $0.column)) }) {
+                items.append(.action(L10n.text("Generate UUID"), "number") { _ = onStageCells(cells.map { ($0, UUID().uuidString.lowercased()) }) })
             }
+        }
+        if let onRevertCells, cells.contains(where: { pendingCells[$0] != nil }) || rows.contains(where: { deletedRows.contains($0) }) {
+            items.append(.action(L10n.text("Revert Selected"), "arrow.uturn.backward", shortcut: .revert) { onRevertCells(cells, rows) })
         }
         if let onOpenRow {
             items.append(.action(L10n.text("Open Row"), "rectangle.and.pencil.and.ellipsis") { onOpenRow(rowIndices[row]) })
+        }
+        if let onToggleRowsDeletion, canToggleRowsDeletion?(rows) == true {
+            let restore = areRowsDeleted?(rows) == true
+            let title = restore ? (rows.count > 1 ? "Restore Selected Rows" : "Restore Row") : (rows.count > 1 ? "Delete Selected Rows" : "Delete Row")
+            items.append(.action(L10n.text(title), restore ? "arrow.uturn.backward" : "trash", destructive: !restore, shortcut: .deleteRows) {
+                onToggleRowsDeletion(rows)
+            })
         }
         items += [
             .separator,
@@ -668,8 +911,11 @@ struct ResultGridView: View {
         let rowActions = actionsForCell?(rowIndices[row], column) ?? []
         if !rowActions.isEmpty {
             items.append(.separator)
-            items += rowActions.map { action in .action(action.title, action.symbolName, action.perform) }
+            items += rowActions.map { action in .action(action.title, action.symbolName, shortcut: action.shortcut, action.perform) }
         }
+        items += [.separator,
+                  .action(L10n.text("Select Row"), "arrow.left.and.right.square") { selectRow(row) },
+                  .action(L10n.text("Go to Row…"), "arrow.down.to.line", shortcut: .goToRow) { showsGoToRow = true }]
         if let onSortDirection = sortDirectionHandler {
             items += [.separator, .submenu(L10n.format("Sort by %@", name), "arrow.up.arrow.down", [
                 .action(L10n.text("Sort Ascending"), "arrow.up") { onSortDirection(name, false) },
@@ -814,6 +1060,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
     var onOpenRow: ((Int) -> Void)?
     var actionsForCell: ((Int, Int) -> [ResultGridRowAction])?
     let onInspectCell: (Int, Int) -> Void
+    var onEditSelectedCells: () -> Bool = { false }
     let onConfigureColumn: (Int) -> Void
     let onPinColumn: (Int) -> Void
     let onHideColumn: (Int) -> Void
@@ -827,6 +1074,13 @@ private struct GridCollectionBridge: UIViewRepresentable {
     var deletedRows: Set<Int> = []
     var canEditCell: (Int, Int) -> Bool = { _, _ in false }
     var onCommitEdit: (Int, Int, String) -> String? = { _, _, _ in nil }
+    /// Whether one value typed in place can go into every selected cell, the value they share, and staging it.
+    var canEditSelection: () -> Bool = { false }
+    var selectionText: () -> String = { "" }
+    var onCommitSelection: (String) -> String? = { _ in nil }
+    var onShortcut: (ResultGridShortcut) -> Bool = { _ in false }
+    /// Changes when the grid should scroll to the selection.
+    var revealSelection = 0
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -848,10 +1102,13 @@ private struct GridCollectionBridge: UIViewRepresentable {
             coordinator?.moveSelection(row: row, column: column, extend: extend)
         }
         view.editSelection = { [weak coordinator = context.coordinator] in coordinator?.editSelectedCell() }
+        view.performShortcut = { [weak coordinator = context.coordinator] shortcut in _ = coordinator?.parent.onShortcut(shortcut) }
         view.extendSelection = { [weak coordinator = context.coordinator] path, starting in coordinator?.dragSelect(to: path, starting: starting) }
         let drag = UIPanGestureRecognizer(target: view, action: #selector(ResultCollectionView.pointerDragged(_:)))
-        drag.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirectPointer.rawValue)]
+        drag.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.indirectPointer.rawValue), NSNumber(value: UITouch.TouchType.direct.rawValue)]
+        drag.delegate = context.coordinator
         view.addGestureRecognizer(drag)
+        view.panGestureRecognizer.require(toFail: drag)
         context.coordinator.collectionView = view
         return view
     }
@@ -884,6 +1141,10 @@ private struct GridCollectionBridge: UIViewRepresentable {
                 context.coordinator.configure(cell, at: path)
             }
         }
+        if previous.revealSelection != revealSelection, let end = selection?.end, end.row < result.rows.count {
+            view.layoutIfNeeded()
+            view.scrollToItem(at: IndexPath(item: end.column + 1, section: end.row + 1), at: [.centeredVertically], animated: false)
+        }
     }
 
     static func naturalWidth(result: QueryResultTable, column: Int, isKey: Bool = false, headerStyle: ResultHeaderStyle = .platformDefault) -> CGFloat {
@@ -909,7 +1170,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
         return min(240, max(64, ceil(header), widest))
     }
 
-    @MainActor final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegate, UITextFieldDelegate {
+    @MainActor final class Coordinator: NSObject, UICollectionViewDataSource, UICollectionViewDelegate, UITextFieldDelegate, UIGestureRecognizerDelegate {
         static let headerColor = UIColor(PortSQLPalette.sunken)
         static let pendingColor = UIColor.systemOrange.withAlphaComponent(0.2)
         static let deletedColor = UIColor.systemRed.withAlphaComponent(0.12)
@@ -918,7 +1179,8 @@ private struct GridCollectionBridge: UIViewRepresentable {
         var parent: GridCollectionBridge
         weak var collectionView: ResultCollectionView?
         private var editor: UITextField?
-        private var editing: (row: Int, column: Int, original: String)?
+        /// The cell being edited in place; with `multi`, what's typed goes into every selected cell.
+        private var editing: (row: Int, column: Int, original: String, multi: Bool)?
         init(_ parent: GridCollectionBridge) { self.parent = parent }
 
         func numberOfSections(in collectionView: UICollectionView) -> Int { parent.result.rows.count + 1 }
@@ -1036,15 +1298,21 @@ private struct GridCollectionBridge: UIViewRepresentable {
             else { select(indexPath) }
         }
 
+        /// Edits the selected cells in place, all of them at once for a range. A range that can't take one
+        /// typed value opens the bulk editor.
         func editSelectedCell() {
-            guard let cell = parent.selection?.end, parent.selection?.anchor == cell,
-                  parent.visibleColumns.indices.contains(cell.column),
-                  parent.canEditCell(cell.row, parent.visibleColumns[cell.column]) else { return }
-            beginEditing(IndexPath(item: cell.column + 1, section: cell.row + 1))
+            guard let selection = parent.selection, parent.visibleColumns.indices.contains(selection.end.column) else { return }
+            let path = IndexPath(item: selection.end.column + 1, section: selection.end.row + 1)
+            if selection.count > 1 {
+                if parent.canEditSelection() { beginEditing(path, multi: true) } else { _ = parent.onEditSelectedCells() }
+                return
+            }
+            guard parent.canEditCell(selection.end.row, parent.visibleColumns[selection.end.column]) else { return }
+            beginEditing(path)
         }
 
         /// Places a text field over the cell. Return or tapping away stages the change; nothing is written until Submit.
-        func beginEditing(_ path: IndexPath) {
+        func beginEditing(_ path: IndexPath, multi: Bool = false) {
             endEditing(commit: true)
             guard let collectionView, parent.result.rows.indices.contains(path.section - 1),
                   parent.visibleColumns.indices.contains(path.item - 1) else { return }
@@ -1054,7 +1322,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let row = path.section - 1, index = parent.visibleColumns[path.item - 1]
             let cells = parent.result.rows[row].cells
             let value = cells.indices.contains(index) ? cells[index] : .null
-            let text = value.isNull ? "" : value.displayValue
+            let text = multi ? parent.selectionText() : value.isNull ? "" : value.displayValue
             let column = parent.result.columns[index]
             // Exactly over the cell, with the cell's background and the label's padding, so editing reads
             // as the cell itself becoming editable rather than a box inside it.
@@ -1064,7 +1332,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
             field.font = PortbaseFonts.codeFont(TypeSize.footnote, textStyle: .footnote)
             field.adjustsFontForContentSizeCategory = true
             field.text = text
-            field.placeholder = value.isNull ? "NULL" : nil
+            field.placeholder = !multi && value.isNull ? "NULL" : nil
             field.backgroundColor = UIColor(PortSQLPalette.surface)
             field.textColor = UIColor(PortSQLPalette.ink)
             field.layer.borderColor = UIColor(PortSQLPalette.accent).cgColor
@@ -1083,10 +1351,10 @@ private struct GridCollectionBridge: UIViewRepresentable {
             field.returnKeyType = .done
             field.delegate = self
             field.layer.zPosition = 3_000
-            field.accessibilityLabel = L10n.format("Row %d, %@", row + 1, column.name)
+            field.accessibilityLabel = multi ? L10n.text("Set Selected Values…") : L10n.format("Row %d, %@", row + 1, column.name)
             collectionView.addSubview(field)
             editor = field
-            editing = (row, index, text)
+            editing = (row, index, text, multi)
             field.becomeFirstResponder()
             field.selectAll(nil)
         }
@@ -1098,13 +1366,18 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let text = editor.text ?? ""
             editor.delegate = nil
             editor.removeFromSuperview()
-            if commit, text != editing.original { _ = parent.onCommitEdit(editing.row, editing.column, text) }
+            if commit, text != editing.original {
+                _ = editing.multi ? parent.onCommitSelection(text) : parent.onCommitEdit(editing.row, editing.column, text)
+            }
             collectionView?.becomeFirstResponder()
         }
 
         /// Moves the editor to the next editable cell in the row, keeping what was typed in this one.
         func moveEditing(by step: Int) {
-            guard let editing, let position = parent.visibleColumns.firstIndex(of: editing.column) else { return }
+            guard let editing, !editing.multi, let position = parent.visibleColumns.firstIndex(of: editing.column) else {
+                endEditing(commit: true)
+                return
+            }
             let row = editing.row
             endEditing(commit: true)
             var next = position + step
@@ -1133,6 +1406,11 @@ private struct GridCollectionBridge: UIViewRepresentable {
             let cell = ResultGridSelection.Cell(row: path.section - 1, column: path.item - 1)
             let extend = parent.extendsSelection || collectionView?.isShiftHeld == true
             parent.selection = ResultGridSelection(anchor: extend ? (parent.selection?.anchor ?? cell) : cell, end: cell)
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            // Ordinary touch scrolls; Range mode lets a finger paint the same rectangle as a pointer.
+            touch.type == .indirectPointer || parent.extendsSelection
         }
 
         /// A pointer drag starts a range at the cell it begins on and stretches it to the current one.
@@ -1199,7 +1477,9 @@ private struct GridCollectionBridge: UIViewRepresentable {
             return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
                 guard let self else { return UIMenu() }
                 if indexPath.section == 0 { return UIMenu(children: Self.menuElements(self.parent.headerMenu(index))) }
-                self.select(indexPath)
+                if self.parent.selection?.contains(row: indexPath.section - 1, column: indexPath.item - 1) != true {
+                    self.select(indexPath)
+                }
                 return UIMenu(children: Self.menuElements(self.parent.cellMenu(indexPath.section - 1, index)))
             }
         }
@@ -1329,10 +1609,18 @@ private final class ResultCollectionView: UICollectionView {
     var selectAllCells: (() -> Void)?
     var moveSelection: ((Int, Int, Bool) -> Void)?
     var editSelection: (() -> Void)?
+    var performShortcut: ((ResultGridShortcut) -> Void)?
     override var canBecomeFirstResponder: Bool { true }
     override var keyCommands: [UIKeyCommand]? {
         let editing = [UIKeyCommand(title: L10n.text("Copy"), action: #selector(copyCells), input: "c", modifierFlags: .command),
          UIKeyCommand(title: L10n.text("Select All"), action: #selector(selectAllCellsCommand), input: "a", modifierFlags: .command)]
+        // The grid's shortcuts, as on the Mac; each runs the selected cell's menu action.
+        let shortcuts = ResultGridShortcut.allCases.map { shortcut in
+            let command = UIKeyCommand(input: shortcut == .deleteRows ? UIKeyCommand.inputDelete : shortcut.key,
+                                       modifierFlags: shortcut.usesOption ? [.command, .alternate] : .command, action: #selector(gridShortcut(_:)))
+            command.wantsPriorityOverSystemBehavior = true
+            return command
+        }
         let arrows = [UIKeyCommand.inputUpArrow, UIKeyCommand.inputDownArrow, UIKeyCommand.inputLeftArrow, UIKeyCommand.inputRightArrow].flatMap { input in
             [UIKeyModifierFlags(), .shift].map { flags in
                 let command = UIKeyCommand(input: input, modifierFlags: flags, action: #selector(moveGridSelection(_:)))
@@ -1341,7 +1629,12 @@ private final class ResultCollectionView: UICollectionView {
             }
         }
         let edit = UIKeyCommand(input: "\r", modifierFlags: [], action: #selector(editSelectedCell))
-        return editing + arrows + [edit]
+        return editing + shortcuts + arrows + [edit]
+    }
+    @objc private func gridShortcut(_ command: UIKeyCommand) {
+        let option = command.modifierFlags.contains(.alternate)
+        let key = command.input == UIKeyCommand.inputDelete ? "\u{8}" : command.input
+        if let shortcut = ResultGridShortcut.allCases.first(where: { $0.key == key && $0.usesOption == option }) { performShortcut?(shortcut) }
     }
     @objc private func editSelectedCell() { editSelection?() }
     override func pressesBegan(_ presses: Set<UIPress>, with event: UIPressesEvent?) {
@@ -1358,8 +1651,13 @@ private final class ResultCollectionView: UICollectionView {
     }
     /// Dragging with a trackpad or mouse selects a range; touch keeps scrolling the grid.
     @objc func pointerDragged(_ recognizer: UIPanGestureRecognizer) {
-        guard recognizer.state == .began || recognizer.state == .changed,
-              let path = indexPathForItem(at: recognizer.location(in: self)) else { return }
+        guard recognizer.state == .began || recognizer.state == .changed else { return }
+        var point = recognizer.location(in: self)
+        if recognizer.state == .began {
+            let translation = recognizer.translation(in: self)
+            point.x -= translation.x; point.y -= translation.y
+        }
+        guard let path = indexPathForItem(at: point) else { return }
         extendSelection?(path, recognizer.state == .began)
     }
     @objc private func copyCells() { copySelection?() }

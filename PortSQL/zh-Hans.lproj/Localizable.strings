@@ -1708,4 +1708,18 @@
 "Pending Changes" = "待处理的更改";
 "Restore Row" = "恢复行";
 "Submit and Delete %d" = "提交并删除 %d 行";
+
+"Set Selected Values…" = "设置所选单元格的值…";
+"The selected cells are no longer editable." = "所选单元格已无法编辑。";
 "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "%@ 中的部分表（如 MyISAM 表）无法撤销失败的保存。每次保存仍最多只更改一行。";
+
+"Paste" = "粘贴";
+"Revert Selected" = "撤销所选更改";
+"Delete Selected Rows" = "删除所选行";
+"Restore Selected Rows" = "恢复所选行";
+"Select Row" = "选择行";
+"Select Column" = "选择列";
+"Go to Row…" = "跳转到行…";
+"Go to Row" = "跳转到行";
+"Row" = "行";
+"Referenced by %@" = "被 %@ 引用";

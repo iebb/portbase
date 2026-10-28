@@ -1,7 +1,71 @@
 import XCTest
 @testable import PortSQL
+#if os(macOS)
+import AppKit
+import SwiftUI
+#endif
 
 final class EditorAndSelectionToolsTests: XCTestCase {
+#if os(macOS)
+    @MainActor
+    func testMacPointerDragSelectsRectangleAndReturnEditsTheRange() async throws {
+        var selection: ResultGridSelection?
+        var openedBulkEditor = false
+        let result = QueryResultTable(columns: [QueryColumn(name: "a", type: "text"), QueryColumn(name: "b", type: "text")],
+                                      rows: (0..<4).map { QueryRow(cells: [.text(String($0)), .text("value")]) },
+                                      executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: nil, sourceQuery: nil)
+        let grid = GridCollectionBridge(result: result, visibleColumns: [0, 1], configuration: ResultGridConfiguration(),
+                                        selection: Binding(get: { selection }, set: { selection = $0 }), extendsSelection: .constant(false),
+                                        rowHeight: 24, primaryKeys: [], sortedColumn: nil, sortDirection: nil,
+                                        onInspectCell: { _, _ in }, onEditSelectedCells: { openedBulkEditor = true; return true },
+                                        onConfigureColumn: { _ in }, onPinColumn: { _ in }, onHideColumn: { _ in })
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let host = NSHostingView(rootView: grid)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        func findTable(_ view: NSView) -> NSTableView? {
+            if let table = view as? NSTableView { return table }
+            return view.subviews.lazy.compactMap { findTable($0) }.first
+        }
+        for _ in 0..<20 where findTable(host) == nil { await Task.yield() }
+        let table = try XCTUnwrap(findTable(host))
+        table.reloadData()
+        table.layoutSubtreeIfNeeded()
+        func event(_ type: NSEvent.EventType, row: Int, column: Int, flags: NSEvent.ModifierFlags = []) throws -> NSEvent {
+            let rect = table.frameOfCell(atColumn: column, row: row)
+            let point = table.convert(NSPoint(x: rect.midX, y: rect.midY), to: nil)
+            return try XCTUnwrap(NSEvent.mouseEvent(with: type, location: point, modifierFlags: flags, timestamp: 0,
+                                                   windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
+        }
+        table.mouseDown(with: try event(.leftMouseDown, row: 0, column: 0))
+        table.mouseDragged(with: try event(.leftMouseDragged, row: 2, column: 1))
+        table.mouseUp(with: try event(.leftMouseUp, row: 2, column: 1))
+        XCTAssertEqual(selection, ResultGridSelection(anchor: .init(row: 0, column: 0), end: .init(row: 2, column: 1)))
+        table.mouseDown(with: try event(.leftMouseDown, row: 3, column: 1, flags: .shift))
+        table.mouseUp(with: try event(.leftMouseUp, row: 3, column: 1))
+        XCTAssertEqual(selection?.count, 8, "Shift-click retains the drag's original anchor")
+        let enter = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                                 windowNumber: window.windowNumber, context: nil, characters: "\r",
+                                                 charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        table.keyDown(with: enter)
+        XCTAssertTrue(openedBulkEditor, "Return opens one editor for the whole range")
+        XCTAssertEqual(selection?.count, 8)
+    }
+#endif
+
+    func testGridRectangleResolvesDisplayOrderAndRejectsStalePositions() {
+        let selection = ResultGridSelection(anchor: .init(row: 2, column: 1), end: .init(row: 0, column: 0))
+        XCTAssertEqual(selection.loadedCells(rowIndices: [8, 3, 6], visibleColumns: [4, 2]), [
+            .init(row: 8, column: 4), .init(row: 8, column: 2),
+            .init(row: 3, column: 4), .init(row: 3, column: 2),
+            .init(row: 6, column: 4), .init(row: 6, column: 2),
+        ], "Filtered and sorted rows and pinned/reordered columns map to loaded cells")
+        XCTAssertTrue(selection.loadedCells(rowIndices: [8], visibleColumns: [4, 2]).isEmpty)
+        XCTAssertTrue(selection.loadedCells(rowIndices: [8, 3, 6], visibleColumns: [4]).isEmpty)
+    }
+
     private func apply(_ edit: SQLLineEditing.RangeEdit?, to text: String) -> (String, NSRange)? {
         guard let edit else { return nil }
         return ((text as NSString).replacingCharacters(in: edit.range, with: edit.replacement), edit.selection)

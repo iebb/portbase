@@ -5,20 +5,57 @@ private final class ResultTableView: NSTableView {
     var onSelectCell: ((Int, Int, Bool) -> Void)?
     var onCopy: (() -> Void)?
     var onEditSelection: (() -> Bool)?
+    var onMoveSelection: ((Int, Int, Bool) -> Void)?
+    var onTypeToEdit: ((String) -> Bool)?
+    var onShortcut: ((ResultGridShortcut) -> Bool)?
+    var onSelectAll: (() -> Void)?
+    private var isSelectingCells = false
     override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        // The double-click action runs inside super and starts in-place editing; selecting again on
-        // the second click would end that edit immediately, so only single clicks select.
-        guard event.clickCount == 1 else { return }
         let point = convert(event.locationInWindow, from: nil)
         let row = row(at: point), column = column(at: point)
-        if row >= 0, column >= 0 { onSelectCell?(row, column, event.modifierFlags.contains(.shift)) }
+        guard event.clickCount == 1, row >= 0, column >= 0 else { super.mouseDown(with: event); return }
+        // NSTableView's tracking loop selects whole rows and consumes the drag. Track cells ourselves.
+        window?.makeFirstResponder(self)
+        isSelectingCells = true
+        onSelectCell?(row, column, event.modifierFlags.contains(.shift))
+    }
+    override func mouseDragged(with event: NSEvent) {
+        guard isSelectingCells, numberOfRows > 0, numberOfColumns > 0 else { super.mouseDragged(with: event); return }
+        autoscroll(with: event)
+        var point = convert(event.locationInWindow, from: nil)
+        point.x = min(max(point.x, 0), max(0, bounds.width - 1))
+        point.y = min(max(point.y, 0), max(0, rect(ofRow: numberOfRows - 1).maxY - 1))
+        let row = row(at: point), column = column(at: point)
+        if row >= 0, column >= 0 { onSelectCell?(row, column, true) }
+    }
+    override func mouseUp(with event: NSEvent) {
+        if isSelectingCells { isSelectingCells = false }
+        else { super.mouseUp(with: event) }
     }
     @objc func copy(_ sender: Any?) { onCopy?() }
-    /// Return edits the selected cell, as in spreadsheet-style database clients.
+    @objc func paste(_ sender: Any?) { if onShortcut?(.paste) != true { NSSound.beep() } }
+    override func selectAll(_ sender: Any?) { onSelectAll?() }
+    /// The app's Duplicate command (⌘D) clones the selected row here, as DataGrip's Clone Row.
+    @objc func duplicateLines(_ sender: Any?) { if onShortcut?(.cloneRow) != true { NSSound.beep() } }
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        // Key equivalents reach every view; only the focused grid takes its own.
+        guard window?.firstResponder === self, let shortcut = ResultGridShortcut.matching(event),
+              onShortcut?(shortcut) == true else { return super.performKeyEquivalent(with: event) }
+        return true
+    }
+    /// Return edits the selected cells, as in spreadsheet-style database clients, and typing replaces them.
     override func keyDown(with event: NSEvent) {
         if [36, 76].contains(event.keyCode), event.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty,
            onEditSelection?() == true { return }
+        if event.modifierFlags.intersection([.command, .control]).isEmpty, let typed = event.characters, !typed.isEmpty,
+           typed.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) && !(0xF700...0xF8FF).contains($0.value) }),
+           onTypeToEdit?(typed) == true { return }
+        if [123, 124, 125, 126].contains(event.keyCode), event.modifierFlags.intersection([.command, .option, .control]).isEmpty {
+            let row = event.keyCode == 126 ? -1 : (event.keyCode == 125 ? 1 : 0)
+            let column = event.keyCode == 123 ? -1 : (event.keyCode == 124 ? 1 : 0)
+            onMoveSelection?(row, column, event.modifierFlags.contains(.shift))
+            return
+        }
         super.keyDown(with: event)
     }
 }
@@ -38,6 +75,7 @@ struct GridCollectionBridge: NSViewRepresentable {
     var onOpenRow: ((Int) -> Void)?
     var actionsForCell: ((Int, Int) -> [ResultGridRowAction])?
     let onInspectCell: (Int, Int) -> Void
+    var onEditSelectedCells: () -> Bool = { false }
     let onConfigureColumn: (Int) -> Void
     let onPinColumn: (Int) -> Void
     let onHideColumn: (Int) -> Void
@@ -51,6 +89,13 @@ struct GridCollectionBridge: NSViewRepresentable {
     var deletedRows: Set<Int> = []
     var canEditCell: (Int, Int) -> Bool = { _, _ in false }
     var onCommitEdit: (Int, Int, String) -> String? = { _, _, _ in nil }
+    /// Whether one value typed in place can go into every selected cell, the value they share, and staging it.
+    var canEditSelection: () -> Bool = { false }
+    var selectionText: () -> String = { "" }
+    var onCommitSelection: (String) -> String? = { _ in nil }
+    var onShortcut: (ResultGridShortcut) -> Bool = { _ in false }
+    /// Changes when the grid should scroll to the selection.
+    var revealSelection = 0
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeNSView(context: Context) -> NSScrollView {
@@ -74,6 +119,12 @@ struct GridCollectionBridge: NSViewRepresentable {
         }
         table.onCopy = { [weak coordinator = context.coordinator] in coordinator?.copySelection() }
         table.onEditSelection = { [weak coordinator = context.coordinator] in coordinator?.editSelection() ?? false }
+        table.onMoveSelection = { [weak coordinator = context.coordinator] row, column, extend in
+            coordinator?.moveSelection(row: row, column: column, extend: extend)
+        }
+        table.onTypeToEdit = { [weak coordinator = context.coordinator] text in coordinator?.editSelection(typing: text) ?? false }
+        table.onShortcut = { [weak coordinator = context.coordinator] shortcut in coordinator?.parent.onShortcut(shortcut) ?? false }
+        table.onSelectAll = { [weak coordinator = context.coordinator] in coordinator?.selectAll() }
         let menu = NSMenu(); menu.delegate = context.coordinator; menu.autoenablesItems = false; table.menu = menu
         // A type under the name needs a taller header. Its height is set before the table joins the scroll
         // view, which sizes the header's area once; the grid is rebuilt when the style changes.
@@ -136,6 +187,11 @@ struct GridCollectionBridge: NSViewRepresentable {
             || old.pendingKeys != pendingKeys || old.deletedRows != deletedRows || table.numberOfRows != result.rows.count
         // Reloading would tear down the field being edited; the edit's own commit reloads afterwards.
         if changed, !context.coordinator.isEditing { table.reloadData() }
+        if old.revealSelection != revealSelection, let end = selection?.end, end.row < table.numberOfRows {
+            table.scrollRowToVisible(end.row)
+            table.scrollColumnToVisible(end.column)
+            table.window?.makeFirstResponder(table)
+        }
     }
     static func naturalWidth(result: QueryResultTable, column: Int, headerStyle: ResultHeaderStyle = .platformDefault) -> CGFloat {
         guard result.columns.indices.contains(column) else { return 160 }
@@ -158,7 +214,8 @@ struct GridCollectionBridge: NSViewRepresentable {
     @MainActor final class Coordinator: NSObject, @preconcurrency NSTableViewDataSource, @preconcurrency NSTableViewDelegate, @preconcurrency NSMenuDelegate, @preconcurrency NSTextFieldDelegate {
         var parent: GridCollectionBridge
         fileprivate weak var table: ResultTableView?
-        private var editing: (row: Int, column: Int, original: String, field: NSTextField, box: NSView)?
+        /// The cell being edited in place; with `multi`, what's typed goes into every selected cell.
+        private var editing: (row: Int, column: Int, original: String, field: NSTextField, box: NSView, multi: Bool)?
         var isEditing: Bool { editing != nil }
         private var actions: [() -> Void] = []
         init(_ parent: GridCollectionBridge) { self.parent = parent }
@@ -227,7 +284,24 @@ struct GridCollectionBridge: NSViewRepresentable {
             if isEditing { finishEditing(commit: true) }
             let cell = ResultGridSelection.Cell(row: row, column: column)
             let anchor = (extend || parent.extendsSelection) ? parent.selection?.anchor ?? cell : cell
+            guard parent.selection != ResultGridSelection(anchor: anchor, end: cell) else { return }
             parent.selection = ResultGridSelection(anchor: anchor, end: cell)
+            table?.reloadData()
+        }
+        func moveSelection(row: Int, column: Int, extend: Bool) {
+            guard !parent.result.rows.isEmpty, !parent.visibleColumns.isEmpty else { return }
+            let previous = parent.selection?.end ?? .init(row: 0, column: 0)
+            let nextRow = min(max(previous.row + row, 0), parent.result.rows.count - 1)
+            let nextColumn = min(max(previous.column + column, 0), parent.visibleColumns.count - 1)
+            select(row: nextRow, column: nextColumn, extend: extend)
+            table?.scrollRowToVisible(nextRow)
+            table?.scrollColumnToVisible(nextColumn)
+        }
+        func selectAll() {
+            guard !parent.result.rows.isEmpty, !parent.visibleColumns.isEmpty else { return }
+            if isEditing { finishEditing(commit: true) }
+            parent.selection = ResultGridSelection(anchor: .init(row: 0, column: 0),
+                                                   end: .init(row: parent.result.rows.count - 1, column: parent.visibleColumns.count - 1))
             table?.reloadData()
         }
         func copySelection(headers: Bool = false) {
@@ -244,14 +318,15 @@ struct GridCollectionBridge: NSViewRepresentable {
 
         /// Lays an editor exactly over the cell: the cell's own background, one accent border, and the
         /// grid's font and padding, so editing looks like the cell itself became editable.
-        func beginEditing(row: Int, position: Int) {
+        /// Typing starts the editor with what was typed in place of the value; `multi` edits every selected cell.
+        func beginEditing(row: Int, position: Int, typing: String? = nil, multi: Bool = false) {
             guard let table, parent.result.rows.indices.contains(row), parent.visibleColumns.indices.contains(position) else { return }
             table.scrollRowToVisible(row)
             table.scrollColumnToVisible(position)
             let index = parent.visibleColumns[position]
             let cells = parent.result.rows[row].cells
             let value = cells.indices.contains(index) ? cells[index] : .null
-            let text = value.isNull ? "" : value.displayValue
+            let text = multi ? parent.selectionText() : value.isNull ? "" : value.displayValue
 
             let box = NSView(frame: table.frameOfCell(atColumn: position, row: row))
             box.wantsLayer = true
@@ -261,14 +336,14 @@ struct GridCollectionBridge: NSViewRepresentable {
             box.layer?.cornerRadius = 2
             box.autoresizingMask = []
 
-            let field = NSTextField(string: text)
+            let field = NSTextField(string: typing ?? text)
             field.isBordered = false
             field.isBezeled = false
             field.drawsBackground = false
             field.focusRingType = .none
             field.font = PortbaseFonts.codeFont(TypeSize.code)
             field.textColor = NSColor(PortSQLPalette.ink)
-            field.placeholderString = value.isNull ? "NULL" : nil
+            field.placeholderString = !multi && value.isNull ? "NULL" : nil
             field.usesSingleLineMode = true
             field.cell?.isScrollable = true
             field.cell?.wraps = false
@@ -284,23 +359,32 @@ struct GridCollectionBridge: NSViewRepresentable {
                 field.centerYAnchor.constraint(equalTo: box.centerYAnchor),
             ])
             table.addSubview(box)
-            editing = (row, index, text, field, box)
+            editing = (row, index, text, field, box, multi)
             table.window?.makeFirstResponder(field)
-            field.currentEditor()?.selectAll(nil)
+            if typing == nil { field.currentEditor()?.selectAll(nil) }
+            else { field.currentEditor()?.moveToEndOfDocument(nil) }
         }
 
-        /// Starts editing the single selected cell; returns false when there is nothing editable selected.
-        func editSelection() -> Bool {
-            guard let selection = parent.selection, selection.anchor == selection.end,
-                  parent.visibleColumns.indices.contains(selection.end.column),
-                  parent.canEditCell(selection.end.row, parent.visibleColumns[selection.end.column]) else { return false }
-            beginEditing(row: selection.end.row, position: selection.end.column)
+        /// Edits the selected cells in place, all of them at once for a range; returns false when they
+        /// can't be edited. A range that can't take one typed value opens the bulk editor on Return.
+        func editSelection(typing: String? = nil) -> Bool {
+            guard let selection = parent.selection, parent.visibleColumns.indices.contains(selection.end.column) else { return false }
+            if selection.count > 1 {
+                guard parent.canEditSelection() else { return typing == nil && parent.onEditSelectedCells() }
+                beginEditing(row: selection.end.row, position: selection.end.column, typing: typing, multi: true)
+                return true
+            }
+            guard parent.canEditCell(selection.end.row, parent.visibleColumns[selection.end.column]) else { return false }
+            beginEditing(row: selection.end.row, position: selection.end.column, typing: typing)
             return true
         }
 
         /// Moves the editor to the next editable cell in the row, keeping what was typed in this one.
         private func moveEditing(by step: Int) {
-            guard let editing, let position = parent.visibleColumns.firstIndex(of: editing.column) else { return }
+            guard let editing, !editing.multi, let position = parent.visibleColumns.firstIndex(of: editing.column) else {
+                finishEditing(commit: true)
+                return
+            }
             let row = editing.row
             finishEditing(commit: true)
             var next = position + step
@@ -321,7 +405,10 @@ struct GridCollectionBridge: NSViewRepresentable {
             let text = editing.field.stringValue
             editing.field.delegate = nil
             editing.box.removeFromSuperview()
-            if commit, text != editing.original, parent.onCommitEdit(editing.row, editing.column, text) != nil { NSSound.beep() }
+            if commit, text != editing.original {
+                let failure = editing.multi ? parent.onCommitSelection(text) : parent.onCommitEdit(editing.row, editing.column, text)
+                if failure != nil { NSSound.beep() }
+            }
             table?.reloadData()
             table?.window?.makeFirstResponder(table)
         }
@@ -352,7 +439,9 @@ struct GridCollectionBridge: NSViewRepresentable {
                 return
             }
             guard table.clickedRow >= 0, parent.visibleColumns.indices.contains(table.clickedColumn) else { return }
-            select(row: table.clickedRow, column: table.clickedColumn, extend: parent.extendsSelection)
+            if parent.selection?.contains(row: table.clickedRow, column: table.clickedColumn) != true {
+                select(row: table.clickedRow, column: table.clickedColumn, extend: false)
+            }
             build(parent.cellMenu(table.clickedRow, parent.visibleColumns[table.clickedColumn]), into: menu)
         }
         private func build(_ items: [ResultGridMenuItem], into menu: NSMenu) {
@@ -364,7 +453,8 @@ struct GridCollectionBridge: NSViewRepresentable {
                     let submenu = NSMenu(); build(children, into: submenu); entry.submenu = submenu
                     menu.addItem(entry)
                 case .action(let perform):
-                    let entry = NSMenuItem(title: item.title, action: #selector(performAction(_:)), keyEquivalent: "")
+                    let entry = NSMenuItem(title: item.title, action: #selector(performAction(_:)), keyEquivalent: item.shortcut?.key ?? "")
+                    if let shortcut = item.shortcut { entry.keyEquivalentModifierMask = shortcut.usesOption ? [.command, .option] : .command }
                     entry.target = self; entry.tag = actions.count; entry.isEnabled = item.isEnabled
                     if let symbol = item.systemImage { entry.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil) }
                     actions.append(perform); menu.addItem(entry)
@@ -417,6 +507,15 @@ private final class ResultHeaderView: NSTableHeaderView {
         rect.origin.y = bounds.minY
         rect.size.height = bounds.height
         return rect
+    }
+}
+
+extension ResultGridShortcut {
+    /// The shortcut a key press is, if any: Command with the key, and Option where the shortcut has it.
+    static func matching(_ event: NSEvent) -> Self? {
+        let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+        let key = event.keyCode == 51 ? "\u{8}" : (event.charactersIgnoringModifiers ?? "").lowercased()
+        return allCases.first { $0.key == key && modifiers == ($0.usesOption ? [.command, .option] : .command) }
     }
 }
 

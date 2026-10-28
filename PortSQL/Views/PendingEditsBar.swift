@@ -156,3 +156,34 @@ extension View {
         }
     }
 }
+
+extension WorkspaceViewModel {
+    /// A result cell's own actions, for both platforms' grids: clone the row, and open the rows it
+    /// references or that reference it. Deleting and reverting act on the whole selection in the grid.
+    func gridRowActions(rowIndex: Int, columnIndex: Int) -> [ResultGridRowAction] {
+        guard result.rows.indices.contains(rowIndex), result.columns.indices.contains(columnIndex) else { return [] }
+        let row = result.rows[rowIndex]
+        let names = Set(result.columns.map(\.name))
+        var actions: [ResultGridRowAction] = []
+        if canInsertIntoCurrentTable, selectedBookmark?.isReadOnly != true, result.documents == nil {
+            actions.append(ResultGridRowAction(title: L10n.text("Duplicate Row"), symbolName: "plus.square.on.square", shortcut: .cloneRow) { [weak self] in
+                self?.prepareDuplicate(row: row)
+            })
+        }
+        actions += foreignKeys.filter { $0.columns.contains(result.columns[columnIndex].name) }.map { key in
+            ResultGridRowAction(title: L10n.format("Go to %@", key.referencedTable)) { [weak self] in
+                guard let self, self.result.rows.contains(where: { $0.id == row.id }) else { return }
+                self.followForeignKey(key, row: row)
+            }
+        }
+        // Rows elsewhere that point at this one, when the columns they point at are in the result.
+        actions += referencingKeys.filter { $0.key.referencedColumns.allSatisfy(names.contains) }.map { reference in
+            ResultGridRowAction(title: L10n.format("Referenced by %@", reference.table + "." + reference.key.columns.joined(separator: ", ")),
+                                symbolName: "arrowshape.turn.up.backward") { [weak self] in
+                guard let self, self.result.rows.contains(where: { $0.id == row.id }) else { return }
+                self.followReference(reference, row: row)
+            }
+        }
+        return actions
+    }
+}

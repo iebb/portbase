@@ -143,4 +143,19 @@ extension ListStyle where Self == InsetGroupedListStyle {
         NSPasteboard.general.writeObjects(values)
 #endif
     }
+    /// The clipboard's data of a type, such as cells Portbase copied with their types.
+    static func data(_ type: String) -> Data? {
+#if canImport(UIKit)
+        UIPasteboard.general.data(forPasteboardType: type)
+#else
+        NSPasteboard.general.data(forType: NSPasteboard.PasteboardType(type))
+#endif
+    }
+    static var text: String? {
+#if canImport(UIKit)
+        UIPasteboard.general.string
+#else
+        NSPasteboard.general.string(forType: .string)
+#endif
+    }
 }

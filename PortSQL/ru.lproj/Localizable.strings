@@ -1708,4 +1708,18 @@
 "Pending Changes" = "Ожидающие изменения";
 "Restore Row" = "Восстановить строку";
 "Submit and Delete %d" = "Отправить и удалить %d";
+
+"Set Selected Values…" = "Задать выбранные значения…";
+"The selected cells are no longer editable." = "Выбранные ячейки больше нельзя редактировать.";
 "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Некоторые таблицы в %@, например MyISAM, не могут отменить неудачное сохранение. Каждое сохранение по-прежнему меняет не больше одной строки.";
+
+"Paste" = "Вставить";
+"Revert Selected" = "Отменить изменения в выделении";
+"Delete Selected Rows" = "Удалить выбранные строки";
+"Restore Selected Rows" = "Восстановить выбранные строки";
+"Select Row" = "Выделить строку";
+"Select Column" = "Выделить столбец";
+"Go to Row…" = "Перейти к строке…";
+"Go to Row" = "Перейти к строке";
+"Row" = "Строка";
+"Referenced by %@" = "Ссылки из %@";

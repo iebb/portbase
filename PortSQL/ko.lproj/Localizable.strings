@@ -1708,4 +1708,18 @@
 "Pending Changes" = "대기 중인 변경";
 "Restore Row" = "행 복원";
 "Submit and Delete %d" = "제출하고 %d개 삭제";
+
+"Set Selected Values…" = "선택한 값 설정…";
+"The selected cells are no longer editable." = "선택한 셀을 더 이상 편집할 수 없습니다.";
 "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "%@의 일부 테이블(예: MyISAM 테이블)은 실패한 저장을 되돌릴 수 없습니다. 각 저장은 여전히 최대 한 행만 변경합니다.";
+
+"Paste" = "붙여넣기";
+"Revert Selected" = "선택 항목 되돌리기";
+"Delete Selected Rows" = "선택한 행 삭제";
+"Restore Selected Rows" = "선택한 행 복원";
+"Select Row" = "행 선택";
+"Select Column" = "열 선택";
+"Go to Row…" = "행으로 이동…";
+"Go to Row" = "행으로 이동";
+"Row" = "행";
+"Referenced by %@" = "%@에서 참조";

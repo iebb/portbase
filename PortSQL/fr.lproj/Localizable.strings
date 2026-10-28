@@ -1708,4 +1708,18 @@
 "Pending Changes" = "Modifications en attente";
 "Restore Row" = "Restaurer la ligne";
 "Submit and Delete %d" = "Envoyer et supprimer %d";
+
+"Set Selected Values…" = "Définir les valeurs sélectionnées…";
+"The selected cells are no longer editable." = "Les cellules sélectionnées ne peuvent plus être modifiées.";
 "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Certaines tables de %@ ne peuvent pas annuler un enregistrement échoué, comme les tables MyISAM. Chaque enregistrement modifie toujours au plus une ligne.";
+
+"Paste" = "Coller";
+"Revert Selected" = "Annuler les modifications sélectionnées";
+"Delete Selected Rows" = "Supprimer les lignes sélectionnées";
+"Restore Selected Rows" = "Restaurer les lignes sélectionnées";
+"Select Row" = "Sélectionner la ligne";
+"Select Column" = "Sélectionner la colonne";
+"Go to Row…" = "Aller à la ligne…";
+"Go to Row" = "Aller à la ligne";
+"Row" = "Ligne";
+"Referenced by %@" = "Référencé par %@";

@@ -1708,4 +1708,18 @@
 "Pending Changes" = "Pending Changes";
 "Restore Row" = "Restore Row";
 "Submit and Delete %d" = "Submit and Delete %d";
+
+"Set Selected Values…" = "Set Selected Values…";
+"The selected cells are no longer editable." = "The selected cells are no longer editable.";
 "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row.";
+
+"Paste" = "Paste";
+"Revert Selected" = "Revert Selected";
+"Delete Selected Rows" = "Delete Selected Rows";
+"Restore Selected Rows" = "Restore Selected Rows";
+"Select Row" = "Select Row";
+"Select Column" = "Select Column";
+"Go to Row…" = "Go to Row…";
+"Go to Row" = "Go to Row";
+"Row" = "Row";
+"Referenced by %@" = "Referenced by %@";
