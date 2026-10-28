@@ -1708,3 +1708,4 @@
 "Pending Changes" = "Ожидающие изменения";
 "Restore Row" = "Восстановить строку";
 "Submit and Delete %d" = "Отправить и удалить %d";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Некоторые таблицы в %@, например MyISAM, не могут отменить неудачное сохранение. Каждое сохранение по-прежнему меняет не больше одной строки.";

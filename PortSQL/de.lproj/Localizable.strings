@@ -1708,3 +1708,4 @@
 "Pending Changes" = "Ausstehende Änderungen";
 "Restore Row" = "Zeile wiederherstellen";
 "Submit and Delete %d" = "Senden und %d löschen";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Einige Tabellen in %@ können ein fehlgeschlagenes Speichern nicht rückgängig machen, etwa MyISAM-Tabellen. Jedes Speichern ändert trotzdem höchstens eine Zeile.";

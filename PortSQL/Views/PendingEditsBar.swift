@@ -5,7 +5,21 @@ struct PendingEditsBar: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
 
     var body: some View {
-        if workspace.hasPendingChanges || workspace.pendingEditError != nil {
+        if let notice = workspace.writeWithoutRollbackNotice, !workspace.hasPendingChanges, workspace.pendingEditError == nil {
+            // Shown once per database; never in the way of saving.
+            HStack(spacing: Spacing.s) {
+                Image(systemName: "info.circle").foregroundStyle(.secondary).accessibilityHidden(true)
+                Text(notice).font(.captionText).foregroundStyle(.secondary).lineLimit(3)
+                Spacer(minLength: Spacing.s)
+                Button { workspace.writeWithoutRollbackNotice = nil } label: {
+                    Image(systemName: "xmark").frame(minWidth: Sizes.touchTarget, minHeight: Sizes.touchTarget)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss")
+            }
+            .padding(.horizontal, Spacing.m)
+            .overlay(alignment: .bottom) { Divider() }
+        } else if workspace.hasPendingChanges || workspace.pendingEditError != nil {
             HStack(spacing: Spacing.s) {
                 Image(systemName: workspace.pendingEditError == nil ? "pencil.circle.fill" : "exclamationmark.triangle.fill")
                     .foregroundStyle(workspace.pendingEditError == nil ? Color.orange : Color.red)

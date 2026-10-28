@@ -399,6 +399,8 @@ struct QueryResultTable: Codable, Hashable {
     var isExplorerGenerated: Bool?
     // Canonical Extended JSON preserves BSON types and missing fields in exports.
     var documents: [String]? = nil
+    /// Set when a verified write went to a table that can't roll back, such as MySQL's MyISAM.
+    var wroteWithoutRollback: Bool? = nil
 
     static let empty = QueryResultTable(
         columns: [],

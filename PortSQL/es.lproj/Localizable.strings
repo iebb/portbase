@@ -1708,3 +1708,4 @@
 "Pending Changes" = "Cambios pendientes";
 "Restore Row" = "Restaurar fila";
 "Submit and Delete %d" = "Enviar y eliminar %d";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Algunas tablas de %@ no pueden deshacer un guardado fallido, como las tablas MyISAM. Cada guardado sigue cambiando como máximo una fila.";

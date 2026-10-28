@@ -1577,7 +1577,8 @@ final class WorkspaceViewModel: ObservableObject {
             predicates.append(sqlIdentifier(key.column.name, engine: engine) + " = " + (engine == .postgresql ? "$\(values.count)" : "?"))
         }
         guard !predicates.isEmpty else { return nil }
-        return BoundQuery(sql: "DELETE FROM \(sqlQualifiedTable(target.table, engine: engine))\nWHERE \(predicates.joined(separator: " AND "));", values: values)
+        let limit = engine.isMySQLFamily ? "\nLIMIT 1" : ""
+        return BoundQuery(sql: "DELETE FROM \(sqlQualifiedTable(target.table, engine: engine))\nWHERE \(predicates.joined(separator: " AND "))\(limit);", values: values)
     }
 
     /// Writes pending changes one statement at a time, each a bound single-row update or delete in a
@@ -1603,13 +1604,14 @@ final class WorkspaceViewModel: ObservableObject {
             var saved = 0
             for write in writes {
                 do {
-                    _ = try await DatabaseService.shared.execute(
+                    let written = try await DatabaseService.shared.execute(
                         query: write.mutation.sql,
                         values: write.mutation.values,
                         profile: bookmark,
                         database: databaseName,
                         policy: .mutation(expectedAffectedRows: 1)
                     )
+                    if written.wroteWithoutRollback == true { noteWriteWithoutRollback(profile: bookmark, database: databaseName) }
                     saved += 1
                     switch write.kind {
                     case .update:
@@ -1627,6 +1629,18 @@ final class WorkspaceViewModel: ObservableObject {
             isSubmittingPendingEdits = false
             if pendingEditError == nil { reloadAfterEdit() }
         }
+    }
+
+    /// A note shown once per connection and database, the first time a save goes to a table that can't
+    /// roll back. Saves aren't blocked: each one is limited to a single row.
+    @Published var writeWithoutRollbackNotice: String?
+
+    private func noteWriteWithoutRollback(profile: ConnectionProfile, database: String?) {
+        let name = database ?? profile.trimmedDefaultDatabase
+        let key = "Portbase.noRollbackNotice." + profile.id.uuidString + "." + name
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        writeWithoutRollbackNotice = L10n.format("Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row.", name)
     }
 
     private func removeDeletedRow(_ id: QueryRow.ID) {
@@ -1770,7 +1784,7 @@ final class WorkspaceViewModel: ObservableObject {
                 ? draft.rowID.flatMap { id in editPlan.map { (id, $0.columns(of: 0)) } } : nil
         mutationTask = Task {
             do {
-                _ = try await DatabaseService.shared.execute(
+                let written = try await DatabaseService.shared.execute(
                     query: mutation.sql,
                     values: mutation.values,
                     profile: bookmark,
@@ -1778,6 +1792,7 @@ final class WorkspaceViewModel: ObservableObject {
                     policy: .mutation(expectedAffectedRows: 1)
                 )
                 await MainActor.run {
+                    if written.wroteWithoutRollback == true { self.noteWriteWithoutRollback(profile: bookmark, database: databaseName) }
                     guard self.mutationToken == token else { return }
                     self.mutationToken = nil
                     self.mutationTask = nil
@@ -2092,10 +2107,11 @@ final class WorkspaceViewModel: ObservableObject {
                 guard let value = DataEditorValidationService.boundValue(for: comparisonField) else { return nil }
                 return "\(columnName) = \(bind(value))"
             })
+            // On MySQL, LIMIT 1 means the keyed update can't touch a second row even on a table that can't roll back.
             let sql = """
             UPDATE \(tableName)
             SET \(assignments.joined(separator: ", "))
-            WHERE \(predicates.joined(separator: " AND "));
+            WHERE \(predicates.joined(separator: " AND "))\(engine.isMySQLFamily ? "\nLIMIT 1" : "");
             """
             return BoundQuery(sql: sql, values: values)
         }

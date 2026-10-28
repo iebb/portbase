@@ -1708,3 +1708,4 @@
 "Pending Changes" = "대기 중인 변경";
 "Restore Row" = "행 복원";
 "Submit and Delete %d" = "제출하고 %d개 삭제";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "%@의 일부 테이블(예: MyISAM 테이블)은 실패한 저장을 되돌릴 수 없습니다. 각 저장은 여전히 최대 한 행만 변경합니다.";

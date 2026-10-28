@@ -1708,3 +1708,4 @@
 "Pending Changes" = "Modifications en attente";
 "Restore Row" = "Restaurer la ligne";
 "Submit and Delete %d" = "Envoyer et supprimer %d";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Certaines tables de %@ ne peuvent pas annuler un enregistrement échoué, comme les tables MyISAM. Chaque enregistrement modifie toujours au plus une ligne.";

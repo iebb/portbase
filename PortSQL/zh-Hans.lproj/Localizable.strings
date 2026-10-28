@@ -1708,3 +1708,4 @@
 "Pending Changes" = "待处理的更改";
 "Restore Row" = "恢复行";
 "Submit and Delete %d" = "提交并删除 %d 行";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "%@ 中的部分表（如 MyISAM 表）无法撤销失败的保存。每次保存仍最多只更改一行。";

@@ -1708,3 +1708,4 @@
 "Pending Changes" = "Pending Changes";
 "Restore Row" = "Restore Row";
 "Submit and Delete %d" = "Submit and Delete %d";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row.";

@@ -692,9 +692,10 @@ actor DatabaseService {
         do {
             if connectionOverride == nil { try await configureMySQLSession(connection, profile: profile, policy: policy) }
             let validatesMutation = expectedAffectedRows(for: policy) != nil
+            var transactional = true
             if validatesMutation {
                 _ = try await connection.simpleQuery("START TRANSACTION").get()
-                try await requireMySQLTransactionalTable(query: query, connection: connection, timeout: timeoutSeconds)
+                transactional = try await requireMySQLTransactionalTable(query: query, connection: connection, timeout: timeoutSeconds)
             }
             let metadata = MySQLExecutionMetadata()
             let future = connection.query(
@@ -746,7 +747,7 @@ actor DatabaseService {
                 summary = "Statement executed successfully."
             }
             if connectionOverride == nil { try await connection.close().get() }
-            return QueryResultTable(
+            var table = QueryResultTable(
                 columns: columns,
                 rows: mappedRows,
                 executionSummary: summary,
@@ -756,6 +757,8 @@ actor DatabaseService {
                 affectedRowCount: affectedRows,
                 isTruncated: metadata.isTruncated
             )
+            if !transactional { table.wroteWithoutRollback = true }
+            return table
         } catch {
             if expectedAffectedRows(for: policy) != nil {
                 _ = try? await connection.simpleQuery("ROLLBACK").get()
@@ -765,7 +768,10 @@ actor DatabaseService {
         }
     }
 
-    private func requireMySQLTransactionalTable(query: String, connection: MySQLConnection, timeout: Int, session: SQLConsoleSession? = nil) async throws {
+    /// Returns whether the target table can roll back; throws when it can't and the statement could
+    /// change more than one row.
+    @discardableResult
+    private func requireMySQLTransactionalTable(query: String, connection: MySQLConnection, timeout: Int, session: SQLConsoleSession? = nil) async throws -> Bool {
         let tokens = SQLEditingService.tokens(query, engine: .mysql)
         var nesting = 0
         var command: Int?
@@ -793,7 +799,7 @@ actor DatabaseService {
             }
         }
         let qualified = (schema.isEmpty ? "" : Self.schemaIdentifier(schema, engine: .mysql) + ".") + Self.schemaIdentifier(table, engine: .mysql)
-        if session?.transactionalTables.contains(qualified) == true { return }
+        if session?.transactionalTables.contains(qualified) == true { return true }
         let definition: String? = try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
             // The metadata lock remains held until this transaction ends, preventing ALTER ENGINE races.
             _ = try await connection.simpleQuery("SELECT 1 FROM " + qualified + " LIMIT 0").get()
@@ -804,10 +810,38 @@ actor DatabaseService {
         let transactional = ddl.indices.contains { i in
             ddl[i].keyword == "ENGINE" && ddl.indices.contains(i + 2) && ddl[i + 1].text == "=" && ddl[i + 2].keyword == "INNODB"
         }
-        guard transactional else {
+        // A table that can't roll back (MyISAM, Aria, MEMORY) takes only a statement that can't change more
+        // than one row: the row editor's keyed UPDATE or DELETE with LIMIT 1, or an INSERT of one row. A
+        // count other than one then means nothing was written, so there's nothing to roll back.
+        guard transactional || (session == nil && Self.isProvablySingleRowWrite(tokens, operation: operation)) else {
             throw NSError(domain: "PortSQL.Safety", code: 1, userInfo: [NSLocalizedDescriptionKey: L10n.text("Verified row edits require an InnoDB table so a failed edit can be rolled back.")])
         }
-        session?.transactionalTables.insert(qualified)
+        if transactional { session?.transactionalTables.insert(qualified) }
+        return transactional
+    }
+
+    /// Whether a MySQL statement can change at most one row whatever the data: an UPDATE or DELETE
+    /// ending in LIMIT 1, or an INSERT of a single VALUES row with no SELECT or upsert clause.
+    static func isProvablySingleRowWrite(_ tokens: [SQLStructureToken], operation: String) -> Bool {
+        // Quoted identifiers can't pass for keywords like LIMIT.
+        var code = tokens.map { $0.quoted ? "\u{0}" + $0.text : $0.keyword }
+        while code.last == ";" { code.removeLast() }
+        if code.contains(";") { return false }
+        switch operation {
+        case "UPDATE", "DELETE":
+            return code.count >= 3 && code[code.count - 2] == "LIMIT" && code.last == "1" && code.contains("WHERE")
+        case "INSERT":
+            guard let values = code.firstIndex(where: { $0 == "VALUES" || $0 == "VALUE" }),
+                  !code.contains("SELECT"), !code.contains("DUPLICATE"), code.indices.contains(values + 1), code[values + 1] == "(" else { return false }
+            var depth = 0
+            for (index, token) in code.enumerated().dropFirst(values + 1) {
+                if token == "(" { depth += 1 }
+                if token == ")" { depth -= 1; if depth == 0 { return index == code.count - 1 } }
+            }
+            return false
+        default:
+            return false
+        }
     }
 
     private func loadMySQLSchema(profile: ConnectionProfile, database: String?) async throws -> [SchemaTableDescriptor] {

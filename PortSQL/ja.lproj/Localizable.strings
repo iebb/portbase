@@ -1708,3 +1708,4 @@
 "Pending Changes" = "保留中の変更";
 "Restore Row" = "行を元に戻す";
 "Submit and Delete %d" = "送信して%d件削除";
+"Some tables in %@ can’t undo a failed save, such as MyISAM tables. Each save still changes at most one row." = "%@ の一部のテーブル（MyISAM テーブルなど）は、失敗した保存を取り消せません。保存ごとに変更されるのは最大 1 行です。";

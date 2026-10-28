@@ -214,6 +214,55 @@ final class ConsoleStorageAndSQLTests: XCTestCase {
         withExtendedLifetime((bookmarks, library)) {}
     }
 
+    func testOnlyStatementsThatCanChangeOneRowRunWithoutRollback() {
+        func single(_ sql: String, _ operation: String) -> Bool {
+            DatabaseService.isProvablySingleRowWrite(SQLEditingService.tokens(sql, engine: .mysql), operation: operation)
+        }
+        XCTAssertTrue(single("UPDATE `t` SET `a` = ? WHERE `id` = ? AND `a` = ?\nLIMIT 1;", "UPDATE"))
+        XCTAssertTrue(single("DELETE FROM `t` WHERE `id` = ? LIMIT 1", "DELETE"))
+        XCTAssertTrue(single("INSERT INTO `t` (`a`, `b`) VALUES (?, ?);", "INSERT"))
+        XCTAssertFalse(single("UPDATE `t` SET `a` = 1 WHERE `id` > 3", "UPDATE"), "No LIMIT 1")
+        XCTAssertFalse(single("UPDATE `t` SET `a` = 1 LIMIT 1", "UPDATE"), "No WHERE")
+        XCTAssertFalse(single("UPDATE `t` SET `a` = 1 WHERE `id` = 2 LIMIT 10", "UPDATE"))
+        XCTAssertFalse(single("UPDATE `t` SET `a` = 1 WHERE `id` = 2 `LIMIT` 1", "UPDATE"), "A quoted name isn't the keyword")
+        XCTAssertFalse(single("INSERT INTO `t` (`a`) VALUES (1), (2)", "INSERT"), "Two rows")
+        XCTAssertFalse(single("INSERT INTO `t` (`a`) SELECT `a` FROM `u`", "INSERT"))
+        XCTAssertFalse(single("INSERT INTO `t` (`a`) VALUES (1) ON DUPLICATE KEY UPDATE `a` = 2", "INSERT"))
+        XCTAssertFalse(single("DELETE FROM `t` WHERE `id` = 1 LIMIT 1; DELETE FROM `t`", "DELETE"))
+    }
+
+    /// A MyISAM table can't roll back, but a keyed single-row write still goes through, says so, and
+    /// a statement that could change more rows is still refused.
+    func testMyISAMTablesTakeSingleRowWritesAndReportIt() async throws {
+        guard let port = Int(ProcessInfo.processInfo.environment["PORTSQL_TEST_MYSQL_PORT"] ?? "") else {
+            throw XCTSkip("Local MySQL fixture is not configured")
+        }
+        let profile = ConnectionProfile(name: "Disposable MyISAM fixture", engine: .mysql, host: "127.0.0.1", port: port,
+            username: "test_username", password: "test_password", defaultDatabase: "test_database", transportSecurityMode: .plaintext)
+        let service = DatabaseService.shared
+        let table = "myisam_" + UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12).lowercased()
+        for sql in ["CREATE TABLE \(table) (id INTEGER PRIMARY KEY, name VARCHAR(20)) ENGINE=MyISAM",
+                    "INSERT INTO \(table) VALUES (1, 'a'), (2, 'b')"] {
+            _ = try await service.execute(query: sql, profile: profile, policy: .userQuery(confirmed: true))
+        }
+        defer { Task { _ = try? await service.execute(query: "DROP TABLE \(table)", profile: profile, policy: .userQuery(confirmed: true)) } }
+        let written = try await service.execute(query: "UPDATE `\(table)` SET `name` = ? WHERE `id` = ? AND `name` = ?\nLIMIT 1;",
+            values: [.string("z"), .integer(1), .string("a")], profile: profile, database: "test_database", policy: .mutation(expectedAffectedRows: 1))
+        XCTAssertEqual(written.wroteWithoutRollback, true)
+        do {
+            _ = try await service.execute(query: "UPDATE `\(table)` SET `name` = ? WHERE `id` = ? AND `name` = ?\nLIMIT 1;",
+                values: [.string("y"), .integer(2), .string("stale")], profile: profile, database: "test_database", policy: .mutation(expectedAffectedRows: 1))
+            XCTFail("A row that no longer matches is reported")
+        } catch {}
+        do {
+            _ = try await service.execute(query: "UPDATE `\(table)` SET `name` = 'q' WHERE `id` > 0", profile: profile,
+                database: "test_database", policy: .mutation(expectedAffectedRows: 1))
+            XCTFail("A statement that could change several rows is refused")
+        } catch {}
+        let rows = try await service.execute(query: "SELECT id, name FROM \(table) ORDER BY id", profile: profile, database: "test_database", policy: .readOnly)
+        XCTAssertEqual(rows.rows.map { $0.cells.map(\.displayValue) }, [["1", "z"], ["2", "b"]])
+    }
+
     private func temporaryDirectory() throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
