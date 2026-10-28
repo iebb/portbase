@@ -439,7 +439,7 @@ struct ResultGridView: View {
 #endif
             }
             // Pinned rather than scrolled with the tools, as a status bar keeps it in one place.
-            if let selection {
+            if let selection, selection.count > 1 {
                 HStack(spacing: 0) {
                     selectionSummaryMenu(cells: selection.count)
                     Button { self.selection = nil; extendsSelection = false } label: {

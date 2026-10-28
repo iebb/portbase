@@ -10,10 +10,14 @@ private final class ResultTableView: NSTableView {
     var onShortcut: ((ResultGridShortcut) -> Bool)?
     var onSelectAll: (() -> Void)?
     private var isSelectingCells = false
+    private var lastClickedCell: (row: Int, column: Int)?
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         let row = row(at: point), column = column(at: point)
-        guard event.clickCount == 1, row >= 0, column >= 0 else { super.mouseDown(with: event); return }
+        // A quick second click on another cell, such as a Shift-click, selects rather than opening an editor there.
+        let opens = event.clickCount > 1 && lastClickedCell.map { $0 == (row, column) } == true
+        lastClickedCell = (row, column)
+        guard !opens, row >= 0, column >= 0 else { super.mouseDown(with: event); return }
         // NSTableView's tracking loop selects whole rows and consumes the drag. Track cells ourselves.
         window?.makeFirstResponder(self)
         isSelectingCells = true
@@ -31,6 +35,41 @@ private final class ResultTableView: NSTableView {
     override func mouseUp(with event: NSEvent) {
         if isSelectingCells { isSelectingCells = false }
         else { super.mouseUp(with: event) }
+    }
+    /// The selection, outlined over the cells' tints: a hairline around a range and a ring on the cell
+    /// Return or typing edits, so a staged cell inside the selection keeps its own color.
+    var outlinedSelection: ResultGridSelection? { didSet { if oldValue != outlinedSelection { placeOutlines() } } }
+    private let rangeOutline = SelectionOutline(), cursorOutline = SelectionOutline()
+    override func tile() { super.tile(); placeOutlines() }
+    /// The cell a context menu was opened on. The menu acts on the outlined cells, so the table's own
+    /// handling, which rings the whole clicked row, is skipped.
+    private(set) var menuCell: (row: Int, column: Int)?
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let point = convert(event.locationInWindow, from: nil)
+        menuCell = (row(at: point), column(at: point))
+        return menu
+    }
+    override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); placeOutlines() }
+    func placeOutlines() {
+        guard let selection = outlinedSelection, selection.rows.upperBound < numberOfRows, selection.columns.upperBound < numberOfColumns else {
+            rangeOutline.isHidden = true; cursorOutline.isHidden = true; return
+        }
+        for (outline, width) in [(rangeOutline, 1.0), (cursorOutline, 2.0)] where outline.superview !== self {
+            outline.wantsLayer = true
+            outline.layer?.borderWidth = width
+            outline.layer?.zPosition = 10
+            addSubview(outline)
+        }
+        let accent = NSColor(PortSQLPalette.accent)
+        rangeOutline.layer?.borderColor = accent.withAlphaComponent(0.7).resolvedCGColor(in: self)
+        cursorOutline.layer?.borderColor = accent.resolvedCGColor(in: self)
+        // Grow by half the grid line so the outline covers it rather than sitting inside the cells.
+        let range = frameOfCell(atColumn: selection.columns.lowerBound, row: selection.rows.lowerBound)
+            .union(frameOfCell(atColumn: selection.columns.upperBound, row: selection.rows.upperBound))
+        rangeOutline.frame = range.insetBy(dx: -1, dy: -1)
+        rangeOutline.isHidden = selection.count == 1
+        cursorOutline.frame = frameOfCell(atColumn: selection.end.column, row: selection.end.row).insetBy(dx: -1, dy: -1)
+        cursorOutline.isHidden = false
     }
     @objc func copy(_ sender: Any?) { onCopy?() }
     @objc func paste(_ sender: Any?) { if onShortcut?(.paste) != true { NSSound.beep() } }
@@ -58,6 +97,11 @@ private final class ResultTableView: NSTableView {
         }
         super.keyDown(with: event)
     }
+}
+
+/// An outline drawn over the grid that clicks pass through.
+private final class SelectionOutline: NSView {
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
 
 struct GridCollectionBridge: NSViewRepresentable {
@@ -165,7 +209,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             let header = NSMutableAttributedString()
             if primaryKeys.contains(name), let key = NSImage(systemSymbolName: "key.fill", accessibilityDescription: L10n.text("Primary key")) {
                 let attachment = NSTextAttachment()
-                attachment.image = key.withSymbolConfiguration(.init(pointSize: 10, weight: .semibold))
+                attachment.image = key.withSymbolConfiguration(.init(pointSize: 10, weight: .semibold).applying(.init(hierarchicalColor: .labelColor)))
                 header.append(NSAttributedString(attachment: attachment))
                 header.append(NSAttributedString(string: " "))
             }
@@ -187,6 +231,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             || old.pendingKeys != pendingKeys || old.deletedRows != deletedRows || table.numberOfRows != result.rows.count
         // Reloading would tear down the field being edited; the edit's own commit reloads afterwards.
         if changed, !context.coordinator.isEditing { table.reloadData() }
+        table.outlinedSelection = selection
         if old.revealSelection != revealSelection, let end = selection?.end, end.row < table.numberOfRows {
             table.scrollRowToVisible(end.row)
             table.scrollColumnToVisible(end.column)
@@ -244,15 +289,19 @@ struct GridCollectionBridge: NSViewRepresentable {
                     .strikethroughStyle: NSUnderlineStyle.single.rawValue, .foregroundColor: NSColor.secondaryLabelColor, .font: field.font as Any])
                 field.setAccessibilityValue((field.toolTip ?? "") + ", " + L10n.text("Marked for deletion"))
             }
-            // Tint the whole cell, not just the text, for selection and staged edits.
+            // Tint the whole cell, not just the text. Staged and deleted cells keep their color when selected,
+            // a little stronger, and the selection's outline shows its extent.
             field.drawsBackground = false
             container.wantsLayer = true
-            if let position = parent.visibleColumns.firstIndex(of: index), parent.selection?.contains(row: row, column: position) == true {
-                container.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).resolvedCGColor(in: tableView)
-            } else if deleted {
-                container.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.12).resolvedCGColor(in: tableView)
+            let selected = parent.visibleColumns.firstIndex(of: index).map { parent.selection?.contains(row: row, column: $0) == true } ?? false
+            if deleted {
+                container.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(selected ? 0.18 : 0.12).resolvedCGColor(in: tableView)
             } else if pending {
-                container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.22).resolvedCGColor(in: tableView)
+                container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(selected ? 0.3 : 0.22).resolvedCGColor(in: tableView)
+            } else if selected {
+                // A dark background needs more of the accent to read as selected.
+                let dark = tableView.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                container.layer?.backgroundColor = NSColor(PortSQLPalette.accent).withAlphaComponent(dark ? 0.22 : 0.12).resolvedCGColor(in: tableView)
             } else { container.layer?.backgroundColor = nil }
             return container
         }
@@ -287,6 +336,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             guard parent.selection != ResultGridSelection(anchor: anchor, end: cell) else { return }
             parent.selection = ResultGridSelection(anchor: anchor, end: cell)
             table?.reloadData()
+            table?.outlinedSelection = parent.selection
         }
         func moveSelection(row: Int, column: Int, extend: Bool) {
             guard !parent.result.rows.isEmpty, !parent.visibleColumns.isEmpty else { return }
@@ -303,6 +353,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             parent.selection = ResultGridSelection(anchor: .init(row: 0, column: 0),
                                                    end: .init(row: parent.result.rows.count - 1, column: parent.visibleColumns.count - 1))
             table?.reloadData()
+            table?.outlinedSelection = parent.selection
         }
         func copySelection(headers: Bool = false) {
             guard let selection = parent.selection else { return }
@@ -328,8 +379,10 @@ struct GridCollectionBridge: NSViewRepresentable {
             let value = cells.indices.contains(index) ? cells[index] : .null
             let text = multi ? parent.selectionText() : value.isNull ? "" : value.displayValue
 
-            let box = NSView(frame: table.frameOfCell(atColumn: position, row: row))
+            // Over the grid lines and the selection's ring, so the editor takes the ring's place.
+            let box = NSView(frame: table.frameOfCell(atColumn: position, row: row).insetBy(dx: -1, dy: -1))
             box.wantsLayer = true
+            box.layer?.zPosition = 20
             box.layer?.backgroundColor = NSColor(PortSQLPalette.surface).resolvedCGColor(in: table)
             box.layer?.borderColor = NSColor(PortSQLPalette.accent).resolvedCGColor(in: table)
             box.layer?.borderWidth = 2
@@ -362,7 +415,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             editing = (row, index, text, field, box, multi)
             table.window?.makeFirstResponder(field)
             if typing == nil { field.currentEditor()?.selectAll(nil) }
-            else { field.currentEditor()?.moveToEndOfDocument(nil) }
+            else { field.currentEditor()?.moveToEndOfDocument(nil); previewSelectionEdit() }
         }
 
         /// Edits the selected cells in place, all of them at once for a range; returns false when they
@@ -418,6 +471,23 @@ struct GridCollectionBridge: NSViewRepresentable {
             finishEditing(commit: true)
         }
 
+        func controlTextDidChange(_ notification: Notification) { previewSelectionEdit() }
+
+        /// Shows what's being typed over a range in every other selected cell, dimmed until it's staged.
+        /// The reload when editing ends puts back what the cells hold.
+        private func previewSelectionEdit() {
+            guard let editing, editing.multi, let table, let selection = parent.selection else { return }
+            for row in selection.rows {
+                for position in selection.columns where parent.visibleColumns.indices.contains(position) {
+                    guard row != editing.row || parent.visibleColumns[position] != editing.column,
+                          let field = (table.view(atColumn: position, row: row, makeIfNecessary: false) as? NSTableCellView)?.textField else { continue }
+                    field.stringValue = editing.field.stringValue
+                    field.textColor = .secondaryLabelColor
+                    field.alignment = .left
+                }
+            }
+        }
+
         func control(_ control: NSControl, textView: NSTextView, doCommandBy selector: Selector) -> Bool {
             guard control === editing?.field else { return false }
             if selector == #selector(NSResponder.insertTab(_:)) { moveEditing(by: 1); return true }
@@ -438,11 +508,11 @@ struct GridCollectionBridge: NSViewRepresentable {
                 build(parent.headerMenu(parent.visibleColumns[position]), into: menu)
                 return
             }
-            guard table.clickedRow >= 0, parent.visibleColumns.indices.contains(table.clickedColumn) else { return }
-            if parent.selection?.contains(row: table.clickedRow, column: table.clickedColumn) != true {
-                select(row: table.clickedRow, column: table.clickedColumn, extend: false)
+            guard let (row, column) = table.menuCell, row >= 0, parent.visibleColumns.indices.contains(column) else { return }
+            if parent.selection?.contains(row: row, column: column) != true {
+                select(row: row, column: column, extend: false)
             }
-            build(parent.cellMenu(table.clickedRow, parent.visibleColumns[table.clickedColumn]), into: menu)
+            build(parent.cellMenu(row, parent.visibleColumns[column]), into: menu)
         }
         private func build(_ items: [ResultGridMenuItem], into menu: NSMenu) {
             for item in items {
