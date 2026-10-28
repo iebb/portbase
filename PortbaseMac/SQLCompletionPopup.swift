@@ -51,6 +51,8 @@ import SwiftUI
             origin.x = min(max(screen.minX + 4, origin.x), screen.maxX - Self.width - 4)
         }
         panel.setFrame(NSRect(origin: origin, size: NSSize(width: Self.width, height: height)), display: true)
+        // A floating panel takes the system's light or dark look unless told; it follows the editor's window.
+        panel.appearance = window.effectiveAppearance
         if parentWindow !== window {
             parentWindow?.removeChildWindow(panel)
             window.addChildWindow(panel, ordered: .above)
@@ -203,6 +205,8 @@ struct SQLCompletionList: View {
         let size = host.fittingSize
         let origin = NSPoint(x: caret.minX - 12, y: caret.maxY + 6)
         panel.setFrame(NSRect(origin: origin, size: NSSize(width: max(80, size.width), height: max(24, size.height))), display: true)
+        // A floating panel takes the system's light or dark look unless told; it follows the editor's window.
+        panel.appearance = window.effectiveAppearance
         if parentWindow !== window {
             parentWindow?.removeChildWindow(panel)
             window.addChildWindow(panel, ordered: .above)

@@ -191,11 +191,11 @@ struct GridCollectionBridge: NSViewRepresentable {
             field.drawsBackground = false
             container.wantsLayer = true
             if let position = parent.visibleColumns.firstIndex(of: index), parent.selection?.contains(row: row, column: position) == true {
-                container.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
+                container.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).resolvedCGColor(in: tableView)
             } else if deleted {
-                container.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.12).cgColor
+                container.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(0.12).resolvedCGColor(in: tableView)
             } else if pending {
-                container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.22).cgColor
+                container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(0.22).resolvedCGColor(in: tableView)
             } else { container.layer?.backgroundColor = nil }
             return container
         }
@@ -255,8 +255,8 @@ struct GridCollectionBridge: NSViewRepresentable {
 
             let box = NSView(frame: table.frameOfCell(atColumn: position, row: row))
             box.wantsLayer = true
-            box.layer?.backgroundColor = NSColor(PortSQLPalette.surface).cgColor
-            box.layer?.borderColor = NSColor(PortSQLPalette.accent).cgColor
+            box.layer?.backgroundColor = NSColor(PortSQLPalette.surface).resolvedCGColor(in: table)
+            box.layer?.borderColor = NSColor(PortSQLPalette.accent).resolvedCGColor(in: table)
             box.layer?.borderWidth = 2
             box.layer?.cornerRadius = 2
             box.autoresizingMask = []
@@ -417,5 +417,16 @@ private final class ResultHeaderView: NSTableHeaderView {
         rect.origin.y = bounds.minY
         rect.size.height = bounds.height
         return rect
+    }
+}
+
+extension NSColor {
+    /// The color for a layer, resolved in the view's own light or dark appearance. A plain `cgColor`
+    /// resolves in whatever appearance is current, which is the system's when Portbase is set to the
+    /// other one, and then draws a dark fill in a light window.
+    func resolvedCGColor(in view: NSView) -> CGColor {
+        var color = cgColor
+        view.effectiveAppearance.performAsCurrentDrawingAppearance { color = self.cgColor }
+        return color
     }
 }
