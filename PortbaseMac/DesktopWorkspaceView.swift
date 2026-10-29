@@ -290,7 +290,17 @@ struct DesktopWorkspaceView: View {
         } else {
             ToolbarItem(placement: .navigation) { tabStrip }
         }
-        ToolbarItemGroup(placement: .primaryAction) {
+        // One flat group in Portbase's own button style, rather than a glass circle around each button.
+        if #available(macOS 26.0, *) {
+            ToolbarItem(placement: .primaryAction) { windowActions }
+                .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .primaryAction) { windowActions }
+        }
+    }
+
+    private var windowActions: some View {
+        HStack(spacing: Spacing.xxs) {
             // Works from any tab: it asks about the current connection tab's schema.
             Button("Ask AI", systemImage: "sparkles") { show(.assistant) }
                 .disabled(workspace.selectedBookmark == nil)
@@ -300,6 +310,10 @@ struct DesktopWorkspaceView: View {
             Button("Settings", systemImage: "gearshape") { openSettings() }
                 .help(L10n.text("Settings"))
         }
+        .labelStyle(.iconOnly)
+        .buttonStyle(.portbaseToolbar)
+        .font(.bodyText)
+        .fixedSize()
     }
 
     /// The tab strip takes the toolbar's width beside the window controls and trailing buttons.
@@ -307,7 +321,8 @@ struct DesktopWorkspaceView: View {
         DesktopTabStrip(showsHome: $showsHome, onOpen: { openSession($0, then: nil) },
                         onNewConsole: { consoles.add(); consoles.active.workspace.selectBookmark(nil); showsHome = false },
                         onNewConnection: { workspace.createBookmark() })
-            .frame(width: max(280, windowWidth - 200), alignment: .leading)
+            // The window controls and the three trailing buttons keep their room, so none overflow into a menu.
+            .frame(width: max(280, windowWidth - 240), alignment: .leading)
     }
 
     private func navigate(_ target: PortbaseDestination) {
