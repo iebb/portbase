@@ -91,9 +91,9 @@ final class ConsoleStore: ObservableObject {
         guard let bookmarks, let library else { return }
         console.workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
         if subscriptions[console.id] == nil {
-            subscriptions[console.id] = console.workspace.objectWillChange.sink { [weak self] _ in
-                self?.scheduleSave()
-            }
+            subscriptions[console.id] = console.workspace.objectWillChange
+                .merge(with: console.workspace.editor.objectWillChange)
+                .sink { [weak self] _ in self?.scheduleSave() }
         }
     }
 
@@ -163,7 +163,7 @@ final class ConsoleStore: ObservableObject {
         do {
             let archive = Archive(selectedID: selectedID, consoles: consoles.map(\.draft), closed: closed)
             try WorkspaceFileStore.write(JSONEncoder().encode(archive), to: url)
-            storageError = nil
+            if storageError != nil { storageError = nil }
         } catch { storageError = L10n.text("Saved work could not be written. Free some device storage and try again.") }
     }
 }

@@ -534,16 +534,20 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             guard !isApplyingHighlight else { return }
             text = textView.text
             let selectedRange = textView.selectedRange
-            cursorOffset = selectedRange.location
-            selectionLength = selectedRange.length
+            updateSelection(location: selectedRange.location, length: selectedRange.length)
             scheduleHighlight(for: textView, preserving: selectedRange)
         }
 
         func textViewDidChangeSelection(_ textView: UITextView) {
             guard !isApplyingHighlight else { return }
-            cursorOffset = min(textView.selectedRange.location, textView.textStorage.length)
-            selectionLength = textView.selectedRange.length
+            updateSelection(location: min(textView.selectedRange.location, textView.textStorage.length), length: textView.selectedRange.length)
             updateDecorations(textView)
+        }
+
+        /// Only changes are written back: each write redraws the views watching the editor.
+        private func updateSelection(location: Int, length: Int) {
+            if cursorOffset != location { cursorOffset = location }
+            if selectionLength != length { selectionLength = length }
         }
 
         /// Tints the statement Run would execute and the bracket pair at the caret. Only the background

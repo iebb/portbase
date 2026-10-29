@@ -219,7 +219,12 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         view.insertionPointColor = palette.caretColor
         host.gutter?.palette = palette
         context.coordinator.applying = true
-        if view.string != text { view.string = text; view.undoManager?.removeAllActions() }
+        if view.string != text {
+            view.string = text
+            view.undoManager?.removeAllActions()
+            // Setting the text clears its colors, so all of it is colored again.
+            context.coordinator.lastTokens = nil
+        }
         let start = min(max(0, cursorOffset), text.utf16.count)
         let range = NSRange(location: start, length: min(max(0, selectionLength), text.utf16.count - start))
         if view.selectedRange() != range { view.setSelectedRange(range); view.scrollRangeToVisible(range) }
@@ -240,6 +245,8 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             return popup
         }()
         private var completion = SQLCompletionResult.empty
+        /// The last completion the editor was given, so a redraw that brings the same one again does nothing.
+        private var offered: SQLCompletionResult?
         private weak var completionView: NSTextView?
         /// Set while the user is typing a word, so the list may open; moving the caret clears it.
         private var typing = false
@@ -252,8 +259,15 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         private var lastError: NSRange?
         private var lastFontSize = 0.0
         private var lastPalette: EditorPalette?
+        /// The tokens the text is colored with now, so an edit recolors only what changed; nil recolors it all.
+        var lastTokens: [SQLToken]?
+        /// The text the last edit inserted, which takes its neighbor's color until it's recolored.
+        private var editedRange: NSRange?
         init(_ parent: HighlightedQueryEditor) { self.parent = parent }
         func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString: String?) -> Bool {
+            // Several edits before a recolor (typing into marked text) aren't tracked one by one; all of it is recolored.
+            if editedRange != nil { lastTokens = nil }
+            editedRange = NSRange(location: range.location, length: (replacementString as NSString?)?.length ?? 0)
             guard parent.completion != nil, !applying else { return true }
             if let replacement = replacementString, !replacement.isEmpty {
                 // Typing a name, a dot, or a space after a keyword can bring up the list; pasting can't.
@@ -321,6 +335,8 @@ struct HighlightedQueryEditor: NSViewRepresentable {
         /// Takes a new completion for the text, if it's for the text and caret as they are now.
         func updateCompletion(_ completion: SQLCompletionResult, in view: NSTextView) {
             completionView = view
+            guard completion != offered else { return }
+            offered = completion
             let caret = view.selectedRange()
             let source = view.string as NSString
             guard caret.length == 0, NSMaxRange(completion.fragmentRange) == caret.location, NSMaxRange(completion.fragmentRange) <= source.length,
@@ -387,9 +403,11 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             typing = item.insertion.hasSuffix(".")
             requested = typing
         }
+        /// Only changes are written back: each write redraws the views watching the editor.
         private func updateSelection(_ view: NSTextView) {
-            parent.cursorOffset = view.selectedRange().location
-            parent.selectionLength = view.selectedRange().length
+            let range = view.selectedRange()
+            if parent.cursorOffset != range.location { parent.cursorOffset = range.location }
+            if parent.selectionLength != range.length { parent.selectionLength = range.length }
         }
         func highlight(_ view: NSTextView) {
             let previousApplying = applying
@@ -397,15 +415,24 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             defer { applying = previousApplying }
             guard !view.hasMarkedText(), let storage = view.textStorage else { return }
             let palette = parent.palette
-            guard lastText != view.string || lastScheme != parent.colorScheme || lastJSON != parent.isJSON || lastError != parent.errorRange || lastFontSize != parent.editorFontSize || lastPalette != palette else { return }
+            let restyle = lastScheme != parent.colorScheme || lastJSON != parent.isJSON || lastError != parent.errorRange || lastFontSize != parent.editorFontSize || lastPalette != palette
+            guard restyle || lastText != view.string else { return }
+            let oldLength = (lastText as NSString?)?.length ?? 0
             lastText = view.string; lastScheme = parent.colorScheme; lastJSON = parent.isJSON; lastError = parent.errorRange; lastFontSize = parent.editorFontSize; lastPalette = palette
             let selection = view.selectedRange()
             let font = PortbaseFonts.codeFont(max(10, min(24, parent.editorFontSize)))
             let base: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: palette.plainColor]
+            let tokens = parent.isJSON ? JSONSyntaxHighlighter.tokens(in: view.string) : SQLSyntaxHighlighter.tokens(in: view.string)
+            let range = restyle ? nil : lastTokens.map { SQLSyntaxHighlighter.changedRange(from: $0, to: tokens, oldLength: oldLength, newLength: storage.length) }
+            var dirty = range ?? NSRange(location: 0, length: storage.length)
+            if let edited = editedRange, NSMaxRange(edited) <= storage.length { dirty = NSUnionRange(dirty, edited) }
+            editedRange = nil
+            lastTokens = tokens
             storage.beginEditing()
-            storage.setAttributes(base, range: NSRange(location: 0, length: storage.length))
-            for token in parent.isJSON ? JSONSyntaxHighlighter.tokens(in: view.string) : SQLSyntaxHighlighter.tokens(in: view.string) {
-                storage.addAttribute(.foregroundColor, value: palette.color(for: token.kind), range: token.range)
+            storage.setAttributes(base, range: dirty)
+            for token in tokens {
+                let colored = NSIntersectionRange(token.range, dirty)
+                if colored.length > 0 { storage.addAttribute(.foregroundColor, value: palette.color(for: token.kind), range: colored) }
             }
             if let range = parent.errorRange, range.location >= 0, NSMaxRange(range) <= storage.length {
                 storage.addAttributes([.backgroundColor: NSColor.systemRed.withAlphaComponent(0.15), .underlineStyle: NSUnderlineStyle.single.rawValue], range: range)
@@ -432,15 +459,29 @@ private final class QueryLineGutter: NSView {
         (palette?.gutterColor ?? NSColor.controlBackgroundColor).setFill()
         bounds.fill()
         guard let view = textView, let manager = view.layoutManager, let container = view.textContainer else { return }
-        manager.ensureLayout(for: container)
         let offset = view.enclosingScrollView?.contentView.bounds.minY ?? 0
         let attributes: [NSAttributedString.Key: Any] = [.font: PortbaseFonts.codeFont(TypeSize.caption), .foregroundColor: palette?.gutterTextColor ?? NSColor.secondaryLabelColor]
-        for (line, start) in SQLEditingService.lineStarts(in: view.string).enumerated() {
+        // Only the lines in view are laid out and numbered, so a long script doesn't slow each keystroke.
+        let visible = NSRect(x: 0, y: offset - view.textContainerOrigin.y, width: container.size.width, height: bounds.height)
+        let glyphs = manager.glyphRange(forBoundingRect: visible, in: container)
+        let characters = manager.characterRange(forGlyphRange: glyphs, actualGlyphRange: nil)
+        let length = view.string.utf16.count
+        let starts = SQLEditingService.lineStarts(in: view.string)
+        // The first line that begins at or before the first visible character.
+        var low = 0, high = starts.count - 1
+        while low < high {
+            let middle = (low + high + 1) / 2
+            if starts[middle] <= characters.location { low = middle } else { high = middle - 1 }
+        }
+        for line in low..<starts.count {
+            let start = starts[line]
+            if start > NSMaxRange(characters) && start < length { break }
             let frame: NSRect
-            if manager.numberOfGlyphs == 0 || start >= view.string.utf16.count { frame = manager.extraLineFragmentRect }
+            if manager.numberOfGlyphs == 0 || start >= length { frame = manager.extraLineFragmentRect }
             else { frame = manager.lineFragmentRect(forGlyphAt: manager.glyphIndexForCharacter(at: start), effectiveRange: nil) }
             let y = frame.minY + view.textContainerOrigin.y - offset + 1
-            if y < -20 || y > bounds.height { continue }
+            if y > bounds.height { break }
+            if y < -20 { continue }
             let label = String(line + 1) as NSString
             label.draw(at: NSPoint(x: bounds.width - label.size(withAttributes: attributes).width - 9, y: y), withAttributes: attributes)
         }

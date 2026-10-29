@@ -40,9 +40,11 @@ import SwiftUI
     func show(_ items: [SQLCompletionItem], typed: String, below caret: NSRect, in window: NSWindow) {
         guard !items.isEmpty else { hide(); return }
         let keepSelection = isVisible ? selectedItem?.id : nil
-        model.items = items
-        model.typed = typed
-        model.selected = keepSelection.flatMap { id in items.firstIndex { $0.id == id } } ?? 0
+        // Only changes are assigned, so an unchanged list isn't laid out again.
+        if model.items != items { model.items = items }
+        if model.typed != typed { model.typed = typed }
+        let selected = keepSelection.flatMap { id in items.firstIndex { $0.id == id } } ?? 0
+        if model.selected != selected { model.selected = selected }
         let visibleRows = CGFloat(min(items.count, 9))
         let height = visibleRows * Self.rowHeight + 34
         var origin = NSPoint(x: caret.minX - 28, y: caret.minY - height - 4)
@@ -50,16 +52,17 @@ import SwiftUI
             if origin.y < screen.minY { origin.y = caret.maxY + 4 }
             origin.x = min(max(screen.minX + 4, origin.x), screen.maxX - Self.width - 4)
         }
-        panel.setFrame(NSRect(origin: origin, size: NSSize(width: Self.width, height: height)), display: true)
+        let frame = NSRect(origin: origin, size: NSSize(width: Self.width, height: height))
+        if panel.frame != frame { panel.setFrame(frame, display: false) }
         // A floating panel takes the system's light or dark look unless told; it follows the editor's window.
-        panel.appearance = window.effectiveAppearance
+        if panel.appearance?.name != window.effectiveAppearance.name { panel.appearance = window.effectiveAppearance }
         if parentWindow !== window {
             parentWindow?.removeChildWindow(panel)
             window.addChildWindow(panel, ordered: .above)
             parentWindow = window
         }
         let opening = !panel.isVisible
-        panel.orderFront(nil)
+        if opening { panel.orderFront(nil) }
         if opening || keepSelection != selectedItem?.id { announceSelection(withCount: opening) }
     }
 
@@ -163,22 +166,26 @@ struct SQLCompletionList: View {
         .padding(.horizontal, 3)
     }
 
-    /// The label with the typed letters in bold, so it's clear why the item matched.
+    /// The label with the typed letters in bold, so it's clear why the item matched. Built as one
+    /// attributed string rather than a Text per character, since it's drawn for every row on each keystroke.
     private func highlighted(_ label: String, selected: Bool) -> Text {
         let color = selected ? Color.white : PortSQLPalette.ink
         let typed = model.typed.lowercased()
         guard !typed.isEmpty else { return Text(label).foregroundColor(color) }
-        var result = Text("")
+        var result = AttributedString(label)
+        result.foregroundColor = color.opacity(selected ? 0.9 : 0.75)
         var remaining = typed[...]
+        var index = result.startIndex
         for character in label {
-            if let next = remaining.first, character.lowercased() == String(next) {
+            let next = result.characters.index(after: index)
+            if let wanted = remaining.first, character.lowercased() == String(wanted) {
                 remaining = remaining.dropFirst()
-                result = result + Text(String(character)).bold().foregroundColor(color)
-            } else {
-                result = result + Text(String(character)).foregroundColor(color.opacity(selected ? 0.9 : 0.75))
+                result[index..<next].foregroundColor = color
+                result[index..<next].inlinePresentationIntent = .stronglyEmphasized
             }
+            index = next
         }
-        return result
+        return Text(result)
     }
 }
 

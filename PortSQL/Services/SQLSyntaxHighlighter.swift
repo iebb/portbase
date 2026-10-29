@@ -118,6 +118,25 @@ enum SQLSyntaxHighlighter {
 
         return tokens
     }
+
+    /// The part of an edited text whose colors may differ: before it the tokens are the same, and after
+    /// it they're the same shifted by the edit's change in length. An editor recolors just this part,
+    /// so a keystroke in a long script doesn't lay the whole script out again.
+    static func changedRange(from old: [SQLToken], to new: [SQLToken], oldLength: Int, newLength: Int) -> NSRange {
+        let delta = newLength - oldLength
+        var prefix = 0
+        while prefix < old.count, prefix < new.count, old[prefix] == new[prefix] { prefix += 1 }
+        var suffix = 0
+        while suffix < old.count - prefix, suffix < new.count - prefix {
+            let before = old[old.count - 1 - suffix], after = new[new.count - 1 - suffix]
+            guard before.kind == after.kind, before.range.length == after.range.length,
+                  before.range.location + delta == after.range.location else { break }
+            suffix += 1
+        }
+        let start = prefix > 0 ? NSMaxRange(new[prefix - 1].range) : 0
+        let end = suffix > 0 ? new[new.count - suffix].range.location : newLength
+        return NSRange(location: start, length: max(0, end - start))
+    }
 }
 
 enum JSONSyntaxHighlighter {

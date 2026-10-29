@@ -20,6 +20,7 @@ struct PortbaseMacApp: App {
                 .environmentObject(library)
                 .environmentObject(consoles)
                 .environmentObject(consoles.active.workspace)
+                .environmentObject(consoles.active.workspace.editor)
                 .task {
                     consoles.configure(bookmarks: bookmarks, library: library)
                     delegate.consoles = consoles

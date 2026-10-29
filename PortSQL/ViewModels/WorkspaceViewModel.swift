@@ -7,15 +7,27 @@ final class WorkspaceViewModel: ObservableObject {
     @Published var selectedDatabaseName = ""
     @Published private(set) var availableDatabases: [String] = []
     @Published private(set) var isRefreshingDatabases = false
-    @Published var queryText = "" {
-        didSet { querySelectionLength = 0; queryErrorRange = nil }
+    /// The console text and what's worked out from it, published apart from the workspace (see `QueryEditorState`).
+    let editor = QueryEditorState()
+    var queryText: String {
+        get { editor.text }
+        set { editor.text = newValue }
     }
-    @Published var queryErrorRange: NSRange?
+    var queryErrorRange: NSRange? {
+        get { editor.errorRange }
+        set { editor.errorRange = newValue }
+    }
     @Published var manualCommit = false
     @Published private(set) var hasOpenTransaction = false
     private(set) var consoleSessionID = UUID()
-    @Published var queryCursorOffset = 0
-    @Published var querySelectionLength = 0
+    var queryCursorOffset: Int {
+        get { editor.cursorOffset }
+        set { editor.cursorOffset = newValue }
+    }
+    var querySelectionLength: Int {
+        get { editor.selectionLength }
+        set { editor.selectionLength = newValue }
+    }
     @Published var mongoDraft = MongoQueryDraft()
     @Published var explorerWhereClause = ""
     @Published var explorerOrderByClause = ""
@@ -29,10 +41,16 @@ final class WorkspaceViewModel: ObservableObject {
         return explorerPageSizes.contains(stored) ? stored : 100
     }
     /// Context-aware completions at the console caret, from `SQLCompletionEngine`.
-    @Published private(set) var completion = SQLCompletionResult.empty
+    private(set) var completion: SQLCompletionResult {
+        get { editor.completion }
+        set { editor.completion = newValue }
+    }
     /// The text and caret the completion was computed for, so a stale one is never applied.
     private var completionSource: (text: String, cursor: Int)?
-    @Published var hints: [EditorHint] = []
+    var hints: [EditorHint] {
+        get { editor.hints }
+        set { editor.hints = newValue }
+    }
     @Published var schema: [SchemaSuggestion] = []
     @Published var schemaCatalog: [SchemaTableDescriptor] = []
     @Published private(set) var foreignKeys: [SchemaForeignKey] = []
@@ -112,6 +130,10 @@ final class WorkspaceViewModel: ObservableObject {
     var activeBoundQuery: BoundQuery?
     private var engineDrafts: [DatabaseEngine: String] = [:]
     private let schemaCacheStore = SchemaCacheStore.shared
+
+    init() {
+        editor.onEdit = { [weak self] in self?.refreshAssist() }
+    }
 
     func configure(
         bookmarkStore: BookmarkStore,
@@ -283,8 +305,8 @@ final class WorkspaceViewModel: ObservableObject {
     func refreshAssist() {
         assistTask?.cancel()
         if !isSQLDatabase {
-            completion = .empty
-            hints = []
+            if completion != .empty { completion = .empty }
+            if !hints.isEmpty { hints = [] }
             return
         }
 
@@ -2345,4 +2367,28 @@ struct PendingSQLExecution: Identifiable, Hashable {
     let title: String
     let values: [QueryBoundValue]
     let assessment: SQLSafetyAssessment
+}
+
+/// The console's text and caret, and the completions and hints worked out from them. They change with
+/// every keystroke, so they're published here rather than by the workspace: typing then redraws the
+/// editor and the views that show these, not every view watching the workspace.
+@MainActor
+final class QueryEditorState: ObservableObject {
+    @Published var text = "" {
+        didSet {
+            guard text != oldValue else { return }
+            if selectionLength != 0 { selectionLength = 0 }
+            if errorRange != nil { errorRange = nil }
+            onEdit()
+        }
+    }
+    @Published var cursorOffset = 0 {
+        didSet { if cursorOffset != oldValue { onEdit() } }
+    }
+    @Published var selectionLength = 0
+    @Published var errorRange: NSRange?
+    @Published var completion = SQLCompletionResult.empty
+    @Published var hints: [EditorHint] = []
+    /// Called when the text or caret moves, to work out completions and hints again.
+    var onEdit: () -> Void = {}
 }

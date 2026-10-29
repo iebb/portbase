@@ -2,6 +2,8 @@ import SwiftUI
 
 struct ElasticsearchQueryEditorCard: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    /// Typing publishes here, not on the workspace; see `QueryEditorState`.
+    @EnvironmentObject private var editor: QueryEditorState
     @Environment(\.colorScheme) private var colorScheme
     @State private var rawCommand = false
     @State private var method = "POST"

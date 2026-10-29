@@ -227,8 +227,6 @@ struct DesktopWorkspaceView: View {
         }
         // Secrets changed on another device arrive through iCloud Keychain without a notification.
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in bookmarks.refreshSecrets() }
-        .onChange(of: workspace.queryText) { _, _ in workspace.refreshAssist() }
-        .onChange(of: workspace.queryCursorOffset) { _, _ in workspace.refreshAssist() }
         .onChange(of: consoles.selectedID) { _, _ in showsHome = false }
         // Ask AI from the menu, the console, or the toolbar opens the tab's Ask AI page.
         .onChange(of: workspace.isShowingAssistant) { _, showing in
@@ -1107,6 +1105,8 @@ private struct HoverBackground: ViewModifier {
 private struct DesktopSQLEditor: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @Environment(\.colorScheme) private var colorScheme
+    /// Typing publishes here, not on the workspace; see `QueryEditorState`.
+    @EnvironmentObject private var editor: QueryEditorState
     @State private var showsGoToLine = false
     @State private var line = "1"
     private var isSQL: Bool { !workspace.isDocumentDatabase && workspace.selectedBookmark?.engine != .redis && workspace.selectedBookmark?.engine != .elasticsearch }

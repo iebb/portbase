@@ -187,6 +187,39 @@ final class MongoQueryServiceTests: XCTestCase {
         let jsonText = json as NSString
         XCTAssertTrue(JSONSyntaxHighlighter.tokens(in: json).contains { $0.kind == .numberLiteral && jsonText.substring(with: $0.range) == "-1.2e+3" })
     }
+
+    /// Recoloring only the changed range after an edit gives the same colors as coloring the whole text,
+    /// even when the edit opens a string or comment that recolors everything after it.
+    func testChangedHighlightRangeMatchesFullHighlighting() {
+        func colors(_ tokens: [SQLToken], length: Int) -> [SQLTokenKind?] {
+            var colors = [SQLTokenKind?](repeating: nil, count: length)
+            for token in tokens { for index in token.range.location..<NSMaxRange(token.range) { colors[index] = token.kind } }
+            return colors
+        }
+        let text = "SELECT id, name FROM users WHERE name = 'x' -- note\nAND id > 3;"
+        let edits: [(NSRange, String)] = [
+            (NSRange(location: 7, length: 0), "a"), (NSRange(location: 0, length: 1), ""), (NSRange(location: 21, length: 0), "'"),
+            (NSRange(location: 21, length: 0), "-- "), (NSRange(location: 41, length: 1), ""), (NSRange(location: 52, length: 0), "/*"),
+            (NSRange(location: 9, length: 0), " "), (NSRange(location: (text as NSString).length, length: 0), " LIMIT 10"),
+            (NSRange(location: 7, length: 2), "count(*)"),
+        ]
+        for (range, replacement) in edits {
+            let edited = (text as NSString).replacingCharacters(in: range, with: replacement)
+            let old = SQLSyntaxHighlighter.tokens(in: text), new = SQLSyntaxHighlighter.tokens(in: edited)
+            let newLength = (edited as NSString).length, inserted = (replacement as NSString).length
+            // The storage after the edit: inserted text takes the color before it, as typing does.
+            var shown = colors(old, length: (text as NSString).length)
+            let inherited = range.location > 0 ? shown[range.location - 1] : nil
+            shown.replaceSubrange(range.location..<NSMaxRange(range), with: [SQLTokenKind?](repeating: inherited, count: inserted))
+            let changed = SQLSyntaxHighlighter.changedRange(from: old, to: new, oldLength: (text as NSString).length, newLength: newLength)
+            let dirty = NSUnionRange(changed, NSRange(location: range.location, length: inserted))
+            let full = colors(new, length: newLength)
+            for index in dirty.location..<NSMaxRange(dirty) { shown[index] = full[index] }
+            XCTAssertEqual(shown, full, "Editing \(range) with \"\(replacement)\"")
+        }
+        XCTAssertEqual(SQLSyntaxHighlighter.changedRange(from: SQLSyntaxHighlighter.tokens(in: text), to: SQLSyntaxHighlighter.tokens(in: text),
+                                                         oldLength: (text as NSString).length, newLength: (text as NSString).length).length, 0)
+    }
 }
 
 final class MongoIntegrationTests: XCTestCase {

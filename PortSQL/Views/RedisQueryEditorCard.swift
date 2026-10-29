@@ -2,6 +2,8 @@ import SwiftUI
 
 struct RedisQueryEditorCard: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    /// Typing publishes here, not on the workspace; see `QueryEditorState`.
+    @EnvironmentObject private var editor: QueryEditorState
     @State private var showsHelp = false
 
     private var command: RedisCommand? { try? RedisCommandService.parse(workspace.queryText) }

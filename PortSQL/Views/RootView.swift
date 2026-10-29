@@ -278,12 +278,6 @@ struct WorkbenchView: View {
                 DatabaseSwitcherButton()
             }
         }
-        .onChange(of: workspace.queryText) { _, _ in
-            workspace.refreshAssist()
-        }
-        .onChange(of: workspace.queryCursorOffset) { _, _ in
-            workspace.refreshAssist()
-        }
 #if os(iOS)
         .sensoryFeedback(trigger: workspace.lastExecution?.id) { _, _ in
             switch workspace.lastExecution?.outcome {
@@ -450,6 +444,8 @@ struct QueryEditorCard: View {
     /// Set when there are no results yet, so the editor grows into the space they'd take.
     @Environment(\.workspaceFillsHeight) private var fillsHeight
     @State private var isShowingExpandedEditor = false
+    /// Typing publishes here, not on the workspace; see `QueryEditorState`.
+    @EnvironmentObject private var editor: QueryEditorState
     @State private var isShowingLibrarySheet = false
 
     var body: some View {
@@ -748,6 +744,8 @@ struct ExecutionStatusChip: View {
 private struct ExpandedQueryEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var workspace: WorkspaceViewModel
+    /// Typing publishes here, not on the workspace; see `QueryEditorState`.
+    @EnvironmentObject private var editor: QueryEditorState
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {

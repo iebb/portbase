@@ -18,6 +18,7 @@ struct PortSQLApp: App {
                 .environmentObject(bookmarkStore)
                 .environmentObject(libraryStore)
                 .environmentObject(consoles.active.workspace)
+                .environmentObject(consoles.active.workspace.editor)
                 .environmentObject(consoles)
                 .task {
                     consoles.configure(bookmarks: bookmarkStore, library: libraryStore)
