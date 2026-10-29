@@ -224,6 +224,8 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             view.undoManager?.removeAllActions()
             // Setting the text clears its colors, so all of it is colored again.
             context.coordinator.lastTokens = nil
+            // Text set from outside, such as Format, isn't typing, so it doesn't open the list.
+            context.coordinator.endTyping()
         }
         let start = min(max(0, cursorOffset), text.utf16.count)
         let range = NSRange(location: start, length: min(max(0, selectionLength), text.utf16.count - start))
@@ -343,7 +345,9 @@ struct HighlightedQueryEditor: NSViewRepresentable {
                   source.substring(with: completion.fragmentRange) == completion.fragment else { return }
             self.completion = completion
             updateSignature(in: view)
-            if completion.items.isEmpty { popup.hide(); return }
+            // A list holding only the word already typed has nothing to offer.
+            let complete = completion.items.count == 1 && completion.items[0].insertion == completion.fragment && completion.items[0].addition == nil
+            if completion.items.isEmpty || (complete && !requested) { popup.hide(); return }
             if popup.isVisible || (typing && completion.opensAutomatically) || requested {
                 requested = false
                 showPopup(in: view)
@@ -364,6 +368,11 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             signaturePopup.show(signature, above: caret, in: window)
         }
 
+        func endTyping() {
+            typing = false
+            popup.hide()
+        }
+
         func requestCompletion() {
             requested = true
             if let view = completionView, !completion.items.isEmpty { requested = false; showPopup(in: view) }
@@ -378,7 +387,7 @@ struct HighlightedQueryEditor: NSViewRepresentable {
             case #selector(NSResponder.pageDown(_:)), #selector(NSResponder.scrollPageDown(_:)): popup.page(by: 1)
             case #selector(NSResponder.insertNewline(_:)), #selector(NSResponder.insertTab(_:)):
                 if let item = popup.selectedItem { accept(item) } else { popup.hide() }
-            case #selector(NSResponder.cancelOperation(_:)): popup.hide()
+            case #selector(NSResponder.cancelOperation(_:)): endTyping()
             default:
                 popup.hide()
                 return false
