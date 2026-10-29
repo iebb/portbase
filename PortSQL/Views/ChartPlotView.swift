@@ -3,11 +3,19 @@ import SwiftUI
 
 /// Series colors shared by every chart, ordered so neighbors contrast.
 enum ChartPalette {
-    static let colors: [Color] = [
-        PortSQLPalette.accent,
-        Color(hex: 0x3B82F6), Color(hex: 0xF59E0B), Color(hex: 0xEC4899), Color(hex: 0x8B5CF6),
-        Color(hex: 0x14B8A6), Color(hex: 0xEF4444), Color(hex: 0x84CC16), Color(hex: 0x0EA5E9),
-    ]
+    /// The accent first, then fixed colors without the ones too close to the accent to tell apart.
+    static var colors: [Color] {
+        let clashing: Set<UInt32> = switch PortbaseAccent.current {
+        case .ocean: [0x3B82F6, 0x0EA5E9]
+        case .indigo: [0x8B5CF6]
+        case .sunset: [0xF59E0B, 0xEF4444]
+        case .rose: [0xEC4899]
+        case .jade, .emerald: [0x14B8A6, 0x84CC16]
+        case .graphite: []
+        }
+        return [PortSQLPalette.accent] + series.filter { !clashing.contains($0) }.map { Color(hex: $0) }
+    }
+    private static let series: [UInt32] = [0x3B82F6, 0xF59E0B, 0xEC4899, 0x8B5CF6, 0x14B8A6, 0xEF4444, 0x84CC16, 0x0EA5E9]
     static let other = Color(hex: 0x9CA3AF)
 }
 
@@ -74,7 +82,8 @@ struct VisualizationChartPlot: View {
 
     private func seriesColors(_ domain: [String]) -> [Color] {
         let other = L10n.text("Other")
-        return domain.enumerated().map { $1 == other ? ChartPalette.other : ChartPalette.colors[$0 % ChartPalette.colors.count] }
+        let colors = ChartPalette.colors
+        return domain.enumerated().map { $1 == other ? ChartPalette.other : colors[$0 % colors.count] }
     }
 
     private var legend: [LegendEntry] {
@@ -144,6 +153,8 @@ struct VisualizationChartPlot: View {
             selectionMark
         }
         .chartForegroundStyleScale(domain: seriesDomain, range: seriesColors(seriesDomain))
+        // Left to itself, Swift Charts sorts category names alphabetically.
+        .modifier(CategoryOrder(categories: xMode == .category || xMode == .automatic ? categories : [], horizontal: horizontalBars))
         .chartLegend(.hidden)
         .chartXAxis {
             if horizontalBars { valueAxis(position: .bottom, desiredCount: compact ? 4 : 6) } else { categoryAxis(position: .bottom) }
@@ -188,11 +199,42 @@ struct VisualizationChartPlot: View {
         }
     }
 
+    @AxisContentBuilder
     private func categoryAxis(position: AxisMarkPosition) -> some AxisContent {
-        // Sideways bars have room for every category name down the side.
-        AxisMarks(position: position, values: .automatic(desiredCount: horizontalBars ? nil : (compact ? 4 : 6))) { _ in
-            AxisValueLabel().font(.microText).foregroundStyle(PortSQLPalette.muted)
+        // Sideways bars have room for every category name down the side. Along the bottom, Swift Charts
+        // labels every category name whatever the count, so long runs get every nth name.
+        if !horizontalBars, xMode == .category || xMode == .automatic {
+            let labeled = Set(labeledCategories)
+            AxisMarks(position: position) { value in
+                if let name = value.as(String.self), labeled.contains(name) {
+                    AxisValueLabel(collisionResolution: .disabled).font(.microText).foregroundStyle(PortSQLPalette.muted)
+                }
+            }
+        } else if horizontalBars {
+            // Aligned keeps the names beside the plot; by default they sit inside each band, above a bar
+            // squeezed to a hairline in a small tile.
+            AxisMarks(preset: .aligned, position: position) { _ in
+                AxisValueLabel().font(.microText).foregroundStyle(PortSQLPalette.muted)
+            }
+        } else {
+            AxisMarks(position: position, values: .automatic(desiredCount: compact ? 4 : 6)) { _ in
+                AxisValueLabel().font(.microText).foregroundStyle(PortSQLPalette.muted)
+            }
         }
+    }
+
+    /// Category names in the order the points give them, which is the query's order or the chosen sort.
+    private var categories: [String] {
+        var seen = Set<String>()
+        return points.map(\.xText).filter { seen.insert($0).inserted }
+    }
+
+    private var labeledCategories: [String] {
+        let names = categories
+        let limit = compact ? 4 : 8
+        guard names.count > limit else { return names }
+        let step = (names.count + limit - 1) / limit
+        return names.enumerated().filter { $0.offset % step == 0 }.map(\.element)
     }
 
     @ChartContentBuilder
@@ -272,7 +314,7 @@ struct VisualizationChartPlot: View {
         // Stacked series have no room above each piece, so their values sit inside it.
         let inside = point.group != nil && preset.barLayout != .grouped
         if horizontalBars {
-            BarMark(x: y, y: x, stacking: stacking)
+            BarMark(x: y, y: x, height: .ratio(sideBySide == nil ? 0.7 : 1), stacking: stacking)
                 .seriesStyle(point.group, label: groupLabel, fallback: barFill)
                 .positioned(by: sideBySide, label: groupLabel)
                 .cornerRadius(compact ? 3 : 4)
@@ -407,8 +449,9 @@ struct VisualizationChartPlot: View {
     }
 
     private var sectorColors: [Color] {
-        points.enumerated().map { index, point in
-            ChartRenderData.isOther(point) ? ChartPalette.other : ChartPalette.colors[index % ChartPalette.colors.count]
+        let colors = ChartPalette.colors
+        return points.enumerated().map { index, point in
+            ChartRenderData.isOther(point) ? ChartPalette.other : colors[index % colors.count]
         }
     }
 
@@ -541,6 +584,22 @@ private extension ChartContent {
             position(by: .value(label, group))
         } else {
             self
+        }
+    }
+}
+
+/// Keeps the category axis in the given order, down the side for sideways bars.
+private struct CategoryOrder: ViewModifier {
+    let categories: [String]
+    let horizontal: Bool
+
+    func body(content: Content) -> some View {
+        if categories.isEmpty {
+            content
+        } else if horizontal {
+            content.chartYScale(domain: categories)
+        } else {
+            content.chartXScale(domain: categories)
         }
     }
 }

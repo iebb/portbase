@@ -470,8 +470,10 @@ struct VisualizerComposerSheet: View {
         stored.databaseName = stored.databaseName ?? workspace.activeDatabaseName
         stored.sourceTableReference = stored.sourceTableReference ?? workspace.result.sourceTableReference
         stored.sourceQuery = stored.sourceQuery ?? workspace.result.sourceQuery
+        // Read before saving: once the chart is stored, `previewResult` reads the stored chart's cache instead.
+        let preview = previewResult
         libraryStore.saveVisualization(stored)
-        libraryStore.cacheVisualizationPreview(previewResult, for: stored.id)
+        if VisualizationService.isCompatible(stored, with: preview) { libraryStore.cacheVisualizationPreview(preview, for: stored.id) }
         dismiss()
     }
 
