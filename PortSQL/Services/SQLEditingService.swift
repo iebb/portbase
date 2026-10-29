@@ -70,25 +70,158 @@ enum SQLEditingService {
         if engine.isMySQLFamily, spans != protectedRanges(in: text, engine: engine, backslashEscapes: false) {
             return text
         }
-        let keywords = #"\b(SELECT|INSERT\s+INTO|UPDATE|DELETE\s+FROM|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+TABLE|EXPLAIN|DESCRIBE|SHOW\s+TABLES|GROUP\s+BY|ORDER\s+BY|LEFT\s+JOIN|RIGHT\s+JOIN|INNER\s+JOIN|FROM|WHERE|HAVING|LIMIT|VALUES|SET|JOIN|ON|AND|OR|NOT|IN|LIKE|BETWEEN|EXISTS)\b"#
-        let expression = try! NSRegularExpression(pattern: keywords, options: .caseInsensitive)
-        let clauses = try! NSRegularExpression(pattern: #"[ \t]+(FROM|WHERE|GROUP BY|ORDER BY|HAVING|LIMIT|VALUES|SET|LEFT JOIN|RIGHT JOIN|INNER JOIN|JOIN|ON)\b[ \t]+"#)
-        func code(_ source: Substring) -> String {
-            var value = String(source)
-            for match in expression.matches(in: value, range: NSRange(value.startIndex..., in: value)).reversed() {
-                guard let range = Range(match.range, in: value) else { continue }
-                value.replaceSubrange(range, with: value[range].uppercased())
+        // Literals, quoted identifiers, and comments become single tokens, kept exactly as written.
+        enum Token { case word(String), space, symbol(Character), kept(String) }
+        var tokens: [Token] = []
+        func scan(_ source: Substring) {
+            var index = source.startIndex
+            while index < source.endIndex {
+                let character = source[index]
+                if character.isWhitespace {
+                    index = source[index...].firstIndex { !$0.isWhitespace } ?? source.endIndex
+                    if case .space = tokens.last {} else { tokens.append(.space) }
+                } else if character.isLetter || character.isNumber || "_$.@:".contains(character) {
+                    let end = source[index...].firstIndex { !($0.isLetter || $0.isNumber || "_$.@:".contains($0)) } ?? source.endIndex
+                    tokens.append(.word(String(source[index..<end])))
+                    index = end
+                } else {
+                    tokens.append(.symbol(character))
+                    index = source.index(after: index)
+                }
             }
-            return clauses.stringByReplacingMatches(in: value, range: NSRange(value.startIndex..., in: value), withTemplate: "\n$1 ")
         }
-        var result = ""
         var cursor = text.startIndex
         for span in spans {
-            result += code(text[cursor..<span.lowerBound])
-            result += text[span]
+            scan(text[cursor..<span.lowerBound])
+            tokens.append(.kept(String(text[span])))
             cursor = span.upperBound
         }
-        result += code(text[cursor...])
+        scan(text[cursor...])
+
+        // Each subquery level remembers its clause; parentheses that aren't subqueries (calls, lists, OVER) never break.
+        struct Level { var clause = ""; var between = false }
+        var levels = [Level()]
+        func word(at index: Int) -> String? {
+            guard tokens.indices.contains(index), case .word(let value) = tokens[index] else { return nil }
+            return value.uppercased()
+        }
+        /// The index of the next token that isn't a space.
+        func next(after index: Int) -> Int {
+            var index = index + 1
+            while tokens.indices.contains(index), case .space = tokens[index] { index += 1 }
+            return index
+        }
+        func previousWord(before index: Int) -> Int {
+            var index = index - 1
+            while tokens.indices.contains(index), case .space = tokens[index] { index -= 1 }
+            return index
+        }
+        /// The clause a keyword starts, and the index of its last word, so `LEFT OUTER JOIN` reads as one.
+        func clause(at index: Int) -> (name: String, last: Int)? {
+            guard let first = word(at: index) else { return nil }
+            var name = first, last = index
+            func extend(_ words: Set<String>) {
+                let candidate = next(after: last)
+                if let value = word(at: candidate), words.contains(value) { name += " " + value; last = candidate }
+            }
+            switch first {
+            case "GROUP", "ORDER": extend(["BY"]); return name.hasSuffix(" BY") ? (name, last) : nil
+            case "LEFT", "RIGHT", "FULL": extend(["OUTER"]); extend(["JOIN"]); return name.hasSuffix("JOIN") ? (name, last) : nil
+            case "INNER", "CROSS", "NATURAL": extend(["JOIN"]); return name.hasSuffix("JOIN") ? (name, last) : nil
+            case "UNION": extend(["ALL"]); return (name, last)
+            case "INSERT": extend(["INTO"]); return (name, last)
+            case "DELETE": extend(["FROM"]); return (name, last)
+            // `IS DISTINCT FROM` compares; `WITH` also appears in types such as `timestamp with time zone`.
+            case "FROM": return word(at: previousWord(before: index)) == "DISTINCT" ? nil : (name, last)
+            case "WITH": return levels[levels.count - 1].clause.isEmpty ? (name, last) : nil
+            case "SELECT", "WHERE", "HAVING", "LIMIT", "OFFSET", "INTERSECT", "EXCEPT", "VALUES", "SET",
+                 "RETURNING", "WINDOW", "JOIN", "UPDATE":
+                return (name, last)
+            default: return nil
+            }
+        }
+        let keywords: Set<String> = ["SELECT", "INSERT", "INTO", "UPDATE", "DELETE", "CREATE", "TABLE", "ALTER", "DROP", "EXPLAIN",
+            "DESCRIBE", "SHOW", "TABLES", "GROUP", "ORDER", "BY", "LEFT", "RIGHT", "INNER", "OUTER", "FULL", "CROSS", "JOIN", "FROM",
+            "WHERE", "HAVING", "LIMIT", "OFFSET", "VALUES", "SET", "ON", "AND", "OR", "NOT", "IN", "LIKE", "BETWEEN", "EXISTS", "WITH",
+            "AS", "DISTINCT", "UNION", "ALL", "INTERSECT", "EXCEPT", "CASE", "WHEN", "THEN", "ELSE", "END", "IS", "NULL", "ASC",
+            "DESC", "OVER", "PARTITION", "USING", "RETURNING"]
+
+        var parentheses: [Bool] = []
+        var result = ""
+        func indent() -> String { String(repeating: " ", count: 4 * (levels.count - 1)) }
+        func atLineStart() -> Bool {
+            result[(result.lastIndex(of: "\n").map(result.index(after:)) ?? result.startIndex)...].allSatisfy { $0 == " " }
+        }
+        func newline(_ extra: String = "") {
+            while result.hasSuffix(" ") { result.removeLast() }
+            if !result.isEmpty, !result.hasSuffix("\n") { result += "\n" }
+            result += indent() + extra
+        }
+        func space() { if !atLineStart(), !result.hasSuffix(" "), !result.hasSuffix("(") { result += " " } }
+        var breaksHere: Bool { parentheses.last != false }
+
+        var index = 0
+        while index < tokens.count {
+            switch tokens[index] {
+            case .space:
+                space()
+            case .kept(let value):
+                result += value
+            case .symbol(let character):
+                if character == "(" {
+                    let isSubquery = ["SELECT", "WITH"].contains(word(at: next(after: index)) ?? "")
+                    result += "("
+                    parentheses.append(isSubquery)
+                    if isSubquery { levels.append(Level()); newline() }
+                    index = next(after: index) - 1
+                } else if character == ")" {
+                    if parentheses.popLast() == true, levels.count > 1 {
+                        levels.removeLast()
+                        newline(")")
+                    } else {
+                        while result.hasSuffix(" ") { result.removeLast() }
+                        result += ")"
+                    }
+                } else if character == "," {
+                    while result.hasSuffix(" ") { result.removeLast() }
+                    result += ","
+                    if breaksHere, levels[levels.count - 1].clause == "SELECT" {
+                        newline("       ")
+                        index = next(after: index) - 1
+                    } else if breaksHere, levels[levels.count - 1].clause == "WITH" {
+                        newline("     ")
+                        index = next(after: index) - 1
+                    }
+                } else if character == ";" {
+                    while result.hasSuffix(" ") { result.removeLast() }
+                    result += ";\n"
+                    levels = [Level()]; parentheses = []
+                    index = next(after: index) - 1
+                } else {
+                    result.append(character)
+                }
+            case .word(let value):
+                let upper = value.uppercased()
+                if breaksHere, let found = clause(at: index) {
+                    newline(found.name)
+                    levels[levels.count - 1].clause = found.name
+                    levels[levels.count - 1].between = false
+                    index = found.last
+                } else if breaksHere, upper == "AND" || upper == "OR",
+                          ["WHERE", "HAVING"].contains(levels[levels.count - 1].clause) || levels[levels.count - 1].clause.hasSuffix("JOIN") {
+                    if upper == "AND", levels[levels.count - 1].between {
+                        levels[levels.count - 1].between = false
+                        result += upper
+                    } else {
+                        newline("  " + upper)
+                    }
+                } else {
+                    if upper == "BETWEEN" { levels[levels.count - 1].between = true }
+                    result += keywords.contains(upper) ? upper : value
+                }
+            }
+            index += 1
+        }
         return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

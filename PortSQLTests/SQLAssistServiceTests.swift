@@ -53,6 +53,28 @@ final class SQLAssistServiceTests: XCTestCase {
         XCTAssertEqual(formatted, "SELECT id\nFROM users\nWHERE active = true\nORDER BY id")
     }
 
+    func testFormatIndentsSubqueriesAndKeepsCallsAndWindowsOnOneLine() {
+        let sql = "with m as (select a, count(*) as n from t where x between 1 and 5 and y in (1, 2) group by a) "
+            + "select a, rank() over (partition by a order by n desc) as r from m where a is distinct from 'b' order by a; select 2"
+        XCTAssertEqual(SQLAssistService.format(sql), """
+            WITH m AS (
+                SELECT a,
+                       count(*) AS n
+                FROM t
+                WHERE x BETWEEN 1 AND 5
+                  AND y IN (1, 2)
+                GROUP BY a
+            )
+            SELECT a,
+                   rank() OVER (PARTITION BY a ORDER BY n DESC) AS r
+            FROM m
+            WHERE a IS DISTINCT FROM 'b'
+            ORDER BY a;
+            SELECT 2
+            """)
+        XCTAssertEqual(SQLAssistService.format(SQLAssistService.format(sql)), SQLAssistService.format(sql))
+    }
+
     func testFormattingPreservesLiteralsIdentifiersCommentsAndDollarQuotedBodies() {
         let sql = "select 'select  from where', \"order by\", $body$select from; \nwhere$body$, E'it\\'s from' from users -- where select\nwhere id = 1 /* outer /* where */ select */"
         let formatted = SQLAssistService.format(sql)
