@@ -17,3 +17,4 @@ PortSQL.xcodeproj/xcuserdata/
 
 # Local archives, exports, and IPA checks (never committed)
 build/
+demos/screenshots/
