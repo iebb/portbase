@@ -152,6 +152,20 @@ enum ConnectionStringImporter {
 
     /// The connection string for a profile's current settings, never including the password. SQLite,
     /// a file, has none.
+    /// The scheme an empty connection string field shows for the engine, such as `mysql://`.
+    static func placeholder(for engine: DatabaseEngine) -> String {
+        switch engine {
+        case .postgresql: "postgresql://"
+        case .mysql: "mysql://"
+        case .mariadb: "mariadb://"
+        case .clickhouse: "clickhouse://"
+        case .mongodb: "mongodb://"
+        case .redis: "redis://"
+        case .elasticsearch: "https://"
+        case .sqlite: ""
+        }
+    }
+
     static func connectionString(for profile: ConnectionProfile) -> String? {
         let host = profile.host.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !host.isEmpty, profile.engine != .sqlite else { return nil }

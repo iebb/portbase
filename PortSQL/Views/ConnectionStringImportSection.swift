@@ -19,14 +19,20 @@ struct ConnectionStringImportSection: View {
 
     var body: some View {
         Section {
-            TextField(L10n.text("Connection string"), text: $text, axis: .vertical)
-                .lineLimit(1...3)
-                .portbaseTextCapitalization(.never)
-                .autocorrectionDisabled()
-                .portbaseURLField()
-                .font(.codeText)
-                .onSubmit(applyString)
-                .accessibilityLabel("Connection string")
+            // The section header names the field, so it takes the whole row with the engine's scheme as a prompt.
+            TextField(text: $text, prompt: Text(verbatim: ConnectionStringImporter.placeholder(for: profile.engine)), axis: .vertical) {
+                Text("Connection string")
+            }
+            .labelsHidden()
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .lineLimit(1...3)
+            .portbaseTextCapitalization(.never)
+            .autocorrectionDisabled()
+            .portbaseURLField()
+            .font(.codeText)
+            .onSubmit(applyString)
+            .accessibilityLabel("Connection string")
             HStack(spacing: Spacing.s) {
                 if isEdited {
                     Button("Apply", systemImage: "arrow.down.doc") { applyString() }
