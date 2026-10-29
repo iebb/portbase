@@ -49,7 +49,7 @@ struct SQLiteConnectionSection: View {
                 perform { try await SQLiteFileStore.shared.create(name: name) }
             }.disabled(databaseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
-        .sheet(isPresented: $managing) { SQLiteLocalFilesView(profile: $profile) }
+        .sheet(isPresented: $managing) { SQLiteLocalFilesView(profile: $profile).portbaseDesktopSheetSize(width: 480, height: 360) }
         .onDisappear { task?.cancel() }
     }
 
