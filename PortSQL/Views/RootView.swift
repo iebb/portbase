@@ -1498,6 +1498,11 @@ struct BookmarkEditorView: View {
                     }
                 }
 
+                // First after the engine, so a pasted string fills in everything below it; SQLite is a file.
+                if !profile.engine.isLocal {
+                    ConnectionStringImportSection(profile: $profile, willChangeEngine: { keepsImportedEndpoint = true })
+                }
+
                 if profile.engine == .mongodb { MongoConnectionURISection(profile: $profile) }
 
                 Section("Server") {
@@ -1532,11 +1537,6 @@ struct BookmarkEditorView: View {
                     }
                     }
                     Toggle("Read-only mode", isOn: $profile.isReadOnly)
-                }
-
-                // Under the server details it is generated from; SQLite is a file and MongoDB has its own URI section.
-                if !profile.engine.isLocal && profile.engine != .mongodb {
-                    ConnectionStringImportSection(profile: $profile, willChangeEngine: { keepsImportedEndpoint = true })
                 }
 
                 Section {

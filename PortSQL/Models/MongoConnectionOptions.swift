@@ -161,9 +161,11 @@ enum MongoConnectionURI {
         var password = ""
         if let at = authority.lastIndex(of: "@") {
             let credentials = authority[..<at]
-            guard !credentials.contains("@"), let colon = credentials.firstIndex(of: ":") else { throw MongoConnectionError.invalidURI }
+            guard !credentials.contains("@") else { throw MongoConnectionError.invalidURI }
+            // A user without a password, as Portbase writes it, leaves the password to the Keychain.
+            let colon = credentials.firstIndex(of: ":") ?? credentials.endIndex
             username = try decode(String(credentials[..<colon]))
-            password = try decode(String(credentials[credentials.index(after: colon)...]))
+            password = colon == credentials.endIndex ? "" : try decode(String(credentials[credentials.index(after: colon)...]))
             guard !username.isEmpty else { throw MongoConnectionError.invalidURI }
             authority = String(authority[authority.index(after: at)...])
         }

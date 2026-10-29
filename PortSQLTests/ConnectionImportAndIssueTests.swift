@@ -146,12 +146,12 @@ final class ConnectionStringGenerationTests: XCTestCase {
         XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.mysql, mode: .preferTLS)), "mysql://app@db.example.com:3306/shop?ssl-mode=PREFERRED")
         XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.redis, database: "2", mode: .plaintext)), "redis://app@db.example.com:6379/2")
         XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.postgresql, host: "::1")), "postgresql://app@[::1]:5432/shop?sslmode=verify-full")
-        for engine in [DatabaseEngine.postgresql, .mysql, .mariadb, .redis, .clickhouse, .elasticsearch] {
+        XCTAssertEqual(ConnectionStringImporter.connectionString(for: profile(.mongodb)), "mongodb://app@db.example.com:27017/shop?authSource=admin&tls=true")
+        for engine in [DatabaseEngine.postgresql, .mysql, .mariadb, .redis, .clickhouse, .elasticsearch, .mongodb] {
             let string = try XCTUnwrap(ConnectionStringImporter.connectionString(for: profile(engine)))
             XCTAssertFalse(string.contains("s3cret"), "\(engine) strings never include the password")
         }
         XCTAssertNil(ConnectionStringImporter.connectionString(for: profile(.sqlite)))
-        XCTAssertNil(ConnectionStringImporter.connectionString(for: profile(.mongodb)))
         XCTAssertNil(ConnectionStringImporter.connectionString(for: profile(.postgresql, host: " ")))
     }
 
@@ -170,5 +170,44 @@ final class ConnectionStringGenerationTests: XCTestCase {
             XCTAssertEqual(imported.trimmedDefaultDatabase, original.trimmedDefaultDatabase, string)
             XCTAssertEqual(imported.transportSecurityMode, original.transportSecurityMode, string)
         }
+    }
+
+    func testMongoStringsCarryTheirOptionsAndImportBack() throws {
+        var replica = profile(.mongodb, user: "ops user", database: "app")
+        replica.mongoConnection.additionalHosts = [MongoHostAddress(host: "db2.example.com", port: 27018)]
+        replica.mongoConnection.replicaSet = "rs0"
+        replica.mongoConnection.majorityWriteConcern = true
+        replica.authenticationDatabase = "admin"
+        replica.mongoConnection.authenticationSourceIsExplicit = true
+        var cluster = profile(.mongodb, host: "cluster0.example.net", database: "")
+        cluster.mongoConnection.usesSRV = true
+        cluster.authenticationDatabase = "admin"
+        var direct = profile(.mongodb, host: "::1", mode: .plaintext)
+        direct.mongoConnection.directConnection = true
+        direct.authenticationDatabase = "shop"
+        XCTAssertEqual(ConnectionStringImporter.connectionString(for: cluster), "mongodb+srv://app@cluster0.example.net/")
+        XCTAssertEqual(ConnectionStringImporter.connectionString(for: replica),
+                       "mongodb://ops%20user@db.example.com:27017,db2.example.com:27018/app?authSource=admin&replicaSet=rs0&tls=true&w=majority")
+        for original in [replica, cluster, direct] {
+            let string = try XCTUnwrap(ConnectionStringImporter.connectionString(for: original))
+            XCTAssertFalse(string.contains("s3cret"), string)
+            var blank = profile(.postgresql, host: "", user: "", database: "")
+            blank.password = ""
+            // An import never turns plaintext on, so tls=false comes back only onto a profile that already chose it.
+            blank.transportSecurityMode = original.transportSecurityMode
+            let imported = try ConnectionStringImporter.apply(string, to: blank).profile
+            XCTAssertEqual(imported.engine, .mongodb, string)
+            XCTAssertEqual(imported.host, original.host, string)
+            XCTAssertEqual(imported.port, original.port, string)
+            XCTAssertEqual(imported.username, original.username, string)
+            XCTAssertEqual(imported.trimmedDefaultDatabase, original.trimmedDefaultDatabase, string)
+            XCTAssertEqual(imported.authenticationDatabase, original.authenticationDatabase, string)
+            XCTAssertEqual(imported.mongoConnection, original.mongoConnection, string)
+            XCTAssertEqual(imported.transportSecurityMode, original.transportSecurityMode, string)
+        }
+        // Applying the generated string, which has no password, keeps the saved one.
+        let string = try XCTUnwrap(ConnectionStringImporter.connectionString(for: replica))
+        XCTAssertEqual(try ConnectionStringImporter.apply(string, to: replica).profile.password, "s3cret!")
+        XCTAssertEqual(try ConnectionStringImporter.apply("mongodb://u:other@h.example.com/app", to: replica).profile.password, "other")
     }
 }

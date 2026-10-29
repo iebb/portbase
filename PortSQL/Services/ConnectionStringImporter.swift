@@ -47,6 +47,12 @@ enum ConnectionStringImporter {
                 notices.append(L10n.text("Writes are sent once. Check the result before retrying an interrupted write."))
             }
             var profile = parsed.applying(to: base)
+            // A string without a password, like a generated one, keeps the saved one, as other engines do.
+            if parsed.username.isEmpty { profile.username = base.username }
+            if parsed.password.isEmpty {
+                profile.password = base.password
+                profile.passwordWasExplicitlySet = base.passwordWasExplicitlySet
+            }
             // The MongoDB parser honours an explicit tls=false; keep that choice visible rather than silent.
             if profile.transportSecurityMode == .plaintext && base.transportSecurityMode != .plaintext {
                 profile.transportSecurityMode = base.transportSecurityMode
@@ -144,11 +150,12 @@ enum ConnectionStringImporter {
         return ConnectionStringImport(profile: profile, notices: notices)
     }
 
-    /// The connection string for a profile's current settings, never including the password. SQLite
-    /// (a file) and MongoDB (which has its own URI section) have none.
+    /// The connection string for a profile's current settings, never including the password. SQLite,
+    /// a file, has none.
     static func connectionString(for profile: ConnectionProfile) -> String? {
         let host = profile.host.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !host.isEmpty, profile.engine != .sqlite, profile.engine != .mongodb else { return nil }
+        guard !host.isEmpty, profile.engine != .sqlite else { return nil }
+        if profile.engine == .mongodb { return mongoConnectionString(for: profile, host: host) }
         let tls = profile.transportSecurityMode != .plaintext
         var components = URLComponents()
         var query: [URLQueryItem] = []
@@ -190,6 +197,35 @@ enum ConnectionStringImporter {
         }
         if !query.isEmpty { components.queryItems = query }
         return components.string
+    }
+
+    /// A `mongodb://` or `mongodb+srv://` URI that `MongoConnectionURI.parse` reads back to the same settings.
+    private static func mongoConnectionString(for profile: ConnectionProfile, host: String) -> String {
+        let settings = profile.mongoConnection
+        func encoded(_ value: String) -> String {
+            value.addingPercentEncoding(withAllowedCharacters: .alphanumerics.union(CharacterSet(charactersIn: "-._~"))) ?? value
+        }
+        func address(_ host: String, _ port: Int) -> String { (host.contains(":") ? "[" + host + "]" : host) + ":" + String(port) }
+        var string = settings.usesSRV ? "mongodb+srv://" : "mongodb://"
+        let user = profile.username.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !user.isEmpty { string += encoded(user) + "@" }
+        string += settings.usesSRV ? host : ([address(host, profile.port)] + settings.additionalHosts.map { address($0.host, $0.port) }).joined(separator: ",")
+        let database = profile.trimmedDefaultDatabase
+        string += "/" + encoded(database)
+        var query: [(String, String)] = []
+        let authentication = profile.authenticationDatabase.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !authentication.isEmpty, settings.authenticationSourceIsExplicit || authentication != (database.isEmpty ? "admin" : database) {
+            query.append(("authSource", authentication))
+        }
+        if !settings.replicaSet.isEmpty { query.append(("replicaSet", settings.replicaSet)) }
+        if settings.directConnection { query.append(("directConnection", "true")) }
+        if profile.transportSecurityMode == .plaintext { query.append(("tls", "false")) }
+        else if !settings.usesSRV { query.append(("tls", "true")) }
+        if settings.authenticationMechanism != "DEFAULT" { query.append(("authMechanism", settings.authenticationMechanism)) }
+        if settings.majorityWriteConcern { query.append(("w", "majority")) }
+        if settings.applicationName != "Portbase" { query.append(("appName", settings.applicationName)) }
+        if !query.isEmpty { string += "?" + query.map { $0.0 + "=" + encoded($0.1) }.joined(separator: "&") }
+        return string
     }
 
     /// Recognizes a pasted string, so the editor can offer an import.
