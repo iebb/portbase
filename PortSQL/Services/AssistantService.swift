@@ -392,21 +392,29 @@ enum AssistantSettingsSync {
     private static func encryptedCopy() -> AssistantSettings? {
         guard let folder = folder() else { return nil }
         let url = folder.appendingPathComponent(fileName)
-        // A file another device wrote may not be on this device yet: ask for it and read it next time,
-        // rather than wait on the download.
-        let status = try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]).ubiquitousItemDownloadingStatus
-        if let status, status != .current {
-            try? FileManager.default.startDownloadingUbiquitousItem(at: url)
+        switch CloudDriveFile.read(url) {
+        case .data(let data):
+            // Without the key yet (iCloud Keychain still syncing it), the file is read on a later pull.
+            guard let key = CloudEncryption.key(creatingIfMissing: false) else { return nil }
+            return try? settings(fromEncrypted: data, key: key)
+        case .notDownloaded:
+            // A file another device wrote, or one iCloud evicted, may not be on this device yet: rather than
+            // wait on the download, pull again once it arrives.
+            Task { @MainActor in pullWhenDownloaded() }
+            return nil
+        case .missing:
             return nil
         }
-        var data: Data?
-        var coordinationError: NSError?
-        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { source in
-            data = try? Data(contentsOf: source)
+    }
+
+    @MainActor private static var downloadWatcher: CloudDriveDownloadWatcher?
+
+    @MainActor private static func pullWhenDownloaded() {
+        guard downloadWatcher == nil else { return }
+        downloadWatcher = CloudDriveDownloadWatcher(fileName: fileName) {
+            downloadWatcher = nil
+            pull()
         }
-        // Without the key yet (iCloud Keychain still syncing it), the file is read on a later pull.
-        guard let data, let key = CloudEncryption.key(creatingIfMissing: false) else { return nil }
-        return try? settings(fromEncrypted: data, key: key)
     }
 
     private static func legacyCopy() -> AssistantSettings? {

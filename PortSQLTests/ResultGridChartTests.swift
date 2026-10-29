@@ -29,6 +29,53 @@ final class ResultGridChartTests: XCTestCase {
         XCTAssertEqual(try String(contentsOf: preserved, encoding: .utf8), damaged)
     }
 
+    @MainActor func testChartsInICloudDriveNotYetDownloadedAreMergedOnArrivalNotReportedDamaged() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let cloud = root.appendingPathComponent("cloud", isDirectory: true)
+        let otherDevice = root.appendingPathComponent("other", isDirectory: true)
+        let thisDevice = root.appendingPathComponent("this", isDirectory: true)
+        for directory in [cloud, otherDevice, thisDevice] {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        }
+        defer { try? FileManager.default.removeItem(at: root) }
+        let cloudFile = cloud.appendingPathComponent("visualization-presets.yml")
+
+        var remote = SavedVisualizationPreset.empty
+        remote.id = UUID()
+        remote.title = "From another device"
+        WorkspaceLibraryStore(directory: otherDevice, cloudSyncEnabled: false, cloudDirectory: cloud).saveVisualization(remote)
+        var local = SavedVisualizationPreset.empty
+        local.id = UUID()
+        local.title = "From this device"
+        WorkspaceLibraryStore(directory: thisDevice, cloudSyncEnabled: false).saveVisualization(local)
+        let cloudContents = try Data(contentsOf: cloudFile)
+
+        var downloaded = false
+        let store = WorkspaceLibraryStore(directory: thisDevice, cloudSyncEnabled: false, cloudDirectory: cloud,
+                                          cloudFileIsDownloaded: { _ in downloaded })
+        XCTAssertNil(store.storageError)
+        XCTAssertEqual(store.visualizations.map(\.id), [local.id])
+        // The evicted copy isn't replaced by this device's charts before it's merged.
+        XCTAssertEqual(try Data(contentsOf: cloudFile), cloudContents)
+        store.saveVisualization(local)
+        XCTAssertEqual(try Data(contentsOf: cloudFile), cloudContents)
+
+        downloaded = true
+        store.synchronizeCloud()
+        XCTAssertNil(store.storageError)
+        XCTAssertEqual(Set(store.visualizations.map(\.id)), [local.id, remote.id])
+        let merged = WorkspaceLibraryStore(directory: otherDevice, cloudSyncEnabled: false, cloudDirectory: cloud)
+        XCTAssertEqual(Set(merged.visualizations.map(\.id)), [local.id, remote.id])
+
+        // A copy that is here but can't be decoded is still reported, and left as it was.
+        let damaged = "- id: \"unfinished-chart\""
+        try damaged.write(to: cloudFile, atomically: true, encoding: .utf8)
+        let failing = WorkspaceLibraryStore(directory: thisDevice, cloudSyncEnabled: false, cloudDirectory: cloud)
+        XCTAssertNotNil(failing.storageError)
+        failing.saveVisualization(local)
+        XCTAssertEqual(try String(contentsOf: cloudFile, encoding: .utf8), damaged)
+    }
+
     func testRangeCopyPreservesTypesAndVisibleColumnOrder() throws {
         let result = QueryResultTable(columns: [
             QueryColumn(name: "optional", type: "text"), QueryColumn(name: "text", type: "text"),

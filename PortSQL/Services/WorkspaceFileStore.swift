@@ -68,3 +68,80 @@ struct DeletedLibraryItem: Identifiable, Codable {
         switch content { case .snippet(let value): value.title; case .chart(let value): value.title }
     }
 }
+
+/// A file in the app's iCloud Drive folder. iCloud can evict a file to free space, leaving a placeholder
+/// on the device until it's downloaded again: such a file isn't damaged, only not here yet.
+enum CloudDriveFile {
+    enum Contents: Equatable { case data(Data), missing, notDownloaded }
+
+    /// True for a file whose contents are on this device, and for files outside iCloud.
+    static func isDownloaded(_ url: URL) -> Bool {
+        let status = try? url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]).ubiquitousItemDownloadingStatus
+        return status == nil || status == .current
+    }
+
+    /// Reads the file through file coordination. A file that isn't on this device yet is asked for rather
+    /// than waited on; read it again once `CloudDriveDownloadWatcher` reports it downloaded.
+    static func read(_ url: URL, isDownloaded: (URL) -> Bool = isDownloaded) -> Contents {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: url.path) else {
+            // Evicted files can also appear only as a hidden ".name.icloud" placeholder.
+            let placeholder = url.deletingLastPathComponent().appendingPathComponent("." + url.lastPathComponent + ".icloud")
+            guard fileManager.fileExists(atPath: placeholder.path) else { return .missing }
+            try? fileManager.startDownloadingUbiquitousItem(at: url)
+            return .notDownloaded
+        }
+        guard isDownloaded(url) else {
+            try? fileManager.startDownloadingUbiquitousItem(at: url)
+            return .notDownloaded
+        }
+        var data: Data?
+        var coordinationError: NSError?
+        NSFileCoordinator().coordinate(readingItemAt: url, options: [], error: &coordinationError) { source in
+            data = try? Data(contentsOf: source)
+        }
+        if let data { return .data(data) }
+        // A file that can't be read although it's listed as here is most likely being evicted.
+        try? fileManager.startDownloadingUbiquitousItem(at: url)
+        return .notDownloaded
+    }
+}
+
+/// Watches the app's iCloud Drive Documents folder for a file to finish downloading, then calls back once.
+@MainActor
+final class CloudDriveDownloadWatcher {
+    private let query = NSMetadataQuery()
+    private var observers: [NSObjectProtocol] = []
+    private let onDownloaded: @MainActor () -> Void
+
+    init(fileName: String, onDownloaded: @escaping @MainActor () -> Void) {
+        self.onDownloaded = onDownloaded
+        query.searchScopes = [NSMetadataQueryUbiquitousDocumentsScope]
+        query.predicate = NSPredicate(format: "%K == %@", NSMetadataItemFSNameKey, fileName)
+        for name in [Notification.Name.NSMetadataQueryDidFinishGathering, .NSMetadataQueryDidUpdate] {
+            observers.append(NotificationCenter.default.addObserver(forName: name, object: query, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.check() }
+            })
+        }
+        query.start()
+    }
+
+    func stop() {
+        query.stop()
+        for observer in observers { NotificationCenter.default.removeObserver(observer) }
+        observers = []
+    }
+
+    private func check() {
+        guard !observers.isEmpty else { return }
+        query.disableUpdates()
+        let downloaded = query.results.contains { result in
+            (result as? NSMetadataItem)?.value(forAttribute: NSMetadataUbiquitousItemDownloadingStatusKey) as? String
+                == NSMetadataUbiquitousItemDownloadingStatusCurrent
+        }
+        query.enableUpdates()
+        guard downloaded else { return }
+        stop()
+        onDownloaded()
+    }
+}

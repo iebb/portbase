@@ -11,6 +11,10 @@ final class WorkspaceLibraryStore: ObservableObject {
     private var canSave = true
     private var failedWrites: Set<URL> = []
     private var canSyncCharts = true
+    /// The iCloud Drive copy of the charts isn't on this device yet: it isn't written until it arrives and is merged.
+    private var cloudVisualizationsPending = false
+    private var cloudVisualizationsWatcher: CloudDriveDownloadWatcher?
+    private let cloudFileIsDownloaded: (URL) -> Bool
     private enum ChartFileError: Error { case invalidData }
     private struct Recovery: Codable { var trash: [DeletedLibraryItem]; var deletedChartIDs: Set<UUID> }
     private var recoveryURL: URL { snippetsURL.deletingLastPathComponent().appendingPathComponent("library-recovery.json") }
@@ -41,8 +45,10 @@ final class WorkspaceLibraryStore: ObservableObject {
     private let cloudSyncEnabled: Bool
     private let visualizationsSyncKey = "visualization-presets-yaml"
 
-    init(directory directoryOverride: URL? = nil, cloudSyncEnabled: Bool = true) {
+    init(directory directoryOverride: URL? = nil, cloudSyncEnabled: Bool = true,
+         cloudDirectory cloudDirectoryOverride: URL? = nil, cloudFileIsDownloaded: @escaping (URL) -> Bool = CloudDriveFile.isDownloaded) {
         self.cloudSyncEnabled = cloudSyncEnabled
+        self.cloudFileIsDownloaded = cloudFileIsDownloaded
         let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let directory = directoryOverride ?? support.appendingPathComponent("PortSQL", isDirectory: true)
         try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -52,7 +58,9 @@ final class WorkspaceLibraryStore: ObservableObject {
         visualizationPreviewCacheURL = directory.appendingPathComponent("visualization-preview-cache.json")
         legacyVisualizationsURL = directory.appendingPathComponent("visualization-presets.json")
         chartPagesURL = directory.appendingPathComponent("chart-pages.json")
-        if cloudSyncEnabled, let ubiquityRoot = fileManager.url(forUbiquityContainerIdentifier: nil) {
+        if let cloudDirectoryOverride {
+            cloudVisualizationsURL = cloudDirectoryOverride.appendingPathComponent("visualization-presets.yml")
+        } else if cloudSyncEnabled, let ubiquityRoot = fileManager.url(forUbiquityContainerIdentifier: nil) {
             let cloudDirectory = ubiquityRoot
                 .appendingPathComponent("Documents", isDirectory: true)
                 .appendingPathComponent("PortSQL", isDirectory: true)
@@ -69,6 +77,7 @@ final class WorkspaceLibraryStore: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             Task { @MainActor in
+                self?.mergeDownloadedCloudVisualizations()
                 self?.mergeVisualizationsFromCloud()
                 self?.mergeQueriesFromCloud()
                 self?.mergeChartPagesFromCloud()
@@ -474,14 +483,13 @@ final class WorkspaceLibraryStore: ObservableObject {
             canSave = false
             storageError = L10n.text("Saved work could not be loaded. The original files have been preserved.")
         }
-        if let cloudVisualizationsURL, fileManager.fileExists(atPath: cloudVisualizationsURL.path) {
-            do {
-                let yaml = try String(contentsOf: cloudVisualizationsURL, encoding: .utf8)
-                mergedVisualizations = merge(local: mergedVisualizations, remote: try decodeVisualizations(yaml: yaml))
-            } catch {
-                canSyncCharts = false
-                storageError = L10n.text("Saved work could not be loaded. The original files have been preserved.")
+        do {
+            if let remote = try readCloudVisualizations() {
+                mergedVisualizations = merge(local: mergedVisualizations, remote: remote)
             }
+        } catch {
+            canSyncCharts = false
+            storageError = L10n.text("Saved work could not be loaded. The original files have been preserved.")
         }
         visualizations = mergedVisualizations.filter { !deletedChartIDs.contains($0.id) }
         pruneVisualizationPreviewCache()
@@ -506,6 +514,7 @@ final class WorkspaceLibraryStore: ObservableObject {
     }
 
     func synchronizeCloud() {
+        mergeDownloadedCloudVisualizations()
         guard cloudSyncEnabled else { return }
         keyValueStore.synchronize()
         mergeVisualizationsFromCloud()
@@ -527,7 +536,7 @@ final class WorkspaceLibraryStore: ObservableObject {
         let yaml = encodeVisualizations(visualizations)
         guard write(Data(yaml.utf8), to: visualizationsURL) else { return false }
         guard canSyncCharts else { return true }
-        if let cloudVisualizationsURL {
+        if let cloudVisualizationsURL, !cloudVisualizationsPending {
             try? yaml.write(to: cloudVisualizationsURL, atomically: true, encoding: .utf8)
         }
         guard cloudSyncEnabled, pushToCloud else { return true }
@@ -541,6 +550,55 @@ final class WorkspaceLibraryStore: ObservableObject {
         keyValueStore.set(yaml, forKey: visualizationsSyncKey)
         keyValueStore.synchronize()
         return true
+    }
+
+    /// The charts in the iCloud Drive copy, or nil when there's none. A copy iCloud hasn't downloaded to
+    /// this device yet is asked for and merged once it arrives; only a copy that can't be decoded throws.
+    private func readCloudVisualizations() throws -> [SavedVisualizationPreset]? {
+        guard let cloudVisualizationsURL else { return nil }
+        switch CloudDriveFile.read(cloudVisualizationsURL, isDownloaded: cloudFileIsDownloaded) {
+        case .missing:
+            cloudVisualizationsPending = false
+            return nil
+        case .notDownloaded:
+            cloudVisualizationsPending = true
+            if cloudSyncEnabled, cloudVisualizationsWatcher == nil {
+                cloudVisualizationsWatcher = CloudDriveDownloadWatcher(fileName: cloudVisualizationsURL.lastPathComponent) { [weak self] in
+                    self?.cloudVisualizationsWatcher = nil
+                    self?.mergeDownloadedCloudVisualizations()
+                }
+            }
+            return nil
+        case .data(let data):
+            cloudVisualizationsPending = false
+            guard let yaml = String(data: data, encoding: .utf8) else { throw ChartFileError.invalidData }
+            return try decodeVisualizations(yaml: yaml)
+        }
+    }
+
+    /// Takes in the iCloud Drive copy once it has downloaded, then brings that copy up to date.
+    private func mergeDownloadedCloudVisualizations() {
+        guard cloudVisualizationsPending, canSave, canSyncCharts else { return }
+        let remote: [SavedVisualizationPreset]?
+        do { remote = try readCloudVisualizations() }
+        catch {
+            canSyncCharts = false
+            storageError = L10n.text("Saved work could not be loaded. The original files have been preserved.")
+            return
+        }
+        guard !cloudVisualizationsPending else { return }
+        cloudVisualizationsWatcher?.stop()
+        cloudVisualizationsWatcher = nil
+        if let remote {
+            // The sync collection records the file's charts at their own revisions, so a deletion or newer edit still wins.
+            _ = chartCloudCollection?.ingestLegacy(remote, initialDate: { $0.updatedAt }, usesIntrinsicRevision: true)
+            let merged = merge(local: visualizations, remote: remote)
+            if merged != visualizations {
+                visualizations = merged
+                pruneVisualizationPreviewCache()
+            }
+        }
+        persistVisualizations(pushToCloud: true)
     }
 
     private func mergeVisualizationsFromCloud() {
