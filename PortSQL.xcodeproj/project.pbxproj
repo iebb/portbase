@@ -1797,7 +1797,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_MODULE_NAME = PortSQL;
 				PRODUCT_NAME = Portbase;
@@ -1903,7 +1903,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_NAME = PortSQL;
 				SDKROOT = iphoneos;
@@ -1956,7 +1956,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_MODULE_NAME = PortSQL;
@@ -1991,7 +1991,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_NAME = PortSQL;
 				SDKROOT = iphoneos;
@@ -2043,7 +2043,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_MODULE_NAME = PortSQL;
@@ -2113,7 +2113,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.1.0;
+				MARKETING_VERSION = 2.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ad.neko.portsql;
 				PRODUCT_NAME = PortSQL;
 				SDKROOT = iphoneos;
