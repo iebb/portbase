@@ -84,7 +84,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ad.neko.portsql
         PRODUCT_NAME: PortSQL
-        MARKETING_VERSION: 2.0.0
+        MARKETING_VERSION: 2.1.0
         CURRENT_PROJECT_VERSION: 2
         SWIFT_VERSION: 6.0
         SWIFT_OBJC_BRIDGING_HEADER: PortSQL/PortSQL-Bridging-Header.h
@@ -152,7 +152,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: ad.neko.portsql
         PRODUCT_NAME: Portbase
         PRODUCT_MODULE_NAME: PortSQL
-        MARKETING_VERSION: 2.0.0
+        MARKETING_VERSION: 2.1.0
         CURRENT_PROJECT_VERSION: 2
         SWIFT_VERSION: 6.0
         SWIFT_OBJC_BRIDGING_HEADER: PortSQL/PortSQL-Bridging-Header.h
