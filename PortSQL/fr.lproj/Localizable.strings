@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "Abandonner les modifications non validées ?";
 "Discard Changes" = "Abandonner les modifications";
 "Keep Editing" = "Continuer à modifier";
+"Discard changes to this chart?" = "Abandonner les modifications de ce graphique ?";
 "Submit them first to keep them, or discard them to continue." = "Validez-les d’abord pour les conserver, ou abandonnez-les pour continuer.";
 "Quit Without Submitting?" = "Quitter sans valider ?";
 "Cell edits that haven't been submitted will be lost." = "Les modifications de cellules non validées seront perdues.";

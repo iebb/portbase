@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "放棄未提交的變更？";
 "Discard Changes" = "放棄變更";
 "Keep Editing" = "繼續編輯";
+"Discard changes to this chart?" = "放棄對此圖表的變更？";
 "Submit them first to keep them, or discard them to continue." = "若要保留請先提交，或放棄後繼續。";
 "Quit Without Submitting?" = "不提交就結束？";
 "Cell edits that haven't been submitted will be lost." = "未提交的儲存格編輯將會遺失。";

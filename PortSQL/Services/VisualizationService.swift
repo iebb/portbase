@@ -140,6 +140,60 @@ enum VisualizationService {
         return reconciled
     }
 
+    /// Fits a chart to the result of its changed query. Fields the result no longer has are dropped,
+    /// with the result's default fields in place of a missing X field or of every Y field, and axis
+    /// titles nobody edited follow the fields.
+    static func adaptedPreset(_ preset: SavedVisualizationPreset, to result: QueryResultTable) -> SavedVisualizationPreset {
+        let descriptors = fieldDescriptors(for: result)
+        guard !descriptors.isEmpty else { return preset }
+        let names = Set(descriptors.map(\.name))
+        // Without rows, only the column types say what is numeric; keep any column the result still has.
+        let metricNames = result.rows.isEmpty ? names : Set(descriptors.filter(\.supportsNumeric).map(\.name))
+        let xTitleFollows = isUnedited(preset.xAxisTitle, generatedFrom: [preset.xField])
+        let yTitleFollows = isUnedited(preset.yAxisTitle, generatedFrom: [preset.yField, preset.yFieldsSummary] + preset.resolvedYFields)
+
+        var adapted = preset
+        if !names.contains(preset.xField) {
+            adapted.xField = defaultXField(from: descriptors)
+            adapted.xAxisMode = preferredXMode(for: descriptors.first { $0.name == adapted.xField })
+        } else if let descriptor = descriptors.first(where: { $0.name == preset.xField }),
+                  !supportedXModes(for: descriptor).contains(preset.xAxisMode) {
+            adapted.xAxisMode = preferredXMode(for: descriptor)
+        }
+        var yFields = preset.resolvedYFields.filter { metricNames.contains($0) }
+        if yFields.isEmpty {
+            let fallback = defaultYField(from: descriptors, excluding: adapted.xField)
+            yFields = fallback.isEmpty ? [] : [fallback]
+        }
+        adapted.yFields = yFields
+        adapted.yField = yFields.first ?? ""
+        if let group = preset.groupField, !names.contains(group) { adapted.groupField = nil }
+        if let label = preset.labelField, !names.contains(label) { adapted.labelField = nil }
+        if xTitleFollows { adapted.xAxisTitle = adapted.xField }
+        if yTitleFollows { adapted.yAxisTitle = adapted.yFieldsSummary }
+        return adapted
+    }
+
+    private static func isUnedited(_ title: String, generatedFrom names: [String]) -> Bool {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty || names.contains(trimmed)
+    }
+
+    /// The table a SQL statement reads or writes, taken from its first FROM, UPDATE, or INTO.
+    static func inferredTableReference(in sql: String) -> String? {
+        let normalized = sql.uppercased()
+        if normalized.hasPrefix("EXPLAIN "), let explainRange = sql.range(of: "EXPLAIN ", options: .caseInsensitive) {
+            return inferredTableReference(in: String(sql[explainRange.upperBound...]))
+        }
+        guard let fromRange = normalized.range(of: "FROM ") ?? normalized.range(of: "UPDATE ") ?? normalized.range(of: "INTO ") else {
+            return nil
+        }
+        return sql[fromRange.upperBound...]
+            .split(whereSeparator: { $0.isWhitespace || $0 == ";" || $0 == "," || $0 == ")" })
+            .first
+            .map(String.init)
+    }
+
     static func supportedXModes(for field: VisualizationFieldDescriptor) -> [VisualizationFieldMode] {
         var modes: [VisualizationFieldMode] = [.automatic, .category]
         if field.supportsNumeric {
@@ -185,6 +239,9 @@ enum VisualizationService {
 
         let chartDateFormatter = makeChartDateFormatter()
         var buckets: [String: VisualizationPlotPoint] = [:]
+        // Where each category and point first appears, so categories keep the query's order.
+        var categoryOrder: [String: Int] = [:]
+        var pointOrder: [String: Int] = [:]
         for row in result.rows {
             let xCell = row.cells[safe: xIndex] ?? .null
             let rawX = xCell.displayValue
@@ -242,6 +299,8 @@ enum VisualizationService {
                     buckets[identifier]!.sourceRowIDs.append(row.id)
                     if buckets[identifier]!.label == nil { buckets[identifier]!.label = label }
                 } else {
+                    if categoryOrder[xText] == nil { categoryOrder[xText] = categoryOrder.count }
+                    pointOrder[identifier] = pointOrder.count
                     buckets[identifier] = VisualizationPlotPoint(
                         id: identifier,
                         xText: xText,
@@ -264,10 +323,10 @@ enum VisualizationService {
             case .number:
                 return (lhs.xNumber ?? 0) < (rhs.xNumber ?? 0)
             case .category, .automatic:
-                if lhs.group == rhs.group {
-                    return lhs.xText.localizedCaseInsensitiveCompare(rhs.xText) == .orderedAscending
-                }
-                return (lhs.group ?? "").localizedCaseInsensitiveCompare(rhs.group ?? "") == .orderedAscending
+                // The query's order; the chart's Sort reorders categories later.
+                let left = categoryOrder[lhs.xText] ?? 0, right = categoryOrder[rhs.xText] ?? 0
+                if left != right { return left < right }
+                return (pointOrder[lhs.id] ?? 0) < (pointOrder[rhs.id] ?? 0)
             }
         }
     }

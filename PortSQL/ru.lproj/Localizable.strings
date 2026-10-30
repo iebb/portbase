@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "Отменить неприменённые изменения?";
 "Discard Changes" = "Отменить изменения";
 "Keep Editing" = "Продолжить редактирование";
+"Discard changes to this chart?" = "Отменить изменения в этой диаграмме?";
 "Submit them first to keep them, or discard them to continue." = "Чтобы сохранить их, сначала примените их, или отмените, чтобы продолжить.";
 "Quit Without Submitting?" = "Выйти без применения?";
 "Cell edits that haven't been submitted will be lost." = "Неприменённые изменения ячеек будут потеряны.";

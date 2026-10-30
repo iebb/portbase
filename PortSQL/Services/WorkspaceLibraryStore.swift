@@ -386,6 +386,10 @@ final class WorkspaceLibraryStore: ObservableObject {
         var copy = chart
         copy.id = UUID()
         copy.title = L10n.format("%@ Copy", chart.displayTitle)
+        // The tile shows a chart title someone set, so the copy's says it is a copy too.
+        if chart.chartTitle.trimmingCharacters(in: .whitespacesAndNewlines) == chart.tileTitle {
+            copy.chartTitle = L10n.format("%@ Copy", chart.tileTitle)
+        }
         copy.createdAt = .now
         guard saveVisualization(copy) else { return nil }
         if let cached = chartResults.peek(chart.id) { chartResults.store(cached.result, for: copy.id, parameterValues: cached.parameterValues, fetchedAt: cached.fetchedAt) }

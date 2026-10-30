@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "Nicht übernommene Änderungen verwerfen?";
 "Discard Changes" = "Änderungen verwerfen";
 "Keep Editing" = "Weiter bearbeiten";
+"Discard changes to this chart?" = "Änderungen an diesem Diagramm verwerfen?";
 "Submit them first to keep them, or discard them to continue." = "Übernimm sie zuerst, um sie zu behalten, oder verwirf sie, um fortzufahren.";
 "Quit Without Submitting?" = "Beenden, ohne zu übernehmen?";
 "Cell edits that haven't been submitted will be lost." = "Nicht übernommene Zellenänderungen gehen verloren.";

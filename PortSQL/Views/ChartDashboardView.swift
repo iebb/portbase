@@ -381,7 +381,7 @@ private struct ChartTile: View {
     private var header: some View {
         HStack(alignment: .top, spacing: Spacing.s) {
             VStack(alignment: .leading, spacing: Spacing.xxxs) {
-                Text(preset.displayTitle)
+                Text(preset.tileTitle)
                     .font(.rowTitle.weight(.semibold))
                     .foregroundStyle(PortSQLPalette.ink)
                     .lineLimit(1)
@@ -394,7 +394,7 @@ private struct ChartTile: View {
             .contentShape(Rectangle())
             // Drag a chart by its title to reorder it or move it to another page.
             .draggable(preset.id.uuidString) {
-                Label(preset.displayTitle, systemImage: preset.chartType.symbolName)
+                Label(preset.tileTitle, systemImage: preset.chartType.symbolName)
                     .font(.rowTitle)
                     .padding(Spacing.m)
                     .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.control))
@@ -414,7 +414,7 @@ private struct ChartTile: View {
             }
             .buttonStyle(.plain)
             .disabled(isRunning || !hasQuery || profile == nil)
-            .accessibilityLabel(L10n.format("Run %@ chart query", preset.displayTitle))
+            .accessibilityLabel(L10n.format("Run %@ chart query", preset.tileTitle))
 
             menu
         }
@@ -527,7 +527,7 @@ private struct ChartTile: View {
         .menuIndicator(.hidden)
         .buttonStyle(.plain)
         .fixedSize()
-        .accessibilityLabel(L10n.format("Edit %@ chart", preset.displayTitle))
+        .accessibilityLabel(L10n.format("Edit %@ chart", preset.tileTitle))
     }
 
     private var index: Int? { libraryStore.charts(onPage: page.id).firstIndex { $0.id == preset.id } }
@@ -675,7 +675,7 @@ private struct ChartFullSizeView: View {
     let fetchedAt: Date
 
     var body: some View {
-        PortbaseSheet(preset.displayTitle, subtitle: [preset.connectionName, preset.databaseName,
+        PortbaseSheet(preset.tileTitle, subtitle: [preset.connectionName, preset.databaseName,
                                                      L10n.format("Updated %@", fetchedAt.formatted(.relative(presentation: .named)))]
                         .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")) {
             ScrollView {

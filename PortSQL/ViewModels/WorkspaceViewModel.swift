@@ -1044,7 +1044,7 @@ final class WorkspaceViewModel: ObservableObject {
                         query: statement, values: values, profile: profile, database: database, policy: policy,
                         sessionID: usesConsole ? sessionID : nil, manualCommit: manual
                     )
-                    table.sourceTableReference = explorerTable?.displayName ?? inferredTableReference(in: statement)
+                    table.sourceTableReference = explorerTable?.displayName ?? VisualizationService.inferredTableReference(in: statement)
                     table.isExplorerGenerated = explorerTable != nil
                     table.sourceQuery = statement
                     completed.append(table)
@@ -1364,7 +1364,7 @@ final class WorkspaceViewModel: ObservableObject {
         if let plan = editPlan, plan.targets.count == 1 { return editDraft(for: row, target: 0, plan: plan) }
         let table = SchemaTableDescriptor(
             schemaName: "",
-            name: inferredTableReference(in: result.sourceQuery ?? queryText) ?? L10n.text("Result Row"),
+            name: VisualizationService.inferredTableReference(in: result.sourceQuery ?? queryText) ?? L10n.text("Result Row"),
             columns: result.columns.map {
                 SchemaColumnDescriptor(name: $0.name, type: $0.type, isNullable: true, isPrimaryKey: false, isUnique: false)
             },
@@ -2279,22 +2279,6 @@ final class WorkspaceViewModel: ObservableObject {
         default:
             return "\"\(value.replacingOccurrences(of: "\"", with: "\"\""))\""
         }
-    }
-
-    private func inferredTableReference(in sql: String) -> String? {
-        let normalized = sql.uppercased()
-        if normalized.hasPrefix("EXPLAIN "), let explainRange = sql.range(of: "EXPLAIN ", options: .caseInsensitive) {
-            let nested = String(sql[explainRange.upperBound...])
-            return inferredTableReference(in: nested)
-        }
-        guard let fromRange = normalized.range(of: "FROM ") ?? normalized.range(of: "UPDATE ") ?? normalized.range(of: "INTO ") else {
-            return nil
-        }
-        let tail = sql[fromRange.upperBound...]
-        return tail
-            .split(whereSeparator: { $0.isWhitespace || $0 == ";" || $0 == "," || $0 == ")" })
-            .first
-            .map(String.init)
     }
 
     private func normalizedIdentifier(_ value: String) -> String {

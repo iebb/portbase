@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "Discard unsubmitted changes?";
 "Discard Changes" = "Discard Changes";
 "Keep Editing" = "Keep Editing";
+"Discard changes to this chart?" = "Discard changes to this chart?";
 "Submit them first to keep them, or discard them to continue." = "Submit them first to keep them, or discard them to continue.";
 "Quit Without Submitting?" = "Quit Without Submitting?";
 "Cell edits that haven't been submitted will be lost." = "Cell edits that haven't been submitted will be lost.";

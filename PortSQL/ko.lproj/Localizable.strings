@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "제출하지 않은 변경을 폐기할까요?";
 "Discard Changes" = "변경 폐기";
 "Keep Editing" = "계속 편집";
+"Discard changes to this chart?" = "이 차트의 변경을 폐기할까요?";
 "Submit them first to keep them, or discard them to continue." = "유지하려면 먼저 제출하고, 계속하려면 폐기하세요.";
 "Quit Without Submitting?" = "제출하지 않고 종료할까요?";
 "Cell edits that haven't been submitted will be lost." = "제출하지 않은 셀 편집 내용은 사라집니다.";

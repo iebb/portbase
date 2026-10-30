@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "送信していない変更を破棄しますか？";
 "Discard Changes" = "変更を破棄";
 "Keep Editing" = "編集を続ける";
+"Discard changes to this chart?" = "このチャートへの変更を破棄しますか？";
 "Submit them first to keep them, or discard them to continue." = "保持するには先に送信してください。続行するには破棄してください。";
 "Quit Without Submitting?" = "送信せずに終了しますか？";
 "Cell edits that haven't been submitted will be lost." = "送信していないセルの編集は失われます。";

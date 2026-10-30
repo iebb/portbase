@@ -498,7 +498,7 @@ enum ChartExportError: LocalizedError {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let url = directory.appendingPathComponent("chart-" + UUID().uuidString + "." + format.rawValue)
         let view = VStack(alignment: .leading, spacing: Spacing.l) {
-            Text(preset.chartTitle.isEmpty ? preset.title : preset.chartTitle).font(.pageTitle)
+            Text(preset.tileTitle).font(.pageTitle)
             VisualizationChartPlot(preset: preset, points: points, xMode: xMode, compact: false)
             if let dateFilter { Text(dateFilter.field + ": " + dateRangeLabel(dateFilter)).font(.captionText) }
             Text(L10n.format("Loaded rows: %d", result.rows.count)).font(.captionText).foregroundStyle(.secondary)

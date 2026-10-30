@@ -227,6 +227,8 @@ final class ChartDashboardTests: XCTestCase {
             chart.showsValues = true
         }
         let copy = try XCTUnwrap(reopened.duplicateChart(ids[2]))
+        let original = try XCTUnwrap(reopened.visualizations.first { $0.id == ids[2] })
+        XCTAssertNotEqual(copy.tileTitle, original.tileTitle, "A copy's tile says it is a copy")
         XCTAssertEqual(reopened.charts(onPage: ChartPage.defaultID).map(\.id), [ids[2], copy.id, ids[0]], "A copy sits right after its original")
         let again = WorkspaceLibraryStore(directory: directory, cloudSyncEnabled: false)
         let styled = try XCTUnwrap(again.visualizations.first { $0.id == ids[2] })

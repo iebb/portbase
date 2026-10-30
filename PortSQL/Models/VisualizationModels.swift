@@ -321,6 +321,14 @@ struct SavedVisualizationPreset: Identifiable, Codable, Hashable {
         return title
     }
 
+    /// The title a dashboard tile shows: the chart title someone set, or else the preset's name. A chart
+    /// title generated from the source table or connection doesn't count as set.
+    var tileTitle: String {
+        let trimmed = chartTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let generated = [sourceTableReference, connectionName, "Query Visualization", L10n.text("Saved Visualization")].compactMap { $0 }
+        return trimmed.isEmpty || generated.contains(trimmed) ? displayTitle : trimmed
+    }
+
     static let tileHeightRange: ClosedRange<Double> = 200...900
     static let defaultTileHeight: Double = 320
 

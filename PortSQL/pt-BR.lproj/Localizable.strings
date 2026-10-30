@@ -1267,6 +1267,7 @@
 "Discard unsubmitted changes?" = "Descartar alterações não enviadas?";
 "Discard Changes" = "Descartar alterações";
 "Keep Editing" = "Continuar editando";
+"Discard changes to this chart?" = "Descartar as alterações deste gráfico?";
 "Submit them first to keep them, or discard them to continue." = "Envie-as primeiro para mantê-las ou descarte-as para continuar.";
 "Quit Without Submitting?" = "Sair sem enviar?";
 "Cell edits that haven't been submitted will be lost." = "As edições de células não enviadas serão perdidas.";
