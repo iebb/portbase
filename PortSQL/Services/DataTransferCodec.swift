@@ -44,6 +44,7 @@ enum DataTransferCodec {
             return isJSONNumber(value) ? value : jsonString(value)
         case .binary(let data):
             return "{\"$binary\":{\"base64\":" + jsonString(data.base64EncodedString()) + ",\"subType\":\"00\"}}"
+        case .extendedJSON(let canonical, _): return canonical
         case .json(let text):
             return (try? JSONSerialization.jsonObject(with: Data(text.utf8), options: [.fragmentsAllowed])) != nil ? text : jsonString(text)
         case .text(let text), .dateTime(let text): return jsonString(text)
@@ -53,7 +54,7 @@ enum DataTransferCodec {
     static func csvValue(_ cell: QueryCell) -> String {
         if cell.isNull { return "NULL" }
         if cell == .json("{\"$missing\":true}") { return "\\M" }
-        return "\"" + cell.displayValue.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        return "\"" + cell.exactValue.replacingOccurrences(of: "\"", with: "\"\"") + "\""
     }
 
     static func mongoCSVCell(_ value: BSON?) -> QueryCell {

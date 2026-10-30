@@ -1724,3 +1724,4 @@
 "Go to Row" = "Zu Zeile springen";
 "Row" = "Zeile";
 "Referenced by %@" = "Referenziert von %@";
+"Binary(%@, subtype %@)" = "Binärdaten(%@, Subtyp %@)";

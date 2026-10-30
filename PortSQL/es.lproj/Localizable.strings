@@ -1724,3 +1724,4 @@
 "Go to Row" = "Ir a la fila";
 "Row" = "Fila";
 "Referenced by %@" = "Referenciado por %@";
+"Binary(%@, subtype %@)" = "Binario(%@, subtipo %@)";

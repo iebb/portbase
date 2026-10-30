@@ -108,6 +108,8 @@ struct ResultCellInspector: View {
         switch selection.cell {
         case .null: return "NULL"
         case .json(let text): return formatted ? ResultInspectionService.formattedJSON(text) : text
+        case .extendedJSON(let canonical, let display):
+            return formatted ? MongoExtendedJSON.display(canonical: canonical, pretty: true) ?? display : display
         case .binary(let bytes):
             let prefix = bytes.prefix(4_096)
             return base64 ? Data(prefix).base64EncodedString() : "0x" + prefix.map { String(format: "%02x", $0) }.joined()
@@ -146,7 +148,7 @@ struct ResultCellInspector: View {
             Button("Copy", systemImage: "doc.on.doc") {
                 let value: String
                 if case .binary(let bytes) = selection.cell, base64 { value = bytes.base64EncodedString() }
-                else { value = selection.cell.isNull ? "NULL" : selection.cell.displayValue }
+                else { value = selection.cell.isNull ? "NULL" : selection.cell.exactValue }
                 var item: [String: Any] = ["public.utf8-plain-text": value]
                 if let data = try? JSONEncoder().encode(selection.cell) { item["ad.neko.portsql.cell"] = data }
                 PortbaseClipboard.copy(items: [item])
@@ -181,7 +183,10 @@ struct ResultCellInspector: View {
     }
 
     @ViewBuilder private var readOnlyPreview: some View {
-        if case .json = selection.cell { Toggle("Format JSON", isOn: $formatted).frame(minHeight: Sizes.touchTarget) }
+        switch selection.cell {
+        case .json, .extendedJSON: Toggle("Format JSON", isOn: $formatted).frame(minHeight: Sizes.touchTarget)
+        default: EmptyView()
+        }
         if case .binary(let bytes) = selection.cell {
             PortbaseSegmentedPicker(selection: $base64, options: [
                 PortbaseChoice(value: false, title: L10n.text("Hex")), PortbaseChoice(value: true, title: L10n.text("Base64")),

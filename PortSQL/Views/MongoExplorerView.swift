@@ -1,3 +1,4 @@
+import ImageIO
 import SwiftUI
 @preconcurrency import SwiftBSON
 
@@ -189,8 +190,15 @@ private struct MongoTreeField: Identifiable {
         case .document(let document): return "{\(document.count)}"
         case .array(let array): return "[\(array.count)]"
         case .string(let string): return String(reflecting: string)
-        default: return MongoDatabaseClient.cell(value).displayValue
+        default: return MongoExtendedJSON.display(value)
         }
+    }
+
+    /// PNG or JPEG bytes small enough to thumbnail while the row is on screen.
+    var imageData: Data? {
+        guard case .binary(let binary) = value, binary.data.readableBytes <= 8 * 1_024 * 1_024 else { return nil }
+        let data = Data(binary.data.readableBytesView)
+        return data.starts(with: [0x89, 0x50, 0x4E, 0x47]) || data.starts(with: [0xFF, 0xD8, 0xFF]) ? data : nil
     }
 }
 
@@ -209,6 +217,11 @@ private struct MongoValueRow: View {
                             Button("Show More") { childLimit += 100 }.frame(minHeight: Sizes.control)
                         }
                     }
+                    // A guide line under the parent's key marks each nesting level.
+                    .padding(.leading, Spacing.l)
+                    .overlay(alignment: .leading) {
+                        Rectangle().fill(PortSQLPalette.stroke).frame(width: 1).padding(.leading, Spacing.xs)
+                    }
                 } label: { label }
                 .frame(minHeight: Sizes.control)
             } else { label }
@@ -220,17 +233,56 @@ private struct MongoValueRow: View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: Spacing.m) {
                 Text(verbatim: field.key).foregroundStyle(.secondary)
-                Text(verbatim: String(field.preview.prefix(500))).textSelection(.enabled)
+                value
             }
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 Text(verbatim: field.key).foregroundStyle(.secondary)
-                Text(verbatim: String(field.preview.prefix(500))).textSelection(.enabled)
+                value
             }
         }
         .frame(minHeight: Sizes.control, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: field.key))
         .accessibilityValue(Text(verbatim: String(field.preview.prefix(500))))
+    }
+
+    private var value: some View {
+        HStack(spacing: Spacing.s) {
+            if let data = field.imageData { MongoImageThumbnail(data: data) }
+            Text(verbatim: String(field.preview.prefix(500)))
+                .foregroundStyle(field.value == .null ? .secondary : .primary)
+                .textSelection(.enabled)
+        }
+    }
+}
+
+private struct MongoImageThumbnail: View {
+    let data: Data
+    @State private var image: CGImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(decorative: image, scale: 1)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.xs))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.xs).stroke(PortSQLPalette.stroke))
+            }
+        }
+        .task(id: data) {
+            let data = data
+            image = await Task.detached(priority: .utility) { Self.thumbnail(data) }.value
+        }
+    }
+
+    private nonisolated static func thumbnail(_ data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let options: [CFString: Any] = [kCGImageSourceCreateThumbnailFromImageAlways: true,
+                                        kCGImageSourceCreateThumbnailWithTransform: true,
+                                        kCGImageSourceThumbnailMaxPixelSize: 96]
+        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
     }
 }
 

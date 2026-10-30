@@ -129,6 +129,76 @@ final class MongoQueryServiceTests: XCTestCase {
         XCTAssertFalse(decoded[1].hasKey("null"))
     }
 
+    func testNestedValuesDisplayAsReadableJSONWhileCopyAndExportKeepCanonicalTypes() throws {
+        let json = #"{"_id":{"$oid":"507f1f77bcf86cd799439011"},"customer":{"id":{"$numberInt":"813"},"name":"Aisha Okafor","since":{"$date":{"$numberLong":"1700000000123"}}},"tags":["a/b",{"$numberLong":"9"},{"$numberDouble":"2.5"},{"$numberDecimal":"12.50"},null],"swatch":{"$binary":{"base64":"iVBORw==","subType":"00"}},"key":{"$binary":{"base64":"EjRWeJASNFZ4kBI0VniQEg==","subType":"04"}},"placed":{"$date":{"$numberLong":"1700000000123"}}}"#
+        let document = try MongoExtendedJSON.decode(json)
+        let result = MongoDatabaseClient.makeResult(documents: [document, document], affectedRows: nil, truncated: false, profileName: "Test")
+        func cell(_ name: String) throws -> QueryCell { result.rows[0].cells[try XCTUnwrap(result.columns.firstIndex { $0.name == name })] }
+
+        let customer = try cell("customer")
+        XCTAssertEqual(customer.displayValue, #"{"id": 813, "name": "Aisha Okafor", "since": {"$date": "2023-11-14T22:13:20.123Z"}}"#)
+        XCTAssertEqual(try cell("tags").displayValue, #"["a/b", 9, 2.5, 12.50, null]"#)
+        XCTAssertEqual(try cell("_id").displayValue, #"{"$oid": "507f1f77bcf86cd799439011"}"#)
+        let size = ByteCountFormatter.string(fromByteCount: 4, countStyle: .file)
+        XCTAssertEqual(try cell("swatch").displayValue, L10n.format("Binary(%@, subtype %@)", size, "00"))
+        XCTAssertEqual(try cell("key").displayValue, #"UUID("12345678-9012-3456-7890-123456789012")"#)
+        XCTAssertEqual(try cell("placed"), .dateTime("2023-11-14T22:13:20.123Z"))
+
+        // The exact value still carries every BSON type, so copy and export round-trip.
+        for name in ["customer", "tags", "_id", "swatch", "key"] {
+            let exact = try cell(name).exactValue
+            XCTAssertEqual(try MongoExtendedJSON.decode("{\"v\":" + exact + "}")["v"], document[name], name)
+        }
+        XCTAssertTrue(customer.exactValue.contains(#""$numberInt":"813""#))
+        XCTAssertTrue(try cell("swatch").exactValue.contains(#""subType":"00""#))
+
+        let insight = ResultInsightsService.insight(column: try XCTUnwrap(result.columns.firstIndex { $0.name == "customer" }), in: result)
+        XCTAssertEqual(insight.kind, .json)
+        XCTAssertEqual(insight.topValues.first?.value, customer.displayValue)
+
+        let columns = try ["customer", "swatch"].map { name in try XCTUnwrap(result.columns.firstIndex { $0.name == name }) }
+        let payload = ResultGridClipboard.Payload(columns: columns.map { result.columns[$0] },
+                                                  rows: [QueryRow(cells: columns.map { result.rows[0].cells[$0] })])
+        for text in [ResultGridClipboard.text(payload, headers: false), ResultCopyFormatter.text(payload, format: .csv),
+                     ResultCopyFormatter.text(payload, format: .json)] {
+            XCTAssertTrue(text.contains("$numberInt") && text.contains("$binary"), text)
+        }
+        let url = try XCTUnwrap(QueryResultExportService.write(result, format: .csv))
+        XCTAssertTrue(try String(contentsOf: url, encoding: .utf8).contains("$numberInt"))
+        XCTAssertEqual(try JSONDecoder().decode(QueryCell.self, from: JSONEncoder().encode(customer)), customer)
+    }
+
+    func testReadableDisplayFormatsScalarsAndIndentsWhenPretty() throws {
+        XCTAssertEqual(MongoExtendedJSON.display(.double(5)), "5.0")
+        XCTAssertEqual(MongoExtendedJSON.display(.double(.nan)), "NaN")
+        XCTAssertEqual(MongoExtendedJSON.display(.double(-.infinity)), "-Infinity")
+        XCTAssertEqual(MongoExtendedJSON.display(.int64(9_223_372_036_854_775_807)), "9223372036854775807")
+        XCTAssertEqual(MongoExtendedJSON.display(.null), "null")
+        XCTAssertEqual(MongoExtendedJSON.display(.string("line\n\"quoted\" a/b")), #""line\n\"quoted\" a/b""#)
+        XCTAssertEqual(MongoExtendedJSON.display(.document([:])), "{}")
+        XCTAssertEqual(MongoExtendedJSON.display(.array([])), "[]")
+        // Dates outside the years relaxed JSON writes as text keep their millisecond form.
+        XCTAssertEqual(MongoExtendedJSON.display(.datetime(Date(timeIntervalSince1970: -1))), #"{"$date":{"$numberLong":"-1000"}}"#)
+        XCTAssertEqual(MongoExtendedJSON.isoDate(Date(timeIntervalSince1970: -0.5)), "1969-12-31T23:59:59.500Z")
+
+        let canonical = #"{"a":{"$numberInt":"1"},"b":[{"c":true},{"$numberLong":"2"}],"d":{}}"#
+        XCTAssertEqual(MongoExtendedJSON.display(canonical: canonical, pretty: true), """
+        {
+          "a": 1,
+          "b": [
+            {
+              "c": true
+            },
+            2
+          ],
+          "d": {}
+        }
+        """)
+        XCTAssertEqual(MongoExtendedJSON.display(canonical: canonical, pretty: false), #"{"a": 1, "b": [{"c": true}, 2], "d": {}}"#)
+        XCTAssertNil(MongoExtendedJSON.display(canonical: "{broken", pretty: true))
+        XCTAssertEqual(MongoDatabaseClient.cell(nil), .json("{\"$missing\":true}"))
+    }
+
     func testSQLParameterScannerDoesNotRewriteMongoJSON() throws {
         let json = #"{"find":"orders","filter":{"url":"https://host/:id","nested":{"value":null}}}"#
         XCTAssertEqual(QueryParameterService.parameters(in: json, engine: .mongodb), [])

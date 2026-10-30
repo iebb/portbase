@@ -1724,3 +1724,4 @@
 "Go to Row" = "행으로 이동";
 "Row" = "행";
 "Referenced by %@" = "%@에서 참조";
+"Binary(%@, subtype %@)" = "바이너리(%@, 하위 유형 %@)";

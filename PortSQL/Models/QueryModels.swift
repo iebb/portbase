@@ -38,19 +38,28 @@ enum QueryCell: Codable, Hashable, Sendable {
     case dateTime(String)
     case json(String)
     case binary(Data)
+    /// A nested or non-scalar MongoDB value: readable relaxed JSON for display, with the canonical
+    /// Extended JSON kept for copy, export and edits so exact BSON types survive.
+    case extendedJSON(canonical: String, display: String)
 
     var displayValue: String {
         switch self {
         case .null:
             return ""
         case .text(let value), .integer(let value), .decimal(let value),
-             .dateTime(let value), .json(let value):
+             .dateTime(let value), .json(let value), .extendedJSON(_, let value):
             return value
         case .boolean(let value):
             return value ? "true" : "false"
         case .binary(let value):
             return "0x" + value.map { String(format: "%02x", $0) }.joined()
         }
+    }
+
+    /// The exact text for copy and export: canonical Extended JSON for MongoDB values, otherwise the display text.
+    var exactValue: String {
+        if case .extendedJSON(let canonical, _) = self { return canonical }
+        return displayValue
     }
 
     var isNull: Bool {

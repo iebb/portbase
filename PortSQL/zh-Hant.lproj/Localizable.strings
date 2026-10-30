@@ -1724,3 +1724,4 @@
 "Go to Row" = "跳轉至列";
 "Row" = "列";
 "Referenced by %@" = "被 %@ 參照";
+"Binary(%@, subtype %@)" = "二進位(%@，子類型 %@)";

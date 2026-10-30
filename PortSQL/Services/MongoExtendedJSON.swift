@@ -56,6 +56,65 @@ enum MongoExtendedJSON {
         return encodeValue(value, encoder: encoder)
     }
 
+    /// Readable relaxed Extended JSON for grids, summaries and the document tree. Numbers drop their BSON
+    /// width and binary values show only their size, so copy, export and edits use the canonical form.
+    static func display(_ value: BSON, pretty: Bool = false) -> String {
+        displayValue(value, indent: pretty ? "" : nil)
+    }
+
+    /// The readable form of one canonical Extended JSON value, or nil when it doesn't parse.
+    static func display(canonical: String, pretty: Bool) -> String? {
+        guard let value = try? decode("{\"v\":" + canonical + "}", maximumBytes: 128 * 1_024 * 1_024)["v"] else { return nil }
+        return display(value, pretty: pretty)
+    }
+
+    static func binarySummary(_ binary: BSONBinary) -> String {
+        if binary.subtype == .uuid, let uuid = try? binary.toUUID() { return "UUID(\"" + uuid.uuidString.lowercased() + "\")" }
+        let size = ByteCountFormatter.string(fromByteCount: Int64(binary.data.readableBytes), countStyle: .file)
+        return L10n.format("Binary(%@, subtype %@)", size, String(format: "%02x", binary.subtype.rawValue))
+    }
+
+    private static func displayValue(_ value: BSON, indent: String?) -> String {
+        let childIndent = indent.map { $0 + "  " }
+        switch value {
+        case .document(let document):
+            return container("{", "}", document.map { ResultCopyFormatter.jsonString($0.key) + ": " + displayValue($0.value, indent: childIndent) },
+                             indent: indent)
+        case .array(let values):
+            return container("[", "]", values.map { displayValue($0, indent: childIndent) }, indent: indent)
+        case .string(let text): return ResultCopyFormatter.jsonString(text)
+        case .int32(let number): return String(number)
+        case .int64(let number): return String(number)
+        case .double(let number):
+            if number.isNaN { return "NaN" }
+            return number.isInfinite ? (number < 0 ? "-Infinity" : "Infinity") : String(number)
+        case .decimal128(let number): return number.description
+        case .bool(let flag): return flag ? "true" : "false"
+        case .null: return "null"
+        case .objectID(let id): return "{\"$oid\": \"" + id.hex + "\"}"
+        // Relaxed Extended JSON writes dates in years 1970 through 9999 as ISO-8601 text.
+        case .datetime(let date) where (0...253_402_300_799).contains(date.timeIntervalSince1970):
+            return "{\"$date\": \"" + isoDate(date) + "\"}"
+        case .binary(let binary): return binarySummary(binary)
+        default: return encode(value, canonical: false)
+        }
+    }
+
+    /// ISO-8601 text with the BSON date's exact milliseconds; formatting the Double directly can drop one.
+    static func isoDate(_ date: Date) -> String {
+        let milliseconds = (date.timeIntervalSince1970 * 1_000).rounded()
+        let seconds = (milliseconds / 1_000).rounded(.down)
+        let text = Date(timeIntervalSince1970: seconds).formatted(Date.ISO8601FormatStyle())
+        return text.dropLast() + "." + String(format: "%03d", Int(milliseconds - seconds * 1_000)) + "Z"
+    }
+
+    private static func container(_ open: String, _ close: String, _ members: [String], indent: String?) -> String {
+        guard !members.isEmpty else { return open + close }
+        guard let indent else { return open + members.joined(separator: ", ") + close }
+        let line = "\n" + indent + "  "
+        return open + line + members.joined(separator: "," + line) + "\n" + indent + close
+    }
+
     private static func encodeValue(_ value: BSON, encoder: ExtendedJSONEncoder) -> String {
         switch value {
         case .document(let document):

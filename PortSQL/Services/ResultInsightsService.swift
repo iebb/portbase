@@ -162,7 +162,7 @@ enum ResultInsightsService {
         case .dateTime: .temporal
         case .boolean: .boolean
         case .text: .text
-        case .json: .json
+        case .json, .extendedJSON: .json
         case .binary: .binary
         }
     }

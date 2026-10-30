@@ -55,7 +55,7 @@ enum ResultCopyFormatter {
         var lines = [payload.columns.map { field($0.name) }.joined(separator: ",")]
         for row in payload.rows {
             // NULL is an empty unquoted field; empty text is a quoted empty field.
-            lines.append(row.cells.map { $0.isNull ? "" : field($0.displayValue) }.joined(separator: ","))
+            lines.append(row.cells.map { $0.isNull ? "" : field($0.exactValue) }.joined(separator: ","))
         }
         return lines.joined(separator: "\n")
     }
@@ -80,6 +80,8 @@ enum ResultCopyFormatter {
         case .boolean(let value): return value ? "true" : "false"
         case .integer(let value), .decimal(let value):
             return isJSONNumber(value) ? value : jsonString(value)
+        case .extendedJSON(let canonical, _):
+            return canonical
         case .json(let value):
             let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
             if let data = trimmed.data(using: .utf8), (try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed)) != nil {
@@ -168,7 +170,7 @@ enum ResultCopyFormatter {
             case .clickhouse: return "unhex('\(hex)')"
             default: return "X'\(hex)'"
             }
-        case .text(let value), .dateTime(let value), .json(let value):
+        case .text(let value), .dateTime(let value), .json(let value), .extendedJSON(let value, _):
             return quoted(value, engine: engine)
         }
     }

@@ -175,7 +175,7 @@ enum ResultGridClipboard {
         func quote(_ value: String) -> String { "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
         var lines = headers ? [payload.columns.map { quote($0.name) }.joined(separator: "\t")] : []
         lines += payload.rows.map { row in
-            row.cells.map { $0.isNull ? "NULL" : quote($0.displayValue) }.joined(separator: "\t")
+            row.cells.map { $0.isNull ? "NULL" : quote($0.exactValue) }.joined(separator: "\t")
         }
         return lines.joined(separator: "\n")
     }
@@ -193,7 +193,7 @@ enum ResultGridClipboard {
     /// tab-separated text such as a spreadsheet's.
     @MainActor static func pastedValues() -> [[String?]]? {
         if let data = PortbaseClipboard.data(typedCellsType), let payload = try? JSONDecoder().decode(Payload.self, from: data), !payload.rows.isEmpty {
-            return payload.rows.map { row in row.cells.map { $0.isNull ? nil : $0.displayValue } }
+            return payload.rows.map { row in row.cells.map { $0.isNull ? nil : $0.exactValue } }
         }
         guard let text = PortbaseClipboard.text, !text.isEmpty else { return nil }
         let rows = parse(text)
@@ -881,7 +881,7 @@ struct ResultGridView: View {
         }
         items += [
             .separator,
-            .action(L10n.text("Copy Value"), "doc.on.doc") { PortbaseClipboard.copy(value.isNull ? "NULL" : value.displayValue) },
+            .action(L10n.text("Copy Value"), "doc.on.doc") { PortbaseClipboard.copy(value.isNull ? "NULL" : value.exactValue) },
             .action(L10n.text("Copy Row"), "list.bullet.rectangle") {
                 guard !visibleColumns.isEmpty else { return }
                 ResultGridClipboard.copy(result: displayedResult, visibleColumns: visibleColumns,

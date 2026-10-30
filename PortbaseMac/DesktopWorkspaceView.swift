@@ -1797,7 +1797,7 @@ private struct RowDetailsPanel: View {
                                 Text(result.columns[index].name).font(.captionStrong).foregroundStyle(.secondary)
                                 Text(result.columns[index].type.lowercased()).font(.microText).foregroundStyle(.tertiary)
                                 Spacer(minLength: Spacing.xxs)
-                                Button { PortbaseClipboard.copy(cell.displayValue) } label: { Image(systemName: "doc.on.doc") }
+                                Button { PortbaseClipboard.copy(cell.exactValue) } label: { Image(systemName: "doc.on.doc") }
                                     .buttonStyle(.borderless)
                                     .disabled(cell.isNull)
                                     .help(L10n.text("Copy"))

@@ -70,7 +70,7 @@ struct LoadedResultSort: Equatable {
             case .boolean(let value): self = .boolean(value)
             case .integer(let text), .decimal(let text):
                 self = Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")).map { .number($0) } ?? .text(text)
-            case .text(let text), .json(let text), .dateTime(let text): self = .text(text)
+            case .text(let text), .json(let text), .dateTime(let text), .extendedJSON(_, let text): self = .text(text)
             case .binary(let data): self = .binary(data)
             }
         }
@@ -110,7 +110,7 @@ enum ResultInspectionService {
         case .decimal: L10n.text("Decimal")
         case .boolean: L10n.text("Boolean")
         case .dateTime: L10n.text("Date / Time")
-        case .json: "JSON"
+        case .json, .extendedJSON: "JSON"
         case .binary: L10n.text("Binary")
         }
     }
@@ -144,7 +144,7 @@ enum ResultInspectionService {
         let suffix: String
         switch cell {
         case .binary(let bytes): data = bytes; suffix = "bin"
-        case .json(let value): data = Data(value.utf8); suffix = "json"
+        case .json(let value), .extendedJSON(let value, _): data = Data(value.utf8); suffix = "json"
         default: data = Data((cell.isNull ? "NULL" : cell.displayValue).utf8); suffix = "txt"
         }
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("Portbase-cell-" + UUID().uuidString + "." + suffix)

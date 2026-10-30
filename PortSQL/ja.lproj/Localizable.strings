@@ -1724,3 +1724,4 @@
 "Go to Row" = "行へ移動";
 "Row" = "行";
 "Referenced by %@" = "%@から参照";
+"Binary(%@, subtype %@)" = "バイナリ(%@、サブタイプ %@)";

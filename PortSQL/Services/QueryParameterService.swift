@@ -286,7 +286,7 @@ enum QueryResultExportService {
         let rows = result.rows.map { row in
             result.columns.indices.map { index in
                 let cell = row.cells[safe: index] ?? .null
-                return cell.isNull ? "NULL" : csvCell(cell.displayValue)
+                return cell.isNull ? "NULL" : csvCell(cell.exactValue)
             }.joined(separator: ",")
         }
         return ([header] + rows).joined(separator: "\n")
@@ -320,7 +320,7 @@ enum QueryResultExportService {
         case .integer(let value): Int64(value) ?? value
         case .decimal(let value): Decimal(string: value).map(NSDecimalNumber.init(decimal:)) ?? value
         case .binary(let value): value.base64EncodedString()
-        case .text(let value), .dateTime(let value), .json(let value): value
+        case .text(let value), .dateTime(let value), .json(let value), .extendedJSON(let value, _): value
         }
     }
 }

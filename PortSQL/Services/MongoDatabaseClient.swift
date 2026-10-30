@@ -525,13 +525,10 @@ enum MongoDatabaseClient {
         case .double(let number): return .decimal(String(number))
         case .decimal128(let number): return .decimal(number.description)
         case .bool(let flag): return .boolean(flag)
-        case .datetime(let date): return .dateTime(date.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true)))
+        case .datetime(let date): return .dateTime(MongoExtendedJSON.isoDate(date))
         default:
-            // Typed JSON keeps ObjectId, binary subtype, arrays, and nested objects intact.
-            let encoder = ExtendedJSONEncoder()
-            encoder.format = .canonical
-            guard let data = try? encoder.encode(value), let text = String(data: data, encoding: .utf8) else { return .null }
-            return .json(text)
+            // Canonical Extended JSON keeps ObjectId, binary subtype, and nested number widths for copy and export.
+            return .extendedJSON(canonical: MongoExtendedJSON.encode(value, canonical: true), display: MongoExtendedJSON.display(value))
         }
     }
 }

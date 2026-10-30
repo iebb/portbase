@@ -1724,3 +1724,4 @@
 "Go to Row" = "跳转到行";
 "Row" = "行";
 "Referenced by %@" = "被 %@ 引用";
+"Binary(%@, subtype %@)" = "二进制(%@，子类型 %@)";

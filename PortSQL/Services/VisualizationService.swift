@@ -46,7 +46,7 @@ enum VisualizationService {
             result.rows.contains { row in
                 guard let cell = row.cells[safe: index] else { return false }
                 switch cell {
-                case .null, .json, .binary: return false
+                case .null, .json, .extendedJSON, .binary: return false
                 default: return true
                 }
             } ? field : nil
