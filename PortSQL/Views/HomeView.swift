@@ -14,6 +14,17 @@ struct HomeView: View {
 
     private var activity: WorkspaceActivity { WorkspaceActivityService.activity(history: library.history, now: now) }
 
+    @ViewBuilder private var openButtons: some View {
+        Button { onNavigate(.console) } label: {
+            Label("Open Console", systemImage: "terminal").lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
+        }
+        .buttonStyle(.portbasePrimary)
+        Button { onNavigate(.explorer) } label: {
+            Label("Browse Data", systemImage: "tablecells").lineLimit(1).minimumScaleFactor(0.8).frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
+        }
+        .buttonStyle(.portbaseSecondary)
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let wide = proxy.size.width >= 760
@@ -84,15 +95,10 @@ struct HomeView: View {
                                   onReviewCertificate: { workspace.reviewServerCertificate() })
                 }
 
-                HStack(spacing: Spacing.s) {
-                    Button { onNavigate(.console) } label: {
-                        Label("Open Console", systemImage: "terminal").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
-                    }
-                    .buttonStyle(.portbasePrimary)
-                    Button { onNavigate(.explorer) } label: {
-                        Label("Browse Data", systemImage: "tablecells").frame(maxWidth: .infinity, minHeight: Sizes.buttonContent)
-                    }
-                    .buttonStyle(.portbaseSecondary)
+                // Side by side while both labels fit on one line, as on a folded phone's narrow screen they may not.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: Spacing.s) { openButtons }
+                    VStack(spacing: Spacing.s) { openButtons }
                 }
             }
             .padding(Spacing.l)

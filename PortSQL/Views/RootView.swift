@@ -704,7 +704,8 @@ struct ResultFactsLine: View {
         return (result.isTruncated == true ? line + Text(verbatim: " · ") .foregroundColor(.secondary) + Text(L10n.text("Result truncated")).foregroundColor(.orange) : line)
             .font(.captionText.monospacedDigit())
             .lineLimit(1)
-            .truncationMode(.middle)
+            // The last facts give way first, rather than a word losing its middle.
+            .truncationMode(.tail)
     }
 }
 

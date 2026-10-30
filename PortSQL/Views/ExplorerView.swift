@@ -61,11 +61,24 @@ struct ExplorerView: View {
                 VStack(alignment: .leading, spacing: isFlat ? 0 : Spacing.l) {
                     // Browsing needs a connection; without one, only the empty state below is shown.
                     if workspace.selectedBookmark != nil, isWide, let selectedTable = workspace.selectedExplorerTable {
-                        HStack(alignment: .top, spacing: Spacing.s) {
-                            tableMenu.frame(maxWidth: 260)
-                            whereRow(selectedTable)
-                            orderRow(selectedTable)
-                            runButton
+                        // One row when the clauses keep a usable width, as beside the sidebar on an unfolded phone they may not.
+                        ViewThatFits(in: .horizontal) {
+                            HStack(alignment: .top, spacing: Spacing.s) {
+                                tableMenu.frame(maxWidth: 260)
+                                whereRow(selectedTable).frame(minWidth: 220)
+                                orderRow(selectedTable).frame(minWidth: 180)
+                                runButton
+                            }
+                            VStack(alignment: .leading, spacing: Spacing.s) {
+                                HStack(alignment: .center, spacing: Spacing.s) {
+                                    tableMenu
+                                    runButton
+                                }
+                                HStack(alignment: .top, spacing: Spacing.s) {
+                                    whereRow(selectedTable)
+                                    orderRow(selectedTable)
+                                }
+                            }
                         }
                     } else if workspace.selectedBookmark != nil {
                         PanelCard {
