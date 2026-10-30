@@ -21,4 +21,4 @@ The native controls and errors are localized in all ten app languages. The exist
 
 Verification: 125 simulator tests passed with 11 external-service tests skipped; 16 final editor and localization checks passed; all 46 vendored MySQL tests passed. Temporary native UI checks passed on iPhone, iPad, and the Duo simulator, including a live MongoDB index fixture. All 30 localization catalogs passed validation. No physical-device check was performed.
 
-The [screenshot gallery](../ReviewScreenshots/README.md) includes native iPhone and iPad captures.
+The [screenshot gallery](screenshots/README.md) includes native iPhone and iPad captures.

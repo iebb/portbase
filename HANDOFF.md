@@ -33,8 +33,6 @@ Before making release decisions, re-check App Store Connect because review statu
 - Improved SQL assist suggestions around table/column context.
 - Added visualization/export/localization/keychain test coverage.
 - Added 10 in-app localization bundles.
-- Added App Store metadata under `fastlane/metadata` for 10 locales.
-- Updated App Store SEO metadata for SQL, MySQL, PostgreSQL, SSH tunnel, query editor, row editor, tables, charts, and DB admin terms.
 - Bumped version/build to `1.2.2` / `3`.
 - Fixed transferred-app iCloud KVS entitlement:
   - `com.apple.developer.ubiquity-kvstore-identifier`
@@ -51,7 +49,6 @@ Before making release decisions, re-check App Store Connect because review statu
 - `PortSQL/Services/KeychainService.swift` - keychain storage plus DEBUG fallback for tests.
 - `PortSQL/Services/Localization.swift` - localization helper.
 - `PortSQL/*.lproj/Localizable.strings` - app localizations.
-- `fastlane/metadata/*` - App Store text localizations.
 - `PortSQLTests/*` - focused tests for SSH, SQL safety, assist, export, visualization, localization, keychain, and catalog coverage.
 
 ## Local Build Notes

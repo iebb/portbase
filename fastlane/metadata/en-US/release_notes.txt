@@ -1,1 +1,0 @@
-Portbase 2.0 introduces a redesigned workspace for iPhone, iPad, and Mac. Find connections and saved queries from Home, work across query tabs, browse and edit results, and build charts from your data. This release also improves keyboard navigation, database connection feedback, localization, and reliability.

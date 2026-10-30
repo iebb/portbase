@@ -1,1 +1,0 @@
-SQL über direkte oder SSH-getunnelte MySQL/PostgreSQL-Verbindungen ausführen, Live-Tabellen durchsuchen, Zeilen bearbeiten und Diagramme erstellen.

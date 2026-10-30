@@ -1,1 +1,0 @@
-Portbase 2.0 presenta un espacio de trabajo rediseñado para iPhone, iPad y Mac. Encuentra conexiones y consultas guardadas en Inicio, trabaja con pestañas de consultas, explora y edita resultados y crea gráficos con tus datos. Esta versión también mejora la navegación con teclado, la información de las conexiones, las traducciones y la fiabilidad.

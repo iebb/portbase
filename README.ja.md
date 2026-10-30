@@ -9,7 +9,7 @@ Portbase は、iPhone・iPad・Mac 向けのネイティブデータベースク
 
 [App Store からダウンロード](https://apps.apple.com/app/id6762447018) ·
 [ビルドワークフロー](https://github.com/iebb/portbase/actions/workflows/app-store-connect.yml) ·
-[スクリーンショット](ReviewScreenshots/2.0.0/README.md) ·
+[スクリーンショット](Docs/screenshots/README.md) ·
 [ソースコード](https://github.com/iebb/portbase)
 
 ## 対応データベース
@@ -37,7 +37,7 @@ ClickHouse と Elasticsearch ではリレーショナル型の行エディタは
 - 保存済みグラフの手動実行、読み込み済み結果の CSV・JSON エクスポート。対応エンジンではクエリ全体のエクスポートとデータのインポートも利用できます。
 - 接続への環境ラベル付けと、本番データ閲覧用の読み取り専用プロファイル。
 
-![Portbase のネイティブ Mac ワークスペース](ReviewScreenshots/2.0.0/macOS/02-sql-console.png)
+![Portbase のネイティブ Mac ワークスペース](Docs/screenshots/macOS/02-sql-console.png)
 
 UI は英語、ドイツ語、スペイン語、フランス語、日本語、韓国語、ブラジルポルトガル語、ロシア語、簡体字中国語、繁体字中国語に対応しています。
 
@@ -116,7 +116,6 @@ GitHub Actions は `master` に push されたコミット、または手動実�
 | `Packages/mysql-nio/` | リポジトリ内で管理する MySQL ドライバと回帰テスト |
 | `scripts/`・`tests/ci/` | リリースツールと自動化の回帰テスト |
 | `Docs/` | 製品仕様、ワークスペースの詳細、リリース文書 |
-| `AppStore/`・`fastlane/`・`ReviewScreenshots/` | ストア情報、審査メモ、スクリーンショット |
 
 過去のリリース文書は各申請時点の記録です。現在の審査・配布状況は App Store Connect で確認してください。
 

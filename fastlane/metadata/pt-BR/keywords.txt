@@ -1,1 +1,0 @@
-SQL,MySQL,Postgres,banco dados,túnel SSH,consultas,linhas,tabelas,gráficos,admin DB

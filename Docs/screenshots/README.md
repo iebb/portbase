@@ -14,6 +14,5 @@ generators are in [demos](../../demos/).
 | Charts | [View](iPhone/04-charts.png) | [View](iPad/04-charts.png) | [View](macOS/05-charts.png) |
 | Chart editor | [View](iPhone/05-chart-editor.png) | [View](iPad/05-chart-editor.png) | — |
 
-The [manifest](manifest.json) records dimensions and file checksums. iPhone and
-iPad captures use native simulator pixels. Mac images capture the native window
+iPhone and iPad captures use native simulator pixels. Mac images capture the native window
 content, excluding its 40-point window title/toolbar.

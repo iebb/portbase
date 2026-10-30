@@ -1,1 +1,0 @@
-通过直接连接或 SSH 隧道连接 MySQL/PostgreSQL，在 iPhone 上运行 SQL、浏览表格、编辑数据行并生成图表。

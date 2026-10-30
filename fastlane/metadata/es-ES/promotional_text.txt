@@ -1,1 +1,0 @@
-Ejecuta SQL con conexiones directas o túneles SSH a MySQL/PostgreSQL, explora tablas en vivo, edita filas y crea gráficos en iPhone.

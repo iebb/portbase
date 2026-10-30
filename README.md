@@ -11,7 +11,7 @@ retain that name.
 
 [Download on the App Store](https://apps.apple.com/app/id6762447018) ·
 [Build workflow](https://github.com/iebb/portbase/actions/workflows/app-store-connect.yml) ·
-[Screenshot gallery](ReviewScreenshots/2.0.0/README.md) ·
+[Screenshot gallery](Docs/screenshots/README.md) ·
 [Source code](https://github.com/iebb/portbase)
 
 ## Supported databases
@@ -45,7 +45,7 @@ relational row editor. See [database support and limits](Docs/portbase.md).
 - Label connections by environment and use read-only profiles when browsing
   production data.
 
-![Portbase native Mac workspace](ReviewScreenshots/2.0.0/macOS/02-sql-console.png)
+![Portbase native Mac workspace](Docs/screenshots/macOS/02-sql-console.png)
 
 The interface supports English, German, Spanish, French, Japanese, Korean,
 Brazilian Portuguese, Russian, Simplified Chinese, and Traditional Chinese.
@@ -147,7 +147,6 @@ products, credentials, local previews, and temporary files are excluded from Git
 | `Packages/mysql-nio/` | Vendored MySQL driver and regression tests |
 | `scripts/`, `tests/ci/` | Release helpers and automation regression tests |
 | `Docs/` | Product notes, workspace details, and release documentation |
-| `AppStore/`, `fastlane/`, `ReviewScreenshots/` | Store metadata, review notes, and maintained screenshots |
 
 Historical release documents record the state at the time of each submission;
 check App Store Connect for the current review and distribution state.

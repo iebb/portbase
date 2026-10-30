@@ -1,7 +1,6 @@
 .DS_Store
 .tmp/
 .tmp-*
-AppStoreScreenshots/**/_dimension-check*.png
 
 .artifacts/
 .deriveddata/
@@ -18,3 +17,10 @@ PortSQL.xcodeproj/xcuserdata/
 # Local archives, exports, and IPA checks (never committed)
 build/
 demos/screenshots/
+
+# App Store submission material stays local: listing text, review notes, store screenshots and upload tools
+AppStore/
+AppStoreScreenshots/
+ReviewScreenshots/
+fastlane/
+scripts/upload_app_store_screenshots.rb

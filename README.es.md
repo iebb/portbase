@@ -9,7 +9,7 @@ El proyecto se llamaba PortSQL; el proyecto de Xcode y el destino de iOS conserv
 
 [Descargar en el App Store](https://apps.apple.com/app/id6762447018) ·
 [Flujo de compilación](https://github.com/iebb/portbase/actions/workflows/app-store-connect.yml) ·
-[Capturas de pantalla](ReviewScreenshots/2.0.0/README.md) ·
+[Capturas de pantalla](Docs/screenshots/README.md) ·
 [Código fuente](https://github.com/iebb/portbase)
 
 ## Bases de datos compatibles
@@ -37,7 +37,7 @@ ClickHouse y Elasticsearch no ofrecen el editor de filas relacional. Consulta [c
 - Ejecución manual de gráficos guardados y exportación de resultados cargados a CSV o JSON. Los motores indicados también admiten importación y exportación de consultas completas.
 - Etiquetas de entorno para las conexiones y perfiles de solo lectura para consultar datos de producción.
 
-![Espacio de trabajo nativo de Portbase para Mac](ReviewScreenshots/2.0.0/macOS/02-sql-console.png)
+![Espacio de trabajo nativo de Portbase para Mac](Docs/screenshots/macOS/02-sql-console.png)
 
 La interfaz está disponible en inglés, alemán, español, francés, japonés, coreano, portugués de Brasil, ruso, chino simplificado y chino tradicional.
 
@@ -115,7 +115,6 @@ Consulta la [configuración de publicación y los secretos necesarios](Docs/app-
 | `Packages/mysql-nio/` | Controlador MySQL mantenido en el repositorio y pruebas de regresión |
 | `scripts/`, `tests/ci/` | Herramientas de publicación y pruebas de automatización |
 | `Docs/` | Notas del producto, detalles del espacio de trabajo y documentación de publicación |
-| `AppStore/`, `fastlane/`, `ReviewScreenshots/` | Metadatos de la tienda, notas para la revisión y capturas |
 
 Los documentos de publicaciones anteriores reflejan el estado en el momento de cada envío. Consulta App Store Connect para conocer el estado actual de revisión y distribución.
 

@@ -9,7 +9,7 @@ Portbase 是适用于 iPhone、iPad 和 Mac 的原生数据库客户端，可在
 
 [从 App Store 下载](https://apps.apple.com/app/id6762447018) ·
 [构建工作流](https://github.com/iebb/portbase/actions/workflows/app-store-connect.yml) ·
-[截图集](ReviewScreenshots/2.0.0/README.md) ·
+[截图集](Docs/screenshots/README.md) ·
 [源代码](https://github.com/iebb/portbase)
 
 ## 支持的数据库
@@ -37,7 +37,7 @@ ClickHouse 和 Elasticsearch 不提供关系型行编辑器。详见[数据库�
 - 手动运行已保存的图表，将已加载结果导出为 CSV 或 JSON；受支持的引擎还可导出完整查询结果和导入数据。
 - 为连接标记环境，并在浏览生产数据时使用只读配置。
 
-![Portbase 原生 Mac 工作区](ReviewScreenshots/2.0.0/macOS/02-sql-console.png)
+![Portbase 原生 Mac 工作区](Docs/screenshots/macOS/02-sql-console.png)
 
 界面提供英语、德语、西班牙语、法语、日语、韩语、巴西葡萄牙语、俄语、简体中文和繁体中文。
 
@@ -115,7 +115,6 @@ GitHub Actions 为推送到 `master` 的确切提交或手动触发的 `master` 
 | `Packages/mysql-nio/` | 仓库内维护的 MySQL 驱动和回归测试 |
 | `scripts/`、`tests/ci/` | 发布工具和自动化回归测试 |
 | `Docs/` | 产品说明、工作区细节和发布文档 |
-| `AppStore/`、`fastlane/`、`ReviewScreenshots/` | 商店元数据、审核说明和截图 |
 
 历史发布文档反映当次提交时的状态；当前审核和分发状态请以 App Store Connect 为准。
 

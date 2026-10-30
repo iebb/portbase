@@ -1,1 +1,0 @@
-Exécutez du SQL via connexions directes ou tunnels SSH MySQL/PostgreSQL, parcourez les tables, modifiez les lignes et créez des graphiques.

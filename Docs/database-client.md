@@ -2,7 +2,7 @@
 
 ## Version 1.3.0
 
-The ten improvements below are implemented and validated. Version 1.3.0, build 1 was submitted to App Review on 2026-09-22 and independently verified as **Waiting for Review**.
+The ten improvements below are implemented and validated.
 
 PortSQL targets iOS 18 and later on iPhone and iPad. Its interaction model follows [DataGrip’s database explorer](https://www.jetbrains.com/help/datagrip/database-explorer.html), [query consoles](https://www.jetbrains.com/help/datagrip/query-consoles.html), and [data editor](https://www.jetbrains.com/help/datagrip/data-editor-and-viewer.html): select a connection and database, browse objects, run queries, and inspect or edit data. Controls use compact labels, without marketing banners or decorative descriptions.
 
@@ -55,7 +55,7 @@ Earlier development used `/Users/ieb/Applications/Xcode-27.1-beta.app` for Duo s
 
 Free supports three saved connections. Pro unlocks unlimited saved connections and premium line/area chart styles. Saved-query retention, recovery, and execution safety are not tied to the old library item caps.
 
-## Verification and submission status
+## Verification
 
 ### Historical checks before the ten improvements
 
@@ -65,7 +65,7 @@ Earlier local integration checks used disposable MongoDB 8 and MySQL 8 servers. 
 
 Duo simulator build, launch, and outer-display inspection were completed for the earlier state. Compact and wide layouts were also rendered at 466×678 and 950×700 points. Manual fold/unfold, inner-display keyboard/sheet behavior, and hardware checks remain unverified. The user requested simulator-only checks.
 
-### Version 1.3.0 checks and release
+### Version 1.3.0 checks
 
 On 2026-09-22, the full iPhone Duo simulator suite ran with all local database fixtures configured. After correcting the failures and rerunning the affected checks, all 120 maintained app tests passed. Two temporary simulator checks also passed: phone/wide editor and chart snapshots, and relational import/export checks. The temporary harness was removed after inspection. All 46 vendored MySQL tests passed. All 30 localization catalogs passed plist lint, and the localization semantic tests passed.
 
@@ -75,4 +75,4 @@ The app launched on the iPhone Duo simulator. Editor, MongoDB builder, table and
 
 The shared scheme supports disposable local MongoDB fixtures through `PORTSQL_TEST_MONGODB_PORT`, `PORTSQL_TEST_MONGODB_TLS_PORT`, `PORTSQL_TEST_MONGODB_CA_B64`, and `PORTSQL_TEST_MONGODB_REPLICA_PORT`. Database fixture tests skip when unconfigured. The replica fixture is needed to verify transaction commit, conflict rejection, and document deletion. TLS uses a separate CA and a localhost server-auth leaf certificate. Never use production credentials for these fixtures.
 
-`git diff --check` and a redacted source secret scan passed. Release signing uses the existing Kitta identity and preserves the transferred iCloud KVS entitlement. The final archive was built with release Xcode 27.0 / iOS 27 SDK, signed with the existing Kitta team, and uploaded successfully. Apple processed build 1 as VALID and APP_STORE_ELIGIBLE with no upload errors or warnings. The exact 1.3.0 build was attached, all ten localized descriptions/release notes were verified against the repository metadata, and the modern review submission reached WAITING_FOR_REVIEW. The version is configured to release after approval. Source changes remain in the workspace; no Git commit or push was performed, and pre-existing metadata, entitlement, Fastlane and handoff work was preserved.
+`git diff --check` and a redacted source secret scan passed. Release signing uses the existing Kitta identity and preserves the transferred iCloud KVS entitlement. The final archive was built with release Xcode 27.0 / iOS 27 SDK and signed with the existing Kitta team.

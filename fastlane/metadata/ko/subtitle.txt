@@ -1,1 +1,0 @@
-MySQL PostgreSQL 클라이언트
