@@ -116,7 +116,7 @@ GitHub Actions は `master` に push されたコミット、または手動実�
 | `Packages/mysql-nio/` | リポジトリ内で管理する MySQL ドライバと回帰テスト |
 | `scripts/`・`tests/ci/` | リリースツールと自動化の回帰テスト |
 | `Docs/` | 製品仕様、ワークスペースの詳細、リリース文書 |
-| `AppStore/`・`fastlane/`・`ReviewScreenshots/` | ストア情報、過去のリリース記録、スクリーンショット |
+| `AppStore/`・`fastlane/`・`ReviewScreenshots/` | ストア情報、審査メモ、スクリーンショット |
 
 過去のリリース文書は各申請時点の記録です。現在の審査・配布状況は App Store Connect で確認してください。
 

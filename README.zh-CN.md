@@ -115,7 +115,7 @@ GitHub Actions 为推送到 `master` 的确切提交或手动触发的 `master` 
 | `Packages/mysql-nio/` | 仓库内维护的 MySQL 驱动和回归测试 |
 | `scripts/`、`tests/ci/` | 发布工具和自动化回归测试 |
 | `Docs/` | 产品说明、工作区细节和发布文档 |
-| `AppStore/`、`fastlane/`、`ReviewScreenshots/` | 商店元数据、历史发布记录和截图 |
+| `AppStore/`、`fastlane/`、`ReviewScreenshots/` | 商店元数据、审核说明和截图 |
 
 历史发布文档反映当次提交时的状态；当前审核和分发状态请以 App Store Connect 为准。
 

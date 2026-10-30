@@ -19,7 +19,7 @@ UNION ALL SELECT 'Canada', 760.00;
    Results to configure and save a chart with `region` on X and `revenue` on Y.
 4. To review table browsing, primary keys, row editing, indexes, and saved charts
    with a larger fictional dataset, import this optional local SQLite file:
-   https://raw.githubusercontent.com/iebb/portbase/master/AppStore/2.0.0/Northstar_Demo.sqlite
+   https://raw.githubusercontent.com/iebb/portbase/master/demos/Northstar.sqlite
 
 The `Northstar Demo` store and all customers, products, orders, and totals shown
 in the screenshots are fictional. The sample is a local SQLite file; it has no

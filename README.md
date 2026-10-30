@@ -147,7 +147,7 @@ products, credentials, local previews, and temporary files are excluded from Git
 | `Packages/mysql-nio/` | Vendored MySQL driver and regression tests |
 | `scripts/`, `tests/ci/` | Release helpers and automation regression tests |
 | `Docs/` | Product notes, workspace details, and release documentation |
-| `AppStore/`, `fastlane/`, `ReviewScreenshots/` | Store metadata, historical release records, and maintained screenshots |
+| `AppStore/`, `fastlane/`, `ReviewScreenshots/` | Store metadata, review notes, and maintained screenshots |
 
 Historical release documents record the state at the time of each submission;
 check App Store Connect for the current review and distribution state.

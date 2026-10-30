@@ -2,8 +2,8 @@
 
 Captured from the localized workspace at commit `a48680b` on October 18, 2026 JST.
 All images use the fictional Northstar Demo SQLite database. No live server,
-credentials, or real customer data is present. The sample and SQL source are in
-[the release folder](../../AppStore/2.0.0/).
+credentials, or real customer data is present. The current fictional demo and its
+generators are in [demos](../../demos/).
 
 | Screen | iPhone | iPad | Mac |
 | --- | --- | --- | --- |

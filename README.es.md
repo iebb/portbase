@@ -115,7 +115,7 @@ Consulta la [configuración de publicación y los secretos necesarios](Docs/app-
 | `Packages/mysql-nio/` | Controlador MySQL mantenido en el repositorio y pruebas de regresión |
 | `scripts/`, `tests/ci/` | Herramientas de publicación y pruebas de automatización |
 | `Docs/` | Notas del producto, detalles del espacio de trabajo y documentación de publicación |
-| `AppStore/`, `fastlane/`, `ReviewScreenshots/` | Metadatos de la tienda, registros históricos y capturas |
+| `AppStore/`, `fastlane/`, `ReviewScreenshots/` | Metadatos de la tienda, notas para la revisión y capturas |
 
 Los documentos de publicaciones anteriores reflejan el estado en el momento de cada envío. Consulta App Store Connect para conocer el estado actual de revisión y distribución.
 

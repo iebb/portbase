@@ -32,9 +32,9 @@ Six simulator renders were reviewed for Redis values and commands, Elasticsearch
 
 All 30 localization catalogs passed validation, localization semantic tests passed, and the redacted source scan found no credentials beyond a synthetic URI parser fixture. The signed archive uses the release iOS 27.0 SDK, supports iOS 18 and later, and preserves the transferred app's iCloud KVS entitlement. Duo simulator checks used the 27.1 beta runtime; the shipping binary uses adaptive phone and wide layouts without depending on beta-only device APIs.
 
-Portbase 1.4.0 (1) was submitted on September 22, 2026 and independently verified as Waiting for Review. The Portbase name and descriptions match in all ten store locales. This submission replaces the queued 1.3.0 review and retains automatic release after approval. Exact build and review identifiers are recorded in [the release record](../AppStore/1.4.0/release.json).
+Portbase 1.4.0 (1) was submitted on September 22, 2026 and independently verified as Waiting for Review. The Portbase name and descriptions match in all ten store locales. This submission replaces the queued 1.3.0 review and retains automatic release after approval.
 
-The same build was resubmitted after replacing the store screenshots with 10 iPhone and 10 iPad captures. All 20 images reached COMPLETE with matching source checksums, dimensions and order. Other locales inherit the English screenshots. See the [gallery](../ReviewScreenshots/README.md) and [upload manifest](../AppStore/1.4.0/screenshots.json).
+The same build was resubmitted after replacing the store screenshots with 10 iPhone and 10 iPad captures. All 20 images reached COMPLETE with matching source checksums, dimensions and order. Other locales inherit the English screenshots. See the [gallery](../ReviewScreenshots/README.md).
 
 ## Build 2 purchase removal
 
@@ -42,7 +42,7 @@ App Review later rejected build 1. App Store Connect had no in-app purchases or 
 
 The 1.4.0 descriptions and release notes now state that connection saves and chart styles are unrestricted. All ten storefront keyword lists include PortSQL and SQL alongside supported database engines; each stays within Apple's 100-byte limit. Existing iPhone and iPad screenshots do not show the removed purchase screen and remain in place.
 
-The build 2 iOS Simulator suite passed 127 tests with 11 integration tests skipped because their external services were not running. The vendored MySQL package passed all 46 tests against a local MySQL fixture. Both phone and iPad Settings views were inspected in simulators, 30 localization catalogs passed `plutil`, and redacted source scans found no leaks. The signed Release archive retains the iCloud KVS entitlement. Exact source hashes are in [the build 2 source manifest](../AppStore/1.4.0/build-2-source.json). Build 2 was resubmitted on September 23 and verified as Waiting for Review; its IDs and validation are in [the resubmission record](../AppStore/1.4.0/resubmission.json).
+The build 2 iOS Simulator suite passed 127 tests with 11 integration tests skipped because their external services were not running. The vendored MySQL package passed all 46 tests against a local MySQL fixture. Both phone and iPad Settings views were inspected in simulators, 30 localization catalogs passed `plutil`, and redacted source scans found no leaks. The signed Release archive retains the iCloud KVS entitlement. Build 2 was resubmitted on September 23 and verified as Waiting for Review.
 
 ## 1.5.0 workspace tools
 
@@ -50,4 +50,4 @@ The ten additions are server search and filters, profile duplication, editor lin
 
 The full simulator suite passed 125 tests with 11 external-service tests skipped. The final 16 focused checks and all 46 vendored MySQL tests passed. Native UI checks passed on iPhone, iPad, and iPhone Duo simulators, including a live MongoDB index fixture. All 30 localization catalogs passed validation. Nine focused tests were added for the new behavior; the screenshot harness remains outside the repository. No physical-device check was performed.
 
-Portbase 1.5.0 (2) was submitted on October 3, 2026 JST and independently verified as Waiting for Review, with automatic release after approval. The previously approved 1.4.0 release remains available. The ten localized listings retain PortSQL and SQL keywords, and twenty store screenshots were verified against their source checksums, dimensions, ordering, and delivered pixels. See the [release record](../AppStore/1.5.0/release.json), [source manifest](../AppStore/1.5.0/source.json), and [screenshot gallery](../ReviewScreenshots/README.md).
+Portbase 1.5.0 (2) was submitted on October 3, 2026 JST and independently verified as Waiting for Review, with automatic release after approval. The previously approved 1.4.0 release remains available. The ten localized listings retain PortSQL and SQL keywords, and twenty store screenshots were verified against their source checksums, dimensions, ordering, and delivered pixels. See the [screenshot gallery](../ReviewScreenshots/README.md).
