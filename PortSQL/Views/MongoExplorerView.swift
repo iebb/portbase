@@ -261,20 +261,22 @@ private struct MongoImageThumbnail: View {
     @State private var image: CGImage?
 
     var body: some View {
-        Group {
-            if let image {
-                Image(decorative: image, scale: 1)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 28, height: 28)
-                    .clipShape(RoundedRectangle(cornerRadius: Radius.xs))
-                    .overlay(RoundedRectangle(cornerRadius: Radius.xs).stroke(PortSQLPalette.stroke))
+        // A fixed frame keeps the view present while the thumbnail loads; an empty view never runs its task.
+        Color.clear
+            .frame(width: 28, height: 28)
+            .overlay {
+                if let image {
+                    Image(decorative: image, scale: 1)
+                        .resizable()
+                        .scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.xs))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.xs).stroke(PortSQLPalette.stroke))
+                }
             }
-        }
-        .task(id: data) {
-            let data = data
-            image = await Task.detached(priority: .utility) { Self.thumbnail(data) }.value
-        }
+            .task(id: data) {
+                let data = data
+                image = await Task.detached(priority: .utility) { Self.thumbnail(data) }.value
+            }
     }
 
     private nonisolated static func thumbnail(_ data: Data) -> CGImage? {
