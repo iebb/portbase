@@ -21,7 +21,10 @@ enum SSHTunnelError: LocalizedError {
     case invalidChannelType
     case invalidData
     case invalidPrivateKey
-    case encryptedPrivateKeyUnsupported
+    /// An encrypted key whose cipher isn't one of OpenSSH's AES modes.
+    case privateKeyCipherUnsupported(String)
+    case privateKeyPassphraseRequired
+    case privateKeyPassphraseIncorrect
     case privateKeyAuthenticationNotSupported
     case passwordAuthenticationNotSupported
     case authenticationTimedOut
@@ -29,34 +32,24 @@ enum SSHTunnelError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .missingSSHHost:
-            "Enter an SSH host before connecting through a tunnel."
-        case .missingSSHUsername:
-            "Enter an SSH username before connecting through a tunnel."
-        case .missingSSHCredential:
-            "Enter an SSH password or private key before connecting through a tunnel."
-        case .missingOriginatorAddress:
-            "The local tunnel connection did not provide an originator address."
-        case .missingLocalPort:
-            "The SSH tunnel did not expose a local forwarding port."
-        case .sshConnectionClosed:
-            "The SSH connection closed before authentication completed."
-        case .invalidChannelType:
-            "The SSH server did not open a direct TCP forwarding channel."
-        case .invalidData:
-            "The SSH tunnel received unexpected channel data."
-        case .invalidPrivateKey:
-            "The SSH private key could not be read. Use an unencrypted OpenSSH Ed25519 or ECDSA private key."
-        case .encryptedPrivateKeyUnsupported:
-            "Encrypted SSH private keys are not supported yet. Remove the key passphrase or use SSH password login."
-        case .privateKeyAuthenticationNotSupported:
-            "The SSH server does not support private-key authentication for this account."
-        case .passwordAuthenticationNotSupported:
-            "The SSH server does not support password authentication for this account."
-        case .authenticationTimedOut:
-            "SSH authentication timed out. Check the tunnel host, credentials, and network connection."
+        case .missingSSHHost: L10n.text("Enter an SSH host before connecting through a tunnel.")
+        case .missingSSHUsername: L10n.text("Enter an SSH username before connecting through a tunnel.")
+        case .missingSSHCredential: L10n.text("Enter an SSH password or private key before connecting through a tunnel.")
+        case .missingOriginatorAddress: L10n.text("The local tunnel connection did not provide an originator address.")
+        case .missingLocalPort: L10n.text("The SSH tunnel did not expose a local forwarding port.")
+        case .sshConnectionClosed: L10n.text("The SSH connection closed before authentication completed.")
+        case .invalidChannelType: L10n.text("The SSH server did not open a direct TCP forwarding channel.")
+        case .invalidData: L10n.text("The SSH tunnel received unexpected channel data.")
+        case .invalidPrivateKey: L10n.text("The SSH private key could not be read. Use an OpenSSH Ed25519 or ECDSA private key.")
+        case .privateKeyCipherUnsupported(let cipher):
+            L10n.format("This SSH private key is encrypted with %@, which Portbase can't decrypt. Change its passphrase with ssh-keygen -p to re-encrypt it with aes256-ctr.", cipher)
+        case .privateKeyPassphraseRequired: L10n.text("This SSH private key is encrypted. Enter its passphrase in the connection.")
+        case .privateKeyPassphraseIncorrect: L10n.text("The SSH key passphrase is incorrect.")
+        case .privateKeyAuthenticationNotSupported: L10n.text("The SSH server does not support private-key authentication for this account.")
+        case .passwordAuthenticationNotSupported: L10n.text("The SSH server does not support password authentication for this account.")
+        case .authenticationTimedOut: L10n.text("SSH authentication timed out. Check the tunnel host, credentials, and network connection.")
         case .hostKeyChanged(let host, let expected, let actual):
-            "The SSH host key for \(host) changed. Expected \(expected), received \(actual)."
+            L10n.format("The SSH host key for %1$@ changed. Expected %2$@, received %3$@.", host, expected, actual)
         }
     }
 }
@@ -169,7 +162,8 @@ actor SSHTunnelService {
         let authDelegate = try SSHTunnelAuthDelegate(
             username: key.sshUsername,
             password: profile.sshPassword,
-            privateKey: profile.sshPrivateKey
+            privateKey: profile.sshPrivateKey,
+            passphrase: profile.sshPassphrase
         )
         let serverAuthDelegate = SSHTunnelKnownHostKeyDelegate(
             host: key.knownHostStoreKey,
@@ -387,10 +381,10 @@ private final class SSHTunnelAuthDelegate: NIOSSHClientUserAuthenticationDelegat
     private let attemptedKey = NIOLockedValueBox(false)
     private let attemptedPassword = NIOLockedValueBox(false)
 
-    init(username: String, password: String, privateKey privateKeyText: String) throws {
+    init(username: String, password: String, privateKey privateKeyText: String, passphrase: String = "") throws {
         self.username = username
         self.password = password
-        self.privateKey = try SSHTunnelPrivateKeyParser.parse(privateKeyText)
+        self.privateKey = try SSHTunnelPrivateKeyParser.parse(privateKeyText, passphrase: passphrase)
     }
 
     func nextAuthenticationType(
@@ -484,19 +478,34 @@ final class SSHTunnelUserDefaultsHostKeyStore: SSHTunnelHostKeyStore, @unchecked
     }
 }
 
-private enum SSHTunnelPrivateKeyParser {
-    static func parse(_ text: String) throws -> NIOSSHPrivateKey? {
+enum SSHTunnelPrivateKeyParser {
+    static func parse(_ text: String, passphrase: String = "") throws -> NIOSSHPrivateKey? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 
         if trimmed.contains("BEGIN OPENSSH PRIVATE KEY") {
-            return try parseOpenSSHPrivateKey(trimmed)
+            return try parseOpenSSHPrivateKey(trimmed, passphrase: passphrase)
         }
 
         throw SSHTunnelError.invalidPrivateKey
     }
 
-    private static func parseOpenSSHPrivateKey(_ text: String) throws -> NIOSSHPrivateKey {
+    /// Whether an OpenSSH private key is protected by a passphrase, read from its header without decrypting it.
+    static func isEncrypted(_ text: String) -> Bool {
+        let base64 = text.split(whereSeparator: \.isNewline).filter { !$0.hasPrefix("-----") }.joined()
+        guard let data = Data(base64Encoded: base64) else { return false }
+        var reader = SSHBinaryReader(data: data)
+        guard (try? reader.readCString()) == "openssh-key-v1", let cipher = try? reader.readString() else { return false }
+        return cipher != "none"
+    }
+
+    /// OpenSSH's ciphers for private keys: key and IV sizes, and whether a GCM tag follows the data.
+    private static let ciphers: [String: (key: Int, iv: Int, gcm: Bool)] = [
+        "aes128-ctr": (16, 16, false), "aes192-ctr": (24, 16, false), "aes256-ctr": (32, 16, false),
+        "aes128-gcm@openssh.com": (16, 12, true), "aes256-gcm@openssh.com": (32, 12, true),
+    ]
+
+    private static func parseOpenSSHPrivateKey(_ text: String, passphrase: String) throws -> NIOSSHPrivateKey {
         let base64 = text
             .split(whereSeparator: \.isNewline)
             .filter { !$0.hasPrefix("-----") }
@@ -513,23 +522,46 @@ private enum SSHTunnelPrivateKeyParser {
 
         let cipherName = try reader.readString()
         let kdfName = try reader.readString()
-        _ = try reader.readDataString()
+        let kdfOptions = try reader.readDataString()
         let keyCount = try reader.readUInt32()
-
-        guard cipherName == "none", kdfName == "none" else {
-            throw SSHTunnelError.encryptedPrivateKeyUnsupported
-        }
 
         guard keyCount == 1 else {
             throw SSHTunnelError.invalidPrivateKey
         }
 
         _ = try reader.readDataString()
-        var privateReader = SSHBinaryReader(data: try reader.readDataString())
+        var privateSection = try reader.readDataString()
+        if cipherName != "none" || kdfName != "none" {
+            guard let cipher = ciphers[cipherName] else { throw SSHTunnelError.privateKeyCipherUnsupported(cipherName) }
+            guard kdfName == "bcrypt" else { throw SSHTunnelError.invalidPrivateKey }
+            guard !passphrase.isEmpty else { throw SSHTunnelError.privateKeyPassphraseRequired }
+            var options = SSHBinaryReader(data: kdfOptions)
+            let salt = try options.readDataString()
+            let rounds = Int(try options.readUInt32())
+            // Rounds above OpenSSH's own ranges would only stall the connection.
+            guard (1...1_000).contains(rounds), privateSection.count.isMultiple(of: 16) else { throw SSHTunnelError.invalidPrivateKey }
+            let material: Data
+            do {
+                material = try BcryptPBKDF.derive(passphrase: Data(passphrase.utf8), salt: salt, rounds: rounds, length: cipher.key + cipher.iv)
+            } catch { throw SSHTunnelError.invalidPrivateKey }
+            let key = material.prefix(cipher.key), iv = material.suffix(cipher.iv)
+            if cipher.gcm {
+                let tag = try reader.readBytes(16)
+                do {
+                    let box = try AES.GCM.SealedBox(nonce: AES.GCM.Nonce(data: iv), ciphertext: privateSection, tag: tag)
+                    privateSection = try AES.GCM.open(box, using: SymmetricKey(data: key))
+                } catch { throw SSHTunnelError.privateKeyPassphraseIncorrect }
+            } else {
+                privateSection = try SSHKeyCipher.aesCTR(privateSection, key: Data(key), iv: Data(iv))
+            }
+        }
+
+        var privateReader = SSHBinaryReader(data: privateSection)
         let check1 = try privateReader.readUInt32()
         let check2 = try privateReader.readUInt32()
         guard check1 == check2 else {
-            throw SSHTunnelError.invalidPrivateKey
+            // Decrypting with the wrong passphrase leaves these two check words unequal.
+            throw cipherName == "none" ? SSHTunnelError.invalidPrivateKey : SSHTunnelError.privateKeyPassphraseIncorrect
         }
 
         let keyType = try privateReader.readString()
@@ -611,6 +643,12 @@ private struct SSHBinaryReader {
         let value = data[offset..<end]
         offset = end
         return Data(value)
+    }
+
+    mutating func readBytes(_ count: Int) throws -> Data {
+        guard count >= 0, offset + count <= data.count else { throw SSHTunnelError.invalidPrivateKey }
+        defer { offset += count }
+        return Data(data[offset..<offset + count])
     }
 
     mutating func readUInt32() throws -> UInt32 {

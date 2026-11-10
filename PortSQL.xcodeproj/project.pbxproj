@@ -42,6 +42,8 @@
 		0E01E0A2D5A05B075E7C34AC /* HTTPDatabaseModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2223930E01B8FF700FD2C741 /* HTTPDatabaseModels.swift */; };
 		0E257E0C358701732D663F33 /* NIOPosix in Frameworks */ = {isa = PBXBuildFile; productRef = A9491604BDB26BF5D00D6E66 /* NIOPosix */; };
 		0E4CEB096CE0332F952E2B13 /* SSHTunnelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7815F00324F38C695376075 /* SSHTunnelService.swift */; };
+		DAC16B83127C9457F01BF4BD /* BlowfishConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C089743D251DA045230473A /* BlowfishConstants.swift */; };
+		A0D2E45FD138770E1796EA09 /* BcryptPBKDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5451D495ABC0362FE34F1369 /* BcryptPBKDF.swift */; };
 		0E58660712FC1099DAC3ED2D /* ResultCellInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B9D14041642CE740791883 /* ResultCellInspector.swift */; };
 		0E85104A004CE3F3EE2FECE0 /* BookmarkIconCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F0F6BF11F7A2EE140699874 /* BookmarkIconCatalog.swift */; };
 		0EF2E1ED059DBE01EA02851A /* Inter-SemiBold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 6E6D3E3D1BD65A86834D20DF /* Inter-SemiBold.otf */; };
@@ -101,6 +103,7 @@
 		2CE062D3E204F888293B4F0A /* ResultInspectionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77AD64E9FD53B446DBDE8C9F /* ResultInspectionService.swift */; };
 		2D114BC1B6B8959F8D42831C /* QueryParameterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C0B78E00C4985082E65410 /* QueryParameterService.swift */; };
 		2DE3A2F6FFF1DBB0B49E3B23 /* SSHTunnelServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */; };
+		3B853EE2CC07FB420255E208 /* SSHEncryptedKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18172518FFABC20A8A86062 /* SSHEncryptedKeyTests.swift */; };
 		2E12E9B08A940E5BA66E06DA /* SQLEditingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD78C569189221484F81399D /* SQLEditingService.swift */; };
 		2E1E4ADB04C371F004CC5A2D /* MongoExplorerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F931BDF7628C962CE3B5ACE /* MongoExplorerView.swift */; };
 		2F31B35FD25065E13A5FE547 /* PortSQLApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD8B7936B7D6B7D8A4854C91 /* PortSQLApp.swift */; };
@@ -181,6 +184,7 @@
 		5BB8B208C7B4A8423F35625C /* SourceCodePro-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 09A3626DFFC9234B75DB5CE7 /* SourceCodePro-Regular.ttf */; };
 		5D250C7C5B2E989663876022 /* WorkspaceCloudCollection.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4BFA3F7222219E28B6D0948 /* WorkspaceCloudCollection.swift */; };
 		5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */; };
+		E4E8AF91F4E814C41C33F8E8 /* SSHEncryptedKeyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E18172518FFABC20A8A86062 /* SSHEncryptedKeyTests.swift */; };
 		5DFD83197F26CB1547FADF96 /* PinnedTableStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EE53A06B4D778F2F9E510D1 /* PinnedTableStore.swift */; };
 		5E6FC78CA27FA897CAA23D90 /* Inter-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 2B0EB8325FF4C253D1D5F1BD /* Inter-Regular.otf */; };
 		5F5D98518B3A39E8FF25DD17 /* SQLTemplateMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 200D0F941E7FC63F89876E24 /* SQLTemplateMenu.swift */; };
@@ -216,6 +220,8 @@
 		71D2D478F373565E2E160340 /* SQLiteFileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384FE4151D6FABC2F362A89F /* SQLiteFileStore.swift */; };
 		722651F1E6A919194877EC23 /* Crypto in Frameworks */ = {isa = PBXBuildFile; productRef = D225E87855E6DE9242595733 /* Crypto */; };
 		72E8F1031F1CE65D20232A94 /* SSHTunnelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7815F00324F38C695376075 /* SSHTunnelService.swift */; };
+		062F334EA4215AD3FB3A31F1 /* BlowfishConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C089743D251DA045230473A /* BlowfishConstants.swift */; };
+		91AC4848D37E5B366105F39F /* BcryptPBKDF.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5451D495ABC0362FE34F1369 /* BcryptPBKDF.swift */; };
 		74B545DD6BB40A2938173387 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = F170CA618498638CDD5F7994 /* Localization.swift */; };
 		7544DADE446FA8E271868E4F /* HTTPDatabaseJSON.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CF951FC242693CCF57ACA80 /* HTTPDatabaseJSON.swift */; };
 		7610E482271A83C8E896E1F3 /* PlatformSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DF60A3CC28A1715A9CEB85 /* PlatformSupport.swift */; };
@@ -663,6 +669,7 @@
 		CA673F1C8FB7ADB6B7FA6BB4 /* SchemaBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaBrowserView.swift; sourceTree = "<group>"; };
 		CE6DAE81A0A5E853741798A5 /* QueryPlanService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryPlanService.swift; sourceTree = "<group>"; };
 		CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHTunnelServiceTests.swift; sourceTree = "<group>"; };
+		E18172518FFABC20A8A86062 /* SSHEncryptedKeyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHEncryptedKeyTests.swift; sourceTree = "<group>"; };
 		CF2634609186A8C0C442FED0 /* VisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualizerView.swift; sourceTree = "<group>"; };
 		8CF259CD32648EFB97904F60 /* ChartPlotView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartPlotView.swift; sourceTree = "<group>"; };
 		054C5E13142077985F7369B0 /* ChartDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartDashboardView.swift; sourceTree = "<group>"; };
@@ -705,6 +712,8 @@
 		F5F855995945D86DACBDF277 /* DesktopWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopWorkspaceView.swift; sourceTree = "<group>"; };
 		F63EEF824843AF5CD2D74DDA /* PortSQL.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PortSQL.entitlements; sourceTree = "<group>"; };
 		F7815F00324F38C695376075 /* SSHTunnelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SSHTunnelService.swift; sourceTree = "<group>"; };
+		0C089743D251DA045230473A /* BlowfishConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlowfishConstants.swift; sourceTree = "<group>"; };
+		5451D495ABC0362FE34F1369 /* BcryptPBKDF.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BcryptPBKDF.swift; sourceTree = "<group>"; };
 		F80D99AFAC60FFE164F781B1 /* LibraryStorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStorageView.swift; sourceTree = "<group>"; };
 		FA803D509860DB47C604F547 /* RedisServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisServiceTests.swift; sourceTree = "<group>"; };
 		FB916A717C2969270CA24E3C /* WorkspaceInsightsAndPaletteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkspaceInsightsAndPaletteTests.swift; sourceTree = "<group>"; };
@@ -875,6 +884,8 @@
 				15979FFA523E648633EDE3E4 /* SQLSyntaxHighlighter.swift */,
 				D51D052A6EDBBBEC17FF22ED /* SQLTemplateService.swift */,
 				F7815F00324F38C695376075 /* SSHTunnelService.swift */,
+				0C089743D251DA045230473A /* BlowfishConstants.swift */,
+				5451D495ABC0362FE34F1369 /* BcryptPBKDF.swift */,
 				48E9EBC4EBFC2611D429BDAF /* VisualizationService.swift */,
 				8C2D20E83571702A0436925F /* ChartQueryRunner.swift */,
 				54FB909D9E0195EA9FCCAEB3 /* SchemaDDLBuilder.swift */,
@@ -948,6 +959,7 @@
 				D580722EA09FAA6C99677231 /* SQLiteDatabaseClientTests.swift */,
 				ED75D3B9448DBAFEE79B4C21 /* SQLSafetyServiceTests.swift */,
 				CEAAA98DD8978DDCD93DB555 /* SSHTunnelServiceTests.swift */,
+				E18172518FFABC20A8A86062 /* SSHEncryptedKeyTests.swift */,
 				23331E5633F855E60F40421E /* VisualizationServiceTests.swift */,
 				92E4FC93392E3C32BAF0BEDD /* SQLCompletionEngineTests.swift */,
 				99058625857A0C34F5CC0AF5 /* EditorAndSelectionToolsTests.swift */,
@@ -1428,6 +1440,8 @@
 				30B61D50612564F87A2458CF /* SQLiteSchemaService.swift in Sources */,
 				4C93ACFF28EE282EFF604F5D /* SQLiteStatementService.swift in Sources */,
 				72E8F1031F1CE65D20232A94 /* SSHTunnelService.swift in Sources */,
+				062F334EA4215AD3FB3A31F1 /* BlowfishConstants.swift in Sources */,
+				91AC4848D37E5B366105F39F /* BcryptPBKDF.swift in Sources */,
 				F455B079CFF7001426061604 /* SchemaBrowserView.swift in Sources */,
 				435A8187B9FDD4D1822A15FC /* SchemaCacheStore.swift in Sources */,
 				E29996214ECABCD100343C9B /* SchemaObjects.swift in Sources */,
@@ -1493,6 +1507,7 @@
 				1E64BAE770072DE127C77049 /* SQLSafetyServiceTests.swift in Sources */,
 				CF62BDB98B8BF4253B959FBE /* SQLiteDatabaseClientTests.swift in Sources */,
 				5DD7A79853D2211B7EAEFA16 /* SSHTunnelServiceTests.swift in Sources */,
+				E4E8AF91F4E814C41C33F8E8 /* SSHEncryptedKeyTests.swift in Sources */,
 				1134B1656EE5F55C435A8F6B /* ServerCertificateProbeTests.swift in Sources */,
 				486379397B2A7F40568DF4C2 /* VisualizationServiceTests.swift in Sources */,
 				58EF62E610A85431296D1D98 /* SQLCompletionEngineTests.swift in Sources */,
@@ -1537,6 +1552,7 @@
 				8F8DE55C0686900B6BE3EF93 /* SQLSafetyServiceTests.swift in Sources */,
 				B485056180E0AE5A1FE6F40A /* SQLiteDatabaseClientTests.swift in Sources */,
 				2DE3A2F6FFF1DBB0B49E3B23 /* SSHTunnelServiceTests.swift in Sources */,
+				3B853EE2CC07FB420255E208 /* SSHEncryptedKeyTests.swift in Sources */,
 				889126422DD80E52074C5413 /* ServerCertificateProbeTests.swift in Sources */,
 				B665D7AB1A670C85278FBF52 /* VisualizationServiceTests.swift in Sources */,
 				8CD3524CC8EDAD008B72DE99 /* SQLCompletionEngineTests.swift in Sources */,
@@ -1672,6 +1688,8 @@
 				262E5E13E651B443C38AC79F /* SQLiteSchemaService.swift in Sources */,
 				D624D05933ACE8CD6EE783E9 /* SQLiteStatementService.swift in Sources */,
 				0E4CEB096CE0332F952E2B13 /* SSHTunnelService.swift in Sources */,
+				DAC16B83127C9457F01BF4BD /* BlowfishConstants.swift in Sources */,
+				A0D2E45FD138770E1796EA09 /* BcryptPBKDF.swift in Sources */,
 				C7B8DB0106904CD5CD71F6CD /* SchemaBrowserView.swift in Sources */,
 				5044A037FD173BB28F928FF2 /* SchemaCacheStore.swift in Sources */,
 				667D68FD6F0F26DB0BFB9380 /* SchemaObjects.swift in Sources */,

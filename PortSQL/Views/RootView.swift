@@ -1617,6 +1617,11 @@ struct BookmarkEditorView: View {
                             .font(.codeCaption)
                             .portbaseTextCapitalization(.never)
                             .autocorrectionDisabled()
+                        // Only an encrypted key needs one, and only then is it shown.
+                        if profile.sshPrivateKey.contains("BEGIN OPENSSH PRIVATE KEY"),
+                           SSHTunnelPrivateKeyParser.isEncrypted(profile.sshPrivateKey) || !profile.sshPassphrase.isEmpty {
+                            LabeledTextField("Key Passphrase", text: $profile.sshPassphrase, isSecure: true)
+                        }
                         SSHHostKeyTrustRows(host: profile.sshHost, port: profile.sshPort)
                         Text(ConnectionSecretLocation.sshNote)
                             .font(.captionText)
