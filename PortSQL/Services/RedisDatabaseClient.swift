@@ -73,6 +73,14 @@ private final class RedisSocketLifetime: @unchecked Sendable {
     var writeStarted: Bool { lock.withLock { writing } }
 }
 
+/// Confirmed writes of an import batch, read after the connection's work ends either way.
+private final class RedisWriteCount: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    func increment() { lock.withLock { count += 1 } }
+    var value: Int { lock.withLock { count } }
+}
+
 private struct RedisConnection: @unchecked Sendable {
     let channel: Channel
 
@@ -125,6 +133,170 @@ enum RedisDatabaseClient {
             }
             throw error
         }
+    }
+
+    // MARK: Export and import
+
+    /// Rows per page of an export.
+    static let exportPageSize = 1_000
+
+    /// Runs a read command to its end: SCAN-family cursors until they return to 0, LRANGE in slices, and
+    /// XRANGE/XREVRANGE from each page's last entry. Other commands give one page. Each page uses its own
+    /// connection and timeout; the commands carry no state between pages but the cursor or range.
+    static func exportPages(query: RedisCommand, profile: ConnectionProfile, database: String, timeoutSeconds: Int,
+                            eventLoopGroup: EventLoopGroup, page: (QueryResultTable) throws -> Void) async throws {
+        let command = try RedisCommandService.validate(query.arguments)
+        guard command.isReadOnly else { throw DatabaseServiceError.readOnlyQueryRequired }
+        var arguments = command.arguments
+        func word(_ index: Int) -> String { arguments.indices.contains(index) ? String(decoding: arguments[index], as: UTF8.self).uppercased() : "" }
+        func run(_ arguments: [Data]) async throws -> (RedisReply, RedisCommand) {
+            let current = try RedisCommandService.validate(arguments)
+            let reply = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                                 eventLoopGroup: eventLoopGroup) { try await $0.send(current.arguments) }
+            return (reply, current)
+        }
+        switch command.name {
+        case "SCAN", "HSCAN", "SSCAN", "ZSCAN":
+            let cursorIndex = command.name == "SCAN" ? 1 : 2
+            // Larger pages than the browser's, within the client's bound.
+            if let count = (0..<arguments.count).first(where: { word($0) == "COUNT" }), arguments.indices.contains(count + 1) {
+                arguments[count + 1] = Data(String(exportPageSize).utf8)
+            } else { arguments += [Data("COUNT".utf8), Data(String(exportPageSize).utf8)] }
+            arguments[cursorIndex] = Data("0".utf8)
+            // SCAN can return a key more than once while the keyspace changes; each key is written once.
+            var seen = Set<Data>()
+            repeat {
+                try Task.checkCancellation()
+                let (reply, current) = try await run(arguments)
+                guard let parts = reply.elements, parts.count == 2, let next = parts[0].bytes else { throw RedisClientError.malformedReply }
+                var result = try makeResult(reply: reply, command: current)
+                if command.name == "SCAN" {
+                    result.rows = result.rows.filter { row in
+                        guard let first = row.cells.first else { return false }
+                        return seen.insert(RedisBytes.data(of: first)).inserted
+                    }
+                }
+                try page(result)
+                arguments[cursorIndex] = next
+            } while arguments[cursorIndex] != Data("0".utf8)
+        case "LRANGE":
+            let key = arguments[1]
+            let length = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                                  eventLoopGroup: eventLoopGroup) { try await $0.read("LLEN", [key]).integer } ?? 0
+            func resolve(_ index: Int64) -> Int64 { index < 0 ? max(0, length + index) : index }
+            guard let first = Int64(String(decoding: arguments[2], as: UTF8.self)), let last = Int64(String(decoding: arguments[3], as: UTF8.self)) else {
+                throw RedisClientError.invalidCommand
+            }
+            var start = resolve(first)
+            let end = min(resolve(last), length - 1)
+            while start <= end {
+                try Task.checkCancellation()
+                let stop = min(end, start + Int64(exportPageSize) - 1)
+                let (reply, current) = try await run([Data("LRANGE".utf8), key, Data(String(start).utf8), Data(String(stop).utf8)])
+                var result = try makeResult(reply: reply, command: current)
+                // Indexes count from the start of the list, not of the page.
+                result.rows = result.rows.enumerated().map { offset, row in
+                    var cells = row.cells
+                    if !cells.isEmpty { cells[0] = .integer(String(start + Int64(offset))) }
+                    return QueryRow(cells: cells)
+                }
+                try page(result)
+                start = stop + 1
+            }
+        case "XRANGE", "XREVRANGE":
+            arguments = Array(arguments.prefix(4)) + [Data("COUNT".utf8), Data(String(exportPageSize).utf8)]
+            while true {
+                try Task.checkCancellation()
+                let (reply, current) = try await run(arguments)
+                let result = try makeResult(reply: reply, command: current, namedStreamFields: false)
+                try page(result)
+                guard let entries = reply.elements, entries.count == exportPageSize,
+                      let lastID = entries.last?.elements?.first?.bytes else { break }
+                // The next page continues just past the last entry: XRANGE's start and XREVRANGE's end are both
+                // the first bound, and "(" makes it exclusive.
+                arguments[2] = Data("(".utf8) + lastID
+            }
+        default:
+            let (reply, current) = try await run(arguments)
+            try page(try makeResult(reply: reply, command: current))
+        }
+    }
+
+    /// Writes each record as a hash named by its key column, with the other included fields as the
+    /// hash's fields. Redis has no transaction across the file, so an import that stops part way leaves
+    /// the hashes already written; writes are never repeated after a connection fails.
+    static func importHashes(plan: DataImportPlan, profile: ConnectionProfile, database: String, timeoutSeconds: Int,
+                             eventLoopGroup: EventLoopGroup, progress: @escaping @Sendable (DataTransferProgress) -> Void) async throws -> DataTransferResult {
+        guard !profile.isReadOnly else { throw DatabaseServiceError.readOnlyViolation }
+        guard let keyColumn = plan.keyColumn, !keyColumn.isEmpty else { throw DataTransferError.invalidMapping }
+        let fields = plan.mappings.filter { !$0.targetName.isEmpty }
+        guard !fields.isEmpty, Set(fields.map(\.targetName)).count == fields.count else { throw DataTransferError.invalidMapping }
+        let prefix = Data(plan.tableName.utf8)
+        let reader = try DataImportRecordReader(url: plan.source.url, format: plan.source.format,
+                                                hasHeader: plan.source.hasHeader, nullToken: plan.source.nullToken)
+        var completed = 0, record = 0
+        var batch: [RedisCommand] = []
+        func send() async throws {
+            let commands = batch; batch = []
+            let lifetime = RedisSocketLifetime()
+            let written = RedisWriteCount()
+            do {
+                try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                         eventLoopGroup: eventLoopGroup, lifetime: lifetime) { connection in
+                    lifetime.markWrite()
+                    for command in commands {
+                        try Task.checkCancellation()
+                        _ = try await connection.send(command.arguments)
+                        written.increment()
+                    }
+                }
+                completed += written.value
+            } catch {
+                completed += written.value
+                let reason: String
+                if case RedisClientError.server = error { reason = error.localizedDescription }
+                else if error is CancellationError { reason = L10n.text("Cancelled") }
+                else { reason = RedisClientError.writeOutcomeUnknown.localizedDescription }
+                throw DataTransferError.partialImport(completed: completed, underlying: reason)
+            }
+            progress(.init(phase: .importing, completed: completed, total: plan.source.rowCount))
+        }
+        do {
+            while let next = try reader.next() {
+                try Task.checkCancellation()
+                record += 1
+                guard let keyCell = next.fields[keyColumn], !keyCell.isNull else { throw DataTransferError.invalidValue(column: keyColumn, row: record) }
+                var arguments = [prefix + RedisBytes.data(of: keyCell)]
+                for mapping in fields {
+                    // Redis has no NULL: a NULL or missing value leaves the field out.
+                    guard let cell = next.fields[mapping.sourceName], !cell.isNull else { continue }
+                    let value: Data
+                    if mapping.valueType == .automatic || mapping.valueType == .text { value = RedisBytes.data(of: cell) }
+                    else {
+                        switch try DataTransferCodec.boundValue(cell, type: mapping.valueType, column: mapping.targetName, row: record) {
+                        case .null: continue
+                        case .string(let text), .decimal(let text): value = Data(text.utf8)
+                        case .integer(let number): value = Data(String(number).utf8)
+                        case .boolean(let flag): value = Data((flag ? "1" : "0").utf8)
+                        }
+                    }
+                    arguments += [Data(mapping.targetName.utf8), value]
+                }
+                guard arguments.count > 1 else { continue }
+                batch.append(try RedisCommandService.command("HSET", arguments))
+                if batch.count >= exportPageSize { try await send() }
+            }
+            try Task.checkCancellation()
+            if !batch.isEmpty { try await send() }
+        } catch let error as DataTransferError {
+            if case .partialImport = error { throw error }
+            guard completed > 0 else { throw error }
+            throw DataTransferError.partialImport(completed: completed, underlying: error.localizedDescription)
+        } catch {
+            guard completed > 0 else { throw error }
+            throw DataTransferError.partialImport(completed: completed, underlying: error is CancellationError ? L10n.text("Cancelled") : error.localizedDescription)
+        }
+        return DataTransferResult(rowCount: completed, fileURL: nil)
     }
 
     static func scan(profile: ConnectionProfile, database: String, cursor: String, pattern: Data?, type: String?,
@@ -260,7 +432,9 @@ enum RedisDatabaseClient {
         return (cursor, values)
     }
 
-    static func makeResult(reply: RedisReply, command: RedisCommand) throws -> QueryResultTable {
+    /// With `namedStreamFields` off, stream entries keep their raw field list, so every page of an export
+    /// has the same columns.
+    static func makeResult(reply: RedisReply, command: RedisCommand, namedStreamFields: Bool = true) throws -> QueryResultTable {
         var columns = [L10n.text("Index"), L10n.text("Value")]
         var rows: [[QueryCell]] = []
         var cursor: String?
@@ -300,7 +474,7 @@ enum RedisDatabaseClient {
                       fields.count.isMultiple(of: 2) else { throw RedisClientError.malformedReply }
                 return (values[0], fields)
             }
-            if let names = streamFieldNames(parsed.map(\.fields)) {
+            if namedStreamFields, let names = streamFieldNames(parsed.map(\.fields)) {
                 // One column per field; an entry without a field shows NULL there.
                 columns = [L10n.text("Entry ID")] + names
                 rows = parsed.map { entry in

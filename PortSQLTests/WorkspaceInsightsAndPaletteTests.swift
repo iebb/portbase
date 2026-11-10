@@ -221,4 +221,44 @@ final class WorkspaceInsightsAndPaletteTests: XCTestCase {
         XCTAssertEqual(insights.columns[0].topValues.first?.value.hasSuffix("…"), true, "Only the label is shortened")
         XCTAssertEqual(insights.columns[1].distinctCount, 2, "The number 1 and the text \"1\" are different values")
     }
+
+    func testServerProfileQueryWrapsTheSourceWithoutItsPagingAndSkipsUnsafeSources() {
+        var result = table([("amount", "numeric"), ("note", "text"), ("flag", "bool"), ("doc", "jsonb")], [])
+        result.sourceQuery = "SELECT * FROM orders ORDER BY id LIMIT 100 OFFSET 200"
+        let kinds: [Int: ColumnInsight.Kind] = [0: .numeric, 1: .text, 2: .boolean, 3: .json]
+        XCTAssertEqual(ColumnProfileService.query(for: result, kinds: kinds, engine: .postgresql),
+                       "SELECT COUNT(*), COUNT(p.amount), COUNT(DISTINCT p.amount), MIN(p.amount), MAX(p.amount), AVG(p.amount), "
+                       + "COUNT(p.note), COUNT(DISTINCT p.note), MIN(p.note), MAX(p.note), NULL, "
+                       + "COUNT(p.flag), NULL, NULL, NULL, NULL, "
+                       + "COUNT(p.doc), NULL, NULL, NULL, NULL FROM (SELECT * FROM orders) AS p")
+        for unsafe in ["DELETE FROM orders", "SELECT * FROM orders WHERE region = :region", "SELECT 1; SELECT 2", "SHOW TABLES"] {
+            result.sourceQuery = unsafe
+            XCTAssertNil(ColumnProfileService.query(for: result, kinds: kinds, engine: .postgresql), unsafe)
+        }
+        var duplicate = table([("id", "int"), ("ID", "int")], [])
+        duplicate.sourceQuery = "SELECT a.id, b.id FROM a JOIN b USING (k)"
+        XCTAssertNil(ColumnProfileService.query(for: duplicate, kinds: [:], engine: .mysql), "A subquery can't expose a name twice")
+    }
+
+    func testServerProfileRunsOnSQLiteOverEveryRow() async throws {
+        let file = try await SQLiteFileStore.shared.create(name: "Profile fixture")
+        defer { try? SQLiteFileStore.shared.remove(fileName: file.fileName) }
+        var profile = ConnectionProfile(name: "Profile fixture", engine: .sqlite, host: "", port: 0, username: "", password: "", defaultDatabase: "main")
+        profile.sqliteFileName = file.fileName
+        _ = try await SQLiteDatabaseClient.execute(query: "CREATE TABLE t(n INTEGER, label TEXT)", profile: profile, policy: .mutation())
+        _ = try await SQLiteDatabaseClient.execute(
+            query: "WITH RECURSIVE s(x) AS (VALUES(1) UNION ALL SELECT x + 1 FROM s WHERE x < 12000) INSERT INTO t SELECT x, CASE WHEN x % 3 = 0 THEN NULL ELSE 'g' || (x % 4) END FROM s",
+            profile: profile, policy: .mutation())
+        var page = try await SQLiteDatabaseClient.execute(query: "SELECT n, label FROM t LIMIT 100", profile: profile, policy: .readOnly)
+        page.sourceQuery = "SELECT n, label FROM t LIMIT 100"
+        page.isExplorerGenerated = true
+        let summary = try await ColumnProfileService.run(result: page, kinds: [0: .numeric, 1: .text], profile: profile, database: nil)
+        XCTAssertEqual(summary.rowCount, 12_000)
+        XCTAssertEqual(summary.columns[0]?.distinct, 12_000)
+        XCTAssertEqual(summary.columns[0]?.minimum, "1")
+        XCTAssertEqual(summary.columns[0]?.maximum, "12000")
+        XCTAssertEqual(summary.columns[0]?.average.flatMap(Double.init), 6000.5)
+        XCTAssertEqual(summary.columns[1]?.nonNull, 8_000)
+        XCTAssertEqual(summary.columns[1]?.distinct, 4)
+    }
 }

@@ -1745,3 +1745,10 @@
 "Remove Condition" = "Remover condição";
 "Filter Column…" = "Filtrar coluna…";
 "Column Statistics" = "Estatísticas da coluna";
+"Profile All Rows" = "Analisar todas as linhas";
+"All rows: %@" = "Todas as linhas: %@";
+"%@ distinct" = "%@ distintos";
+"Key prefix" = "Prefixo da chave";
+"Key column" = "Coluna da chave";
+"Each batch is written as it's sent. A cancelled or failed import keeps the records already written." = "Cada lote é gravado ao ser enviado. Uma importação cancelada ou com falha mantém os registros já gravados.";
+"The import stopped after %d confirmed records, which stay in place. %@" = "A importação parou após %d registros confirmados, que permanecem. %@";

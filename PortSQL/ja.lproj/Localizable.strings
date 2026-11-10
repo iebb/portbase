@@ -1745,3 +1745,10 @@
 "Remove Condition" = "条件を削除";
 "Filter Column…" = "列で絞り込む…";
 "Column Statistics" = "列の統計";
+"Profile All Rows" = "全行を集計";
+"All rows: %@" = "全行: %@";
+"%@ distinct" = "%@ 種類";
+"Key prefix" = "キーの接頭辞";
+"Key column" = "キー列";
+"Each batch is written as it's sent. A cancelled or failed import keeps the records already written." = "各バッチは送信時に書き込まれます。キャンセルまたは失敗したインポートでも、書き込み済みのレコードは残ります。";
+"The import stopped after %d confirmed records, which stay in place. %@" = "%d 件のレコードが確定した時点でインポートが停止しました。確定済みのレコードは残ります。%@";

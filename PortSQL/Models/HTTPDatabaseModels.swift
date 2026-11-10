@@ -15,6 +15,10 @@ enum HTTPDatabaseAuthentication: String, Codable, CaseIterable, Identifiable, Se
 enum HTTPDatabaseError: LocalizedError {
     case invalidRequest, unsupportedRequest, invalidResponse, responseTooLarge, redirectRefused
     case status(Int), unsupportedParameters, clickHouseFormat, unconfirmedWrite
+    /// A search where a shard failed or that timed out, which an export can't treat as complete.
+    case partialSearch
+    /// An error the server wrote into a response that had already started.
+    case serverMessage(String)
 
     var errorDescription: String? {
         switch self {
@@ -27,6 +31,8 @@ enum HTTPDatabaseError: LocalizedError {
         case .unsupportedParameters: L10n.text("This engine does not support bound parameters in Portbase yet.")
         case .clickHouseFormat: L10n.text("Run one ClickHouse statement without FORMAT, SETTINGS or INTO OUTFILE. Portbase controls the result format and limits.")
         case .unconfirmedWrite: L10n.text("The write was not confirmed. Check the server before retrying; it may have completed.")
+        case .partialSearch: L10n.text("Elasticsearch returned partial results. A shard failed or the search timed out.")
+        case .serverMessage(let message): message
         }
     }
 }

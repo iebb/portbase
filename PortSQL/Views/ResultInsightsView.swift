@@ -3,10 +3,21 @@ import SwiftUI
 
 /// Column statistics for the loaded rows of a result.
 struct ResultInsightsView: View {
+    @EnvironmentObject private var workspace: WorkspaceViewModel
     let result: QueryResultTable
     @State private var insights = ResultInsights.empty
     @State private var isComputing = true
     @State private var filter = ""
+    /// Figures over every row the query would return, computed by the database when asked.
+    @State private var serverProfile: ServerResultProfile?
+    @State private var profiling: Task<Void, Never>?
+    @State private var profileError: String?
+
+    /// Offered when the loaded rows are only part of the result: a truncated query or one page of a table.
+    private var canProfileAllRows: Bool {
+        guard let engine = workspace.selectedBookmark?.engine, result.isTruncated == true || result.isExplorerGenerated == true else { return false }
+        return ColumnProfileService.canProfile(result, engine: engine)
+    }
 
     private var visibleColumns: [ColumnInsight] {
         filter.isEmpty ? insights.columns : insights.columns.filter { $0.name.localizedCaseInsensitiveContains(filter) }
@@ -19,7 +30,12 @@ struct ResultInsightsView: View {
             } else if insights.columns.isEmpty {
                 Color.clear.frame(maxWidth: .infinity, minHeight: 90)
             } else {
-                facts
+                HStack(alignment: .firstTextBaseline, spacing: Spacing.m) {
+                    facts
+                    Spacer(minLength: 0)
+                    if canProfileAllRows { profileButton }
+                }
+                if let profileError { ExecutionErrorLine(message: profileError) }
                 if insights.columns.count > 6 {
                     HStack(spacing: Spacing.s) {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -35,12 +51,15 @@ struct ResultInsightsView: View {
                 // Flat sections between hairlines, top-aligned so a short column doesn't center on a tall neighbor.
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: Spacing.xl, alignment: .top)], alignment: .leading, spacing: 0) {
                     ForEach(visibleColumns) { column in
-                        ColumnInsightSection(column: column)
+                        ColumnInsightSection(column: column, server: serverProfile?.columns[column.id], serverRows: serverProfile?.rowCount)
                     }
                 }
             }
         }
+        .onDisappear { profiling?.cancel() }
         .task(id: result) {
+            profiling?.cancel(); profiling = nil
+            serverProfile = nil; profileError = nil
             isComputing = true
             let snapshot = result
             let computed = await Task.detached(priority: .userInitiated) { ResultInsightsService.insights(for: snapshot) }.value
@@ -50,13 +69,48 @@ struct ResultInsightsView: View {
         }
     }
 
-    /// Rows, columns and completeness as one line of secondary text.
+    private var profileButton: some View {
+        Button {
+            if let profiling { profiling.cancel(); self.profiling = nil } else { profileAllRows() }
+        } label: {
+            if profiling != nil {
+                HStack(spacing: Spacing.xs) { ProgressView().controlSize(.small); Text("Stop") }
+            } else {
+                Label("Profile All Rows", systemImage: "sum")
+            }
+        }
+        .buttonStyle(.portbaseSecondary)
+        .controlSize(.small)
+    }
+
+    /// Asks the database for every column's figures over all rows, read-only, in one aggregate query.
+    private func profileAllRows() {
+        guard let profile = workspace.selectedBookmark else { return }
+        let snapshot = result, database = workspace.activeDatabaseName
+        let kinds = Dictionary(uniqueKeysWithValues: insights.columns.map { ($0.id, $0.kind) })
+        profileError = nil
+        profiling = Task {
+            do {
+                let summary = try await ColumnProfileService.run(result: snapshot, kinds: kinds, profile: profile, database: database)
+                guard !Task.isCancelled, snapshot == result else { return }
+                serverProfile = summary
+            } catch is CancellationError {
+            } catch {
+                if !Task.isCancelled { profileError = DatabaseErrorFormatter.message(for: error) }
+            }
+            profiling = nil
+        }
+    }
+
+    /// Rows, columns and completeness as one line of secondary text, with the full count once profiled.
     private var facts: some View {
-        let line = Text(verbatim: [
+        var parts = [
             L10n.plural("row_count", count: insights.rowCount),
             L10n.plural("column_count", count: insights.columns.count),
             L10n.format("%@ non-NULL", insights.completeness.formatted(.percent.precision(.fractionLength(0...1)))),
-        ].joined(separator: " · ")).foregroundColor(.secondary)
+        ]
+        if let serverProfile { parts.append(L10n.format("All rows: %@", serverProfile.rowCount.formatted())) }
+        let line = Text(verbatim: parts.joined(separator: " · ")).foregroundColor(.secondary)
         return (result.isTruncated == true
                 ? line + Text(verbatim: " · ").foregroundColor(.secondary) + Text(L10n.text("Result truncated")).foregroundColor(.orange)
                 : line)
@@ -66,6 +120,8 @@ struct ResultInsightsView: View {
 
 private struct ColumnInsightSection: View {
     let column: ColumnInsight
+    var server: ServerColumnProfile?
+    var serverRows: Int?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -102,6 +158,8 @@ private struct ColumnInsightSection: View {
                 stat("NULL", column.nullRatio.formatted(.percent.precision(.fractionLength(0...1))), warning: column.nullRatio > 0.5)
                 if column.emptyTextCount > 0 { stat(L10n.text("Empty"), column.emptyTextCount.formatted()) }
             }
+
+            if let server, let serverRows { serverLine(server, rows: serverRows) }
 
             if let numeric = column.numeric {
                 HStack(spacing: Spacing.m) {
@@ -151,6 +209,25 @@ private struct ColumnInsightSection: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    /// The database's figures over every row, as one line under the loaded rows' own.
+    private func serverLine(_ server: ServerColumnProfile, rows: Int) -> some View {
+        let nulls = rows > 0 ? Double(rows - server.nonNull) / Double(rows) : 0
+        var parts = [L10n.text("All rows")]
+        if let distinct = server.distinct { parts.append(L10n.format("%@ distinct", distinct.formatted())) }
+        parts.append(nulls.formatted(.percent.precision(.fractionLength(0...1))) + " NULL")
+        if let minimum = server.minimum, let maximum = server.maximum {
+            parts.append(String(minimum.prefix(24)) + " – " + String(maximum.prefix(24)))
+        }
+        if let average = server.average, let value = Double(average) {
+            parts.append(L10n.format("Average %@", value.formatted(.number.precision(.significantDigits(1...6)))))
+        }
+        return Text(verbatim: parts.joined(separator: " · "))
+            .font(.codeCaption.monospacedDigit())
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .textSelection(.enabled)
     }
 
     private func stat(_ title: String, _ value: String, warning: Bool = false) -> some View {

@@ -136,7 +136,7 @@ struct DataTransferSheet: View {
                     VStack(alignment: .leading, spacing: Spacing.xxs) {
                         Text(mapping.sourceName).font(.codeDetail)
                         HStack {
-                            if model.presentation.profile.engine == .mongodb {
+                            if model.namesFreely {
                                 TextField("Destination field", text: $mapping.targetName)
                                     .portbaseTextCapitalization(.never).autocorrectionDisabled()
                             } else {
@@ -168,7 +168,9 @@ struct DataTransferSheet: View {
                 Text(model.statementPreview).font(.codeCaption).textSelection(.enabled)
                 Text(model.presentation.profile.engine == .mongodb
                      ? L10n.text("MongoDB commits each batch. Cancelled or failed imports can leave inserted documents.")
-                     : L10n.text("SQL imports use one transaction. An error before commit rolls back the file."))
+                     : model.presentation.profile.engine.importsInBatches
+                        ? L10n.text("Each batch is written as it's sent. A cancelled or failed import keeps the records already written.")
+                        : L10n.text("SQL imports use one transaction. An error before commit rolls back the file."))
                     .font(.footnoteText).foregroundStyle(.secondary)
                 Button("Import Data", role: .destructive) { confirmsImport = true }
                     .disabled(!model.canImport || model.isWorking || model.result != nil)
@@ -179,11 +181,32 @@ struct DataTransferSheet: View {
 
     @ViewBuilder private var destinationSection: some View {
         Section(model.presentation.mode == .importData ? L10n.text("Destination") : L10n.text("Table")) {
-            if model.presentation.profile.engine == .mongodb {
+            switch model.presentation.profile.engine {
+            case .mongodb:
                 TextField("Collection", text: $model.collectionName)
                     .portbaseTextCapitalization(.never).autocorrectionDisabled()
                     .disabled(model.isWorking)
-            } else {
+            case .elasticsearch:
+                TextField("Index", text: $model.collectionName)
+                    .portbaseTextCapitalization(.never).autocorrectionDisabled()
+                    .disabled(model.isWorking)
+            case .redis:
+                if model.presentation.mode == .importData {
+                    TextField("Key prefix", text: $model.collectionName)
+                        .portbaseTextCapitalization(.never).autocorrectionDisabled()
+                        .disabled(model.isWorking)
+                    // Each record becomes a hash named by this column, after the prefix.
+                    Picker("Key column", selection: $model.keyColumn) {
+                        Text("Select").tag("")
+                        ForEach(model.source?.columnNames ?? [], id: \.self) { Text($0).tag($0) }
+                    }.disabled(model.isWorking)
+                } else {
+                    TextField("Key pattern", text: $model.collectionName)
+                        .font(.codeText)
+                        .portbaseTextCapitalization(.never).autocorrectionDisabled()
+                        .disabled(model.isWorking)
+                }
+            default:
                 Picker("Table", selection: $model.selectedTableName) {
                     Text("Select table").tag("")
                     ForEach(model.presentation.schema, id: \.displayName) { Text($0.displayName).tag($0.displayName) }
@@ -197,7 +220,7 @@ struct DataTransferSheet: View {
         Section {
             PortbaseSegmentedPicker(selection: $model.exportsQuery, options: [
                 PortbaseChoice(value: true, title: L10n.text("Query")),
-                PortbaseChoice(value: false, title: model.presentation.profile.engine == .mongodb ? L10n.text("Collection") : L10n.text("Table")),
+                PortbaseChoice(value: false, title: model.sourceTitle),
             ], fills: true)
             .disabled(model.isWorking)
             .accessibilityLabel("Source")
@@ -239,6 +262,8 @@ struct DataTransferSheet: View {
     @Published var mappings: [DataImportColumnMapping] = []
     @Published var selectedTableName: String
     @Published var collectionName: String
+    /// Redis: the source column whose value names each hash.
+    @Published var keyColumn = ""
     @Published var exportsQuery: Bool
     @Published var timeoutSeconds = 30
     @Published var isWorking = false
@@ -254,16 +279,31 @@ struct DataTransferSheet: View {
         selectedTableName = presentation.table?.displayName ?? ""
         collectionName = presentation.table?.name ?? ""
         exportsQuery = presentation.query?.sql.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-        if presentation.profile.engine == .mongodb { exportFormat = .json }
+        if presentation.profile.engine == .mongodb || presentation.profile.engine == .elasticsearch { exportFormat = .json }
+        if presentation.profile.engine == .redis { collectionName = "*" }
+    }
+
+    /// Whether destination fields are typed names rather than columns picked from a table.
+    var namesFreely: Bool { [.mongodb, .elasticsearch, .redis].contains(presentation.profile.engine) }
+
+    /// What a whole-source export reads: a table, collection, index or set of keys.
+    var sourceTitle: String {
+        switch presentation.profile.engine {
+        case .mongodb: L10n.text("Collection")
+        case .elasticsearch: L10n.text("Index")
+        case .redis: L10n.text("Keys")
+        default: L10n.text("Table")
+        }
     }
 
     var destination: SchemaTableDescriptor? { presentation.schema.first { $0.displayName == selectedTableName } }
-    var destinationLabel: String { presentation.profile.engine == .mongodb ? collectionName : selectedTableName }
+    var destinationLabel: String { namesFreely ? collectionName : selectedTableName }
     var importableColumns: [SchemaColumnDescriptor] { destination?.columns.filter { !DataTransferCodec.isBinaryColumn($0.type) } ?? [] }
     var plan: DataImportPlan? {
         guard let source else { return nil }
         return DataImportPlan(source: source, schemaName: destination?.schemaName ?? "",
-            tableName: presentation.profile.engine == .mongodb ? collectionName : destination?.name ?? "", mappings: mappings)
+            tableName: namesFreely ? collectionName : destination?.name ?? "", mappings: mappings,
+            keyColumn: presentation.profile.engine == .redis ? keyColumn : nil)
     }
     var canImport: Bool { presentation.profile.isReadOnly == false && plan.flatMap { try? $0.statement(engine: presentation.profile.engine) } != nil }
     var statementPreview: String {
@@ -279,9 +319,18 @@ struct DataTransferSheet: View {
             guard let query = presentation.query, !query.sql.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             return query
         }
-        if presentation.profile.engine == .mongodb {
+        switch presentation.profile.engine {
+        case .mongodb:
             guard !collectionName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
             return BoundQuery(sql: "{\"find\":" + DataTransferCodec.jsonString(collectionName) + ",\"filter\":{},\"batchSize\":100}", values: [])
+        case .elasticsearch:
+            let index = collectionName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard let command = try? ElasticsearchDataTransfer.searchAll(index: index) else { return nil }
+            return BoundQuery(sql: command.preview, values: [])
+        case .redis:
+            let pattern = collectionName.isEmpty ? "*" : collectionName
+            return BoundQuery(sql: "SCAN 0 MATCH " + RedisCommandService.quote(Data(pattern.utf8)) + " COUNT 1000", values: [])
+        default: break
         }
         guard let destination else { return nil }
         return BoundQuery(sql: "SELECT * FROM " + DataTransferCodec.qualifiedTable(schema: destination.schemaName, table: destination.name, engine: presentation.profile.engine), values: [])
@@ -290,7 +339,12 @@ struct DataTransferSheet: View {
     func resetMappings() {
         mappings = (source?.columnNames ?? []).map { source in
             let column = importableColumns.first { $0.name.caseInsensitiveCompare(source) == .orderedSame }
-            return DataImportColumnMapping(sourceName: source, targetName: presentation.profile.engine == .mongodb ? source : column?.name ?? "")
+            return DataImportColumnMapping(sourceName: source, targetName: namesFreely ? source : column?.name ?? "")
+        }
+        if presentation.profile.engine == .redis, let first = source?.columnNames.first, keyColumn.isEmpty || source?.columnNames.contains(keyColumn) == false {
+            // The first column names the hashes by default, and isn't also written as a field.
+            keyColumn = first
+            if let index = mappings.firstIndex(where: { $0.sourceName == first }) { mappings[index].targetName = "" }
         }
         result = nil
     }

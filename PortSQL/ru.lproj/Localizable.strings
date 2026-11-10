@@ -1745,3 +1745,10 @@
 "Remove Condition" = "Удалить условие";
 "Filter Column…" = "Фильтр по столбцу…";
 "Column Statistics" = "Статистика столбца";
+"Profile All Rows" = "Анализ всех строк";
+"All rows: %@" = "Все строки: %@";
+"%@ distinct" = "%@ различных";
+"Key prefix" = "Префикс ключа";
+"Key column" = "Столбец ключа";
+"Each batch is written as it's sent. A cancelled or failed import keeps the records already written." = "Каждый пакет записывается при отправке. Отменённый или неудачный импорт сохраняет уже записанные записи.";
+"The import stopped after %d confirmed records, which stay in place. %@" = "Импорт остановлен после %d подтверждённых записей; они сохранены. %@";

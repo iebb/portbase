@@ -1745,3 +1745,10 @@
 "Remove Condition" = "Remove Condition";
 "Filter Column…" = "Filter Column…";
 "Column Statistics" = "Column Statistics";
+"Profile All Rows" = "Profile All Rows";
+"All rows: %@" = "All rows: %@";
+"%@ distinct" = "%@ distinct";
+"Key prefix" = "Key prefix";
+"Key column" = "Key column";
+"Each batch is written as it's sent. A cancelled or failed import keeps the records already written." = "Each batch is written as it's sent. A cancelled or failed import keeps the records already written.";
+"The import stopped after %d confirmed records, which stay in place. %@" = "The import stopped after %d confirmed records, which stay in place. %@";

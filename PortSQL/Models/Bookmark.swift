@@ -21,8 +21,12 @@ enum DatabaseEngine: String, Codable, CaseIterable, Identifiable {
     var supportsRowEditing: Bool { isMySQLFamily || self == .postgresql || self == .sqlite }
     var supportsSchemaEditing: Bool { isMySQLFamily || self == .postgresql }
     var supportsSchemaObjects: Bool { supportsRowEditing }
-    var supportsDataImport: Bool { supportsRowEditing || self == .mongodb }
-    var supportsFullExport: Bool { supportsDataImport }
+    /// Every engine imports CSV and JSON: SQL engines in one transaction, the others in confirmed batches.
+    var supportsDataImport: Bool { true }
+    /// Every engine exports all rows of a query, past the 10,000-row display limit.
+    var supportsFullExport: Bool { true }
+    /// Imports that can't roll back as a whole: batches already written stay when one fails.
+    var importsInBatches: Bool { self == .mongodb || self == .clickhouse || self == .elasticsearch || self == .redis }
     /// Named `:parameters` bind natively: positional placeholders on SQL engines, and ClickHouse's
     /// typed `{name:Type}` query parameters over HTTP.
     var supportsNativeParameters: Bool { supportsRowEditing || self == .clickhouse }

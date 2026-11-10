@@ -48,9 +48,24 @@ struct DataImportPlan: Sendable {
     let schemaName: String
     let tableName: String
     let mappings: [DataImportColumnMapping]
+    /// Redis: the source column that names each record's hash; `tableName` is the key prefix.
+    var keyColumn: String? = nil
 
     func statement(engine: DatabaseEngine) throws -> String {
         let included = mappings.filter { !$0.targetName.isEmpty }
+        if engine == .redis {
+            guard let keyColumn, !keyColumn.isEmpty, !included.isEmpty, Set(included.map(\.targetName)).count == included.count else {
+                throw DataTransferError.invalidMapping
+            }
+            return "HSET " + RedisCommandService.quote(Data(tableName.utf8)) + "{" + keyColumn + "} "
+                + included.map { RedisCommandService.quote(Data($0.targetName.utf8)) + " …" }.joined(separator: " ")
+        }
+        if engine == .elasticsearch {
+            guard ElasticsearchQueryService.validIndex(tableName, allowPattern: false), Set(included.map(\.targetName)).count == included.count else {
+                throw DataTransferError.invalidMapping
+            }
+            return "POST /_bulk\n{\"index\":{\"_index\":" + DataTransferCodec.jsonString(tableName) + "}}\n{…}"
+        }
         guard !tableName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               (!included.isEmpty || (engine == .mongodb && source.columnNames.isEmpty)),
               Set(included.map(\.targetName)).count == included.count,
@@ -59,6 +74,10 @@ struct DataImportPlan: Sendable {
         }
         if engine == .mongodb {
             return "{\"insert\": " + DataTransferCodec.jsonString(tableName) + ", \"documents\": […], \"ordered\": true}"
+        }
+        if engine == .clickhouse {
+            let columns = included.map { DataTransferCodec.identifier($0.targetName, engine: engine) }.joined(separator: ", ")
+            return "INSERT INTO \(DataTransferCodec.identifier(tableName, engine: engine)) (\(columns)) FORMAT JSONEachRow"
         }
         let columns = included.map { DataTransferCodec.identifier($0.targetName, engine: engine) }.joined(separator: ", ")
         let placeholders = included.indices.map { engine == .postgresql ? "$\($0 + 1)" : "?" }.joined(separator: ", ")
@@ -92,6 +111,8 @@ enum DataTransferError: LocalizedError {
     case recordTooLarge, invalidMapping, invalidValue(column: String, row: Int), missingField(column: String, row: Int)
     case binaryImportUnsupported, singleQueryRequired, nonTransactionalTable, commitUncertain
     case mongoPartialImport(completed: Int, underlying: String)
+    /// An import into a database without transactions that stopped after writing some records.
+    case partialImport(completed: Int, underlying: String)
 
     var errorDescription: String? {
         switch self {
@@ -112,6 +133,8 @@ enum DataTransferError: LocalizedError {
         case .commitUncertain: L10n.text("The connection ended while committing the import. Its outcome is unknown. Check the destination before retrying.")
         case .mongoPartialImport(let completed, let underlying):
             L10n.format("MongoDB import stopped after %d confirmed records. The current batch may also contain saved documents. %@", completed, underlying)
+        case .partialImport(let completed, let underlying):
+            L10n.format("The import stopped after %d confirmed records, which stay in place. %@", completed, underlying)
         }
     }
 }

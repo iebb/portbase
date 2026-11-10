@@ -100,7 +100,7 @@ enum ClickHouseDatabaseClient {
             profiles: DatabaseService.makeProfiles(columns: columns, rows: rows), sourceTableReference: nil, isTruncated: truncated)
     }
 
-    private static func cell(_ value: HTTPJSONValue, type: String) -> QueryCell {
+    static func cell(_ value: HTTPJSONValue, type: String) -> QueryCell {
         if value == .null { return .null }
         var base = type
         while ["Nullable(", "LowCardinality("].contains(where: base.hasPrefix), base.hasSuffix(")"), let open = base.firstIndex(of: "(") {

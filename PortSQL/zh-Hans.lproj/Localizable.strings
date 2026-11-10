@@ -1745,3 +1745,10 @@
 "Remove Condition" = "移除条件";
 "Filter Column…" = "筛选列…";
 "Column Statistics" = "列统计";
+"Profile All Rows" = "分析全部行";
+"All rows: %@" = "全部行：%@";
+"%@ distinct" = "%@ 个不同值";
+"Key prefix" = "键前缀";
+"Key column" = "键列";
+"Each batch is written as it's sent. A cancelled or failed import keeps the records already written." = "每批数据在发送时写入。取消或失败的导入会保留已写入的记录。";
+"The import stopped after %d confirmed records, which stay in place. %@" = "导入在 %d 条已确认记录后停止，这些记录会保留。%@";

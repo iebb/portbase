@@ -31,8 +31,15 @@ private final class HTTPDatabaseResponseHandler: ChannelInboundHandler, @uncheck
     private var head: HTTPResponseHead?
     private var body = Data()
     private var finished = false
+    /// For exports: a successful response's body goes here as it arrives, with no size limit, instead of
+    /// being collected. Error responses are still collected, so their messages reach the caller.
+    private let onChunk: (@Sendable (Data) throws -> Void)?
+    private var streams: Bool { onChunk != nil && head.map { (200..<300).contains($0.status.code) } == true }
 
-    init(eventLoop: EventLoop) { promise = eventLoop.makePromise(of: HTTPDatabaseResponse.self) }
+    init(eventLoop: EventLoop, onChunk: (@Sendable (Data) throws -> Void)? = nil) {
+        promise = eventLoop.makePromise(of: HTTPDatabaseResponse.self)
+        self.onChunk = onChunk
+    }
 
     func channelRead(context: ChannelHandlerContext, data: NIOAny) {
         guard !finished else { return }
@@ -44,7 +51,8 @@ private final class HTTPDatabaseResponseHandler: ChannelInboundHandler, @uncheck
             }
             guard head == nil else { fail(HTTPDatabaseError.invalidResponse, context: context); return }
             if (300..<400).contains(response.status.code) { fail(HTTPDatabaseError.redirectRefused, context: context); return }
-            if let length = response.headers.first(name: "Content-Length").flatMap(Int.init), length > HTTPDatabaseTransport.maximumResponseBytes {
+            let streamed = onChunk != nil && (200..<300).contains(response.status.code)
+            if !streamed, let length = response.headers.first(name: "Content-Length").flatMap(Int.init), length > HTTPDatabaseTransport.maximumResponseBytes {
                 fail(HTTPDatabaseError.responseTooLarge, context: context); return
             }
             if let encoding = response.headers.first(name: "Content-Encoding"), encoding.lowercased() != "identity" {
@@ -53,6 +61,11 @@ private final class HTTPDatabaseResponseHandler: ChannelInboundHandler, @uncheck
             head = response
         case .body(var buffer):
             guard head != nil else { fail(HTTPDatabaseError.invalidResponse, context: context); return }
+            if streams, let onChunk {
+                guard let bytes = buffer.readBytes(length: buffer.readableBytes) else { return }
+                do { try onChunk(Data(bytes)) } catch { fail(error, context: context) }
+                return
+            }
             guard body.count + buffer.readableBytes <= HTTPDatabaseTransport.maximumResponseBytes else {
                 fail(HTTPDatabaseError.responseTooLarge, context: context); return
             }
@@ -94,7 +107,8 @@ enum HTTPDatabaseTransport {
 
     static func request(profile: ConnectionProfile, method: String, path: String,
                         queryItems: [URLQueryItem] = [], body: Data? = nil,
-                        timeoutSeconds: Int = 30, eventLoopGroup: EventLoopGroup) async throws -> HTTPDatabaseResponse {
+                        timeoutSeconds: Int = 30, eventLoopGroup: EventLoopGroup,
+                        onChunk: (@Sendable (Data) throws -> Void)? = nil) async throws -> HTTPDatabaseResponse {
         guard profile.engine != .clickhouse || profile.httpAuthentication != .apiKey else { throw DatabaseServiceError.unsupported }
         guard ["GET", "POST", "PUT", "DELETE"].contains(method), path.hasPrefix("/"), !path.hasPrefix("//"),
               !path.contains("?"), !path.contains("#"), !path.contains("%"), !path.contains("\\"),
@@ -132,7 +146,7 @@ enum HTTPDatabaseTransport {
             let channel = try await ClientBootstrap(group: eventLoopGroup)
                 .connectTimeout(.seconds(Int64(min(timeout, 10))))
                 .channelInitializer { channel in
-                    let responseHandler = HTTPDatabaseResponseHandler(eventLoop: channel.eventLoop)
+                    let responseHandler = HTTPDatabaseResponseHandler(eventLoop: channel.eventLoop, onChunk: onChunk)
                     channel.closeFuture.whenComplete { _ in responseHandler.failPending(HTTPDatabaseError.invalidResponse) }
                     lifetime.install(channel)
                     return channel.eventLoop.makeCompletedFuture {

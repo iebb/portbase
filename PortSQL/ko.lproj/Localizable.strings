@@ -1745,3 +1745,10 @@
 "Remove Condition" = "조건 제거";
 "Filter Column…" = "열 필터…";
 "Column Statistics" = "열 통계";
+"Profile All Rows" = "모든 행 분석";
+"All rows: %@" = "모든 행: %@";
+"%@ distinct" = "고유 %@개";
+"Key prefix" = "키 접두사";
+"Key column" = "키 열";
+"Each batch is written as it's sent. A cancelled or failed import keeps the records already written." = "각 배치는 전송될 때 기록됩니다. 취소되거나 실패한 가져오기는 이미 기록된 레코드를 유지합니다.";
+"The import stopped after %d confirmed records, which stay in place. %@" = "확인된 레코드 %d개 이후 가져오기가 중지되었으며, 해당 레코드는 유지됩니다. %@";

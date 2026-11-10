@@ -75,6 +75,12 @@ enum RedisBytes {
         return .text(text)
     }
 
+    /// The bytes a cell holds: binary as it is, anything else as its exact text in UTF-8.
+    static func data(of cell: QueryCell) -> Data {
+        if case .binary(let bytes) = cell { return bytes }
+        return Data(cell.exactValue.utf8)
+    }
+
     static func display(_ bytes: Data) -> String {
         if case .text(let value) = cell(bytes) { return value.isEmpty ? L10n.text("Empty string") : value }
         return "0x" + bytes.prefix(256).map { String(format: "%02x", $0) }.joined() + (bytes.count > 256 ? "…" : "")

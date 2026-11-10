@@ -1745,3 +1745,10 @@
 "Remove Condition" = "Bedingung entfernen";
 "Filter Column…" = "Spalte filtern…";
 "Column Statistics" = "Spaltenstatistik";
+"Profile All Rows" = "Alle Zeilen auswerten";
+"All rows: %@" = "Alle Zeilen: %@";
+"%@ distinct" = "%@ eindeutig";
+"Key prefix" = "Schlüsselpräfix";
+"Key column" = "Schlüsselspalte";
+"Each batch is written as it's sent. A cancelled or failed import keeps the records already written." = "Jeder Stapel wird beim Senden geschrieben. Ein abgebrochener oder fehlgeschlagener Import behält die bereits geschriebenen Datensätze.";
+"The import stopped after %d confirmed records, which stay in place. %@" = "Der Import wurde nach %d bestätigten Datensätzen beendet, die erhalten bleiben. %@";

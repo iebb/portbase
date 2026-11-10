@@ -33,7 +33,24 @@ extension DatabaseService {
             case .postgresql:
                 guard SQLEditingService.statementRanges(in: query.sql, engine: .postgresql).count == 1 else { throw DataTransferError.singleQueryRequired }
                 try await streamPostgresExport(query: query, profile: profile, database: database, timeout: timeout, writer: writer)
-            case .sqlite, .redis, .clickhouse, .elasticsearch: throw DatabaseServiceError.unsupported
+            case .sqlite: throw DatabaseServiceError.unsupported
+            case .clickhouse:
+                try await ClickHouseDataTransfer.export(query: query, profile: profile, database: database, timeoutSeconds: timeout,
+                                                        eventLoopGroup: eventLoopGroup, writer: writer)
+            case .elasticsearch:
+                guard query.values.isEmpty else { throw HTTPDatabaseError.unsupportedParameters }
+                return try await ElasticsearchDataTransfer.export(command: ElasticsearchQueryService.parse(query.sql), profile: profile,
+                    format: format, timeoutSeconds: timeout, eventLoopGroup: eventLoopGroup, writer: writer, progress: progress)
+            case .redis:
+                guard query.values.isEmpty else { throw HTTPDatabaseError.unsupportedParameters }
+                var started = false
+                try await RedisDatabaseClient.exportPages(query: RedisCommandService.parse(query.sql), profile: profile,
+                    database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase) ?? "0",
+                    timeoutSeconds: timeout, eventLoopGroup: eventLoopGroup) { page in
+                    if !started { writer.setColumns(page.columns); started = true }
+                    for row in page.rows { try writer.append(row) }
+                }
+                if !started { writer.setColumns([]) }
             case .mongodb:
                 guard query.values.isEmpty, let mongo else { throw MongoClientError.invalidCommand }
                 let db = resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase) ?? "admin"
@@ -121,8 +138,20 @@ extension DatabaseService {
         }
         let statement = try plan.statement(engine: profile.engine)
         let timeout = max(1, min(timeoutSeconds, 300))
-        if profile.engine == .mongodb {
+        switch profile.engine {
+        case .mongodb:
             return try await importMongoData(plan: plan, profile: profile, database: database, timeout: timeout, progress: progress)
+        case .clickhouse:
+            return try await ClickHouseDataTransfer.importRows(plan: plan, profile: profile, database: database, timeoutSeconds: timeout,
+                                                               eventLoopGroup: eventLoopGroup, progress: progress)
+        case .elasticsearch:
+            return try await ElasticsearchDataTransfer.importDocuments(plan: plan, profile: profile, timeoutSeconds: timeout,
+                                                                       eventLoopGroup: eventLoopGroup, progress: progress)
+        case .redis:
+            return try await RedisDatabaseClient.importHashes(plan: plan, profile: profile,
+                database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase) ?? "0",
+                timeoutSeconds: timeout, eventLoopGroup: eventLoopGroup, progress: progress)
+        default: break
         }
         try validateExecution(query: statement, profile: profile, policy: policy)
         let mappings = plan.mappings.filter { !$0.targetName.isEmpty }
