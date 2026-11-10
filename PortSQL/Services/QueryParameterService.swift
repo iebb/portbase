@@ -96,7 +96,12 @@ enum QueryParameterService {
             } else {
                 let value = QueryBoundValue(userInput: values[token.name] ?? "")
                 binds.append(value)
-                rendered += engine == .postgresql ? "$\(binds.count)" : "?"
+                switch engine {
+                case .postgresql: rendered += "$\(binds.count)"
+                // A String parameter; ClickHouse converts it where a date or number is compared.
+                case .clickhouse: rendered += "{p\(binds.count):String}"
+                default: rendered += "?"
+                }
             }
             cursor = token.range.upperBound
         }
@@ -159,6 +164,12 @@ enum QueryParameterService {
                 }
             }
 
+            // ClickHouse's own {name:Type} parameters are left as written, so their type isn't read as a name.
+            if engine == .clickhouse, character == "{",
+               let block = sql[index...].range(of: #"^\{\s*[A-Za-z_][A-Za-z0-9_]*\s*:[^}]*\}"#, options: .regularExpression) {
+                index = block.upperBound
+                continue
+            }
             if character == ":", next != ":", (index == sql.startIndex || sql[sql.index(before: index)] != ":"),
                let next, next == "_" || next.isLetter {
                 var end = sql.index(after: nextIndex)
@@ -233,8 +244,13 @@ enum QueryParameterService {
             }
 
             switch engine {
-            case .mongodb, .redis, .elasticsearch, .clickhouse:
+            case .mongodb, .redis, .elasticsearch:
                 return false
+            case .clickhouse:
+                // ClickHouse's own {name:Type} parameters.
+                if character == "{", sql[nextIndex...].range(of: #"^\s*[A-Za-z_][A-Za-z0-9_]*\s*:"#, options: .regularExpression) != nil {
+                    return true
+                }
             case .mysql, .mariadb:
                 if character == "?" { return true }
             case .sqlite:

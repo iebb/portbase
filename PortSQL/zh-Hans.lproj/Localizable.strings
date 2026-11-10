@@ -1736,3 +1736,12 @@
 "Never executed" = "从未执行";
 "Ran in %@" = "运行耗时 %@";
 "Actual %@" = "实际 %@";
+"Greater than" = "大于";
+"Less than" = "小于";
+"Greater than “%@”" = "大于“%@”";
+"Less than “%@”" = "小于“%@”";
+"Not NULL" = "非 NULL";
+"Add Condition" = "添加条件";
+"Remove Condition" = "移除条件";
+"Filter Column…" = "筛选列…";
+"Column Statistics" = "列统计";

@@ -1736,3 +1736,12 @@
 "Never executed" = "Nie ausgeführt";
 "Ran in %@" = "Ausgeführt in %@";
 "Actual %@" = "Tatsächlich %@";
+"Greater than" = "Größer als";
+"Less than" = "Kleiner als";
+"Greater than “%@”" = "Größer als „%@“";
+"Less than “%@”" = "Kleiner als „%@“";
+"Not NULL" = "Nicht NULL";
+"Add Condition" = "Bedingung hinzufügen";
+"Remove Condition" = "Bedingung entfernen";
+"Filter Column…" = "Spalte filtern…";
+"Column Statistics" = "Spaltenstatistik";

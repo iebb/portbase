@@ -7,6 +7,17 @@ final class HTTPDatabaseClientTests: XCTestCase {
         for query in ["SELECT 1; DROP TABLE x", "SELECT 1 SETTINGS readonly=0", "SELECT 1 FORMAT CSV", "BACKUP TABLE x TO Disk('x')", "SET readonly=0"] {
             XCTAssertThrowsError(try ClickHouseQueryService.classify(query))
         }
+        let bound = try QueryParameterService.boundQuery(sql: "SELECT * FROM t WHERE day >= :start AND note = ':skip'",
+                                                         values: ["start": "2026-01-01"], engine: .clickhouse)
+        XCTAssertEqual(bound.sql, "SELECT * FROM t WHERE day >= {p1:String} AND note = ':skip'")
+        XCTAssertEqual(bound.values, [.string("2026-01-01")])
+        let native = try QueryParameterService.boundQuery(sql: "SELECT * FROM t WHERE id = {id:UInt32}", values: [:], engine: .clickhouse)
+        XCTAssertEqual(native.sql, "SELECT * FROM t WHERE id = {id:UInt32}", "A ClickHouse {name:Type} parameter's type isn't read as a name")
+        XCTAssertTrue(native.values.isEmpty)
+        XCTAssertThrowsError(try QueryParameterService.boundQuery(sql: "SELECT {id:UInt32}, :region", values: ["region": "EU"], engine: .clickhouse),
+                             "Named and native parameters together are ambiguous")
+        XCTAssertEqual(try ClickHouseDatabaseClient.parameterText(.string("a\\b\tc\nd'e")), "a\\\\b\\tc\\nd'e")
+        XCTAssertThrowsError(try ClickHouseDatabaseClient.parameterText(.null))
         var disconnected = profile(engine: .clickhouse, port: 1)
         disconnected.isReadOnly = true
         do {
@@ -26,6 +37,11 @@ final class HTTPDatabaseClientTests: XCTestCase {
         XCTAssertEqual(cells[2], .null)
         XCTAssertEqual(cells[3], .text(""))
         XCTAssertEqual(cells[4], .dateTime("2024-01-02 03:04:05.123456"))
+        // Named parameters bind as ClickHouse query parameters, never spliced into the SQL.
+        let liveBound = try QueryParameterService.boundQuery(sql: "SELECT :text AS text, length(:text) AS n, number FROM numbers(5) WHERE number = :n",
+                                                         values: ["text": "a\\b\t'c\n", "n": "3"], engine: .clickhouse)
+        let parameters = try await DatabaseService.shared.execute(query: liveBound.sql, values: liveBound.values, profile: profile, policy: .readOnly)
+        XCTAssertEqual(parameters.rows.first?.cells, [.text("a\\b\t'c\n"), .integer("7"), .integer("3")])
         let capped = try await DatabaseService.shared.execute(query: "SELECT number FROM numbers(10023)", profile: profile, policy: .readOnly)
         XCTAssertEqual(capped.rows.count, 10_000)
         XCTAssertEqual(capped.isTruncated, true)

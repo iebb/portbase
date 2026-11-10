@@ -1736,3 +1736,12 @@
 "Never executed" = "Не выполнялся";
 "Ran in %@" = "Выполнено за %@";
 "Actual %@" = "Фактически %@";
+"Greater than" = "Больше";
+"Less than" = "Меньше";
+"Greater than “%@”" = "Больше «%@»";
+"Less than “%@”" = "Меньше «%@»";
+"Not NULL" = "Не NULL";
+"Add Condition" = "Добавить условие";
+"Remove Condition" = "Удалить условие";
+"Filter Column…" = "Фильтр по столбцу…";
+"Column Statistics" = "Статистика столбца";

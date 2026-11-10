@@ -34,6 +34,9 @@ final class WorkspaceLibraryStore: ObservableObject {
 
     private let fileManager = FileManager.default
     private let historyURL: URL
+    /// Shared by every store, so one opening the history waits for writes another store queued.
+    private static let historyWrites = DispatchQueue(label: "Portbase.QueryHistory", qos: .utility)
+    private let historyWriter = HistoryWriter()
     private let snippetsURL: URL
     private let visualizationsURL: URL
     private let visualizationPreviewCacheURL: URL
@@ -109,9 +112,12 @@ final class WorkspaceLibraryStore: ObservableObject {
         }
     }
 
+    /// How many runs the history keeps, newest first; the Library searches and filters all of them.
+    static let historyLimit = 2_000
+
     func addHistory(_ entry: QueryHistoryEntry) {
         history.insert(entry, at: 0)
-        history = Array(history.prefix(200))
+        if history.count > Self.historyLimit { history.removeLast(history.count - Self.historyLimit) }
         persistHistory()
     }
 
@@ -476,6 +482,7 @@ final class WorkspaceLibraryStore: ObservableObject {
             if let recovery = try WorkspaceFileStore.read(Recovery.self, from: recoveryURL, decoder: decoder) {
                 trash = recovery.trash; deletedChartIDs = recovery.deletedChartIDs
             }
+            Self.historyWrites.sync {}
             history = try WorkspaceFileStore.read([QueryHistoryEntry].self, from: historyURL, decoder: decoder) ?? []
             snippets = try WorkspaceFileStore.read([SavedQuerySnippet].self, from: snippetsURL, decoder: decoder) ?? []
         } catch {
@@ -506,9 +513,23 @@ final class WorkspaceLibraryStore: ObservableObject {
         persistVisualizations(pushToCloud: true)
     }
 
+    /// Encodes and writes the history off the main thread; at a few thousand entries that would otherwise
+    /// delay every run. Writes go in order on one queue, so the newest history always lands last.
     private func persistHistory() {
-        guard let data = try? encoder.encode(history) else { return }
-        write(data, to: historyURL)
+        guard canSave else { return }
+        // Runs in quick succession share one write of the newest history.
+        guard historyWriter.replace(with: history) else { return }
+        let writer = historyWriter, url = historyURL
+        Self.historyWrites.async { [weak self] in
+            guard let snapshot = writer.take() else { return }
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let written = (try? encoder.encode(snapshot)).map { data in (try? WorkspaceFileStore.write(data, to: url)) != nil } ?? false
+            guard !written else { return }
+            Task { @MainActor in
+                self?.storageError = L10n.text("Saved work could not be written. Free some device storage and try again.")
+            }
+        }
     }
 
     @discardableResult
@@ -871,5 +892,28 @@ final class WorkspaceLibraryStore: ObservableObject {
     private func yamlStringArrayDecoded(_ value: String?) -> [String]? {
         guard let value, let data = value.data(using: .utf8) else { return nil }
         return try? JSONDecoder().decode([String].self, from: data)
+    }
+}
+
+/// The newest history waiting to be written. A write already queued picks up a later snapshot, so a
+/// burst of runs is written once.
+private final class HistoryWriter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pending: [QueryHistoryEntry]?
+
+    /// Stores the snapshot; true when no write is queued yet and one should be.
+    func replace(with snapshot: [QueryHistoryEntry]) -> Bool {
+        lock.withLock {
+            let needsWrite = pending == nil
+            pending = snapshot
+            return needsWrite
+        }
+    }
+
+    func take() -> [QueryHistoryEntry]? {
+        lock.withLock {
+            defer { pending = nil }
+            return pending
+        }
     }
 }

@@ -1736,3 +1736,12 @@
 "Never executed" = "從未執行";
 "Ran in %@" = "執行耗時 %@";
 "Actual %@" = "實際 %@";
+"Greater than" = "大於";
+"Less than" = "小於";
+"Greater than “%@”" = "大於「%@」";
+"Less than “%@”" = "小於「%@」";
+"Not NULL" = "非 NULL";
+"Add Condition" = "新增條件";
+"Remove Condition" = "移除條件";
+"Filter Column…" = "篩選欄…";
+"Column Statistics" = "欄統計";

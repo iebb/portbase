@@ -351,7 +351,7 @@ enum QueryHistoryOutcome: String, Codable, CaseIterable {
     }
 }
 
-struct QueryHistoryEntry: Identifiable, Codable, Hashable {
+struct QueryHistoryEntry: Identifiable, Codable, Hashable, Sendable {
     var id: UUID = UUID()
     var title: String
     var sql: String

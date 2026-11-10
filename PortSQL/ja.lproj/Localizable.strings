@@ -1736,3 +1736,12 @@
 "Never executed" = "実行されませんでした";
 "Ran in %@" = "実行時間 %@";
 "Actual %@" = "実際 %@";
+"Greater than" = "より大きい";
+"Less than" = "より小さい";
+"Greater than “%@”" = "「%@」より大きい";
+"Less than “%@”" = "「%@」より小さい";
+"Not NULL" = "NULL 以外";
+"Add Condition" = "条件を追加";
+"Remove Condition" = "条件を削除";
+"Filter Column…" = "列で絞り込む…";
+"Column Statistics" = "列の統計";

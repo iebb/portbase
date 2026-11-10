@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-private final class ResultTableView: NSTableView {
+final class ResultTableView: NSTableView {
     var onSelectCell: ((Int, Int, Bool) -> Void)?
     var onCopy: (() -> Void)?
     var onEditSelection: (() -> Bool)?
@@ -40,7 +40,60 @@ private final class ResultTableView: NSTableView {
     /// Return or typing edits, so a staged cell inside the selection keeps its own color.
     var outlinedSelection: ResultGridSelection? { didSet { if oldValue != outlinedSelection { placeOutlines() } } }
     private let rangeOutline = SelectionOutline(), cursorOutline = SelectionOutline()
-    override func tile() { super.tile(); placeOutlines() }
+    override func tile() { super.tile(); refreshFrozenColumns() }
+
+    // MARK: Frozen columns
+
+    /// How many leading display positions stay at the left edge while the rest scroll sideways: the
+    /// pinned columns. Their cells, header and outlines are drawn shifted by the horizontal scroll.
+    var frozenCount = 0 { didSet { if oldValue != frozenCount { refreshFrozenColumns(); headerView?.needsDisplay = true } } }
+    private var frozenShift: CGFloat { frozenCount > 0 ? max(0, visibleRect.minX) : 0 }
+    /// The frozen columns' width, before any shift.
+    var frozenWidth: CGFloat { frozenCount > 0 && numberOfColumns > 0 ? rect(ofColumn: min(frozenCount, numberOfColumns) - 1).maxX : 0 }
+
+    override func frameOfCell(atColumn column: Int, row: Int) -> NSRect {
+        var frame = super.frameOfCell(atColumn: column, row: row)
+        if column >= 0, column < frozenCount { frame.origin.x += frozenShift }
+        return frame
+    }
+
+    override func column(at point: NSPoint) -> Int {
+        guard frozenCount > 0 else { return super.column(at: point) }
+        // Over the frozen area, the point is on a frozen column, never on what scrolled beneath it.
+        let x = point.x - frozenShift
+        if x < frozenWidth {
+            return (0..<min(frozenCount, numberOfColumns)).first { rect(ofColumn: $0).minX <= x && x < rect(ofColumn: $0).maxX } ?? -1
+        }
+        return super.column(at: point)
+    }
+
+    /// Puts the frozen cells of the visible rows where `frameOfCell` says, above the scrolled ones.
+    func refreshFrozenColumns() {
+        if frozenCount > 0 {
+            enumerateAvailableRowViews { rowView, row in
+                for column in 0..<min(self.frozenCount, self.numberOfColumns) {
+                    guard let cell = rowView.view(atColumn: column) as? NSView else { continue }
+                    var frame = rowView.convert(self.frameOfCell(atColumn: column, row: row), from: self)
+                    frame.origin.y = 0
+                    frame.size.height = rowView.bounds.height
+                    if cell.frame != frame { cell.frame = frame }
+                    // Above the cells scrolling beneath it.
+                    cell.wantsLayer = true
+                    cell.layer?.zPosition = 5
+                }
+            }
+            headerView?.needsDisplay = true
+        }
+        placeOutlines()
+    }
+
+    override func drawGrid(inClipRect clipRect: NSRect) {
+        super.drawGrid(inClipRect: clipRect)
+        guard frozenCount > 0 else { return }
+        // A firmer line where the frozen columns end, so the scrolled ones visibly pass beneath.
+        NSColor.separatorColor.setFill()
+        NSRect(x: frozenShift + frozenWidth - 1, y: clipRect.minY, width: 1, height: clipRect.height).fill()
+    }
     /// The cell a context menu was opened on. The menu acts on the outlined cells, so the table's own
     /// handling, which rings the whole clicked row, is skipped.
     private(set) var menuCell: (row: Int, column: Int)?
@@ -178,6 +231,11 @@ struct GridCollectionBridge: NSViewRepresentable {
         table.setAccessibilityLabel(L10n.text("Query results table"))
         scroll.documentView = table
         context.coordinator.table = table
+        // Frozen columns follow every horizontal scroll.
+        scroll.contentView.postsBoundsChangedNotifications = true
+        context.coordinator.scrollObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification, object: scroll.contentView, queue: .main
+        ) { [weak table] _ in MainActor.assumeIsolated { table?.refreshFrozenColumns() } }
         return scroll
     }
     func updateNSView(_ scroll: NSScrollView, context: Context) {
@@ -231,6 +289,7 @@ struct GridCollectionBridge: NSViewRepresentable {
             || old.pendingKeys != pendingKeys || old.deletedRows != deletedRows || table.numberOfRows != result.rows.count
         // Reloading would tear down the field being edited; the edit's own commit reloads afterwards.
         if changed, !context.coordinator.isEditing { table.reloadData() }
+        table.frozenCount = visibleColumns.prefix { configuration.pinned.contains($0) }.count
         table.outlinedSelection = selection
         if old.revealSelection != revealSelection, let end = selection?.end, end.row < table.numberOfRows {
             table.scrollRowToVisible(end.row)
@@ -263,7 +322,12 @@ struct GridCollectionBridge: NSViewRepresentable {
         private var editing: (row: Int, column: Int, original: String, field: NSTextField, box: NSView, multi: Bool)?
         var isEditing: Bool { editing != nil }
         private var actions: [() -> Void] = []
+        nonisolated(unsafe) var scrollObserver: NSObjectProtocol?
         init(_ parent: GridCollectionBridge) { self.parent = parent }
+        deinit { if let scrollObserver { NotificationCenter.default.removeObserver(scrollObserver) } }
+        func tableView(_ tableView: NSTableView, didAdd rowView: NSTableRowView, forRow row: Int) {
+            (tableView as? ResultTableView)?.refreshFrozenColumns()
+        }
         func numberOfRows(in tableView: NSTableView) -> Int { parent.result.rows.count }
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
             guard let identifier = tableColumn?.identifier, let index = Int(identifier.rawValue), parent.result.rows.indices.contains(row) else { return nil }
@@ -293,16 +357,31 @@ struct GridCollectionBridge: NSViewRepresentable {
             // a little stronger, and the selection's outline shows its extent.
             field.drawsBackground = false
             container.wantsLayer = true
-            let selected = parent.visibleColumns.firstIndex(of: index).map { parent.selection?.contains(row: row, column: $0) == true } ?? false
-            if deleted {
-                container.layer?.backgroundColor = NSColor.systemRed.withAlphaComponent(selected ? 0.18 : 0.12).resolvedCGColor(in: tableView)
-            } else if pending {
-                container.layer?.backgroundColor = NSColor.systemOrange.withAlphaComponent(selected ? 0.3 : 0.22).resolvedCGColor(in: tableView)
-            } else if selected {
+            let position = parent.visibleColumns.firstIndex(of: index)
+            let selected = position.map { parent.selection?.contains(row: row, column: $0) == true } ?? false
+            var tint: (NSColor, CGFloat)?
+            if deleted { tint = (.systemRed, selected ? 0.18 : 0.12) }
+            else if pending { tint = (.systemOrange, selected ? 0.3 : 0.22) }
+            else if selected {
                 // A dark background needs more of the accent to read as selected.
                 let dark = tableView.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-                container.layer?.backgroundColor = NSColor(PortSQLPalette.accent).withAlphaComponent(dark ? 0.22 : 0.12).resolvedCGColor(in: tableView)
-            } else { container.layer?.backgroundColor = nil }
+                tint = (NSColor(PortSQLPalette.accent), dark ? 0.22 : 0.12)
+            }
+            if let position, position < ((tableView as? ResultTableView)?.frozenCount ?? 0) {
+                // A frozen cell covers what scrolls beneath it, so its tint is mixed into the row's own color.
+                let base = NSColor.alternatingContentBackgroundColors[row % NSColor.alternatingContentBackgroundColors.count]
+                var color = base.resolvedCGColor(in: tableView)
+                tableView.effectiveAppearance.performAsCurrentDrawingAppearance {
+                    if let tint, let mixed = base.usingColorSpace(.sRGB)?.blended(withFraction: tint.1, of: tint.0.usingColorSpace(.sRGB) ?? tint.0) {
+                        color = mixed.cgColor
+                    }
+                }
+                container.layer?.backgroundColor = color
+                container.layer?.zPosition = 5
+            } else {
+                container.layer?.backgroundColor = tint.map { $0.0.withAlphaComponent($0.1).resolvedCGColor(in: tableView) }
+                container.layer?.zPosition = 0
+            }
             return container
         }
         /// A cell with horizontal insets, so right-aligned numbers don't touch the next column.
@@ -572,11 +651,33 @@ private final class ResultHeaderCell: NSTableHeaderCell {
 
 /// A header whose column titles take its full height, for the taller two-line header.
 private final class ResultHeaderView: NSTableHeaderView {
+    private var frozenCount: Int { (tableView as? ResultTableView)?.frozenCount ?? 0 }
+    private var frozenShift: CGFloat { frozenCount > 0 ? max(0, tableView?.visibleRect.minX ?? 0) : 0 }
+
     override func headerRect(ofColumn column: Int) -> NSRect {
         var rect = super.headerRect(ofColumn: column)
         rect.origin.y = bounds.minY
         rect.size.height = bounds.height
+        if column >= 0, column < frozenCount { rect.origin.x += frozenShift }
         return rect
+    }
+
+    override func column(at point: NSPoint) -> Int {
+        guard let table = tableView as? ResultTableView, frozenCount > 0 else { return super.column(at: point) }
+        return table.column(at: NSPoint(x: point.x, y: table.visibleRect.minY))
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        // Columns after the frozen ones are drawn after them, over them once scrolled; draw the frozen headers last.
+        guard let table = tableView, frozenCount > 0 else { return }
+        for column in 0..<min(frozenCount, table.numberOfColumns) {
+            let rect = headerRect(ofColumn: column)
+            guard rect.intersects(dirtyRect) || rect.intersects(visibleRect) else { continue }
+            NSColor.windowBackgroundColor.setFill()
+            rect.fill()
+            table.tableColumns[column].headerCell.draw(withFrame: rect, in: self)
+        }
     }
 }
 

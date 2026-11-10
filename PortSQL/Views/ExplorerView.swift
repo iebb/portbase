@@ -412,7 +412,8 @@ struct LibrarySheetView: View {
     @State private var selection: LibrarySection = .history
     @State private var search = ""
     @State private var outcome: QueryHistoryOutcome?
-    @State private var currentConnectionOnly = false
+    /// The connection whose queries are shown, or nil for every connection.
+    @State private var connectionFilter: UUID?
     @State private var editing: SavedQuerySnippet?
     @State private var contextError: String?
     @State private var showsStorage = false
@@ -423,17 +424,32 @@ struct LibrarySheetView: View {
 
     private var history: [QueryHistoryEntry] {
         library.history.filter { entry in
-            (!currentConnectionOnly || entry.bookmarkID == workspace.selectedBookmark?.id)
+            (connectionFilter == nil || entry.bookmarkID == connectionFilter)
                 && (outcome == nil || (entry.outcome ?? .succeeded) == outcome)
                 && matches([entry.title, entry.sql, entry.connectionName, entry.database ?? "", entry.summary])
         }
     }
     private var snippets: [SavedQuerySnippet] {
         library.snippets.filter { snippet in
-            (!currentConnectionOnly || snippet.bookmarkID == workspace.selectedBookmark?.id)
+            (connectionFilter == nil || snippet.bookmarkID == connectionFilter)
                 && matches([snippet.title, snippet.sql, snippet.note, snippet.database ?? "", snippet.folder ?? ""])
         }
     }
+    /// Every connection that has queries here: the current one first, then by most recent use, each named
+    /// as it was when its latest query ran.
+    private var connectionChoices: [(id: UUID, name: String)] {
+        var seen = Set<UUID>()
+        var choices: [(id: UUID, name: String)] = []
+        if let current = workspace.selectedBookmark {
+            seen.insert(current.id)
+            choices.append((current.id, current.name.isEmpty ? current.host : current.name))
+        }
+        for entry in library.history {
+            if let id = entry.bookmarkID, seen.insert(id).inserted { choices.append((id, entry.connectionName)) }
+        }
+        return choices
+    }
+
     private func matches(_ fields: [String]) -> Bool {
         search.isEmpty || fields.contains { $0.localizedCaseInsensitiveContains(search) }
     }
@@ -526,15 +542,16 @@ struct LibrarySheetView: View {
                 .accessibilityLabel("Status")
             }
             Menu {
-                Picker("Connection", selection: $currentConnectionOnly) {
-                    Text("All Connections").tag(false)
-                    Text("Current Connection").tag(true)
+                Picker("Connection", selection: $connectionFilter) {
+                    Text("All Connections").tag(Optional<UUID>.none)
+                    ForEach(connectionChoices, id: \.id) { choice in
+                        Text(choice.name).tag(Optional(choice.id))
+                    }
                 }
                 .pickerStyle(.inline)
-                .disabled(workspace.selectedBookmark == nil)
             } label: {
-                filterLabel(currentConnectionOnly ? (workspace.selectedBookmark?.name ?? L10n.text("Current Connection")) : L10n.text("All Connections"),
-                            active: currentConnectionOnly)
+                filterLabel(connectionFilter.flatMap { id in connectionChoices.first { $0.id == id }?.name } ?? L10n.text("All Connections"),
+                            active: connectionFilter != nil)
             }
             .portbaseFilterMenu()
             .accessibilityLabel("Connection")
@@ -623,12 +640,12 @@ struct LibrarySheetView: View {
     }
 
     private var emptyState: some View {
-        let filtered = !search.isEmpty || outcome != nil || currentConnectionOnly
+        let filtered = !search.isEmpty || outcome != nil || connectionFilter != nil
         return PortbaseEmptyState(
             title: filtered ? L10n.text("No matching queries") : (selection == .history ? L10n.text("No queries yet") : L10n.text("No saved queries")),
             systemImage: selection == .history ? "clock.arrow.circlepath" : "bookmark",
             secondaryTitle: filtered ? L10n.text("Reset Filters") : nil,
-            secondaryAction: filtered ? { search = ""; outcome = nil; currentConnectionOnly = false } : nil
+            secondaryAction: filtered ? { search = ""; outcome = nil; connectionFilter = nil } : nil
         )
         .padding(Spacing.xxl)
     }

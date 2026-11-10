@@ -1,33 +1,78 @@
 import Foundation
 
+/// Narrows the loaded rows without asking the server again. Each condition tests one column, or any
+/// column; a row is shown when it meets every condition.
 struct LoadedResultFilter: Equatable {
     enum Mode: String, CaseIterable {
-        case contains, equals, null, emptyText
+        case contains, equals, greaterThan, lessThan, null, notNull, emptyText
         var title: String {
             switch self {
             case .contains: L10n.text("Contains")
             case .equals: L10n.text("Equals")
+            case .greaterThan: L10n.text("Greater than")
+            case .lessThan: L10n.text("Less than")
             case .null: "NULL"
+            case .notNull: L10n.text("Not NULL")
             case .emptyText: L10n.text("Empty text")
             }
         }
+        /// Whether the mode compares with a typed value.
+        var takesValue: Bool { self == .contains || self == .equals || self == .greaterThan || self == .lessThan }
     }
-    var column: Int?
-    var mode: Mode = .contains
-    var text = ""
-    var isActive: Bool { mode != .contains || !text.isEmpty }
+
+    struct Condition: Equatable, Identifiable {
+        var id = UUID()
+        var column: Int?
+        var mode: Mode = .contains
+        var text = ""
+        var isActive: Bool { !mode.takesValue || !text.isEmpty }
+
+        func matches(_ cell: QueryCell) -> Bool {
+            switch mode {
+            case .null: return cell.isNull
+            case .notNull: return !cell.isNull
+            case .emptyText: return cell == .text("")
+            case .contains: return !cell.isNull && cell.displayValue.localizedCaseInsensitiveContains(text)
+            case .equals: return !cell.isNull && cell.displayValue.compare(text, options: .caseInsensitive) == .orderedSame
+            // Numbers compare by value, dates and text in natural order; NULL is neither greater nor less.
+            case .greaterThan, .lessThan:
+                guard !cell.isNull else { return false }
+                let order = LoadedValueKey(cell).compare(LoadedValueKey(typedLike: cell, text: text))
+                return mode == .greaterThan ? order == .orderedDescending : order == .orderedAscending
+            }
+        }
+    }
+
+    var conditions: [Condition]
+
+    init(column: Int? = nil, mode: Mode = .contains, text: String = "") {
+        conditions = [Condition(column: column, mode: mode, text: text)]
+    }
+
+    var isActive: Bool { conditions.contains(where: \.isActive) }
+
+    /// The first condition, which the quick filters set.
+    var column: Int? {
+        get { conditions.first?.column }
+        set { if conditions.isEmpty { conditions = [Condition()] }; conditions[0].column = newValue }
+    }
+
+    /// This filter with one more condition, replacing an inactive first one.
+    func adding(_ condition: Condition) -> LoadedResultFilter {
+        var copy = self
+        copy.conditions = conditions.filter(\.isActive) + [condition]
+        return copy
+    }
 
     func matchingRows(in result: QueryResultTable) -> [Int] {
-        guard isActive else { return Array(result.rows.indices) }
-        let columns = column.map { result.columns.indices.contains($0) ? [$0] : [] } ?? Array(result.columns.indices)
+        let active = conditions.filter(\.isActive)
+        guard !active.isEmpty else { return Array(result.rows.indices) }
+        let all = Array(result.columns.indices)
         return result.rows.indices.filter { row in
-            columns.contains { index in
-                let cell = result.rows[row].cells.indices.contains(index) ? result.rows[row].cells[index] : .null
-                switch mode {
-                case .null: return cell.isNull
-                case .emptyText: return cell == .text("")
-                case .contains: return !cell.isNull && cell.displayValue.localizedCaseInsensitiveContains(text)
-                case .equals: return !cell.isNull && cell.displayValue.compare(text, options: .caseInsensitive) == .orderedSame
+            active.allSatisfy { condition in
+                let columns = condition.column.map { result.columns.indices.contains($0) ? [$0] : [] } ?? all
+                return columns.contains { index in
+                    condition.matches(result.rows[row].cells.indices.contains(index) ? result.rows[row].cells[index] : .null)
                 }
             }
         }
@@ -43,7 +88,7 @@ struct LoadedResultSort: Equatable {
     /// The rows, in the given order, sorted by the column; ties keep their order.
     func ordered(_ rows: [Int], in result: QueryResultTable) -> [Int] {
         guard result.columns.indices.contains(column) else { return rows }
-        let keys = rows.map { row in Key(result.rows[row].cells.indices.contains(column) ? result.rows[row].cells[column] : .null) }
+        let keys = rows.map { row in LoadedValueKey(result.rows[row].cells.indices.contains(column) ? result.rows[row].cells[column] : .null) }
         let order = rows.indices.sorted { left, right in
             let a = keys[left], b = keys[right]
             // NULLs stay last whichever way the column sorts.
@@ -60,43 +105,54 @@ struct LoadedResultSort: Equatable {
         guard let current, current.column == column else { return LoadedResultSort(column: column) }
         return current.descending ? nil : LoadedResultSort(column: column, descending: true)
     }
+}
 
-    private enum Key {
-        case null, boolean(Bool), number(Decimal), text(String), binary(Data)
+/// A loaded value as sorting and filtering compare it: numbers exactly at any size, text in natural
+/// order, so item2 comes before item10 and ISO dates fall in time order.
+enum LoadedValueKey {
+    case null, boolean(Bool), number(ExactDecimal), text(String), binary(Data)
 
-        init(_ cell: QueryCell) {
-            switch cell {
-            case .null: self = .null
-            case .boolean(let value): self = .boolean(value)
-            case .integer(let text), .decimal(let text):
-                self = Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")).map { .number($0) } ?? .text(text)
-            case .text(let text), .json(let text), .dateTime(let text), .extendedJSON(_, let text): self = .text(text)
-            case .binary(let data): self = .binary(data)
-            }
+    init(_ cell: QueryCell) {
+        switch cell {
+        case .null: self = .null
+        case .boolean(let value): self = .boolean(value)
+        case .integer(let text), .decimal(let text):
+            self = ExactDecimal(text).map { .number($0) } ?? .text(text)
+        case .text(let text), .json(let text), .dateTime(let text), .extendedJSON(_, let text): self = .text(text)
+        case .binary(let data): self = .binary(data)
         }
+    }
 
-        var isNull: Bool { if case .null = self { true } else { false } }
-
-        private var rank: Int {
-            switch self {
-            case .boolean: 0
-            case .number: 1
-            case .text: 2
-            case .binary: 3
-            case .null: 4
-            }
+    /// Text a person typed, read as the same kind of value as the cell it is compared with.
+    init(typedLike cell: QueryCell, text: String) {
+        switch cell {
+        case .integer, .decimal: self = ExactDecimal(text).map { .number($0) } ?? .text(text)
+        case .boolean: self = ["true", "t", "1", "yes"].contains(text.lowercased()) ? .boolean(true) : .boolean(false)
+        default: self = .text(text)
         }
+    }
 
-        func compare(_ other: Key) -> ComparisonResult {
-            switch (self, other) {
-            case (.boolean(let a), .boolean(let b)): return a == b ? .orderedSame : (a ? .orderedDescending : .orderedAscending)
-            case (.number(let a), .number(let b)): return a == b ? .orderedSame : (a < b ? .orderedAscending : .orderedDescending)
-            // Natural order, so item2 comes before item10; ISO dates and times sort in time order this way too.
-            case (.text(let a), .text(let b)): return a.localizedStandardCompare(b)
-            case (.binary(let a), .binary(let b)):
-                return a == b ? .orderedSame : (a.lexicographicallyPrecedes(b) ? .orderedAscending : .orderedDescending)
-            default: return rank == other.rank ? .orderedSame : (rank < other.rank ? .orderedAscending : .orderedDescending)
-            }
+    var isNull: Bool { if case .null = self { true } else { false } }
+
+    private var rank: Int {
+        switch self {
+        case .boolean: 0
+        case .number: 1
+        case .text: 2
+        case .binary: 3
+        case .null: 4
+        }
+    }
+
+    func compare(_ other: LoadedValueKey) -> ComparisonResult {
+        switch (self, other) {
+        case (.boolean(let a), .boolean(let b)): return a == b ? .orderedSame : (a ? .orderedDescending : .orderedAscending)
+        case (.number(let a), .number(let b)): return a == b ? .orderedSame : (a < b ? .orderedAscending : .orderedDescending)
+        // Natural order, so item2 comes before item10; ISO dates and times sort in time order this way too.
+        case (.text(let a), .text(let b)): return a.localizedStandardCompare(b)
+        case (.binary(let a), .binary(let b)):
+            return a == b ? .orderedSame : (a.lexicographicallyPrecedes(b) ? .orderedAscending : .orderedDescending)
+        default: return rank == other.rank ? .orderedSame : (rank < other.rank ? .orderedAscending : .orderedDescending)
         }
     }
 }

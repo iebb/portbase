@@ -23,6 +23,41 @@ final class WorkspaceToolsTests: XCTestCase {
         }
     }
 
+    func testLoadedRowFiltersCombineConditionsAndCompareByType() {
+        var result = QueryResultTable.empty
+        result.columns = [QueryColumn(name: "amount", type: "numeric"), QueryColumn(name: "placed_at", type: "timestamp"), QueryColumn(name: "note", type: "text")]
+        result.rows = [
+            QueryRow(cells: [.decimal("9"), .dateTime("2026-01-05 10:00:00"), .text("item10")]),
+            QueryRow(cells: [.decimal("10"), .dateTime("2026-02-01 00:00:00"), .null]),
+            QueryRow(cells: [.decimal("1e200"), .dateTime("2025-12-31 23:59:59"), .text("item2")]),
+            QueryRow(cells: [.null, .dateTime("2026-03-01 00:00:00"), .text("x")]),
+        ]
+        XCTAssertEqual(LoadedResultFilter(column: 0, mode: .greaterThan, text: "9.5").matchingRows(in: result), [1, 2],
+                       "Numbers compare by value, at any size, not as text; NULL is neither greater nor less")
+        XCTAssertEqual(LoadedResultFilter(column: 1, mode: .lessThan, text: "2026-01-31").matchingRows(in: result), [0, 2])
+        XCTAssertEqual(LoadedResultFilter(column: 2, mode: .notNull).matchingRows(in: result), [0, 2, 3])
+        let combined = LoadedResultFilter(column: 0, mode: .greaterThan, text: "5")
+            .adding(.init(column: 1, mode: .greaterThan, text: "2026-01-01"))
+        XCTAssertEqual(combined.matchingRows(in: result), [0, 1], "Every condition must hold")
+        XCTAssertEqual(LoadedResultFilter().adding(.init(column: 2, mode: .null)).conditions.count, 1, "An empty first condition is replaced")
+        XCTAssertEqual(LoadedResultSort(column: 0).ordered(Array(result.rows.indices), in: result), [0, 1, 2, 3], "Exact numbers sort past Decimal's range")
+    }
+
+    @MainActor func testHistoryKeepsTwoThousandRunsAndSurvivesReopening() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = WorkspaceLibraryStore(directory: directory, cloudSyncEnabled: false)
+        for index in 0..<(WorkspaceLibraryStore.historyLimit + 5) {
+            store.addHistory(QueryHistoryEntry(title: "Q\(index)", sql: "SELECT \(index)", connectionName: "Fixture", summary: ""))
+        }
+        XCTAssertEqual(store.history.count, 2_000)
+        XCTAssertEqual(store.history.first?.title, "Q2004")
+        XCTAssertEqual(store.history.last?.title, "Q5", "The oldest runs go first")
+        let reopened = WorkspaceLibraryStore(directory: directory, cloudSyncEnabled: false)
+        XCTAssertEqual(reopened.history.count, 2_000, "Reopening waits for the background write")
+        XCTAssertEqual(reopened.history.first?.title, "Q2004")
+    }
+
     func testLoadedRowFilteringDistinguishesNullEmptyTextAndEmptyBinary() {
         var result = QueryResultTable.empty
         result.columns = [QueryColumn(name: "id", type: "integer"), QueryColumn(name: "value", type: "text")]

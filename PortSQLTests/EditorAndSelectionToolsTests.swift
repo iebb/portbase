@@ -53,6 +53,54 @@ final class EditorAndSelectionToolsTests: XCTestCase {
         XCTAssertTrue(openedBulkEditor, "Return opens one editor for the whole range")
         XCTAssertEqual(selection?.count, 8)
     }
+
+    @MainActor
+    func testMacPinnedColumnsStayInPlaceWhileTheRestScroll() async throws {
+        var selection: ResultGridSelection?
+        let columns = (0..<12).map { QueryColumn(name: "column_\($0)", type: "text") }
+        let result = QueryResultTable(columns: columns, rows: (0..<30).map { row in QueryRow(cells: columns.indices.map { .text("r\(row)c\($0)") }) },
+                                      executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: nil, sourceQuery: nil)
+        var configuration = ResultGridConfiguration()
+        configuration.pinned = [0]
+        let grid = GridCollectionBridge(result: result, visibleColumns: configuration.visibleColumns(count: columns.count), configuration: configuration,
+                                        selection: Binding(get: { selection }, set: { selection = $0 }), extendsSelection: .constant(false),
+                                        rowHeight: 24, primaryKeys: [], sortedColumn: nil, sortDirection: nil,
+                                        onInspectCell: { _, _ in }, onConfigureColumn: { _ in }, onPinColumn: { _ in }, onHideColumn: { _ in })
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 420, height: 300), styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let host = NSHostingView(rootView: grid)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        func findTable(_ view: NSView) -> ResultTableView? {
+            if let table = view as? ResultTableView { return table }
+            return view.subviews.lazy.compactMap { findTable($0) }.first
+        }
+        for _ in 0..<20 where findTable(host) == nil { await Task.yield() }
+        let table = try XCTUnwrap(findTable(host))
+        table.reloadData()
+        table.layoutSubtreeIfNeeded()
+        XCTAssertEqual(table.frozenCount, 1)
+        let pinnedAtRest = table.frameOfCell(atColumn: 0, row: 0)
+
+        let clip = try XCTUnwrap(table.enclosingScrollView?.contentView)
+        clip.scroll(to: NSPoint(x: 600, y: 0))
+        table.enclosingScrollView?.reflectScrolledClipView(clip)
+        table.layoutSubtreeIfNeeded()
+        let shift = table.visibleRect.minX
+        XCTAssertGreaterThan(shift, 0)
+        let pinned = table.frameOfCell(atColumn: 0, row: 0)
+        XCTAssertEqual(pinned.minX, pinnedAtRest.minX + shift, accuracy: 0.5, "The pinned column moves with the scroll, so it stays on screen")
+        XCTAssertEqual(table.column(at: NSPoint(x: pinned.midX, y: pinned.midY)), 0, "A click there lands on the pinned column")
+        let scrolled = table.column(at: NSPoint(x: pinned.maxX + 20, y: pinned.midY))
+        XCTAssertGreaterThan(scrolled, 0, "Beside it are the scrolled columns")
+        let rowView = try XCTUnwrap(table.rowView(atRow: 0, makeIfNecessary: false))
+        let cell = try XCTUnwrap(rowView.view(atColumn: 0) as? NSView)
+        XCTAssertEqual(rowView.convert(cell.frame, to: table).minX, pinned.minX, accuracy: 0.5)
+        let neighbor = try XCTUnwrap(rowView.view(atColumn: scrolled) as? NSView)
+        XCTAssertGreaterThan(cell.layer?.zPosition ?? 0, neighbor.layer?.zPosition ?? 0, "The pinned cell is drawn over the cells scrolling beneath it")
+        XCTAssertNotNil(cell.layer?.backgroundColor, "and covers them")
+    }
 #endif
 
     func testGridRectangleResolvesDisplayOrderAndRejectsStalePositions() {

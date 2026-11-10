@@ -6,7 +6,6 @@ enum ClickHouseDatabaseClient {
                         database: String?, policy: DatabaseExecutionPolicy, timeoutSeconds: Int = 30,
                         eventLoopGroup: EventLoopGroup) async throws -> QueryResultTable {
         guard profile.httpAuthentication != .apiKey else { throw DatabaseServiceError.unsupported }
-        guard values.isEmpty else { throw HTTPDatabaseError.unsupportedParameters }
         let isRead = try ClickHouseQueryService.classify(query)
         try enforcePolicy(isReadOnly: isRead, profile: profile, policy: policy)
         let timeout = min(300, max(1, timeoutSeconds))
@@ -20,6 +19,11 @@ enum ClickHouseDatabaseClient {
         let selected = database?.trimmingCharacters(in: .whitespacesAndNewlines)
         let databaseName = selected?.isEmpty == false ? selected! : profile.trimmedDefaultDatabase
         if !databaseName.isEmpty { settings["database"] = databaseName }
+        // Values for the {pN:String} placeholders QueryParameterService writes, sent beside the query
+        // rather than spliced into it.
+        for (index, value) in values.enumerated() {
+            settings["param_p\(index + 1)"] = try parameterText(value)
+        }
         let response: HTTPDatabaseResponse
         do {
             response = try await HTTPDatabaseTransport.request(profile: profile, method: "POST", path: "/",
@@ -41,6 +45,30 @@ enum ClickHouseDatabaseClient {
         }
         do { return try materialize(HTTPJSONValue.parse(response.body), profileName: profile.name) }
         catch { if !isRead { throw HTTPDatabaseError.unconfirmedWrite }; throw error }
+    }
+
+    /// A parameter value in ClickHouse's escaped text format, where a backslash starts an escape.
+    static func parameterText(_ value: QueryBoundValue) throws -> String {
+        let text: String
+        switch value {
+        case .null: throw HTTPDatabaseError.unsupportedParameters
+        case .string(let string): text = string
+        case .integer(let integer): text = String(integer)
+        case .decimal(let decimal): text = decimal
+        case .boolean(let boolean): text = boolean ? "true" : "false"
+        }
+        var escaped = ""
+        for character in text.unicodeScalars {
+            switch character {
+            case "\\": escaped += "\\\\"
+            case "\t": escaped += "\\t"
+            case "\n": escaped += "\\n"
+            case "\r": escaped += "\\r"
+            case "\0": escaped += "\\0"
+            default: escaped.unicodeScalars.append(character)
+            }
+        }
+        return escaped
     }
 
     static func enforcePolicy(isReadOnly: Bool, profile: ConnectionProfile, policy: DatabaseExecutionPolicy) throws {

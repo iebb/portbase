@@ -1736,3 +1736,12 @@
 "Never executed" = "실행되지 않음";
 "Ran in %@" = "실행 시간 %@";
 "Actual %@" = "실제 %@";
+"Greater than" = "보다 큼";
+"Less than" = "보다 작음";
+"Greater than “%@”" = "“%@”보다 큼";
+"Less than “%@”" = "“%@”보다 작음";
+"Not NULL" = "NULL 아님";
+"Add Condition" = "조건 추가";
+"Remove Condition" = "조건 제거";
+"Filter Column…" = "열 필터…";
+"Column Statistics" = "열 통계";

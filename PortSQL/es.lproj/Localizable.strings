@@ -1736,3 +1736,12 @@
 "Never executed" = "Nunca ejecutado";
 "Ran in %@" = "Ejecutada en %@";
 "Actual %@" = "Real %@";
+"Greater than" = "Mayor que";
+"Less than" = "Menor que";
+"Greater than “%@”" = "Mayor que «%@»";
+"Less than “%@”" = "Menor que «%@»";
+"Not NULL" = "No NULL";
+"Add Condition" = "Añadir condición";
+"Remove Condition" = "Quitar condición";
+"Filter Column…" = "Filtrar columna…";
+"Column Statistics" = "Estadísticas de la columna";

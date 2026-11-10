@@ -23,7 +23,9 @@ enum DatabaseEngine: String, Codable, CaseIterable, Identifiable {
     var supportsSchemaObjects: Bool { supportsRowEditing }
     var supportsDataImport: Bool { supportsRowEditing || self == .mongodb }
     var supportsFullExport: Bool { supportsDataImport }
-    var supportsNativeParameters: Bool { supportsRowEditing }
+    /// Named `:parameters` bind natively: positional placeholders on SQL engines, and ClickHouse's
+    /// typed `{name:Type}` query parameters over HTTP.
+    var supportsNativeParameters: Bool { supportsRowEditing || self == .clickhouse }
     var canNegotiateTLS: Bool { isMySQLFamily || self == .postgresql }
     var queryLanguage: String { usesJSONEditor ? "JSON" : isSQL ? "SQL" : "Redis" }
     /// Describes what the empty editor accepts, without sample values that could be mistaken for real ones.

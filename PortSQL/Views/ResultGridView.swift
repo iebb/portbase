@@ -508,7 +508,7 @@ struct ResultGridView: View {
             .accessibilityLabel("Query results table")
         }
         .sheet(isPresented: $showsColumns) { columnSettings.portbaseDesktopSheetSize() }
-        .sheet(isPresented: $showsFilter) { filterSettings.portbaseDesktopSheetSize(width: 480, height: 320) }
+        .sheet(isPresented: $showsFilter) { filterSettings.portbaseDesktopSheetSize(width: 560, height: 420) }
         .sheet(item: $inspectedCell) { ResultCellInspector(selection: $0).portbaseDesktopSheetSize() }
         .sheet(item: $selectionEdit) { ResultCellsEditor(edit: $0).portbaseDesktopSheetSize(width: 520, height: 360) }
         .alert("Go to Row", isPresented: $showsGoToRow) {
@@ -668,7 +668,9 @@ struct ResultGridView: View {
     }
 
     private func updateFilter() {
-        if let column = filter.column, !result.columns.indices.contains(column) { filter.column = nil }
+        for index in filter.conditions.indices {
+            if let column = filter.conditions[index].column, !result.columns.indices.contains(column) { filter.conditions[index].column = nil }
+        }
         let rows = filter.isActive ? filter.matchingRows(in: result) : nil
         if sortsLocally, let localSort {
             filteredRows = localSort.ordered(rows ?? Array(result.rows.indices), in: result)
@@ -681,18 +683,32 @@ struct ResultGridView: View {
     private var filterSettings: some View {
         PortbaseSheet(L10n.text("Filter Loaded Rows"), onClose: { showsFilter = false }) {
             Form {
-                Picker("Column", selection: $filter.column) {
-                    Text("All Columns").tag(Optional<Int>.none)
-                    ForEach(result.columns.indices, id: \.self) { index in Text(result.columns[index].name).tag(Optional(index)) }
+                // Every condition must hold; each tests one column, or any column.
+                ForEach($filter.conditions) { $condition in
+                    Section {
+                        Picker("Column", selection: $condition.column) {
+                            Text("All Columns").tag(Optional<Int>.none)
+                            ForEach(result.columns.indices, id: \.self) { index in Text(result.columns[index].name).tag(Optional(index)) }
+                        }
+                        Picker("Match", selection: $condition.mode) {
+                            ForEach(LoadedResultFilter.Mode.allCases, id: \.self) { mode in Text(mode.title).tag(mode) }
+                        }
+                        if condition.mode.takesValue {
+                            TextField("Value", text: $condition.text).portbaseTextCapitalization(.never).autocorrectionDisabled()
+                        }
+                        if filter.conditions.count > 1 {
+                            Button("Remove Condition", role: .destructive) {
+                                let id = condition.id
+                                filter.conditions.removeAll { $0.id == id }
+                            }
+                        }
+                    }
                 }
-                Picker("Match", selection: $filter.mode) {
-                    ForEach(LoadedResultFilter.Mode.allCases, id: \.self) { mode in Text(mode.title).tag(mode) }
+                Section {
+                    Button("Add Condition", systemImage: "plus") { filter.conditions.append(.init()) }
+                    Text(L10n.format("Loaded rows: %d / %d", rowIndices.count, result.rows.count))
+                        .foregroundStyle(PortSQLPalette.muted)
                 }
-                if filter.mode == .contains || filter.mode == .equals {
-                    TextField("Value", text: $filter.text).portbaseTextCapitalization(.never).autocorrectionDisabled()
-                }
-                Text(L10n.format("Loaded rows: %d / %d", rowIndices.count, result.rows.count))
-                    .foregroundStyle(PortSQLPalette.muted)
             }
             .portbaseForm()
         } footer: {
@@ -839,8 +855,38 @@ struct ResultGridView: View {
                 configuration.widths = [:]
             },
             .action(L10n.text("Column Settings…"), "slider.horizontal.3") { focusedColumn = column; showsColumns = true },
+            .separator,
+            .action(L10n.text("Filter Column…"), "line.3.horizontal.decrease.circle") {
+                filter = filter.adding(.init(column: column))
+                showsFilter = true
+            },
+            .submenu(L10n.text("Column Statistics"), "chart.bar.doc.horizontal", columnStatistics(column)),
         ]
         return items
+    }
+
+    /// The column's figures over the rows shown, as read-only menu lines.
+    private func columnStatistics(_ column: Int) -> [ResultGridMenuItem] {
+        let insight = ResultInsightsService.insight(column: column, in: displayedResult)
+        func line(_ title: String, _ value: String) -> ResultGridMenuItem {
+            .action(title + "  " + value, enabled: false) {}
+        }
+        func number(_ value: Double) -> String { value.formatted(.number.precision(.significantDigits(1...8))) }
+        var lines = [
+            .action(L10n.plural("row_count", count: insight.rowCount), enabled: false) {},
+            line(L10n.text("Distinct"), insight.distinctCount.formatted()),
+            line("NULL", insight.nullRatio.formatted(.percent.precision(.fractionLength(0...1)))),
+        ]
+        if let numeric = insight.numeric {
+            lines += [line(L10n.text("Min"), number(numeric.minimum)), line(L10n.text("Max"), number(numeric.maximum)),
+                      line(L10n.text("Mean"), number(numeric.mean)), line(L10n.text("Median"), number(numeric.median))]
+        } else if let earliest = insight.earliest, let latest = insight.latest {
+            lines += [line(L10n.text("Min"), earliest), line(L10n.text("Max"), latest)]
+        }
+        if let top = insight.topValues.first, insight.distinctCount < insight.rowCount {
+            lines.append(line(L10n.text("Most frequent"), String(top.value.prefix(40)) + " × " + top.count.formatted()))
+        }
+        return lines
     }
 
     /// Actions for a cell: open, copy, filter the loaded rows by its value, and the host's row actions.
@@ -899,11 +945,24 @@ struct ResultGridView: View {
                 .action(format.title, format.systemImage) { copy(as: format) }
             }))
         }
+        // Each choice narrows the rows already shown, so filters on several columns combine.
+        let shown = String(value.displayValue.prefix(40))
         var filterItems: [ResultGridMenuItem] = value.isNull
-            ? [.action(L10n.text("Only NULL"), "circle.slash") { filter = LoadedResultFilter(column: column, mode: .null) }]
-            : [.action(L10n.format("Equal to “%@”", String(value.displayValue.prefix(40))), "equal") {
-                filter = LoadedResultFilter(column: column, mode: .equals, text: value.displayValue)
+            ? [.action(L10n.text("Only NULL"), "circle.slash") { filter = filter.adding(.init(column: column, mode: .null)) }]
+            : [.action(L10n.format("Equal to “%@”", shown), "equal") {
+                filter = filter.adding(.init(column: column, mode: .equals, text: value.displayValue))
             }]
+        switch value {
+        case .integer, .decimal, .dateTime:
+            filterItems += [
+                .action(L10n.format("Greater than “%@”", shown), "greaterthan") { filter = filter.adding(.init(column: column, mode: .greaterThan, text: value.displayValue)) },
+                .action(L10n.format("Less than “%@”", shown), "lessthan") { filter = filter.adding(.init(column: column, mode: .lessThan, text: value.displayValue)) },
+            ]
+        default: break
+        }
+        if !value.isNull {
+            filterItems.append(.action(L10n.text("Not NULL"), "circle") { filter = filter.adding(.init(column: column, mode: .notNull)) })
+        }
         if filter.isActive {
             filterItems.append(.action(L10n.text("Clear Filter"), "xmark.circle") { filter = LoadedResultFilter() })
         }
