@@ -145,6 +145,9 @@ struct RootView: View {
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $workspace.isShowingSchemaDiagram) {
+            SchemaDiagramView { table in workspace.selectExplorerTable(table); navigate(.explorer) }
+        }
         .sheet(isPresented: $workspace.isShowingAssistant) {
             AssistantSheet(session: workspace.assistant, onShowConsole: { selectedTab = .studio })
                 .presentationDetents([.large])

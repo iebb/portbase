@@ -272,6 +272,15 @@ struct CommandPaletteView: View {
                                isEnabled: hasConnection && hasQuery && (workspace.isSQLDatabase || workspace.isDocumentDatabase), keywords: "plan") {
                 onNavigate(.console); workspace.runExplain()
             },
+            CommandPaletteItem(id: "explain-analyze", group: .actions, title: L10n.text("Explain Analyze"), systemImage: "stopwatch",
+                               isEnabled: hasConnection && hasQuery && workspace.canExplainAnalyze && !workspace.isRunning, keywords: "plan timing actual") {
+                onNavigate(.console); workspace.runExplain(analyze: true)
+            },
+            CommandPaletteItem(id: "schema-diagram", group: .actions, title: L10n.text("Schema Diagram"), systemImage: "point.3.connected.trianglepath.dotted",
+                               isEnabled: workspace.selectedBookmark?.engine.isRelational == true, keywords: "erd relationships foreign keys") {
+                // Present after the palette has finished dismissing.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { workspace.isShowingSchemaDiagram = true }
+            },
             CommandPaletteItem(id: "ask-ai", group: .actions, title: L10n.text("Ask AI"), systemImage: "sparkles",
                                isEnabled: hasConnection, keywords: "llm assistant gpt claude generate sql chart") {
                 // Present after the palette has finished dismissing.

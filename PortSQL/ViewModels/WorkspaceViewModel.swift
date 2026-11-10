@@ -74,6 +74,8 @@ final class WorkspaceViewModel: ObservableObject {
     /// An action that would replace the loaded rows, held until staged edits are discarded or kept.
     @Published var pendingDiscardRequest: PendingDiscardRequest?
     @Published var isShowingAssistant = false
+    /// Set by the command palette or a menu command to open the schema diagram wherever the workspace is shown.
+    @Published var isShowingSchemaDiagram = false
     /// This console's conversation with the assistant.
     let assistant = AssistantSession()
     /// A chart the assistant proposed, built once its query finishes running.

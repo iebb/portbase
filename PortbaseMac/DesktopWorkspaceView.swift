@@ -192,6 +192,9 @@ struct DesktopWorkspaceView: View {
     private func withSheets<Content: View>(_ content: Content) -> some View {
         content
         .sheet(isPresented: $showsPalette) { CommandPaletteView(onNavigate: navigate, onCreateSQLite: { createsSQLite = true }) }
+        .sheet(isPresented: $workspace.isShowingSchemaDiagram) {
+            SchemaDiagramView { table in open(table, keeps: true) }.portbaseDesktopSheetSize(width: 1100, height: 760)
+        }
         .newSQLiteDatabasePrompt(isPresented: $createsSQLite) { show(.console) }
         .sheet(item: $workspace.dataEditorDraft) { _ in DesktopRowEditor().frame(minWidth: 620, minHeight: 360) }
         .sheet(item: $workspace.parameterDraft) { draft in QueryParameterSheet(draft: draft).frame(minWidth: 480, minHeight: 320) }
