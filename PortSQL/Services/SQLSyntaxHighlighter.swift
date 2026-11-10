@@ -27,93 +27,121 @@ enum SQLSyntaxHighlighter {
         "VIEW", "WHEN", "WHERE"
     ]
 
+    private static let longestKeyword = keywords.map(\.count).max() ?? 0
+
+    /// What a character is to the tokenizer. A mark joins the character before it, as an accent does.
+    private enum CharacterClass { case letter, number, space, mark, other }
+
+    private static let asciiClasses: [CharacterClass] = (0..<128).map { (code: Int) -> CharacterClass in
+        switch UInt8(code) {
+        case UInt8(ascii: "a")...UInt8(ascii: "z"), UInt8(ascii: "A")...UInt8(ascii: "Z"): .letter
+        case UInt8(ascii: "0")...UInt8(ascii: "9"): .number
+        case 0x09...0x0D, 0x20: .space
+        default: .other
+        }
+    }
+
+    /// Scans UTF-16, the units text views count in, so a token's range needs no conversion and a long
+    /// script isn't first split into characters.
     static func tokens(in query: String) -> [SQLToken] {
-        let characters = Array(query)
-        let utf16Offsets = characters.reduce(into: [0]) { offsets, character in
-            offsets.append(offsets.last! + String(character).utf16.count)
-        }
-        func range(_ start: Int, _ end: Int) -> NSRange {
-            NSRange(location: utf16Offsets[start], length: utf16Offsets[end] - utf16Offsets[start])
-        }
+        let units = Array(query.utf16)
+        let count = units.count
         var tokens: [SQLToken] = []
+        tokens.reserveCapacity(count / 5)
         var index = 0
 
-        while index < characters.count {
-            let character = characters[index]
+        /// The class of the character at a position and the units it takes.
+        func classify(_ position: Int) -> (kind: CharacterClass, length: Int) {
+            let unit = units[position]
+            if unit < 0x80 { return (asciiClasses[Int(unit)], 1) }
+            var scalar = Unicode.Scalar(unit), length = 1
+            if UTF16.isLeadSurrogate(unit), position + 1 < count, UTF16.isTrailSurrogate(units[position + 1]) {
+                scalar = Unicode.Scalar(0x10000 + (UInt32(unit) - 0xD800) << 10 + (UInt32(units[position + 1]) - 0xDC00))
+                length = 2
+            }
+            guard let scalar else { return (.other, length) }
+            let properties = scalar.properties
+            if properties.numericType != nil { return (.number, length) }
+            if properties.isAlphabetic { return (.letter, length) }
+            if properties.isWhitespace { return (.space, length) }
+            switch properties.generalCategory {
+            case .nonspacingMark, .spacingMark, .enclosingMark: return (.mark, length)
+            // A zero-width joiner holds an emoji sequence together.
+            default: return (scalar.value == 0x200D ? .mark : .other, length)
+            }
+        }
+        func add(_ kind: SQLTokenKind, from start: Int) {
+            tokens.append(SQLToken(range: NSRange(location: start, length: index - start), kind: kind))
+        }
+        func unit(_ character: Unicode.Scalar) -> UInt16 { UInt16(character.value) }
+        let dash = unit("-"), slash = unit("/"), star = unit("*"), backslash = unit("\\")
+        let quote = unit("'"), doubleQuote = unit("\""), backtick = unit("`")
+        let underscore = unit("_"), dollar = unit("$"), point = unit("."), newline = unit("\n"), carriageReturn = unit("\r")
 
-            if character == "-" && index + 1 < characters.count && characters[index + 1] == "-" {
-                let start = index
+        while index < count {
+            let start = index
+            let first = units[index]
+
+            if first == dash, index + 1 < count, units[index + 1] == dash {
                 index += 2
-                while index < characters.count && characters[index] != "\n" {
-                    index += 1
-                }
-                tokens.append(SQLToken(range: range(start, index), kind: .comment))
+                // A line ends at either character, so a script with Windows line endings colors the same.
+                while index < count, units[index] != newline, units[index] != carriageReturn { index += 1 }
+                add(.comment, from: start)
                 continue
             }
 
-            if character == "/" && index + 1 < characters.count && characters[index + 1] == "*" {
-                let start = index
+            if first == slash, index + 1 < count, units[index + 1] == star {
                 index += 2
-                while index + 1 < characters.count {
-                    if characters[index] == "*" && characters[index + 1] == "/" {
-                        index += 2
-                        break
-                    }
-                    index += 1
-                }
-                tokens.append(SQLToken(range: range(start, index), kind: .comment))
+                while index + 1 < count, !(units[index] == star && units[index + 1] == slash) { index += 1 }
+                // A comment left open runs to the end.
+                index = index + 1 < count ? index + 2 : count
+                add(.comment, from: start)
                 continue
             }
 
-            if character == "'" || character == "\"" || character == "`" {
-                let delimiter = character
-                let start = index
+            if first == quote || first == doubleQuote || first == backtick {
                 index += 1
-                while index < characters.count {
-                    if characters[index] == "\\" {
-                        index += min(2, characters.count - index)
-                        continue
-                    }
-                    if characters[index] == delimiter {
+                while index < count {
+                    if units[index] == backslash { index += min(2, count - index); continue }
+                    if units[index] == first {
                         index += 1
-                        if delimiter == "'" && index < characters.count && characters[index] == "'" {
-                            index += 1
-                            continue
-                        }
+                        if first == quote, index < count, units[index] == quote { index += 1; continue }
                         break
                     }
                     index += 1
                 }
-                tokens.append(SQLToken(range: range(start, index), kind: .stringLiteral))
+                add(.stringLiteral, from: start)
                 continue
             }
 
-            if character.isNumber {
-                let start = index
-                index += 1
-                while index < characters.count && (characters[index].isNumber || characters[index] == ".") {
-                    index += 1
+            let (kind, length) = classify(index)
+            index += length
+            if kind == .number {
+                while index < count {
+                    let next = classify(index)
+                    guard next.kind == .number || next.kind == .mark || units[index] == point else { break }
+                    index += next.length
                 }
-                tokens.append(SQLToken(range: range(start, index), kind: .numberLiteral))
-                continue
-            }
-
-            if character.isLetter || character == "_" {
-                let start = index
-                index += 1
-                while index < characters.count && (characters[index].isLetter || characters[index].isNumber || characters[index] == "_" || characters[index] == "$") {
-                    index += 1
+                add(.numberLiteral, from: start)
+            } else if kind == .letter || first == underscore {
+                var isASCII = first < 0x80
+                while index < count {
+                    let next = classify(index)
+                    guard next.kind == .letter || next.kind == .number || next.kind == .mark
+                            || units[index] == underscore || units[index] == dollar else { break }
+                    if units[index] >= 0x80 { isASCII = false }
+                    index += next.length
                 }
-                let token = String(characters[start..<index]).uppercased()
-                let kind: SQLTokenKind = keywords.contains(token) ? .keyword : .identifier
-                tokens.append(SQLToken(range: range(start, index), kind: kind))
-                continue
+                var isKeyword = false
+                if isASCII, index - start <= longestKeyword {
+                    let uppercased = units[start..<index].map { UInt8($0) &- 97 < 26 ? UInt8($0) &- 32 : UInt8($0) }
+                    isKeyword = keywords.contains(String(decoding: uppercased, as: UTF8.self))
+                }
+                add(isKeyword ? .keyword : .identifier, from: start)
+            } else if kind != .space {
+                while index < count, case let next = classify(index), next.kind == .mark { index += next.length }
+                add(.symbol, from: start)
             }
-
-            if !character.isWhitespace {
-                tokens.append(SQLToken(range: range(index, index + 1), kind: .symbol))
-            }
-            index += 1
         }
 
         return tokens
@@ -136,6 +164,17 @@ enum SQLSyntaxHighlighter {
         let start = prefix > 0 ? NSMaxRange(new[prefix - 1].range) : 0
         let end = suffix > 0 ? new[new.count - suffix].range.location : newLength
         return NSRange(location: start, length: max(0, end - start))
+    }
+
+    /// Where a range's characters are after an edit that left `edited` in place of text `delta` units
+    /// shorter. A range before the edit stays and one after it moves. One the edit touches grows to take
+    /// in the new text, which is drawn like its neighbors until it's styled.
+    static func range(_ range: NSRange, afterEditing edited: NSRange, changeInLength delta: Int) -> NSRange {
+        let replacedEnd = NSMaxRange(edited) - delta
+        if NSMaxRange(range) < edited.location { return range }
+        if range.location > replacedEnd { return NSRange(location: range.location + delta, length: range.length) }
+        let start = min(range.location, edited.location)
+        return NSRange(location: start, length: max(NSMaxRange(range) + delta, NSMaxRange(edited)) - start)
     }
 }
 

@@ -424,6 +424,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         textView.isFindInteractionEnabled = true
         textView.installEditingToolbar()
         textView.delegate = context.coordinator
+        textView.textStorage.delegate = context.coordinator
         let coordinator = context.coordinator
         textView.onAcceptCompletion = { [weak coordinator, weak textView] item in
             guard let coordinator, let textView else { return }
@@ -444,6 +445,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         textView.textContainerInset = UIEdgeInsets(top: Spacing.l, left: fitsContent ? Spacing.l : Sizes.editorGutter + Spacing.s, bottom: Spacing.l, right: Spacing.l)
         textView.textContainer.lineFragmentPadding = 0
         context.coordinator.palette = palette
+        context.coordinator.engine = engine
         textView.palette = palette
         textView.tintColor = palette.caretColor
         textView.keyboardAppearance = palette.isDark ? .dark : .light
@@ -467,6 +469,7 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         uiView.tintColor = palette.caretColor
         let diagnosticChanged = context.coordinator.errorRange != errorRange
         context.coordinator.errorRange = errorRange
+        let engineChanged = context.coordinator.engine != engine
         context.coordinator.engine = engine
         uiView.accessibilityLabel = L10n.text(isJSON ? "JSON Editor" : "SQL query editor")
         uiView.accessibilityHint = isJSON ? L10n.text("Enter a MongoDB Extended JSON command") : L10n.text("Enter the SQL statement to run against the selected database")
@@ -492,11 +495,13 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         let range = NSRange(location: offset, length: max(0, min(selectionLength, uiView.textStorage.length - offset)))
         if uiView.selectedRange != range {
             context.coordinator.setSelection(range, in: uiView)
+        } else if engineChanged {
+            context.coordinator.updateDecorations(uiView)
         }
         if let queryView = uiView as? QueryTextView { context.coordinator.updateCompletion(completion, in: queryView) }
     }
 
-    final class Coordinator: NSObject, UITextViewDelegate {
+    final class Coordinator: NSObject, UITextViewDelegate, @preconcurrency NSTextStorageDelegate {
         @Binding private var text: String
         @Binding private var cursorOffset: Int
         @Binding private var selectionLength: Int
@@ -507,9 +512,15 @@ struct HighlightedQueryEditor: UIViewRepresentable {
         var lastAppliedPalette: EditorPalette?
         var lastAppliedJSON: Bool?
         var errorRange: NSRange?
+        private var lastAppliedError: NSRange?
         var engine: DatabaseEngine?
         /// Ranges tinted for the statement and bracket at the caret, cleared before the next marks.
         private var decoratedRanges: [NSRange] = []
+        /// The tokens the text is colored with now, so an edit recolors only what changed; nil recolors it all.
+        private var lastTokens: [SQLToken]?
+        private var lastLength = 0
+        /// The text put in since the last recolor, which has its neighbors' colors until then.
+        private var editedRange: NSRange?
         var font = SQLEditorTypography.queryFont()
         var lastAppliedFontSize: CGFloat?
         private var isApplyingHighlight = false
@@ -622,10 +633,12 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             textViewDidChange(textView)
         }
 
+        /// Moves the caret where the model has it, and the marks with it.
         func setSelection(_ range: NSRange, in textView: UITextView) {
             isApplyingHighlight = true
             textView.selectedRange = range
             isApplyingHighlight = false
+            updateDecorations(textView)
         }
 
         func applyHighlight(to textView: UITextView, text: String) {
@@ -633,21 +646,39 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             pendingHighlightWorkItem?.cancel()
             isApplyingHighlight = true
             defer { isApplyingHighlight = false }
+            let storage = textView.textStorage
+            let selectedRange = textView.selectedRange
+            let replacesText = storage.string != text
+            // New text, a new look or an error's underline styles everything again. Typing recolors only
+            // what it changed, so a keystroke in a long script doesn't lay the whole script out again.
+            let restyles = replacesText || lastTokens == nil || errorRange != nil || lastAppliedError != nil
+                || lastAppliedColorScheme != colorScheme || lastAppliedPalette != palette || lastAppliedJSON != isJSON
+                || lastAppliedFontSize != font.pointSize
             lastAppliedColorScheme = colorScheme
             lastAppliedPalette = palette
             lastAppliedJSON = isJSON
             lastAppliedFontSize = font.pointSize
+            lastAppliedError = errorRange
 
-            let fullRange = NSRange(location: 0, length: textView.textStorage.length)
-            let selectedRange = textView.selectedRange
-            let storage = textView.textStorage
             storage.beginEditing()
-            if storage.string != text { storage.replaceCharacters(in: fullRange, with: text) }
-            let updatedRange = NSRange(location: 0, length: storage.length)
-            storage.setAttributes(baseAttributes, range: updatedRange)
-
-            for token in isJSON ? JSONSyntaxHighlighter.tokens(in: text) : SQLSyntaxHighlighter.tokens(in: text) {
-                storage.addAttributes(attributes(for: token.kind), range: token.range)
+            if replacesText { storage.replaceCharacters(in: NSRange(location: 0, length: storage.length), with: text) }
+            let tokens = isJSON ? JSONSyntaxHighlighter.tokens(in: text) : SQLSyntaxHighlighter.tokens(in: text)
+            let fullRange = NSRange(location: 0, length: storage.length)
+            var dirty = fullRange
+            if restyles {
+                storage.setAttributes(baseAttributes, range: fullRange)
+            } else {
+                dirty = SQLSyntaxHighlighter.changedRange(from: lastTokens ?? [], to: tokens, oldLength: lastLength, newLength: storage.length)
+                if let editedRange { dirty = dirty.length > 0 ? NSUnionRange(dirty, editedRange) : editedRange }
+                dirty = NSIntersectionRange(dirty, fullRange)
+                // Backgrounds stay: they're the marks for the statement and brackets at the caret.
+                if dirty.length > 0 { storage.addAttributes(baseAttributes, range: dirty) }
+            }
+            if dirty.length > 0 {
+                for token in tokens {
+                    let colored = NSIntersectionRange(token.range, dirty)
+                    if colored.length > 0 { storage.addAttribute(.foregroundColor, value: palette.color(for: token.kind), range: colored) }
+                }
             }
             if let errorRange, errorRange.location <= storage.length, NSMaxRange(errorRange) <= storage.length {
                 storage.addAttributes([.backgroundColor: UIColor.systemRed.withAlphaComponent(0.18),
@@ -655,11 +686,22 @@ struct HighlightedQueryEditor: UIViewRepresentable {
                                        .underlineColor: UIColor.systemRed], range: errorRange)
             }
             storage.endEditing()
+            lastTokens = tokens
+            lastLength = storage.length
+            editedRange = nil
             textView.typingAttributes = baseAttributes
             textView.selectedRange = Self.clampedRange(selectedRange, length: storage.length)
             // Every attribute was reset, the old marks with them.
-            decoratedRanges = []
+            if restyles { decoratedRanges = [] }
             updateDecorations(textView)
+        }
+
+        /// Follows each edit, so the marks and the text still to recolor are found where the edit moved them.
+        func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorage.EditActions,
+                         range edited: NSRange, changeInLength delta: Int) {
+            guard editedMask.contains(.editedCharacters) else { return }
+            decoratedRanges = decoratedRanges.map { SQLSyntaxHighlighter.range($0, afterEditing: edited, changeInLength: delta) }
+            editedRange = editedRange.map { NSUnionRange(SQLSyntaxHighlighter.range($0, afterEditing: edited, changeInLength: delta), edited) } ?? edited
         }
 
         private func scheduleHighlight(for textView: UITextView, preserving selectedRange: NSRange) {
@@ -691,14 +733,6 @@ struct HighlightedQueryEditor: UIViewRepresentable {
             [
                 .font: font,
                 .foregroundColor: palette.plainColor,
-                .paragraphStyle: Self.paragraphStyle
-            ]
-        }
-
-        private func attributes(for kind: SQLTokenKind) -> [NSAttributedString.Key: Any] {
-            [
-                .font: font,
-                .foregroundColor: palette.color(for: kind),
                 .paragraphStyle: Self.paragraphStyle
             ]
         }
