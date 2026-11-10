@@ -185,9 +185,9 @@ final class ConsoleStorageAndSQLTests: XCTestCase {
         }
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
-        let encoder = JSONEncoder(); encoder.dateEncodingStrategy = .iso8601
-        try encoder.encode([profile]).write(to: dir.appendingPathComponent("bookmarks.json"))
+        // Saved through the store, as the app saves it: the password goes to the Keychain, never the bookmark file.
         let bookmarks = BookmarkStore(directory: dir, cloudSyncEnabled: false)
+        XCTAssertTrue(bookmarks.upsert(profile))
         let library = WorkspaceLibraryStore(directory: dir, cloudSyncEnabled: false)
         let workspace = WorkspaceViewModel()
         workspace.configure(bookmarkStore: bookmarks, libraryStore: library)
@@ -293,5 +293,37 @@ final class ConsoleTabTitleTests: XCTestCase {
         let reopened = ConsoleStore(directory: directory)
         XCTAssertEqual(reopened.active.title, "Nightly report")
         XCTAssertTrue(reopened.active.hasCustomTitle)
+    }
+
+    /// A query the app stops waiting for must also stop on the server, not run on after its connection closed.
+    func testATimedOutQueryStopsOnTheServerToo() async throws {
+        var exercised = false
+        for engine in [DatabaseEngine.postgresql, .mysql] {
+            let key = engine == .mysql ? "PORTSQL_TEST_MYSQL_PORT" : "PORTSQL_TEST_POSTGRES_PORT"
+            guard let port = Int(ProcessInfo.processInfo.environment[key] ?? "") else { continue }
+            exercised = true
+            let profile = ConnectionProfile(name: "Disposable timeout fixture", engine: engine, host: "127.0.0.1", port: port,
+                username: "test_username", password: "test_password", defaultDatabase: "test_database", transportSecurityMode: .plaintext)
+            let marker = "portbase_timeout_" + String(UUID().uuidString.prefix(8)).lowercased()
+            let sleep = engine == .mysql ? "SELECT SLEEP(40) AS \(marker)" : "SELECT pg_sleep(40) AS \(marker)"
+            let started = Date()
+            do {
+                _ = try await DatabaseService.shared.execute(query: sleep, profile: profile, policy: .readOnly, timeoutSeconds: 1)
+                XCTFail("\(engine): the query should have timed out")
+            } catch { }
+            XCTAssertLessThan(Date().timeIntervalSince(started), 10, "\(engine): the app stops waiting at its limit")
+            let activity = engine == .mysql
+                ? "SELECT COUNT(*) FROM information_schema.processlist WHERE info LIKE '%\(marker)%' AND info NOT LIKE '%processlist%'"
+                : "SELECT COUNT(*) FROM pg_stat_activity WHERE state = 'active' AND query LIKE '%\(marker)%' AND query NOT LIKE '%pg_stat_activity%'"
+            var remaining = 1
+            for _ in 0..<20 {
+                let rows = try await DatabaseService.shared.execute(query: activity, profile: profile, policy: .readOnly)
+                remaining = Int(rows.rows.first?.cells.first?.displayValue ?? "1") ?? 1
+                if remaining == 0 { break }
+                try await Task.sleep(for: .milliseconds(500))
+            }
+            XCTAssertEqual(remaining, 0, "\(engine): the server ended the abandoned query within seconds, not after 40")
+        }
+        if !exercised { throw XCTSkip("Local PostgreSQL and MySQL fixtures are not configured") }
     }
 }

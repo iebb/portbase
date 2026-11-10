@@ -79,7 +79,7 @@ extension DatabaseService {
             database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase), loggerLabel: "ad.neko.portsql.export")
         do {
             try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
-            try await self.configureMySQLSession(connection, profile: profile, policy: .readOnly)
+            try await self.configureMySQLSession(connection, profile: profile, policy: .readOnly, timeoutSeconds: timeout)
             let future = connection.query(query.sql, query.values.map(Self.mysqlBind), onColumns: { definitions in
                 writer.setColumns(definitions.map { QueryColumn(name: $0.name, type: DatabaseService.mysqlTypeName($0)) })
             }, onRow: { row in
@@ -106,7 +106,7 @@ extension DatabaseService {
         do {
             let bindings = try Self.postgresBindings(query.values)
             try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() as EventLoopFuture<Void> }) {
-                try await self.configurePostgresSession(connection, profile: profile, policy: .readOnly)
+                try await self.configurePostgresSession(connection, profile: profile, policy: .readOnly, timeoutSeconds: timeout)
                 let rows = try await connection.query(PostgresQuery(unsafeSQL: query.sql, binds: bindings), logger: Logger(label: "ad.neko.portsql.export"))
                 writer.setColumns(rows.columns.map { QueryColumn(name: $0.name, type: "\($0.dataType)") })
                 for try await row in rows {

@@ -362,7 +362,7 @@ actor DatabaseService {
                     database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase), loggerLabel: "ad.neko.portsql.console")
                 session.mysql = connection
                 try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
-                    try await self.configureMySQLSession(connection, profile: profile, policy: policy)
+                    try await self.configureMySQLSession(connection, profile: profile, policy: policy, timeoutSeconds: timeout)
                 }
             } else if profile.engine == .postgresql, session.postgres == nil {
                 let config = try await makePostgresConfiguration(profile: profile, database: postgresDatabaseName(for: profile, requested: database))
@@ -370,7 +370,7 @@ actor DatabaseService {
                     id: 1, logger: Logger(label: "ad.neko.portsql.console")).get()
                 session.postgres = connection
                 try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() as EventLoopFuture<Void> }) {
-                    try await self.configurePostgresSession(connection, profile: profile, policy: policy)
+                    try await self.configurePostgresSession(connection, profile: profile, policy: policy, timeoutSeconds: timeout)
                 }
             }
             try Task.checkCancellation()
@@ -690,7 +690,7 @@ actor DatabaseService {
             loggerLabel: "ad.neko.portsql.mysql"
         ) }
         do {
-            if connectionOverride == nil { try await configureMySQLSession(connection, profile: profile, policy: policy) }
+            if connectionOverride == nil { try await configureMySQLSession(connection, profile: profile, policy: policy, timeoutSeconds: timeoutSeconds) }
             let validatesMutation = expectedAffectedRows(for: policy) != nil
             var transactional = true
             if validatesMutation {
@@ -981,11 +981,21 @@ actor DatabaseService {
         _ = try await connection.simpleQuery("USE `\(escapedDatabase)`").get()
     }
 
+    /// The server's own limit for a statement, a little past the app's, so a query the app gave up on or the
+    /// person cancelled stops on the server too instead of running on after its connection closed.
+    nonisolated static func serverStatementTimeout(_ timeoutSeconds: Int) -> Int { max(1, min(timeoutSeconds, 300)) + 2 }
+
     func configureMySQLSession(
         _ connection: MySQLConnection,
         profile: ConnectionProfile,
-        policy: DatabaseExecutionPolicy
+        policy: DatabaseExecutionPolicy,
+        timeoutSeconds: Int
     ) async throws {
+        let limit = Self.serverStatementTimeout(timeoutSeconds)
+        // MySQL limits SELECT statements in milliseconds; MariaDB limits every statement in seconds. A server that
+        // knows neither (a MariaDB saved as MySQL, or a compatible database) still runs the query under the app's limit.
+        let timeout = profile.engine == .mariadb ? "SET SESSION max_statement_time = \(limit)" : "SET SESSION max_execution_time = \(limit * 1000)"
+        _ = try? await connection.simpleQuery(timeout).get()
         guard profile.isReadOnly || policy.requiresReadOnlySession else { return }
         _ = try await connection.simpleQuery("SET SESSION TRANSACTION READ ONLY").get()
     }
@@ -1212,7 +1222,7 @@ actor DatabaseService {
         ).get()
         }
         do {
-            if connectionOverride == nil { try await configurePostgresSession(connection, profile: profile, policy: policy) }
+            if connectionOverride == nil { try await configurePostgresSession(connection, profile: profile, policy: policy, timeoutSeconds: timeoutSeconds) }
             let validatesMutation = expectedAffectedRows(for: policy) != nil
             if validatesMutation {
                 _ = try await connection.query("BEGIN").get()
@@ -1448,10 +1458,20 @@ actor DatabaseService {
     func configurePostgresSession(
         _ connection: PostgresConnection,
         profile: ConnectionProfile,
-        policy: DatabaseExecutionPolicy
+        policy: DatabaseExecutionPolicy,
+        timeoutSeconds: Int
     ) async throws {
-        guard profile.isReadOnly || policy.requiresReadOnlySession else { return }
-        _ = try await connection.query("SET default_transaction_read_only = on").get()
+        // The value is a number this function formats, so it's written into the statement as a literal.
+        let limit = "'\(Self.serverStatementTimeout(timeoutSeconds))s'"
+        let readOnly = profile.isReadOnly || policy.requiresReadOnlySession
+        // One statement sets both, so a read-only session costs no extra round trip.
+        let statement = "SELECT set_config('statement_timeout', \(limit), false)" + (readOnly ? ", set_config('default_transaction_read_only', 'on', false)" : "")
+        do {
+            _ = try await connection.query(statement).get()
+        } catch where readOnly {
+            // A compatible server that rejects the timeout must still be read-only; that failure is not ignored.
+            _ = try await connection.query("SET default_transaction_read_only = on").get()
+        } catch { }
     }
 
     private func loadPostgresSchema(profile: ConnectionProfile, database: String?) async throws -> [SchemaTableDescriptor] {
