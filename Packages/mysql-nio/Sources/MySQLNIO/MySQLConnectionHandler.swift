@@ -4,6 +4,12 @@ import NIOSSL
 import NIOCore
 import Logging
 
+/// A command holding state on the server, such as a prepared statement, that the server discards with the
+/// connection; it's told when the connection ends so it doesn't expect to clean that state up itself.
+internal protocol MySQLConnectionBoundCommand: AnyObject {
+    func connectionClosed()
+}
+
 internal struct MySQLCommandContext: Sendable {
     nonisolated(unsafe) var handler: any MySQLCommand
     var promise: EventLoopPromise<Void>
@@ -85,6 +91,8 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
                     let commandState = try current.handler.handle(packet: &packet, capabilities: capabilities)
                     self.handleCommandState(context: context, commandState)
                 } catch {
+                    // The connection may have closed while handling, which already failed every queued command.
+                    guard !self.queue.isEmpty else { return }
                     self.queue.removeFirst()
                     self.commandState = .ready
                     current.promise.fail(error)
@@ -473,6 +481,9 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
             context.flush()
         }
         if commandState.done {
+            // Writing the response can close the connection, which fails and removes every queued command
+            // before this returns; there is then nothing left to finish.
+            guard !self.queue.isEmpty else { return }
             let current = self.queue.removeFirst()
             self.commandState = .ready
             if let error = commandState.error {
@@ -534,6 +545,7 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
     
     func channelInactive(context: ChannelHandlerContext) {
         while let next = self.queue.popLast() {
+            (next.handler as? any MySQLConnectionBoundCommand)?.connectionClosed()
             next.promise.fail(MySQLError.closed)
         }
     }

@@ -41,7 +41,7 @@ extension MySQLDatabase {
     }
 }
 
-private final class MySQLQueryCommand: MySQLCommand, @unchecked Sendable { // this is cheating
+private final class MySQLQueryCommand: MySQLCommand, MySQLConnectionBoundCommand, @unchecked Sendable { // this is cheating
     let sql: String
     
     enum State {
@@ -230,6 +230,11 @@ private final class MySQLQueryCommand: MySQLCommand, @unchecked Sendable { // th
     func activate(capabilities: MySQLProtocol.CapabilityFlags) throws -> MySQLCommandState {
         let prepare = MySQLProtocol.COM_STMT_PREPARE(query: self.sql)
         return try .response([.encode(prepare, capabilities: capabilities)])
+    }
+
+    /// A connection closed mid-query, as on a timeout or cancel, takes its prepared statement with it.
+    func connectionClosed() {
+        self.statementID = nil
     }
 
     deinit {

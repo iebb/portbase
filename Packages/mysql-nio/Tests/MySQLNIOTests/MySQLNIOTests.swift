@@ -31,6 +31,17 @@ struct MySQLNIOTests {
         #expect(isLoggingConfigured)
     }
     
+    /// Closing a connection while a prepared query runs, as a timeout or cancel does, fails the query rather
+    /// than tripping the statement-not-closed check: the server drops the statement with the connection.
+    @Test
+    func closingMidQueryFailsTheQueryCleanly() async throws {
+        let connection = try await MySQLConnection.test()
+        let query = connection.query("SELECT SLEEP(?) AS slept", [MySQLData(int: 5)])
+        try await Task.sleep(for: .milliseconds(200))
+        try await connection.close().get()
+        await #expect(throws: MySQLError.closed) { _ = try await query.get() }
+    }
+
     @Test
     func handshakeSelectsRequestedDatabase() async throws {
         let connection = try await MySQLConnection.test()
