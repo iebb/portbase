@@ -191,6 +191,8 @@ final class EditorAndSelectionToolsTests: XCTestCase {
         XCTAssertNil(ExactDecimal("1e99999"))
         XCTAssertTrue(ExactDecimal("-2")! < ExactDecimal("1.5")!)
         XCTAssertEqual(ExactDecimal("1.50"), ExactDecimal("1.5"))
+        XCTAssertEqual(Set([ExactDecimal("1.50")!, ExactDecimal("1.5")!, ExactDecimal("0.00")!, ExactDecimal("0")!]).count, 2,
+                       "Equal values hash alike")
         XCTAssertEqual(ExactDecimal("1234567.5")?.formatted(fractionDigits: 1, locale: Locale(identifier: "en_US")), "1,234,567.5")
         XCTAssertEqual(ExactDecimal("1234567.5")?.formatted(fractionDigits: 1, locale: Locale(identifier: "de_DE")), "1.234.567,5")
     }

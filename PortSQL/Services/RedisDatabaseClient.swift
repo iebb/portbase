@@ -100,6 +100,12 @@ struct RedisRedirect: Error, Equatable {
     }
 }
 
+/// A range of cluster slots and the primary that serves them.
+private struct RedisSlotRange: Sendable {
+    let slots: ClosedRange<Int>
+    let node: RedisTarget
+}
+
 /// A server other than the profile's own: a cluster node a redirect named, or the primary Sentinel reported.
 private struct RedisTarget: Sendable {
     let host: String
@@ -184,10 +190,22 @@ enum RedisDatabaseClient {
         guard command.isReadOnly else { throw DatabaseServiceError.readOnlyQueryRequired }
         var arguments = command.arguments
         func word(_ index: Int) -> String { arguments.indices.contains(index) ? String(decoding: arguments[index], as: UTF8.self).uppercased() : "" }
-        func run(_ arguments: [Data]) async throws -> (RedisReply, RedisCommand) {
+        // A key's command goes to the node that owns it; a SCAN of the keyspace goes to each primary in turn.
+        func run(_ arguments: [Data], on node: RedisTarget? = nil) async throws -> (RedisReply, RedisCommand) {
             let current = try RedisCommandService.validate(arguments)
-            let reply = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
-                                                 eventLoopGroup: eventLoopGroup) { try await $0.send(current.arguments) }
+            let reply: RedisReply
+            if let node {
+                reply = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                                 eventLoopGroup: eventLoopGroup, target: node) { try await $0.send(current.arguments) }
+            } else {
+                reply = try await followingRedirect(profile: profile) { target, asking in
+                    try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                             eventLoopGroup: eventLoopGroup, target: target) { connection in
+                        if asking { _ = try await connection.send([Data("ASKING".utf8)]) }
+                        return try await connection.send(current.arguments)
+                    }
+                }
+            }
             return (reply, current)
         }
         switch command.name {
@@ -197,27 +215,32 @@ enum RedisDatabaseClient {
             if let count = (0..<arguments.count).first(where: { word($0) == "COUNT" }), arguments.indices.contains(count + 1) {
                 arguments[count + 1] = Data(String(exportPageSize).utf8)
             } else { arguments += [Data("COUNT".utf8), Data(String(exportPageSize).utf8)] }
-            arguments[cursorIndex] = Data("0".utf8)
+            // SCAN on a cluster node sees only that node's keys, so each primary is scanned to its end.
+            let nodes: [RedisTarget?] = command.name == "SCAN" && !profile.usesSSHTunnel
+                ? try await clusterPrimaries(profile: profile, database: database, timeoutSeconds: timeoutSeconds, eventLoopGroup: eventLoopGroup).map { Optional($0) }
+                : []
             // SCAN can return a key more than once while the keyspace changes; each key is written once.
             var seen = Set<Data>()
-            repeat {
-                try Task.checkCancellation()
-                let (reply, current) = try await run(arguments)
-                guard let parts = reply.elements, parts.count == 2, let next = parts[0].bytes else { throw RedisClientError.malformedReply }
-                var result = try makeResult(reply: reply, command: current)
-                if command.name == "SCAN" {
-                    result.rows = result.rows.filter { row in
-                        guard let first = row.cells.first else { return false }
-                        return seen.insert(RedisBytes.data(of: first)).inserted
+            for node in nodes.isEmpty ? [nil] : nodes {
+                arguments[cursorIndex] = Data("0".utf8)
+                repeat {
+                    try Task.checkCancellation()
+                    let (reply, current) = try await run(arguments, on: node)
+                    guard let parts = reply.elements, parts.count == 2, let next = parts[0].bytes else { throw RedisClientError.malformedReply }
+                    var result = try makeResult(reply: reply, command: current)
+                    if command.name == "SCAN" {
+                        result.rows = result.rows.filter { row in
+                            guard let first = row.cells.first else { return false }
+                            return seen.insert(RedisBytes.data(of: first)).inserted
+                        }
                     }
-                }
-                try page(result)
-                arguments[cursorIndex] = next
-            } while arguments[cursorIndex] != Data("0".utf8)
+                    try page(result)
+                    arguments[cursorIndex] = next
+                } while arguments[cursorIndex] != Data("0".utf8)
+            }
         case "LRANGE":
             let key = arguments[1]
-            let length = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
-                                                  eventLoopGroup: eventLoopGroup) { try await $0.read("LLEN", [key]).integer } ?? 0
+            let length = try await run([Data("LLEN".utf8), key]).0.integer ?? 0
             func resolve(_ index: Int64) -> Int64 { index < 0 ? max(0, length + index) : index }
             guard let first = Int64(String(decoding: arguments[2], as: UTF8.self)), let last = Int64(String(decoding: arguments[3], as: UTF8.self)) else {
                 throw RedisClientError.invalidCommand
@@ -271,18 +294,40 @@ enum RedisDatabaseClient {
                                                 hasHeader: plan.source.hasHeader, nullToken: plan.source.nullToken)
         var completed = 0, record = 0
         var batch: [RedisCommand] = []
+        // On a cluster each hash goes to the primary owning its key's slot, one connection per node and batch.
+        let slots = profile.usesSSHTunnel ? [] : try await clusterSlotRanges(profile: profile, database: database,
+                                                                              timeoutSeconds: timeoutSeconds, eventLoopGroup: eventLoopGroup)
         func send() async throws {
             let commands = batch; batch = []
-            let lifetime = RedisSocketLifetime()
+            var groups: [(node: RedisTarget?, commands: [RedisCommand])] = []
+            if slots.isEmpty { groups = [(nil, commands)] } else {
+                var positions: [String: Int] = [:]
+                for command in commands {
+                    let slot = keySlot(command.arguments[1])
+                    let node = slots.first { $0.slots.contains(slot) }?.node
+                    let name = node.map { $0.host + ":" + String($0.port) } ?? ""
+                    if let position = positions[name] { groups[position].commands.append(command) }
+                    else { positions[name] = groups.count; groups.append((node, [command])) }
+                }
+            }
             let written = RedisWriteCount()
             do {
-                try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
-                                         eventLoopGroup: eventLoopGroup, lifetime: lifetime) { connection in
-                    lifetime.markWrite()
-                    for command in commands {
-                        try Task.checkCancellation()
-                        _ = try await connection.send(command.arguments)
-                        written.increment()
+                for group in groups {
+                    try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                             eventLoopGroup: eventLoopGroup, target: group.node) { connection in
+                        for command in group.commands {
+                            try Task.checkCancellation()
+                            do { _ = try await connection.send(command.arguments) }
+                            catch let redirect as RedisRedirect {
+                                // The slot moved since the map was read. This node didn't write it, so it goes once to the node named.
+                                try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds, eventLoopGroup: eventLoopGroup,
+                                                         target: RedisTarget(host: redirect.host, port: redirect.port)) { other in
+                                    if redirect.isAsk { _ = try await other.send([Data("ASKING".utf8)]) }
+                                    _ = try await other.send(command.arguments)
+                                }
+                            }
+                            written.increment()
+                        }
                     }
                 }
                 completed += written.value
@@ -290,6 +335,7 @@ enum RedisDatabaseClient {
                 completed += written.value
                 let reason: String
                 if case RedisClientError.server = error { reason = error.localizedDescription }
+                else if error is RedisRedirect { reason = RedisClientError.clusterRedirect.localizedDescription }
                 else if error is CancellationError { reason = L10n.text("Cancelled") }
                 else { reason = RedisClientError.writeOutcomeUnknown.localizedDescription }
                 throw DataTransferError.partialImport(completed: completed, underlying: reason)
@@ -382,6 +428,38 @@ enum RedisDatabaseClient {
         }
         guard let reply else { return [] }
         return clusterPrimaries(fromSlots: reply, defaultHost: profile.host).map { RedisTarget(host: $0.host, port: $0.port) }
+    }
+
+    /// Each slot range and the primary that owns it, or none when the server isn't a cluster node.
+    private static func clusterSlotRanges(profile: ConnectionProfile, database: String, timeoutSeconds: Int,
+                                          eventLoopGroup: EventLoopGroup) async throws -> [RedisSlotRange] {
+        let reply = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                             eventLoopGroup: eventLoopGroup) { connection -> RedisReply? in
+            do { return try await connection.send([Data("CLUSTER".utf8), Data("SLOTS".utf8)]) }
+            catch RedisClientError.server { return nil }
+        }
+        guard let reply else { return [] }
+        return (reply.elements ?? []).compactMap { range in
+            guard let parts = range.elements, parts.count >= 3, let first = parts[0].integer, let last = parts[1].integer,
+                  0 <= first, first <= last, last < 16_384,
+                  let primary = clusterPrimaries(fromSlots: .array([range]), defaultHost: profile.host).first else { return nil }
+            return RedisSlotRange(slots: Int(first)...Int(last), node: RedisTarget(host: primary.host, port: primary.port))
+        }
+    }
+
+    /// The cluster slot of a key: CRC16 (XMODEM) of its hash tag, the text in its first non-empty {…}, or of the whole key.
+    static func keySlot(_ key: Data) -> Int {
+        var hashed = key[...]
+        if let open = key.firstIndex(of: 123), let close = key[key.index(after: open)...].firstIndex(of: 125),
+           close > key.index(after: open) {
+            hashed = key[key.index(after: open)..<close]
+        }
+        var crc: UInt16 = 0
+        for byte in hashed {
+            crc ^= UInt16(byte) << 8
+            for _ in 0..<8 { crc = crc & 0x8000 != 0 ? (crc << 1) ^ 0x1021 : crc << 1 }
+        }
+        return Int(crc) % 16_384
     }
 
     /// Reads CLUSTER SLOTS: each range's third element is its primary as [host, port, id]. An empty host

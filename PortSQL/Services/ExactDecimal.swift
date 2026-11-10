@@ -94,8 +94,16 @@ struct ExactDecimal: Comparable, Hashable, Sendable {
         return lhs.isNegative == rhs.isNegative && lhs.rescaled(to: scale).limbs == rhs.rescaled(to: scale).limbs
     }
 
+    /// Equal values hash alike whatever their scale, so 1.50 and 1.5 do.
     func hash(into hasher: inout Hasher) {
-        hasher.combine(plainDescription)
+        guard !isZero else { hasher.combine(0); return }
+        var normalized = self
+        while normalized.scale > 0, let last = normalized.limbs.first, last % 10 == 0 {
+            normalized = normalized.rounded(toScale: normalized.scale - 1)
+        }
+        hasher.combine(normalized.isNegative)
+        hasher.combine(normalized.limbs)
+        hasher.combine(normalized.scale)
     }
 
     /// The quotient by a count, rounded half away from zero to the given digits after the point.

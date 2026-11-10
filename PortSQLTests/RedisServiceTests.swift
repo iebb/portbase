@@ -162,6 +162,11 @@ final class RedisServiceTests: XCTestCase {
             .array([.integer(0), .integer(5460), .array([bulk(""), .integer(7000), bulk("a")])]),
             .array([.integer(10923), .integer(16383), .array([bulk("10.0.0.2"), .integer(7001), bulk("b")])]),
         ])
+        // Redis's own documented values: CLUSTER KEYSLOT foo is 12182, and a hash tag decides the slot.
+        XCTAssertEqual(RedisDatabaseClient.keySlot(Data("foo".utf8)), 12182)
+        XCTAssertEqual(RedisDatabaseClient.keySlot(Data("123456789".utf8)), 0x31C3 % 16_384)
+        XCTAssertEqual(RedisDatabaseClient.keySlot(Data("user:{1000}:name".utf8)), RedisDatabaseClient.keySlot(Data("1000".utf8)))
+        XCTAssertEqual(RedisDatabaseClient.keySlot(Data("a{}b".utf8)), RedisDatabaseClient.keySlot(Data("a{}b".utf8)), "An empty tag hashes the whole key")
         let primaries = RedisDatabaseClient.clusterPrimaries(fromSlots: slots, defaultHost: "cluster.example.com")
         XCTAssertEqual(primaries.map { "\($0.host):\($0.port)" }, ["10.0.0.2:7001", "cluster.example.com:7000"],
                        "Each primary once, replicas left out, and an empty host is the connection's own")
@@ -197,6 +202,26 @@ final class RedisServiceTests: XCTestCase {
         let inspected = try await DatabaseService.shared.inspectRedisKey(profile: profile, database: "0",
                                                                           key: RedisKey(bytes: Data("portbase:cluster:7".utf8)), policy: .readOnly)
         XCTAssertEqual(inspected.type, "string")
+
+        // Import sends each hash to the node owning its slot; export scans every primary.
+        let prefix = "portbase:cluster:import:" + UUID().uuidString + ":"
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".csv")
+        defer { try? FileManager.default.removeItem(at: file) }
+        try Data(("id,name\n" + (1...300).map { "\($0),Name \($0)" }.joined(separator: "\n") + "\n").utf8).write(to: file)
+        let source = try DataTransferCodec.inspect(url: file, format: .csv, hasHeader: true, nullToken: "NULL", progress: { _ in })
+        let plan = DataImportPlan(source: source, schemaName: "", tableName: prefix,
+                                  mappings: [DataImportColumnMapping(sourceName: "name", targetName: "name")], keyColumn: "id")
+        let imported = try await DatabaseService.shared.importData(plan: plan, profile: profile, database: "0", policy: .mutation())
+        XCTAssertEqual(imported.rowCount, 300)
+        let exported = try await DatabaseService.shared.exportData(query: BoundQuery(sql: "SCAN 0 MATCH \"\(prefix)*\"", values: []),
+                                                                   profile: profile, database: "0", format: .csv, policy: .readOnly)
+        XCTAssertEqual(exported.rowCount, 300, "Keys from every primary")
+        let field = try await DatabaseService.shared.execute(query: "HGET \"\(prefix)77\" name", profile: profile, database: "0", policy: .readOnly)
+        XCTAssertEqual(field.rows.first?.cells.first, .text("Name 77"))
+        for index in 1...300 {
+            _ = try await DatabaseService.shared.execute(query: "DEL \"\(prefix)\(index)\"", profile: profile, database: "0",
+                                                         policy: .userQuery(confirmed: true))
+        }
     }
 
     /// Against a local Sentinel monitoring a primary named portbase-primary.
