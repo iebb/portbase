@@ -224,10 +224,21 @@ module TestFlightGroupDistributor
         return :automatic
       end
 
-      @client.post(
-        "/betaGroups/#{group.fetch('id')}/relationships/builds",
-        "data" => [{ "type" => "builds", "id" => build_id }]
-      )
+      # A build that just turned VALID can be missing from the beta relationship endpoints for a few
+      # minutes, which answer 404 until it appears; only that is retried.
+      attempts = 0
+      begin
+        @client.post(
+          "/betaGroups/#{group.fetch('id')}/relationships/builds",
+          "data" => [{ "type" => "builds", "id" => build_id }]
+        )
+      rescue Error => error
+        raise unless error.status == 404 && (attempts += 1) <= 8
+
+        puts "#{group.dig('attributes', 'name')}: build not assignable yet, retrying..."
+        sleep 30
+        retry
+      end
       puts "#{group.dig('attributes', 'name')}: assigned"
       :assigned
     end
