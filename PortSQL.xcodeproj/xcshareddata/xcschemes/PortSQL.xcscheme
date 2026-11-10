@@ -95,6 +95,16 @@
             isEnabled = "YES">
          </EnvironmentVariable>
          <EnvironmentVariable
+            key = "PORTBASE_TEST_REDIS_CLUSTER_PORT"
+            value = "$(PORTBASE_TEST_REDIS_CLUSTER_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
+            key = "PORTBASE_TEST_REDIS_SENTINEL_PORT"
+            value = "$(PORTBASE_TEST_REDIS_SENTINEL_PORT)"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
             key = "PORTBASE_TEST_REDIS_TLS_PORT"
             value = "$(PORTBASE_TEST_REDIS_TLS_PORT)"
             isEnabled = "YES">

@@ -5,6 +5,10 @@ enum RedisClientError: LocalizedError, Sendable {
     case server(String), authenticationFailed, unsupportedKeyType, keyChanged, writeOutcomeUnknown, clusterRedirect
     /// A command that returns a whole key or keyspace at once, with the cursor command that reads it in pages.
     case unboundedCommand(String, alternative: String)
+    /// Sentinel knows no primary by this name, or reported an address that can't be used.
+    case sentinelMasterUnknown(String)
+    /// Cluster redirects and Sentinel discovery name other servers, which an SSH tunnel can't reach.
+    case discoveryThroughTunnel
 
     var errorDescription: String? {
         switch self {
@@ -21,6 +25,10 @@ enum RedisClientError: LocalizedError, Sendable {
         case .writeOutcomeUnknown: L10n.text("The connection ended before Redis confirmed the write. Refresh the key before trying again.")
         case .unboundedCommand(let name, let alternative):
             L10n.format("%1$@ returns everything at once. Use %2$@ to read it in pages.", name, alternative)
+        case .sentinelMasterUnknown(let name):
+            L10n.format("Redis Sentinel has no primary named %@. Check the master name in the connection.", name)
+        case .discoveryThroughTunnel:
+            L10n.text("Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key.")
         case .clusterRedirect: L10n.text("This Redis Cluster endpoint redirected the command. Connect through a cluster-aware proxy or to the node that owns this key.")
         }
     }

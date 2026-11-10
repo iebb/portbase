@@ -1769,3 +1769,7 @@
 "The SSH server does not support password authentication for this account." = "Le serveur SSH ne prend pas en charge l’authentification par mot de passe pour ce compte.";
 "SSH authentication timed out. Check the tunnel host, credentials, and network connection." = "L’authentification SSH a expiré. Vérifiez l’hôte du tunnel, les identifiants et la connexion réseau.";
 "The SSH host key for %1$@ changed. Expected %2$@, received %3$@." = "La clé d’hôte SSH de %1$@ a changé. Attendue : %2$@, reçue : %3$@.";
+"Sentinel master" = "Maître Sentinel";
+"Optional" = "Facultatif";
+"Redis Sentinel has no primary named %@. Check the master name in the connection." = "Redis Sentinel n’a aucun primaire nommé %@. Vérifiez le nom du maître dans la connexion.";
+"Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Les redirections de Redis Cluster et la découverte Sentinel atteignent d’autres serveurs, ce qu’un tunnel SSH ne permet pas. Connectez-vous sans tunnel ou au nœud qui détient la clé.";

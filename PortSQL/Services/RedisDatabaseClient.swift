@@ -81,6 +81,31 @@ private final class RedisWriteCount: @unchecked Sendable {
     var value: Int { lock.withLock { count } }
 }
 
+/// Where a Redis Cluster told a command to go: MOVED for the slot's owner, ASK for one command during a migration.
+struct RedisRedirect: Error, Equatable {
+    let isAsk: Bool
+    let host: String
+    let port: Int
+
+    /// Reads "MOVED 3999 10.0.0.5:6381"; IPv6 hosts come with their colons, so the port is after the last one.
+    static func parse(_ message: Data) -> RedisRedirect? {
+        let parts = String(decoding: message.prefix(512), as: UTF8.self).split(separator: " ")
+        guard parts.count == 3, parts[0] == "MOVED" || parts[0] == "ASK", let colon = parts[2].lastIndex(of: ":"),
+              let port = Int(parts[2][parts[2].index(after: colon)...]), (1...65_535).contains(port) else { return nil }
+        var host = String(parts[2][..<colon])
+        if host.hasPrefix("["), host.hasSuffix("]") { host = String(host.dropFirst().dropLast()) }
+        guard !host.isEmpty, !host.contains("/"), !host.contains("@"),
+              !host.unicodeScalars.contains(where: { $0.value < 33 || $0.value == 127 }) else { return nil }
+        return RedisRedirect(isAsk: parts[0] == "ASK", host: host, port: port)
+    }
+}
+
+/// A server other than the profile's own: a cluster node a redirect named, or the primary Sentinel reported.
+private struct RedisTarget: Sendable {
+    let host: String
+    let port: Int
+}
+
 private struct RedisConnection: @unchecked Sendable {
     let channel: Channel
 
@@ -94,7 +119,10 @@ private struct RedisConnection: @unchecked Sendable {
                 // Error messages may echo keys or credentials; expose only the stable server code.
                 let token = message.prefix { $0 != 32 && $0 != 13 && $0 != 10 }.prefix(64)
                 let code = String(decoding: token.filter { (65...90).contains($0) || $0 == 95 }, as: UTF8.self)
-                if code == "MOVED" || code == "ASK" { throw RedisClientError.clusterRedirect }
+                if code == "MOVED" || code == "ASK" {
+                    // Only the node's address is read from the message; the rest may name the key.
+                    throw RedisRedirect.parse(message) ?? RedisClientError.clusterRedirect
+                }
                 throw RedisClientError.server(code.isEmpty ? "ERR" : code)
             }
             return reply
@@ -117,18 +145,25 @@ enum RedisDatabaseClient {
                         timeoutSeconds: Int, eventLoopGroup: EventLoopGroup) async throws -> QueryResultTable {
         let checked = try RedisCommandService.validate(query.arguments)
         guard !profile.isReadOnly || checked.isReadOnly else { throw DatabaseServiceError.readOnlyViolation }
-        let lifetime = RedisSocketLifetime()
+        // Each attempt has its own socket lifetime, since the first one's is closed when it ends; the write
+        // flag spans both, so a write whose outcome is unknown is never reported as a plain failure.
+        let writes = RedisSocketLifetime()
         do {
-            let reply = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
-                                                 eventLoopGroup: eventLoopGroup, lifetime: lifetime) { connection in
-                if !checked.isReadOnly { lifetime.markWrite() }
-                return try await connection.send(checked.arguments)
+            // A redirect means the node didn't run the command, so it's sent once more to the node named.
+            let reply = try await followingRedirect(profile: profile) { target, asking in
+                try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                         eventLoopGroup: eventLoopGroup, target: target) { connection in
+                    if asking { _ = try await connection.send([Data("ASKING".utf8)]) }
+                    if !checked.isReadOnly { writes.markWrite() }
+                    return try await connection.send(checked.arguments)
+                }
             }
             return try makeResult(reply: reply, command: checked)
         } catch {
-            if lifetime.writeStarted {
+            if writes.writeStarted {
                 if case RedisClientError.server = error { throw error }
                 if case RedisClientError.clusterRedirect = error { throw error }
+                if error is RedisRedirect { throw RedisClientError.clusterRedirect }
                 throw RedisClientError.writeOutcomeUnknown
             }
             throw error
@@ -299,29 +334,79 @@ enum RedisDatabaseClient {
         return DataTransferResult(rowCount: completed, fileURL: nil)
     }
 
+    /// SCAN on one cluster node sees only that node's keys, so on a cluster the browser walks every primary
+    /// in turn. Its cursor is then "node:cursor"; "0" still starts and ends the walk.
     static func scan(profile: ConnectionProfile, database: String, cursor: String, pattern: Data?, type: String?,
                      timeoutSeconds: Int, eventLoopGroup: EventLoopGroup) async throws -> RedisScanPage {
+        // A tunnel reaches only its own host, so it scans that node alone.
+        let nodes = profile.usesSSHTunnel ? [] : try await clusterPrimaries(profile: profile, database: database,
+                                                                             timeoutSeconds: timeoutSeconds, eventLoopGroup: eventLoopGroup)
+        var nodeIndex = 0, nodeCursor = cursor
+        if !nodes.isEmpty, let colon = cursor.firstIndex(of: ":") {
+            nodeIndex = Int(cursor[..<colon]) ?? -1
+            nodeCursor = String(cursor[cursor.index(after: colon)...])
+        }
+        guard nodeIndex >= 0, nodeIndex < max(nodes.count, 1), UInt64(nodeCursor) != nil else { throw RedisClientError.invalidCommand }
+        let target = nodes.isEmpty ? nil : nodes[nodeIndex]
+        let requestedCursor = nodeCursor
         let reply = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
-                                             eventLoopGroup: eventLoopGroup) { connection in
-            var arguments = [Data(cursor.utf8), Data("COUNT".utf8), Data("100".utf8)]
+                                             eventLoopGroup: eventLoopGroup, target: target) { connection in
+            var arguments = [Data(requestedCursor.utf8), Data("COUNT".utf8), Data("100".utf8)]
             if let pattern { arguments += [Data("MATCH".utf8), pattern] }
             if let type, !type.isEmpty { arguments += [Data("TYPE".utf8), Data(type.utf8)] }
             return try await connection.read("SCAN", arguments)
         }
         let (next, values) = try scanValues(reply)
+        var nextCursor = next
+        if !nodes.isEmpty {
+            if next != "0" { nextCursor = "\(nodeIndex):\(next)" }
+            else { nextCursor = nodeIndex + 1 < nodes.count ? "\(nodeIndex + 1):0" : "0" }
+        }
         var seen = Set<Data>()
         let keys = try values.map { value -> RedisKey in
             guard let bytes = value.bytes else { throw RedisClientError.malformedReply }
             return RedisKey(bytes: bytes)
         }.filter { seen.insert($0.bytes).inserted }
-        return RedisScanPage(keys: Array(keys.prefix(RedisCommandService.maximumRows)), cursor: next,
+        return RedisScanPage(keys: Array(keys.prefix(RedisCommandService.maximumRows)), cursor: nextCursor,
                              isTruncated: keys.count > RedisCommandService.maximumRows)
+    }
+
+    /// The cluster's primaries in a stable order, or none when the server isn't a cluster node.
+    private static func clusterPrimaries(profile: ConnectionProfile, database: String, timeoutSeconds: Int,
+                                         eventLoopGroup: EventLoopGroup) async throws -> [RedisTarget] {
+        let reply = try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
+                                             eventLoopGroup: eventLoopGroup) { connection -> RedisReply? in
+            // A standalone server answers "cluster support disabled".
+            do { return try await connection.send([Data("CLUSTER".utf8), Data("SLOTS".utf8)]) }
+            catch RedisClientError.server { return nil }
+        }
+        guard let reply else { return [] }
+        return clusterPrimaries(fromSlots: reply, defaultHost: profile.host).map { RedisTarget(host: $0.host, port: $0.port) }
+    }
+
+    /// Reads CLUSTER SLOTS: each range's third element is its primary as [host, port, id]. An empty host
+    /// means the node answering, which is the connection's own host.
+    static func clusterPrimaries(fromSlots reply: RedisReply, defaultHost: String) -> [(host: String, port: Int)] {
+        var seen = Set<String>()
+        var primaries: [(host: String, port: Int)] = []
+        for range in reply.elements ?? [] {
+            guard let parts = range.elements, parts.count >= 3, let node = parts[2].elements, node.count >= 2,
+                  let port = node[1].integer, (1...65_535).contains(port) else { continue }
+            var host = node[0].bytes.map { String(decoding: $0, as: UTF8.self) } ?? ""
+            if host.isEmpty || host == "?" { host = defaultHost }
+            guard !host.unicodeScalars.contains(where: { $0.value < 33 || $0.value == 127 || $0 == "/" || $0 == "@" }),
+                  seen.insert(host + ":" + String(port)).inserted else { continue }
+            primaries.append((host, Int(port)))
+        }
+        return primaries.sorted { ($0.host, $0.port) < ($1.host, $1.port) }
     }
 
     static func inspect(profile: ConnectionProfile, database: String, key: RedisKey, cursor: String = "0",
                         timeoutSeconds: Int, eventLoopGroup: EventLoopGroup) async throws -> RedisKeyInspection {
+        try await followingRedirect(profile: profile) { target, asking in
         try await withConnection(profile: profile, database: database, timeoutSeconds: timeoutSeconds,
-                                 eventLoopGroup: eventLoopGroup) { connection in
+                                 eventLoopGroup: eventLoopGroup, target: target) { connection in
+            if asking { _ = try await connection.send([Data("ASKING".utf8)]) }
             let typeReply = try await connection.read("TYPE", [key.bytes])
             guard let bytes = typeReply.bytes, let type = String(data: bytes, encoding: .ascii) else { throw RedisClientError.malformedReply }
             guard type == "none" || RedisCommandService.keyTypes.contains(type) else { throw RedisClientError.unsupportedKeyType }
@@ -375,11 +460,85 @@ enum RedisDatabaseClient {
             }
             return RedisKeyInspection(key: key, type: type, ttlMilliseconds: ttl, length: length, result: result, nextCursor: next)
         }
+        }
+    }
+
+    /// Runs an operation, and once more on the node a cluster redirect names. A second redirect, or one
+    /// through an SSH tunnel, which reaches only the profile's host, is reported instead of followed.
+    private static func followingRedirect<Value: Sendable>(profile: ConnectionProfile,
+        _ operation: (RedisTarget?, Bool) async throws -> Value) async throws -> Value {
+        do {
+            return try await operation(nil, false)
+        } catch let redirect as RedisRedirect {
+            guard !profile.usesSSHTunnel else { throw RedisClientError.discoveryThroughTunnel }
+            do {
+                return try await operation(RedisTarget(host: redirect.host, port: redirect.port), redirect.isAsk)
+            } catch is RedisRedirect { throw RedisClientError.clusterRedirect }
+        }
+    }
+
+    /// The primary a Sentinel at the profile's address reports for its master name.
+    private static func sentinelPrimary(profile: ConnectionProfile, timeout: Int, eventLoopGroup: EventLoopGroup,
+                                        lifetime: RedisSocketLifetime) async throws -> RedisTarget {
+        let master = profile.redisSentinelMaster.trimmingCharacters(in: .whitespacesAndNewlines)
+        let channel = try await openChannel(profile: profile, host: profile.host, port: profile.port, tlsName: profile.host,
+                                            timeout: timeout, eventLoopGroup: eventLoopGroup, lifetime: lifetime)
+        defer { channel.close(promise: nil) }
+        let connection = RedisConnection(channel: channel)
+        let query = [Data("SENTINEL".utf8), Data("get-master-addr-by-name".utf8), Data(master.utf8)]
+        var reply: RedisReply
+        do { reply = try await connection.send(query) }
+        catch RedisClientError.server(let code) where code == "NOAUTH" {
+            // A Sentinel protected by requirepass takes the connection's own credentials.
+            try await authenticate(connection, profile: profile)
+            reply = try await connection.send(query)
+        }
+        guard let parts = reply.elements, parts.count == 2, let hostBytes = parts[0].bytes, let portBytes = parts[1].bytes,
+              let host = String(data: hostBytes, encoding: .utf8), let port = Int(String(decoding: portBytes, as: UTF8.self)),
+              (1...65_535).contains(port), !host.isEmpty,
+              !host.unicodeScalars.contains(where: { $0.value < 33 || $0.value == 127 || $0 == "/" || $0 == "@" }) else {
+            throw RedisClientError.sentinelMasterUnknown(master)
+        }
+        return RedisTarget(host: host, port: port)
+    }
+
+    private static func authenticate(_ connection: RedisConnection, profile: ConnectionProfile) async throws {
+        guard !profile.password.isEmpty || !profile.username.isEmpty else { return }
+        var auth = [Data("AUTH".utf8)]
+        if !profile.username.isEmpty { auth.append(Data(profile.username.utf8)) }
+        auth.append(Data(profile.password.utf8))
+        do {
+            let result = try await connection.send(auth)
+            guard result.bytes == Data("OK".utf8) else { throw RedisClientError.authenticationFailed }
+        } catch RedisClientError.server { throw RedisClientError.authenticationFailed }
+    }
+
+    /// TLS for another server keeps full verification: a node named by hostname must present that name; one
+    /// named by IP address must present the hostname configured for the connection.
+    private static func openChannel(profile: ConnectionProfile, host: String, port: Int, tlsName: String, timeout: Int,
+                                    eventLoopGroup: EventLoopGroup, lifetime: RedisSocketLifetime) async throws -> Channel {
+        // RESP has no TLS-upgrade negotiation. Prefer TLS must never downgrade after a failed handshake.
+        let tls = profile.usesTLS ? try NIOSSLContext(configuration: DatabaseService.tlsConfiguration(for: profile)) : nil
+        return try await ClientBootstrap(group: eventLoopGroup)
+            .connectTimeout(.seconds(Int64(min(timeout, 5))))
+            .channelInitializer { channel in
+                lifetime.install(channel)
+                return channel.eventLoop.makeCompletedFuture {
+                    if let tls {
+                        let hostname = DatabaseService.isIPAddress(tlsName) ? nil : tlsName
+                        try channel.pipeline.syncOperations.addHandler(NIOSSLClientHandler(context: tls, serverHostname: hostname))
+                    }
+                    try channel.pipeline.syncOperations.addHandler(ByteToMessageHandler(RedisRESPDecoder()))
+                    try channel.pipeline.syncOperations.addHandler(RedisReplyHandler())
+                }
+            }
+            .connect(host: host, port: port).get()
     }
 
     private static func withConnection<Value: Sendable>(
         profile: ConnectionProfile, database: String, timeoutSeconds: Int, eventLoopGroup: EventLoopGroup,
-        lifetime: RedisSocketLifetime = .init(), operation: @escaping @Sendable (RedisConnection) async throws -> Value
+        lifetime: RedisSocketLifetime = .init(), target: RedisTarget? = nil,
+        operation: @escaping @Sendable (RedisConnection) async throws -> Value
     ) async throws -> Value {
         let timeout = max(1, min(timeoutSeconds, 300))
         guard let number = Int32(database.trimmingCharacters(in: .whitespacesAndNewlines)), number >= 0 else { throw RedisClientError.invalidDatabase }
@@ -388,34 +547,25 @@ enum RedisDatabaseClient {
             if profile.usesTLS, profile.usesSSHTunnel, DatabaseService.isIPAddress(profile.host) {
                 throw DatabaseServiceError.tlsIdentityUnavailableThroughTunnel
             }
-            let endpoint = try await SSHTunnelService.shared.endpoint(for: profile, eventLoopGroup: eventLoopGroup)
-            // RESP has no TLS-upgrade negotiation. Prefer TLS must never downgrade after a failed handshake.
-            let tls = profile.usesTLS ? try NIOSSLContext(configuration: DatabaseService.tlsConfiguration(for: profile)) : nil
-            let channel = try await ClientBootstrap(group: eventLoopGroup)
-                .connectTimeout(.seconds(Int64(min(timeout, 5))))
-                .channelInitializer { channel in
-                    lifetime.install(channel)
-                    return channel.eventLoop.makeCompletedFuture {
-                        if let tls {
-                            let hostname = DatabaseService.isIPAddress(endpoint.serverHostname) ? nil : endpoint.serverHostname
-                            try channel.pipeline.syncOperations.addHandler(NIOSSLClientHandler(context: tls, serverHostname: hostname))
-                        }
-                        try channel.pipeline.syncOperations.addHandler(ByteToMessageHandler(RedisRESPDecoder()))
-                        try channel.pipeline.syncOperations.addHandler(RedisReplyHandler())
-                    }
-                }
-                .connect(host: endpoint.host, port: endpoint.port).get()
+            let usesSentinel = !profile.redisSentinelMaster.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            if (usesSentinel || target != nil), profile.usesSSHTunnel { throw RedisClientError.discoveryThroughTunnel }
+            var server = target
+            if server == nil, usesSentinel {
+                server = try await sentinelPrimary(profile: profile, timeout: timeout, eventLoopGroup: eventLoopGroup, lifetime: RedisSocketLifetime())
+            }
+            let channel: Channel
+            if let server {
+                let tlsName = DatabaseService.isIPAddress(server.host) ? profile.host : server.host
+                channel = try await openChannel(profile: profile, host: server.host, port: server.port, tlsName: tlsName,
+                                                timeout: timeout, eventLoopGroup: eventLoopGroup, lifetime: lifetime)
+            } else {
+                let endpoint = try await SSHTunnelService.shared.endpoint(for: profile, eventLoopGroup: eventLoopGroup)
+                channel = try await openChannel(profile: profile, host: endpoint.host, port: endpoint.port, tlsName: endpoint.serverHostname,
+                                                timeout: timeout, eventLoopGroup: eventLoopGroup, lifetime: lifetime)
+            }
             let connection = RedisConnection(channel: channel)
             try Task.checkCancellation()
-            if !profile.password.isEmpty || !profile.username.isEmpty {
-                var auth = [Data("AUTH".utf8)]
-                if !profile.username.isEmpty { auth.append(Data(profile.username.utf8)) }
-                auth.append(Data(profile.password.utf8))
-                do {
-                    let result = try await connection.send(auth)
-                    guard result.bytes == Data("OK".utf8) else { throw RedisClientError.authenticationFailed }
-                } catch RedisClientError.server { throw RedisClientError.authenticationFailed }
-            }
+            try await authenticate(connection, profile: profile)
             // Database zero is the initial selection and is also the only database on Redis Cluster.
             if number != 0 {
                 let result = try await connection.send([Data("SELECT".utf8), Data(String(number).utf8)])

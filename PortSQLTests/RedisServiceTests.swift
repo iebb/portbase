@@ -148,4 +148,82 @@ final class RedisServiceTests: XCTestCase {
         XCTAssertEqual(try RedisDatabaseClient.makeResult(reply: repeated, command: command).columns.count, 2,
                        "Repeated field names keep the raw field list")
     }
+
+    func testClusterRedirectsAndSlotsNameOnlyUsableNodes() {
+        XCTAssertEqual(RedisRedirect.parse(Data("MOVED 3999 10.0.0.5:6381".utf8)), RedisRedirect(isAsk: false, host: "10.0.0.5", port: 6381))
+        XCTAssertEqual(RedisRedirect.parse(Data("ASK 12 [fd00::1]:7000".utf8)), RedisRedirect(isAsk: true, host: "fd00::1", port: 7000))
+        XCTAssertEqual(RedisRedirect.parse(Data("MOVED 1 fd00::2:7001".utf8))?.host, "fd00::2", "The port follows the last colon")
+        for bad in ["MOVED 1 host:0", "MOVED 1 host", "ASK 1 user@host:6379", "MOVED 1 a/b:6379", "ERR something"] {
+            XCTAssertNil(RedisRedirect.parse(Data(bad.utf8)), bad)
+        }
+        func bulk(_ text: String) -> RedisReply { .bulk(Data(text.utf8)) }
+        let slots = RedisReply.array([
+            .array([.integer(5461), .integer(10922), .array([bulk("10.0.0.2"), .integer(7001), bulk("b")]), .array([bulk("10.0.0.9"), .integer(7009)])]),
+            .array([.integer(0), .integer(5460), .array([bulk(""), .integer(7000), bulk("a")])]),
+            .array([.integer(10923), .integer(16383), .array([bulk("10.0.0.2"), .integer(7001), bulk("b")])]),
+        ])
+        let primaries = RedisDatabaseClient.clusterPrimaries(fromSlots: slots, defaultHost: "cluster.example.com")
+        XCTAssertEqual(primaries.map { "\($0.host):\($0.port)" }, ["10.0.0.2:7001", "cluster.example.com:7000"],
+                       "Each primary once, replicas left out, and an empty host is the connection's own")
+    }
+
+    /// Against a local three-node cluster seeded with portbase:cluster:1…60, entered at one node.
+    func testLiveClusterScansEveryPrimaryAndFollowsRedirects() async throws {
+        guard let port = Int(ProcessInfo.processInfo.environment["PORTBASE_TEST_REDIS_CLUSTER_PORT"] ?? "") else {
+            throw XCTSkip("Set PORTBASE_TEST_REDIS_CLUSTER_PORT to one node of the isolated Redis Cluster fixture.")
+        }
+        let profile = ConnectionProfile(name: "Cluster fixture", engine: .redis, host: "127.0.0.1", port: port,
+                                        username: "", password: "", database: "0", usesTLS: false)
+        var keys = Set<Data>()
+        var cursor = "0"
+        repeat {
+            let page = try await DatabaseService.shared.scanRedisKeys(profile: profile, database: "0", cursor: cursor,
+                                                                     pattern: Data("portbase:cluster:*".utf8), type: nil, policy: .readOnly)
+            keys.formUnion(page.keys.map(\.bytes))
+            cursor = page.cursor
+        } while cursor != "0"
+        XCTAssertEqual(keys.count, 60, "Keys on every primary, not only the node connected to")
+        for index in 1...60 {
+            let key = "portbase:cluster:\(index)"
+            let read = try await DatabaseService.shared.execute(query: "GET \(key)", profile: profile, database: "0", policy: .readOnly)
+            XCTAssertEqual(read.rows.first?.cells.first, .text("v"), key)
+        }
+        _ = try await DatabaseService.shared.execute(query: "SET portbase:cluster:written yes", profile: profile, database: "0",
+                                                     policy: .userQuery(confirmed: true))
+        let written = try await DatabaseService.shared.execute(query: "GET portbase:cluster:written", profile: profile, database: "0", policy: .readOnly)
+        XCTAssertEqual(written.rows.first?.cells.first, .text("yes"), "A write redirected to another node lands there")
+        _ = try await DatabaseService.shared.execute(query: "DEL portbase:cluster:written", profile: profile, database: "0",
+                                                     policy: .userQuery(confirmed: true))
+        let inspected = try await DatabaseService.shared.inspectRedisKey(profile: profile, database: "0",
+                                                                          key: RedisKey(bytes: Data("portbase:cluster:7".utf8)), policy: .readOnly)
+        XCTAssertEqual(inspected.type, "string")
+    }
+
+    /// Against a local Sentinel monitoring a primary named portbase-primary.
+    func testLiveSentinelConnectsToTheReportedPrimary() async throws {
+        guard let port = Int(ProcessInfo.processInfo.environment["PORTBASE_TEST_REDIS_SENTINEL_PORT"] ?? "") else {
+            throw XCTSkip("Set PORTBASE_TEST_REDIS_SENTINEL_PORT to the isolated Sentinel fixture.")
+        }
+        var profile = ConnectionProfile(name: "Sentinel fixture", engine: .redis, host: "127.0.0.1", port: port,
+                                        username: "", password: "", database: "0", usesTLS: false)
+        profile.redisSentinelMaster = "portbase-primary"
+        let key = "portbase:sentinel:" + UUID().uuidString
+        _ = try await DatabaseService.shared.execute(query: "SET \(key) primary", profile: profile, database: "0", policy: .userQuery(confirmed: true))
+        let read = try await DatabaseService.shared.execute(query: "GET \(key)", profile: profile, database: "0", policy: .readOnly)
+        XCTAssertEqual(read.rows.first?.cells.first, .text("primary"), "Commands reach the primary, not the Sentinel")
+        _ = try await DatabaseService.shared.execute(query: "DEL \(key)", profile: profile, database: "0", policy: .userQuery(confirmed: true))
+        profile.redisSentinelMaster = "no-such-primary"
+        do {
+            _ = try await DatabaseService.shared.execute(query: "PING", profile: profile, database: "0", policy: .readOnly)
+            XCTFail("An unknown master name must fail")
+        } catch RedisClientError.sentinelMasterUnknown(let name) {
+            XCTAssertEqual(name, "no-such-primary")
+        }
+        profile.redisSentinelMaster = "portbase-primary"
+        profile.usesSSHTunnel = true
+        do {
+            _ = try await DatabaseService.shared.execute(query: "PING", profile: profile, database: "0", policy: .readOnly)
+            XCTFail("Sentinel discovery can't go through a tunnel")
+        } catch RedisClientError.discoveryThroughTunnel { }
+    }
 }

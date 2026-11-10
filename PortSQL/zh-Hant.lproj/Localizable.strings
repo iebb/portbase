@@ -1769,3 +1769,7 @@
 "The SSH server does not support password authentication for this account." = "SSH 伺服器不支援此帳號使用密碼驗證。";
 "SSH authentication timed out. Check the tunnel host, credentials, and network connection." = "SSH 驗證逾時。請檢查通道主機、憑證和網路連線。";
 "The SSH host key for %1$@ changed. Expected %2$@, received %3$@." = "%1$@ 的 SSH 主機金鑰已變更。預期 %2$@，收到 %3$@。";
+"Sentinel master" = "Sentinel 主節點名";
+"Optional" = "選填";
+"Redis Sentinel has no primary named %@. Check the master name in the connection." = "Redis Sentinel 中沒有名為 %@ 的主節點。請檢查連線中的主節點名。";
+"Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Redis Cluster 重新導向和 Sentinel 探索需要連線其他伺服器，SSH 通道無法做到。請不使用通道連線，或直接連線持有該鍵的節點。";

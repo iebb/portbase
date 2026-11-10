@@ -1769,3 +1769,7 @@
 "The SSH server does not support password authentication for this account." = "The SSH server does not support password authentication for this account.";
 "SSH authentication timed out. Check the tunnel host, credentials, and network connection." = "SSH authentication timed out. Check the tunnel host, credentials, and network connection.";
 "The SSH host key for %1$@ changed. Expected %2$@, received %3$@." = "The SSH host key for %1$@ changed. Expected %2$@, received %3$@.";
+"Sentinel master" = "Sentinel master";
+"Optional" = "Optional";
+"Redis Sentinel has no primary named %@. Check the master name in the connection." = "Redis Sentinel has no primary named %@. Check the master name in the connection.";
+"Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key.";

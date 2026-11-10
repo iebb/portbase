@@ -1769,3 +1769,7 @@
 "The SSH server does not support password authentication for this account." = "SSH 서버가 이 계정에 대해 암호 인증을 지원하지 않습니다.";
 "SSH authentication timed out. Check the tunnel host, credentials, and network connection." = "SSH 인증 시간이 초과되었습니다. 터널 호스트, 자격 증명, 네트워크 연결을 확인하세요.";
 "The SSH host key for %1$@ changed. Expected %2$@, received %3$@." = "%1$@의 SSH 호스트 키가 변경되었습니다. 예상 %2$@, 수신 %3$@.";
+"Sentinel master" = "Sentinel 마스터";
+"Optional" = "선택 사항";
+"Redis Sentinel has no primary named %@. Check the master name in the connection." = "Redis Sentinel에 %@(이)라는 기본 서버가 없습니다. 연결 설정의 마스터 이름을 확인하세요.";
+"Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Redis Cluster 리디렉션과 Sentinel 검색은 다른 서버에 연결하지만 SSH 터널로는 할 수 없습니다. 터널 없이 연결하거나 키를 가진 노드에 연결하세요.";

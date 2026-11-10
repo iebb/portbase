@@ -1530,6 +1530,12 @@ struct BookmarkEditorView: View {
                         .portbaseKeyboardType(profile.engine == .redis ? .numberPad : .default)
                         .portbaseTextCapitalization(.never)
                         .autocorrectionDisabled()
+                    if profile.engine == .redis {
+                        // With a master name, the host and port above are a Sentinel's, which names the current primary.
+                        LabeledTextField("Sentinel master", text: $profile.redisSentinelMaster, prompt: "Optional")
+                            .portbaseTextCapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
                     if profile.engine == .mongodb {
                         LabeledTextField("Authentication database", text: $profile.authenticationDatabase)
                             .onChange(of: profile.authenticationDatabase) { _, _ in profile.mongoConnection.authenticationSourceIsExplicit = true }

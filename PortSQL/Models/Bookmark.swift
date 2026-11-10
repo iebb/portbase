@@ -144,6 +144,8 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
     var authenticationDatabase: String = "admin"
     var mongoConnection: MongoConnectionOptions = .init()
     var sqliteFileName: String? = nil
+    /// Redis: the master name a Sentinel at `host` reports the current primary for. Empty connects to `host` directly.
+    var redisSentinelMaster: String = ""
     var httpAuthentication: HTTPDatabaseAuthentication = .basic
     var notes: String = ""
     var transportSecurityMode: TransportSecurityMode = .systemCA
@@ -265,6 +267,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         case authenticationDatabase
         case mongoConnection
         case sqliteFileName
+        case redisSentinelMaster
         case httpAuthentication
         case database
         case notes
@@ -409,6 +412,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         authenticationDatabase = try container.decodeIfPresent(String.self, forKey: .authenticationDatabase) ?? "admin"
         mongoConnection = try container.decodeIfPresent(MongoConnectionOptions.self, forKey: .mongoConnection) ?? .init()
         sqliteFileName = try container.decodeIfPresent(String.self, forKey: .sqliteFileName)
+        redisSentinelMaster = try container.decodeIfPresent(String.self, forKey: .redisSentinelMaster) ?? ""
         httpAuthentication = try container.decodeIfPresent(HTTPDatabaseAuthentication.self, forKey: .httpAuthentication) ?? .basic
         notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
         if let explicitMode = try container.decodeIfPresent(TransportSecurityMode.self, forKey: .transportSecurityMode) {
@@ -453,6 +457,7 @@ struct ConnectionProfile: Identifiable, Codable, Hashable {
         try container.encode(authenticationDatabase, forKey: .authenticationDatabase)
         try container.encode(mongoConnection, forKey: .mongoConnection)
         try container.encodeIfPresent(sqliteFileName, forKey: .sqliteFileName)
+        if !redisSentinelMaster.isEmpty { try container.encode(redisSentinelMaster, forKey: .redisSentinelMaster) }
         try container.encode(httpAuthentication, forKey: .httpAuthentication)
         try container.encode(notes, forKey: .notes)
         try container.encode(usesTLS, forKey: .usesTLS)
