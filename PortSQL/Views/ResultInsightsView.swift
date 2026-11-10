@@ -15,11 +15,11 @@ struct ResultInsightsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.l) {
             if isComputing {
-                LoadingStateView(title: L10n.text("Analyzing results"))
+                ProgressView().frame(maxWidth: .infinity, minHeight: 90)
             } else if insights.columns.isEmpty {
                 Color.clear.frame(maxWidth: .infinity, minHeight: 90)
             } else {
-                summary
+                facts
                 if insights.columns.count > 6 {
                     HStack(spacing: Spacing.s) {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -32,10 +32,10 @@ struct ResultInsightsView: View {
                     .frame(minHeight: Sizes.control)
                     .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                 }
-                // Cards line up at the top and share their row's height, rather than centering on the tallest.
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: Spacing.m, alignment: .top)], alignment: .leading, spacing: Spacing.m) {
+                // Flat sections between hairlines, top-aligned so a short column doesn't center on a tall neighbor.
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: Spacing.xl, alignment: .top)], alignment: .leading, spacing: 0) {
                     ForEach(visibleColumns) { column in
-                        ColumnInsightCard(column: column)
+                        ColumnInsightSection(column: column)
                     }
                 }
             }
@@ -50,38 +50,36 @@ struct ResultInsightsView: View {
         }
     }
 
-    /// The four totals across the full width, or two by two where they don't fit in a row.
-    private var summary: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: Spacing.s) { summaryTiles }
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: Spacing.s, alignment: .top), GridItem(.flexible(), spacing: Spacing.s, alignment: .top)],
-                      spacing: Spacing.s) { summaryTiles }
-        }
-    }
-
-    @ViewBuilder private var summaryTiles: some View {
-        Group {
-            PortbaseMetricTile(title: L10n.text("Loaded rows"), value: insights.rowCount.formatted(), systemImage: "list.number",
-                               tint: Color(hex: 0x6366F1), footnote: result.isTruncated == true ? L10n.text("Result truncated") : nil)
-            PortbaseMetricTile(title: L10n.text("Columns"), value: insights.columns.count.formatted(), systemImage: "tablecells", tint: Color(hex: 0x0EA5E9))
-            PortbaseMetricTile(title: L10n.text("Completeness"), value: insights.completeness.formatted(.percent.precision(.fractionLength(0...1))),
-                               systemImage: "checkmark.circle.fill", tint: Color(hex: 0x10B981), footnote: L10n.text("Non-NULL cells"))
-            PortbaseMetricTile(title: L10n.text("Numeric columns"), value: insights.numericColumnCount.formatted(), systemImage: "number",
-                               tint: Color(hex: 0xF97316))
-        }
-        .frame(minWidth: 150, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    /// Rows, columns and completeness as one line of secondary text.
+    private var facts: some View {
+        let line = Text(verbatim: [
+            L10n.plural("row_count", count: insights.rowCount),
+            L10n.plural("column_count", count: insights.columns.count),
+            L10n.format("%@ non-NULL", insights.completeness.formatted(.percent.precision(.fractionLength(0...1)))),
+        ].joined(separator: " · ")).foregroundColor(.secondary)
+        return (result.isTruncated == true
+                ? line + Text(verbatim: " · ").foregroundColor(.secondary) + Text(L10n.text("Result truncated")).foregroundColor(.orange)
+                : line)
+            .font(.captionText.monospacedDigit())
     }
 }
 
-private struct ColumnInsightCard: View {
+private struct ColumnInsightSection: View {
     let column: ColumnInsight
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Divider()
+            content.padding(.vertical, Spacing.m)
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
             HStack(alignment: .top, spacing: Spacing.s) {
                 Image(systemName: symbol)
                     .font(.rowDetail)
-                    .foregroundStyle(tint)
+                    .foregroundStyle(.secondary)
                     .frame(width: Sizes.iconBadge, height: Sizes.iconBadge)
                 VStack(alignment: .leading, spacing: Spacing.xxxs) {
                     Text(column.name).font(.rowTitle).lineLimit(1)
@@ -92,20 +90,18 @@ private struct ColumnInsightCard: View {
                 }
                 Spacer(minLength: 0)
                 if column.isUnique {
-                    PortbaseChip(title: L10n.text("Unique"), systemImage: "key.fill", tint: PortSQLPalette.accent)
+                    Label("Unique", systemImage: "key")
+                        .font(.captionText)
+                        .foregroundStyle(.secondary)
                 }
             }
 
             HStack(spacing: Spacing.m) {
                 stat(L10n.text("Distinct"), column.distinctCount.formatted())
-                stat("NULL", column.nullRatio.formatted(.percent.precision(.fractionLength(0...1))))
+                // Mostly-NULL columns are the one fact here worth a warning color.
+                stat("NULL", column.nullRatio.formatted(.percent.precision(.fractionLength(0...1))), warning: column.nullRatio > 0.5)
                 if column.emptyTextCount > 0 { stat(L10n.text("Empty"), column.emptyTextCount.formatted()) }
             }
-
-            ProgressView(value: 1 - column.nullRatio)
-                .tint(column.nullRatio > 0.5 ? .orange : .green)
-                .accessibilityLabel("Filled values")
-                .accessibilityValue((1 - column.nullRatio).formatted(.percent.precision(.fractionLength(0))))
 
             if let numeric = column.numeric {
                 HStack(spacing: Spacing.m) {
@@ -116,8 +112,7 @@ private struct ColumnInsightCard: View {
                 }
                 Chart(numeric.bins) { bin in
                     BarMark(x: .value("Range", bin.id), y: .value("Rows", bin.count))
-                        .foregroundStyle(LinearGradient(colors: [tint.opacity(0.55), tint], startPoint: .bottom, endPoint: .top))
-                        .cornerRadius(3)
+                        .foregroundStyle(PortSQLPalette.accent.opacity(0.7))
                 }
                 .chartXAxis(.hidden)
                 .chartYAxis(.hidden)
@@ -136,14 +131,15 @@ private struct ColumnInsightCard: View {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("Most frequent").font(.captionStrong).foregroundStyle(.secondary)
                     let peak = max(1, column.topValues.first?.count ?? 1)
-                    ForEach(column.topValues) { value in
+                    // Labels can repeat when different typed values print alike, so rows are identified by position.
+                    ForEach(Array(column.topValues.enumerated()), id: \.offset) { _, value in
                         HStack(spacing: Spacing.s) {
                             Text(value.value.isEmpty ? "\"\"" : value.value)
                                 .font(.codeCaption)
                                 .lineLimit(1)
                                 .frame(maxWidth: 120, alignment: .leading)
                             GeometryReader { proxy in
-                                Capsule().fill(tint.opacity(0.75))
+                                Rectangle().fill(PortSQLPalette.accent.opacity(0.7))
                                     .frame(width: max(4, proxy.size.width * CGFloat(value.count) / CGFloat(peak)))
                             }
                             .frame(height: 6)
@@ -154,15 +150,14 @@ private struct ColumnInsightCard: View {
                 }
             }
         }
-        .padding(Spacing.l)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .portbaseCardSurface()
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
-    private func stat(_ title: String, _ value: String) -> some View {
+    private func stat(_ title: String, _ value: String, warning: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: Spacing.xxxs) {
             Text(title).font(.badgeText).foregroundStyle(.secondary)
             Text(value).font(.rowTitle.monospacedDigit()).lineLimit(1).minimumScaleFactor(0.7)
+                .foregroundStyle(warning ? Color.orange : PortSQLPalette.ink)
         }
         .accessibilityElement(children: .combine)
     }
@@ -193,18 +188,6 @@ private struct ColumnInsightCard: View {
         case .json: "curlybraces"
         case .binary: "doc.zipper"
         case .empty: "circle.dashed"
-        }
-    }
-
-    private var tint: Color {
-        switch column.kind {
-        case .numeric: Color(hex: 0x6366F1)
-        case .temporal: Color(hex: 0x0EA5E9)
-        case .boolean: Color(hex: 0x10B981)
-        case .text: Color(hex: 0xF97316)
-        case .json: Color(hex: 0xA855F7)
-        case .binary: Color(hex: 0x64748B)
-        case .empty: .gray
         }
     }
 }

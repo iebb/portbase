@@ -295,11 +295,25 @@ enum RedisDatabaseClient {
             }
         case "XRANGE", "XREVRANGE":
             guard let entries = reply.elements else { throw RedisClientError.malformedReply }
-            columns = [L10n.text("Entry ID"), L10n.text("Fields")]
-            rows = try entries.map { entry in
+            let parsed = try entries.map { entry -> (id: RedisReply, fields: [RedisReply]) in
                 guard let values = entry.elements, values.count == 2, let fields = values[1].elements,
                       fields.count.isMultiple(of: 2) else { throw RedisClientError.malformedReply }
-                return [values[0].cell, values[1].cell]
+                return (values[0], fields)
+            }
+            if let names = streamFieldNames(parsed.map(\.fields)) {
+                // One column per field; an entry without a field shows NULL there.
+                columns = [L10n.text("Entry ID")] + names
+                rows = parsed.map { entry in
+                    var cells = [QueryCell](repeating: .null, count: names.count)
+                    for index in stride(from: 0, to: entry.fields.count, by: 2) {
+                        if let name = entry.fields[index].bytes.flatMap({ String(data: $0, encoding: .utf8) }),
+                           let column = names.firstIndex(of: name) { cells[column] = entry.fields[index + 1].cell }
+                    }
+                    return [entry.id.cell] + cells
+                }
+            } else {
+                columns = [L10n.text("Entry ID"), L10n.text("Fields")]
+                rows = parsed.map { [$0.id.cell, RedisReply.array($0.fields).cell] }
             }
         case "INFO":
             guard let bytes = reply.bytes, let text = String(data: bytes, encoding: .utf8) else { throw RedisClientError.malformedReply }
@@ -322,6 +336,25 @@ enum RedisDatabaseClient {
         result.generatedMutation = command.isReadOnly ? nil : command.preview
         if let cursor { result.executionSummary += " · " + L10n.format("Cursor %@", cursor) }
         return result
+    }
+
+    /// Stream field names in order of first appearance, when every name is text, none repeats within an
+    /// entry, and there are few enough for columns; otherwise each entry keeps its raw field list.
+    static func streamFieldNames(_ entries: [[RedisReply]], limit: Int = 64) -> [String]? {
+        var names: [String] = []
+        var known = Set<String>([L10n.text("Entry ID")])
+        for fields in entries {
+            var seen = Set<String>()
+            for index in stride(from: 0, to: fields.count, by: 2) {
+                guard let bytes = fields[index].bytes, let name = String(data: bytes, encoding: .utf8), !name.isEmpty,
+                      seen.insert(name).inserted else { return nil }
+                if !names.contains(name) {
+                    guard known.insert(name).inserted, names.count < limit else { return nil }
+                    names.append(name)
+                }
+            }
+        }
+        return names.isEmpty ? nil : names
     }
 
     private static func numeric(_ reply: RedisReply) -> QueryCell {

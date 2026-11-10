@@ -3,6 +3,8 @@ import Foundation
 enum RedisClientError: LocalizedError, Sendable {
     case invalidCommand, unsupportedCommand, invalidDatabase, malformedReply, replyTooLarge, connectionClosed
     case server(String), authenticationFailed, unsupportedKeyType, keyChanged, writeOutcomeUnknown, clusterRedirect
+    /// A command that returns a whole key or keyspace at once, with the cursor command that reads it in pages.
+    case unboundedCommand(String, alternative: String)
 
     var errorDescription: String? {
         switch self {
@@ -17,6 +19,8 @@ enum RedisClientError: LocalizedError, Sendable {
         case .unsupportedKeyType: L10n.text("This Redis key type cannot be inspected here.")
         case .keyChanged: L10n.text("The Redis key changed or expired during inspection. Refresh its value.")
         case .writeOutcomeUnknown: L10n.text("The connection ended before Redis confirmed the write. Refresh the key before trying again.")
+        case .unboundedCommand(let name, let alternative):
+            L10n.format("%1$@ returns everything at once. Use %2$@ to read it in pages.", name, alternative)
         case .clusterRedirect: L10n.text("This Redis Cluster endpoint redirected the command. Connect through a cluster-aware proxy or to the node that owns this key.")
         }
     }

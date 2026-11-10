@@ -247,8 +247,8 @@ struct HomeView: View {
                     .accessibilityLabel("Queries per day")
                 }
             }
-            .padding(Spacing.l)
-            .portbaseCardSurface()
+            // Figures and a chart, not a list, so they sit on the page rather than in a card.
+            .padding(.top, Spacing.xxs)
         }
     }
 
@@ -379,7 +379,7 @@ struct RecentQueryRow: View {
                 .accessibilityLabel((entry.outcome ?? .succeeded).title)
             VStack(alignment: .leading, spacing: Spacing.xxs) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(entry.title).font(.rowDetail).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
+                    Text(singleLineTitle).font(.rowDetail).foregroundStyle(PortSQLPalette.ink).lineLimit(1)
                     Spacer(minLength: Spacing.s)
                     Text(entry.executedAt, format: .relative(presentation: .named))
                         .font(.microText).foregroundStyle(.secondary).lineLimit(1)
@@ -401,6 +401,11 @@ struct RecentQueryRow: View {
         .frame(minHeight: Sizes.row)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+
+    /// A title taken from multi-line SQL reads as one line, with each run of whitespace a single space.
+    private var singleLineTitle: String {
+        entry.title.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 
     private var symbol: String {

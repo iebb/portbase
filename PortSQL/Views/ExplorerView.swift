@@ -140,12 +140,10 @@ struct ExplorerView: View {
                     }
 
                     if workspace.isLoadingSchema {
-                        PanelCard {
-                            LoadingStateView(
-                                title: L10n.text("Loading database"),
-                                message: loadingDatabaseMessage
-                            )
-                        }
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.l)
+                            .accessibilityLabel("Loading database")
                     } else if let schemaErrorMessage = workspace.schemaErrorMessage {
                         ConnectionIssueBanner(message: schemaErrorMessage, onEdit: workspace.editCurrentConnection, onReconnect: workspace.reconnect,
                                   onReviewCertificate: { workspace.reviewServerCertificate() })
@@ -349,13 +347,6 @@ struct ExplorerView: View {
     }
 
     private var showsOrder: Bool { showsOrderField || !workspace.explorerOrderByClause.isEmpty }
-
-    private var loadingDatabaseMessage: String {
-        if let database = workspace.activeDatabaseName {
-            return L10n.format("Reading tables and columns from %@.", database)
-        }
-        return L10n.text("Reading tables and columns from the selected database.")
-    }
 
     private var clauseSuggestionKey: String {
         switch focusedClause {

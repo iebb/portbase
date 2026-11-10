@@ -169,7 +169,8 @@ struct RedisExplorerView: View {
         let requestedCursor = reset ? "0" : cursor
         let requestedPattern = Data(pattern.utf8)
         let requestedType = keyType.isEmpty ? nil : keyType
-        if reset { keys = []; cursor = "0"; truncated = false }
+        // A new scan replaces the old one entirely, so a failed rescan never leaves the previous keys in the table.
+        if reset { keys = []; cursor = "0"; truncated = false; table = .empty }
         isLoading = true; started = true; error = nil
         task = Task {
             do {

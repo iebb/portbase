@@ -1725,3 +1725,5 @@
 "Row" = "行";
 "Referenced by %@" = "%@から参照";
 "Binary(%@, subtype %@)" = "バイナリ(%@、サブタイプ %@)";
+"%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ はすべてを一度に返します。ページごとに読むには %2$@ を使ってください。";
+"%@ non-NULL" = "%@ が非 NULL";

@@ -902,7 +902,7 @@ struct ResultsCard: View {
                 }
 
                 if workspace.isRunning {
-                    LoadingStateView(title: L10n.text("Loading results"))
+                    ProgressView()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Spacing.l)
                 } else if workspace.result.documents != nil && mongoResultView == "chart" {
@@ -2372,40 +2372,6 @@ struct PanelCard<Content: View>: View {
         }
     }
 }
-
-struct LoadingStateView: View {
-    let title: String
-    var message: String? = nil
-
-    var body: some View {
-        HStack(alignment: .center, spacing: Spacing.m) {
-            ProgressView()
-                .controlSize(.regular)
-                .tint(PortSQLPalette.accent)
-                .frame(width: Sizes.iconTile, height: Sizes.iconTile)
-                .background(PortSQLPalette.accent.opacity(0.12), in: Circle())
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(.rowTitle)
-                    .foregroundStyle(PortSQLPalette.ink)
-                if let message {
-                    Text(message)
-                        .font(.captionText)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.l)
-        .background(PortSQLPalette.sunken, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
-                .strokeBorder(PortSQLPalette.stroke, lineWidth: 1)
-        }
-    }
-}
-
 struct StatusBanner: View {
     let title: String
     let message: String

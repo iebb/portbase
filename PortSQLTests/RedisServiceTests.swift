@@ -121,4 +121,31 @@ final class RedisServiceTests: XCTestCase {
             } catch { }
         }
     }
+
+    func testWholeKeyCommandsPointToTheirCursorCommand() {
+        for (query, alternative) in [("HGETALL h", "HSCAN"), ("KEYS *", "SCAN"), ("SMEMBERS s", "SSCAN"), ("hvals h", "HSCAN")] {
+            XCTAssertThrowsError(try RedisCommandService.parse(query), query) { error in
+                guard case RedisClientError.unboundedCommand(_, let suggested) = error else { return XCTFail("\(query): \(error)") }
+                XCTAssertEqual(suggested, alternative)
+                XCTAssertTrue(error.localizedDescription.contains(alternative))
+            }
+        }
+    }
+
+    func testStreamEntriesShowOneColumnPerField() throws {
+        func bulk(_ text: String) -> RedisReply { .bulk(Data(text.utf8)) }
+        let reply = RedisReply.array([
+            .array([bulk("1-0"), .array([bulk("event"), bulk("signup"), bulk("plan"), bulk("pro")])]),
+            .array([bulk("2-0"), .array([bulk("event"), bulk("login")])]),
+        ])
+        let command = try RedisCommandService.parse("XRANGE events - + COUNT 10")
+        let result = try RedisDatabaseClient.makeResult(reply: reply, command: command)
+        XCTAssertEqual(result.columns.map(\.name), [L10n.text("Entry ID"), "event", "plan"])
+        XCTAssertEqual(result.rows[0].cells, [.text("1-0"), .text("signup"), .text("pro")])
+        XCTAssertEqual(result.rows[1].cells, [.text("2-0"), .text("login"), .null], "A field the entry lacks is NULL, not empty text")
+
+        let repeated = RedisReply.array([.array([bulk("1-0"), .array([bulk("a"), bulk("1"), bulk("a"), bulk("2")])])])
+        XCTAssertEqual(try RedisDatabaseClient.makeResult(reply: repeated, command: command).columns.count, 2,
+                       "Repeated field names keep the raw field list")
+    }
 }

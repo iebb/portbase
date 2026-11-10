@@ -77,7 +77,7 @@ enum ResultInsightsService {
         var nullCount = 0
         var emptyTextCount = 0
         var numbers: [Double] = []
-        var counts: [String: Int] = [:]
+        var counts: [QueryCell: Int] = [:]
         var kinds: [ColumnInsight.Kind: Int] = [:]
         var earliest: String?
         var latest: String?
@@ -98,19 +98,14 @@ enum ResultInsightsService {
             default:
                 break
             }
-            // Binary values are counted by their bytes, never by a lossy text rendering.
-            let key: String
-            if case .binary(let data) = cell { key = "0x" + data.prefix(32).map { String(format: "%02x", $0) }.joined() + (data.count > 32 ? "…" : "") }
-            else { key = cell.displayValue }
-            counts[key, default: 0] += 1
+            // Values are told apart by their full typed value; only the shown label is shortened.
+            counts[cell, default: 0] += 1
         }
 
         let dominant = kinds.max { lhs, rhs in lhs.value == rhs.value ? rank(lhs.key) > rank(rhs.key) : lhs.value < rhs.value }?.key ?? .empty
         let numeric = dominant == .numeric && !numbers.isEmpty ? summary(of: numbers) : nil
-        let topValues = counts
-            .sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
-            .prefix(topValueCount)
-            .map { ValueFrequency(value: $0.key, count: $0.value) }
+        let frequencies: [ValueFrequency] = counts.map { cell, count in ValueFrequency(value: label(for: cell), count: count) }
+        let topValues = Array(frequencies.sorted(by: Self.isMoreFrequent).prefix(topValueCount))
 
         return ColumnInsight(
             id: index,
@@ -128,14 +123,27 @@ enum ResultInsightsService {
         )
     }
 
+    private static func isMoreFrequent(_ lhs: ValueFrequency, _ rhs: ValueFrequency) -> Bool {
+        lhs.count == rhs.count ? lhs.value < rhs.value : lhs.count > rhs.count
+    }
+
+    /// Binary values are labeled by their first bytes, so a long blob doesn't fill the row.
+    private static func label(for cell: QueryCell) -> String {
+        guard case .binary(let data) = cell else { return cell.displayValue }
+        return "0x" + data.prefix(32).map { String(format: "%02x", $0) }.joined() + (data.count > 32 ? "…" : "")
+    }
+
     static func summary(of values: [Double]) -> NumericSummary? {
         guard !values.isEmpty else { return nil }
         let sorted = values.sorted()
+        let count = Double(sorted.count)
+        // Values near the limits of Double would overflow a plain sum; the mean is built from scaled shares instead.
         let sum = sorted.reduce(0, +)
+        let mean = sum.isFinite ? sum / count : sorted.reduce(0) { $0 + $1 / count }
         let middle = sorted.count / 2
-        let median = sorted.count.isMultiple(of: 2) ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+        let median = sorted.count.isMultiple(of: 2) ? sorted[middle - 1] / 2 + sorted[middle] / 2 : sorted[middle]
         let minimum = sorted[0], maximum = sorted[sorted.count - 1]
-        return NumericSummary(minimum: minimum, maximum: maximum, mean: sum / Double(sorted.count), median: median,
+        return NumericSummary(minimum: minimum, maximum: maximum, mean: mean, median: median,
                               sum: sum, bins: histogram(sorted, minimum: minimum, maximum: maximum))
     }
 
@@ -143,15 +151,25 @@ enum ResultInsightsService {
         guard maximum > minimum else {
             return [HistogramBin(id: 0, lowerBound: minimum, upperBound: maximum, count: values.count)]
         }
-        let width = (maximum - minimum) / Double(histogramBinCount)
+        let bins = Double(histogramBinCount)
+        // The span itself can exceed Double's range, so the width is taken from each end separately.
+        let width = maximum / bins - minimum / bins
         var counts = Array(repeating: 0, count: histogramBinCount)
         for value in values {
-            counts[min(histogramBinCount - 1, max(0, Int((value - minimum) / width)))] += 1
+            let offset = value - minimum
+            let position = offset.isFinite ? offset / width : value / width - minimum / width
+            let index = position.isFinite ? Int(min(max(position, 0), bins - 1)) : histogramBinCount - 1
+            counts[index] += 1
+        }
+        // Edges are interpolated between the ends, which stays finite where minimum + n × width would not.
+        func edge(_ index: Int) -> Double {
+            if index == 0 { return minimum }
+            if index == histogramBinCount { return maximum }
+            let share = Double(index) / bins
+            return minimum * (1 - share) + maximum * share
         }
         return counts.indices.map { index in
-            HistogramBin(id: index, lowerBound: minimum + Double(index) * width,
-                         upperBound: index == histogramBinCount - 1 ? maximum : minimum + Double(index + 1) * width,
-                         count: counts[index])
+            HistogramBin(id: index, lowerBound: edge(index), upperBound: edge(index + 1), count: counts[index])
         }
     }
 

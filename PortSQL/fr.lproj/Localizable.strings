@@ -1725,3 +1725,5 @@
 "Row" = "Ligne";
 "Referenced by %@" = "Référencé par %@";
 "Binary(%@, subtype %@)" = "Binaire(%@, sous-type %@)";
+"%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ renvoie tout en une fois. Utilisez %2$@ pour le lire page par page.";
+"%@ non-NULL" = "%@ non NULL";

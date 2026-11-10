@@ -6,25 +6,28 @@ struct QueryPlanView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
-            HStack(spacing: Spacing.s) {
-                PortbaseChip(title: L10n.format("Steps: %d", plan.nodes.count), systemImage: "list.bullet.indent", tint: PortSQLPalette.accent)
-                if plan.warningCount > 0 {
-                    PortbaseChip(title: L10n.format("Warnings: %d", plan.warningCount), systemImage: "exclamationmark.triangle.fill", tint: .orange)
-                }
-                if plan.maximumCost > 0 {
-                    PortbaseChip(title: L10n.format("Total cost: %@", plan.maximumCost.formatted(.number.precision(.fractionLength(0...2)))),
-                                 systemImage: "gauge.with.dots.needle.50percent", tint: .secondary)
-                }
-                Spacer(minLength: 0)
-            }
+            facts
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(plan.nodes) { node in
                     if node.id > 0 { Divider().padding(.leading, QueryPlanRow.leadingInset(depth: node.depth)) }
                     QueryPlanRow(node: node, maximumCost: plan.maximumCost)
                 }
             }
-            .portbaseCardSurface(radius: Radius.control)
         }
+    }
+
+    /// Steps, warnings and total cost as one line of secondary text; only the warnings take a color.
+    private var facts: some View {
+        var line = Text(L10n.format("Steps: %d", plan.nodes.count)).foregroundColor(.secondary)
+        if plan.warningCount > 0 {
+            line = line + Text(verbatim: " · ").foregroundColor(.secondary)
+                + Text(L10n.format("Warnings: %d", plan.warningCount)).foregroundColor(.orange)
+        }
+        if plan.maximumCost > 0 {
+            line = line + Text(verbatim: " · ").foregroundColor(.secondary)
+                + Text(L10n.format("Total cost: %@", plan.maximumCost.formatted(.number.precision(.fractionLength(0...2))))).foregroundColor(.secondary)
+        }
+        return line.font(.captionText.monospacedDigit())
     }
 }
 
@@ -48,7 +51,9 @@ private struct QueryPlanRow: View {
                         .foregroundStyle(PortSQLPalette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     if let warning = node.warning {
-                        PortbaseChip(title: warning.title, systemImage: "exclamationmark.triangle.fill", tint: .orange)
+                        Label(warning.title, systemImage: "exclamationmark.triangle.fill")
+                            .font(.captionStrong)
+                            .foregroundStyle(.orange)
                     }
                 }
                 ForEach(node.details, id: \.self) { detail in

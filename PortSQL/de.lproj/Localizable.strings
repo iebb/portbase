@@ -1725,3 +1725,5 @@
 "Row" = "Zeile";
 "Referenced by %@" = "Referenziert von %@";
 "Binary(%@, subtype %@)" = "Binärdaten(%@, Subtyp %@)";
+"%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ liefert alles auf einmal. Zum seitenweisen Lesen %2$@ verwenden.";
+"%@ non-NULL" = "%@ nicht NULL";

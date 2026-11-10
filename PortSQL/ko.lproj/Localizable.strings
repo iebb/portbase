@@ -1725,3 +1725,5 @@
 "Row" = "행";
 "Referenced by %@" = "%@에서 참조";
 "Binary(%@, subtype %@)" = "바이너리(%@, 하위 유형 %@)";
+"%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ 명령은 모든 항목을 한 번에 반환합니다. 페이지 단위로 읽으려면 %2$@ 명령을 사용하세요.";
+"%@ non-NULL" = "%@ NULL 아님";

@@ -196,4 +196,29 @@ final class WorkspaceInsightsAndPaletteTests: XCTestCase {
         XCTAssertTrue(try String(contentsOf: license, encoding: .utf8).contains("SIL OPEN FONT LICENSE Version 1.1"))
         XCTAssertTrue(try String(contentsOf: license, encoding: .utf8).contains("The Google Sans Code Project Authors"))
     }
+
+    func testSummaryStaysFiniteAtTheLimitsOfDouble() throws {
+        let summary = try XCTUnwrap(ResultInsightsService.summary(of: [-1e308, 0, 1e308, 1e308]))
+        XCTAssertTrue(summary.mean.isFinite)
+        XCTAssertTrue(summary.median.isFinite)
+        XCTAssertEqual(summary.median, 5e307)
+        XCTAssertEqual(summary.bins.count, ResultInsightsService.histogramBinCount)
+        XCTAssertEqual(summary.bins.reduce(0) { $0 + $1.count }, 4, "Every value lands in a bin")
+        XCTAssertEqual(summary.bins.first?.count, 1)
+        XCTAssertEqual(summary.bins.last?.count, 2)
+        XCTAssertTrue(summary.bins.allSatisfy { $0.lowerBound.isFinite && $0.upperBound.isFinite })
+    }
+
+    func testDistinctValuesUseTheFullTypedValue() {
+        let prefix = Data(repeating: 0, count: 32)
+        let result = table([("payload", "blob"), ("mixed", "")], [
+            [.binary(prefix + Data([1])), .integer("1")],
+            [.binary(prefix + Data([2])), .text("1")],
+        ])
+        let insights = ResultInsightsService.insights(for: result)
+        XCTAssertEqual(insights.columns[0].distinctCount, 2, "Blobs sharing their first 32 bytes are still different values")
+        XCTAssertTrue(insights.columns[0].isUnique)
+        XCTAssertEqual(insights.columns[0].topValues.first?.value.hasSuffix("…"), true, "Only the label is shortened")
+        XCTAssertEqual(insights.columns[1].distinctCount, 2, "The number 1 and the text \"1\" are different values")
+    }
 }

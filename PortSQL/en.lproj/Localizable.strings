@@ -1725,3 +1725,5 @@
 "Row" = "Row";
 "Referenced by %@" = "Referenced by %@";
 "Binary(%@, subtype %@)" = "Binary(%@, subtype %@)";
+"%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ returns everything at once. Use %2$@ to read it in pages.";
+"%@ non-NULL" = "%@ non-NULL";

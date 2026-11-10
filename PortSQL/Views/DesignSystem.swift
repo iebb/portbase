@@ -1232,40 +1232,6 @@ extension PortbaseSectionHeading where Trailing == EmptyView {
         self.init(title: title, systemImage: systemImage) { EmptyView() }
     }
 }
-
-/// A headline number with a caption and optional sparkline.
-struct PortbaseMetricTile: View {
-    let title: String
-    let value: String
-    let systemImage: String
-    var tint: Color = PortSQLPalette.accent
-    var footnote: String?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.xs) {
-            Image(systemName: systemImage)
-                .font(.rowDetail)
-                .foregroundStyle(tint)
-                .accessibilityHidden(true)
-            Text(value)
-                .font(.metricValue)
-                .foregroundStyle(PortSQLPalette.ink)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            VStack(alignment: .leading, spacing: Spacing.xxxs) {
-                Text(title).font(.captionStrong).foregroundStyle(.secondary).lineLimit(1)
-                // Reserve the footnote line so tiles in a grid keep equal heights.
-                Text(footnote ?? " ").font(.microText).foregroundStyle(.tertiary).lineLimit(1)
-                    .accessibilityHidden(footnote == nil)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.m)
-        .portbaseCardSurface(radius: Radius.control)
-        .accessibilityElement(children: .combine)
-    }
-}
-
 /// The Portbase mark used in headers and empty states.
 struct PortbaseLogoMark: View {
     var size: CGFloat = 32

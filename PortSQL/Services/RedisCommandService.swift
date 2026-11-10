@@ -19,6 +19,9 @@ enum RedisCommandService {
         "SADD", "SREM", "SMOVE", "ZADD", "ZREM", "ZINCRBY", "XADD", "XDEL", "XTRIM"
     ]
 
+    /// Commands refused because they read everything at once, and the paged command to use instead.
+    static let pagedAlternatives = ["KEYS": "SCAN", "HGETALL": "HSCAN", "HKEYS": "HSCAN", "HVALS": "HSCAN", "SMEMBERS": "SSCAN"]
+
     static func parse(_ text: String) throws -> RedisCommand {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed.utf8.count <= maximumCommandBytes else { throw RedisClientError.invalidCommand }
@@ -75,6 +78,7 @@ enum RedisCommandService {
               arguments.reduce(0, { $0 + $1.count }) <= maximumCommandBytes,
               let command = String(data: arguments[0], encoding: .ascii), !command.isEmpty else { throw RedisClientError.invalidCommand }
         let name = command.uppercased()
+        if let alternative = pagedAlternatives[name] { throw RedisClientError.unboundedCommand(name, alternative: alternative) }
         guard reads.contains(name) || writes.contains(name) else { throw RedisClientError.unsupportedCommand }
         var args = arguments
         args[0] = Data(name.utf8)
