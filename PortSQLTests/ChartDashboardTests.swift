@@ -242,4 +242,52 @@ final class ChartDashboardTests: XCTestCase {
         XCTAssertEqual(reopened.displayedChartPages.map(\.id), [ChartPage.defaultID])
         XCTAssertEqual(reopened.charts(onPage: ChartPage.defaultID).map(\.id), [ids[2], copy.id, ids[0], ids[1]], "A deleted page's charts move, not vanish")
     }
+
+    func testAChartSavedWithAConnectionNeverFallsBackToTheSelectedOne() {
+        let saved = ConnectionProfile(name: "Saved", engine: .postgresql, host: "saved.example.com", port: 5432, username: "app", password: "", defaultDatabase: "app")
+        let selected = ConnectionProfile(name: "Selected", engine: .postgresql, host: "selected.example.com", port: 5432, username: "app", password: "", defaultDatabase: "app")
+        var preset = VisualizationService.defaultPreset(for: .empty, connectionProfileID: saved.id, connectionName: "Saved", databaseName: nil, sourceTableReference: nil)
+        XCTAssertEqual(ChartQueryRunner.profile(for: preset, lookup: { $0 == saved.id ? saved : nil }, fallback: selected)?.id, saved.id)
+        XCTAssertNil(ChartQueryRunner.profile(for: preset, lookup: { _ in nil }, fallback: selected), "A deleted connection leaves the chart without one")
+        preset.connectionProfileID = nil
+        XCTAssertEqual(ChartQueryRunner.profile(for: preset, lookup: { _ in nil }, fallback: selected)?.id, selected.id, "Only a chart without a saved connection uses the workspace's")
+    }
+
+    func testCachedResultsMatchOnlyTheQueryConnectionAndDatabaseTheyCameFrom() {
+        var preset = VisualizationService.defaultPreset(for: .empty, connectionProfileID: UUID(), connectionName: "", databaseName: "shop", sourceTableReference: nil)
+        preset.sourceQuery = "SELECT region, sum(total) FROM orders WHERE status = 'paid' GROUP BY region"
+        let entry = CachedChartResult(result: .empty, fetchedAt: .now, parameterValues: nil, source: ChartResultSource(preset))
+        XCTAssertTrue(entry.matches(preset))
+
+        var edited = preset
+        edited.sourceQuery = "SELECT region, sum(total) FROM orders WHERE status = 'refunded' GROUP BY region"
+        XCTAssertFalse(entry.matches(edited), "The same columns from another query are not this chart's data")
+        var moved = preset
+        moved.connectionProfileID = UUID()
+        XCTAssertFalse(entry.matches(moved))
+        var otherDatabase = preset
+        otherDatabase.databaseName = "archive"
+        XCTAssertFalse(entry.matches(otherDatabase))
+        var restyled = preset
+        restyled.chartType = .line
+        restyled.chartTitle = "Revenue"
+        XCTAssertTrue(entry.matches(restyled), "Changing how a chart looks keeps its data")
+
+        var legacy = QueryResultTable.empty
+        legacy.sourceQuery = preset.sourceQuery
+        XCTAssertTrue(CachedChartResult(result: legacy, fetchedAt: .now, parameterValues: nil, source: nil).matches(preset))
+        XCTAssertFalse(CachedChartResult(result: legacy, fetchedAt: .now, parameterValues: nil, source: nil).matches(edited))
+    }
+
+    func testFilterSignatureIgnoresValuesTheQueryDoesNotUse() {
+        var preset = VisualizationService.defaultPreset(for: .empty, connectionProfileID: nil, connectionName: "", databaseName: nil, sourceTableReference: nil)
+        preset.sourceQuery = "SELECT day, count(*) FROM signups WHERE created_at >= :start AND region = :region GROUP BY day"
+        var page = ChartPage(title: "Growth")
+        page.parameterValues = ["region": "EU", "unused": "x"]
+        page.dateRange = ChartDateRange(preset: .last7Days)
+        let signature = ChartQueryRunner.filterSignature(for: preset, engine: .postgresql, page: page)
+        XCTAssertEqual(signature["region"], "EU")
+        XCTAssertNil(signature["unused"])
+        XCTAssertEqual(signature["portbase.dateRange"], ChartDateRange.Preset.last7Days.rawValue)
+    }
 }

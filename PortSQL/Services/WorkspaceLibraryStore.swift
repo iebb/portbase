@@ -257,8 +257,13 @@ final class WorkspaceLibraryStore: ObservableObject {
         chartResults.peek(presetID)?.result
     }
 
-    func cacheVisualizationPreview(_ result: QueryResultTable, for presetID: UUID) {
-        chartResults.store(result, for: presetID)
+    func cacheVisualizationPreview(_ result: QueryResultTable, for preset: SavedVisualizationPreset, parameterValues: [String: String]? = nil) {
+        chartResults.store(result, for: preset.id, source: ChartResultSource(preset), parameterValues: parameterValues)
+    }
+
+    /// Forgets a chart's result, as when its query, connection or database changed.
+    func discardVisualizationPreview(for presetID: UUID) {
+        chartResults.remove(presetID)
     }
 
     // MARK: Dashboard pages and layout
@@ -392,7 +397,7 @@ final class WorkspaceLibraryStore: ObservableObject {
         }
         copy.createdAt = .now
         guard saveVisualization(copy) else { return nil }
-        if let cached = chartResults.peek(chart.id) { chartResults.store(cached.result, for: copy.id, parameterValues: cached.parameterValues, fetchedAt: cached.fetchedAt) }
+        if let cached = chartResults.peek(chart.id) { chartResults.store(cached.result, for: copy.id, source: cached.source, parameterValues: cached.parameterValues, fetchedAt: cached.fetchedAt) }
         // New charts land at the end of the page; the copy goes right after the original instead.
         moveChart(copy.id, toPage: resolvedPageID(for: chart), before: nextChart(after: chart)?.id)
         return copy

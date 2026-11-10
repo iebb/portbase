@@ -41,6 +41,9 @@ struct VisualizerComposerSheet: View {
     private let initialQuery: String?
     private let initialTableReference: String?
     @State private var cachedPreview: QueryResultTable?
+    /// Where the result of Run Preview came from and the page filters it ran with, so Save keeps it only for that query.
+    @State private var previewSource: ChartResultSource?
+    @State private var previewFilters: [String: String]?
 
     private var previewResult: QueryResultTable {
         expandedPreviewResult ?? (isStoredPreset ? cachedPreview ?? libraryStore.cachedVisualizationPreview(for: draft.id) ?? .empty : workspace.result)
@@ -70,6 +73,18 @@ struct VisualizerComposerSheet: View {
         return workspace.selectedBookmark
     }
 
+    /// The page the chart sits on, whose filters supply its named parameters.
+    private var chartPage: ChartPage {
+        let pages = libraryStore.displayedChartPages
+        let id = draft.pageID ?? libraryStore.resolvedCurrentChartPageID
+        return pages.first { $0.id == id } ?? pages.first { $0.id == libraryStore.resolvedCurrentChartPageID } ?? ChartPage.defaultPage
+    }
+
+    /// The database the chart reads: its own, or the workspace's when it runs on the workspace's connection.
+    private var effectiveDatabaseName: String? {
+        draft.databaseName ?? (previewBookmark?.id == workspace.selectedBookmark?.id ? workspace.activeDatabaseName : nil)
+    }
+
     private var isStoredPreset: Bool {
         libraryStore.visualizations.contains(where: { $0.id == draft.id })
     }
@@ -95,6 +110,20 @@ struct VisualizerComposerSheet: View {
                     ChartEditorSection(title: L10n.text("Query")) {
                         queryTools
                     } content: {
+                        VisualizationControlMenu(title: L10n.text("Connection"), value: connectionTitle) {
+                            ForEach(bookmarks.bookmarks) { profile in
+                                Button {
+                                    guard draft.connectionProfileID != profile.id else { return }
+                                    // Another connection's databases differ, so the chart starts from its default one.
+                                    if draft.connectionProfileID != nil || previewBookmark?.id != profile.id { draft.databaseName = nil }
+                                    draft.connectionProfileID = profile.id
+                                    draft.connectionName = profile.name
+                                } label: {
+                                    if previewBookmark?.id == profile.id { Label(profile.displayTitle, systemImage: "checkmark") }
+                                    else { Text(profile.displayTitle) }
+                                }
+                            }
+                        }
                         queryEditor
 
                         if let limit = ChartQueryRunner.trailingLimit(in: queryBinding.wrappedValue) {
@@ -243,7 +272,10 @@ struct VisualizerComposerSheet: View {
                 draft.usesUnlimitedRows = true
                 baseline.usesUnlimitedRows = true
             }
-            if isStoredPreset, expandedPreviewResult == nil { cachedPreview = await ChartResultCache.shared.entry(for: draft.id)?.result }
+            if isStoredPreset, expandedPreviewResult == nil {
+                let chart = draft
+                cachedPreview = await ChartResultCache.shared.entry(for: chart.id).flatMap { $0.matches(chart) ? $0.result : nil }
+            }
         }
     }
 
@@ -442,7 +474,13 @@ struct VisualizerComposerSheet: View {
         return title.isEmpty ? L10n.text("Preview") : title
     }
 
+    private var connectionTitle: String {
+        if let previewBookmark { return previewBookmark.displayTitle }
+        return draft.connectionProfileID == nil ? "" : L10n.text("Connection unavailable")
+    }
+
     private func saveChart() {
+        let previous = libraryStore.visualizations.first { $0.id == draft.id }
         var stored = draft
         stored.title = normalizedPresetTitle
         stored.chartTitle = effectiveChartTitle
@@ -452,13 +490,26 @@ struct VisualizerComposerSheet: View {
         stored.yField = stored.resolvedYFields.first ?? ""
         stored.connectionName = previewBookmark?.name ?? stored.connectionName
         stored.connectionProfileID = previewBookmark?.id ?? stored.connectionProfileID
-        stored.databaseName = stored.databaseName ?? workspace.activeDatabaseName
+        stored.databaseName = effectiveDatabaseName
         stored.sourceTableReference = currentTableReference
         stored.sourceQuery = stored.sourceQuery ?? workspace.result.sourceQuery
-        // Read before saving: once the chart is stored, `previewResult` reads the stored chart's cache instead.
-        let preview = previewResult
+        let source = ChartResultSource(stored)
         libraryStore.saveVisualization(stored)
-        if VisualizationService.isCompatible(stored, with: preview) { libraryStore.cacheVisualizationPreview(preview, for: stored.id) }
+        // A result is kept only when it answers the saved query; a chart whose query, connection or database
+        // changed without a new preview starts empty rather than showing the old data as current.
+        if let expandedPreviewResult, previewSource == source {
+            if VisualizationService.isCompatible(stored, with: expandedPreviewResult) {
+                libraryStore.cacheVisualizationPreview(expandedPreviewResult, for: stored, parameterValues: previewFilters)
+            }
+        } else if previous == nil {
+            let result = workspace.result
+            let sameQuery = result.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines) == stored.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if sameQuery, stored.connectionProfileID == workspace.selectedBookmark?.id, VisualizationService.isCompatible(stored, with: result) {
+                libraryStore.cacheVisualizationPreview(result, for: stored)
+            }
+        } else if let previous, ChartResultSource(previous) != source {
+            libraryStore.discardVisualizationPreview(for: stored.id)
+        }
         dismiss()
     }
 
@@ -540,18 +591,20 @@ struct VisualizerComposerSheet: View {
         }
         isLoadingExpandedPreview = true
         expandedPreviewError = nil
+        // The preview runs exactly as the dashboard will: read-only, with the page's filters bound as parameters.
+        var chart = draft
+        chart.sourceQuery = sourceQuery
+        chart.connectionProfileID = bookmark.id
+        chart.databaseName = effectiveDatabaseName
+        let page = chartPage
         do {
-            var result = try await DatabaseService.shared.execute(
-                query: sourceQuery,
-                profile: bookmark,
-                database: draft.databaseName,
-                policy: .readOnly
-            )
+            var result = try await ChartQueryRunner.run(chart, profile: bookmark, pageValues: page.boundValues())
             result.sourceTableReference = currentTableReference
-            result.sourceQuery = sourceQuery
             await MainActor.run {
                 // Fields the new result lacks are dropped, and labels nobody edited follow the new fields.
                 draft = VisualizationService.adaptedPreset(draft, to: result)
+                previewSource = ChartResultSource(chart)
+                previewFilters = ChartQueryRunner.filterSignature(for: chart, engine: bookmark.engine, page: page)
                 expandedPreviewResult = result
                 expandedPreviewError = nil
                 isLoadingExpandedPreview = false

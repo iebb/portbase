@@ -1,11 +1,41 @@
 import Foundation
 
+/// What a chart's result was fetched from: the query it ran, on which connection and database.
+struct ChartResultSource: Codable, Hashable, Sendable {
+    var query: String
+    var connectionProfileID: UUID?
+    var databaseName: String?
+
+    init(query: String, connectionProfileID: UUID?, databaseName: String?) {
+        self.query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.connectionProfileID = connectionProfileID
+        self.databaseName = databaseName?.isEmpty == true ? nil : databaseName
+    }
+
+    init(_ preset: SavedVisualizationPreset) {
+        self.init(query: ChartQueryRunner.query(for: preset) ?? "", connectionProfileID: preset.connectionProfileID,
+                  databaseName: preset.databaseName)
+    }
+}
+
 /// A saved chart's last query result and when it was fetched.
 struct CachedChartResult: Codable, Sendable {
     var result: QueryResultTable
     var fetchedAt: Date
     /// The page filter values the query ran with, to tell when they have since changed.
     var parameterValues: [String: String]?
+    /// Where the result came from; results cached by earlier versions have none.
+    var source: ChartResultSource?
+
+    /// Whether this result still answers the chart's query. A result from an edited query, another
+    /// connection or another database is never shown as the chart's data.
+    func matches(_ preset: SavedVisualizationPreset) -> Bool {
+        guard let source else {
+            let query = result.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return query == nil || query == preset.sourceQuery?.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return source == ChartResultSource(preset)
+    }
 }
 
 /// Keeps each saved chart's last result on disk, one file per chart, so charts open instantly with
@@ -47,8 +77,9 @@ struct CachedChartResult: Codable, Sendable {
     }
 
     @discardableResult
-    func store(_ result: QueryResultTable, for id: UUID, parameterValues: [String: String]? = nil, fetchedAt: Date = .now) -> CachedChartResult {
-        let entry = CachedChartResult(result: result, fetchedAt: fetchedAt, parameterValues: parameterValues)
+    func store(_ result: QueryResultTable, for id: UUID, source: ChartResultSource?, parameterValues: [String: String]? = nil,
+               fetchedAt: Date = .now) -> CachedChartResult {
+        let entry = CachedChartResult(result: result, fetchedAt: fetchedAt, parameterValues: parameterValues, source: source)
         memory[id] = entry
         missing.remove(id)
         let url = fileURL(id)
@@ -110,7 +141,7 @@ struct CachedChartResult: Codable, Sendable {
                 for (id, result) in legacy {
                     let target = directory.appendingPathComponent(id.uuidString + ".json")
                     guard !FileManager.default.fileExists(atPath: target.path),
-                          let encoded = try? encoder.encode(CachedChartResult(result: result, fetchedAt: fetchedAt, parameterValues: nil)) else { continue }
+                          let encoded = try? encoder.encode(CachedChartResult(result: result, fetchedAt: fetchedAt, parameterValues: nil, source: nil)) else { continue }
                     try? encoded.write(to: target, options: .atomic)
                 }
             }

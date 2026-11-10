@@ -92,7 +92,7 @@ private struct ChartDashboard: View, @MainActor Equatable {
                             ForEach(charts) { preset in
                                 ChartTile(
                                     preset: preset,
-                                    profile: preset.connectionProfileID.flatMap { bookmarks.bookmark(with: $0) } ?? fallbackBookmark,
+                                    profile: ChartQueryRunner.profile(for: preset, lookup: { bookmarks.bookmark(with: $0) }, fallback: fallbackBookmark),
                                     page: currentPage,
                                     pages: pages,
                                     refreshToken: refreshToken,
@@ -208,7 +208,7 @@ private struct ChartDashboard: View, @MainActor Equatable {
     private func pageParameters(_ page: ChartPage) -> [String] {
         var names = Set<String>()
         for chart in libraryStore.charts(onPage: page.id) {
-            let engine = (chart.connectionProfileID.flatMap { bookmarks.bookmark(with: $0) } ?? fallbackBookmark)?.engine ?? .postgresql
+            let engine = ChartQueryRunner.profile(for: chart, lookup: { bookmarks.bookmark(with: $0) }, fallback: fallbackBookmark)?.engine ?? .postgresql
             names.formUnion(ChartQueryRunner.parameters(for: chart, engine: engine))
         }
         return names.sorted()
@@ -313,16 +313,7 @@ private struct ChartTile: View {
     private var engine: DatabaseEngine { profile?.engine ?? .postgresql }
     private var hasQuery: Bool { ChartQueryRunner.query(for: preset) != nil }
 
-    /// What the cached result was fetched with, compared by setting rather than by timestamp so a
-    /// rolling "Last 7 Days" doesn't count as changed every second.
-    private var filterSignature: [String: String] {
-        let names = Set(ChartQueryRunner.parameters(for: preset, engine: engine))
-        var signature = (page.parameterValues ?? [:]).filter { names.contains($0.key) }
-        if names.contains(ChartPage.startParameter) || names.contains(ChartPage.endParameter), let range = page.dateRange {
-            signature["portbase.dateRange"] = range.preset.rawValue + (range.preset == .custom ? range.title : "")
-        }
-        return signature
-    }
+    private var filterSignature: [String: String] { ChartQueryRunner.filterSignature(for: preset, engine: engine, page: page) }
 
     private var filtersChanged: Bool {
         guard let entry, !filterSignature.isEmpty || entry.parameterValues?.isEmpty == false else { return false }
@@ -358,8 +349,9 @@ private struct ChartTile: View {
             withAnimation(.easeOut(duration: 0.2)) { libraryStore.moveChart(id, toPage: page.id, before: preset.id) }
             return true
         } isTargeted: { isTargeted = $0 }
-        .task(id: preset.id) {
-            entry = await ChartResultCache.shared.entry(for: preset.id)
+        .task(id: ChartResultSource(preset)) {
+            // A result from before the query, connection or database changed isn't this chart's data.
+            entry = await ChartResultCache.shared.entry(for: preset.id).flatMap { $0.matches(preset) ? $0 : nil }
             hasLoadedCache = true
         }
         .onChange(of: refreshToken) { _, _ in Task { await run() } }
@@ -660,7 +652,8 @@ private struct ChartTile: View {
         defer { isRunning = false }
         do {
             let result = try await ChartQueryRunner.run(chart, profile: profile, pageValues: page.boundValues())
-            entry = ChartResultCache.shared.store(result, for: chart.id, parameterValues: filterSignature)
+            entry = ChartResultCache.shared.store(result, for: chart.id, source: ChartResultSource(chart),
+                                                  parameterValues: ChartQueryRunner.filterSignature(for: chart, engine: engine, page: page))
         } catch {
             runError = error.localizedDescription
         }
