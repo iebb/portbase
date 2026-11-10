@@ -44,12 +44,17 @@ struct RootView: View {
     @EnvironmentObject private var workspace: WorkspaceViewModel
     @EnvironmentObject private var library: WorkspaceLibraryStore
     @EnvironmentObject private var consoles: ConsoleStore
-    @State private var selectedTab = RootTab.launchSelection
+    @State private var selectedTab: RootTab
     @State private var showsPalette = false
     @State private var showsLibrary = false
     @State private var showsSettings = false
     @State private var createsSQLite = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    /// `initialTab` names the tab to open on, as the -portsql-tab launch argument does.
+    init(initialTab: String? = nil) {
+        _selectedTab = State(initialValue: initialTab.map(RootTab.init(name:)) ?? RootTab.launchSelection)
+    }
 
     private var hasConnectionProblem: Bool {
         workspace.selectedBookmark != nil
@@ -217,17 +222,16 @@ private enum RootTab: Hashable {
             return .home
         }
 
-        switch arguments[index + 1].lowercased() {
-        case "explorer":
-            return .explorer
-        case "studio", "console":
-            return .studio
-        case "charts":
-            return .charts
-        case "servers":
-            return .servers
-        default:
-            return .home
+        return RootTab(name: arguments[index + 1])
+    }
+
+    init(name: String) {
+        switch name.lowercased() {
+        case "explorer": self = .explorer
+        case "studio", "console": self = .studio
+        case "charts": self = .charts
+        case "servers": self = .servers
+        default: self = .home
         }
     }
 }

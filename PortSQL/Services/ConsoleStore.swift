@@ -65,6 +65,7 @@ final class ConsoleStore: ObservableObject {
 
     init(directory: URL = WorkspaceFileStore.directory) {
         url = directory.appendingPathComponent("consoles.json")
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let initial = QueryConsole(draft: ConsoleDraft())
         consoles = [initial]
         selectedID = initial.id
