@@ -1773,3 +1773,5 @@
 "Optional" = "可选";
 "Redis Sentinel has no primary named %@. Check the master name in the connection." = "Redis Sentinel 中没有名为 %@ 的主节点。请检查连接中的主节点名。";
 "Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Redis Cluster 重定向和 Sentinel 发现需要连接其他服务器，SSH 隧道无法做到。请不使用隧道连接，或直接连接持有该键的节点。";
+"Export Page" = "导出页面";
+"Run the page's charts before exporting it." = "导出前请先运行页面上的图表。";

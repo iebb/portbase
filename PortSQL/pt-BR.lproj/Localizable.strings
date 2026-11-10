@@ -1773,3 +1773,5 @@
 "Optional" = "Opcional";
 "Redis Sentinel has no primary named %@. Check the master name in the connection." = "O Redis Sentinel não tem um primário chamado %@. Verifique o nome do mestre na conexão.";
 "Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Os redirecionamentos do Redis Cluster e a descoberta do Sentinel alcançam outros servidores, o que um túnel SSH não permite. Conecte sem o túnel ou ao nó que contém a chave.";
+"Export Page" = "Exportar página";
+"Run the page's charts before exporting it." = "Execute os gráficos da página antes de exportá-la.";

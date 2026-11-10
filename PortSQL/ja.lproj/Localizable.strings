@@ -1773,3 +1773,5 @@
 "Optional" = "任意";
 "Redis Sentinel has no primary named %@. Check the master name in the connection." = "Redis Sentinel に %@ という名前のプライマリはありません。接続設定のマスター名を確認してください。";
 "Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Redis Cluster のリダイレクトと Sentinel の検出は他のサーバーに接続しますが、SSH トンネルではできません。トンネルを使わずに接続するか、キーを持つノードに接続してください。";
+"Export Page" = "ページを書き出す";
+"Run the page's charts before exporting it." = "書き出す前にページのチャートを実行してください。";

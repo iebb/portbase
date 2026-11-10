@@ -1773,3 +1773,5 @@
 "Optional" = "Необязательно";
 "Redis Sentinel has no primary named %@. Check the master name in the connection." = "В Redis Sentinel нет основного сервера с именем %@. Проверьте имя мастера в подключении.";
 "Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Перенаправления Redis Cluster и обнаружение через Sentinel обращаются к другим серверам, чего SSH-туннель не позволяет. Подключитесь без туннеля или к узлу, которому принадлежит ключ.";
+"Export Page" = "Экспорт страницы";
+"Run the page's charts before exporting it." = "Перед экспортом запустите диаграммы страницы.";

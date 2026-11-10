@@ -53,6 +53,8 @@ private struct ChartDashboard: View, @MainActor Equatable {
     @State private var editingFilters: ChartPage?
     @State private var deletingPage: ChartPage?
     @State private var targetedPage: UUID?
+    @State private var shareItem: ChartShareItem?
+    @State private var exportError: String?
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.fallbackBookmark?.id == rhs.fallbackBookmark?.id && lhs.canChartCurrentResult == rhs.canChartCurrentResult
@@ -126,6 +128,12 @@ private struct ChartDashboard: View, @MainActor Equatable {
         .sheet(item: $editingFilters) { page in
             ChartPageFiltersSheet(page: page, parameters: pageParameters(page))
         }
+        .sheet(item: $shareItem) { ChartShareSheet(url: $0.url) }
+        .alert(L10n.text("Export Page"), isPresented: Binding(get: { exportError != nil }, set: { if !$0 { exportError = nil } })) {
+            Button("OK", role: .cancel) { exportError = nil }
+        } message: {
+            Text(exportError ?? "")
+        }
     }
 
     // MARK: Pages
@@ -187,11 +195,32 @@ private struct ChartDashboard: View, @MainActor Equatable {
                 namingPage = .rename(page)
             }
             Button("Filters…", systemImage: "line.3.horizontal.decrease.circle") { editingFilters = page }
+            Menu("Export Page", systemImage: "square.and.arrow.up") {
+                Button("Export PDF") { Task { await export(page, format: .pdf) } }
+                Button("Export PNG") { Task { await export(page, format: .png) } }
+            }
+            .disabled(libraryStore.charts(onPage: page.id).isEmpty)
             if pages.count > 1 {
                 Divider()
                 Button("Delete Page…", systemImage: "trash", role: .destructive) { deletingPage = page }
             }
         }
+    }
+
+    /// The page's charts with their current results, in page order, as one file to share.
+    private func export(_ page: ChartPage, format: ChartExportFormat) async {
+        var charts: [(preset: SavedVisualizationPreset, result: QueryResultTable)] = []
+        for preset in libraryStore.charts(onPage: page.id) {
+            if let entry = await ChartResultCache.shared.entry(for: preset.id), entry.matches(preset) { charts.append((preset, entry.result)) }
+        }
+        guard !charts.isEmpty else { exportError = L10n.text("Run the page's charts before exporting it."); return }
+        var facts = [page.dateRange?.title ?? L10n.text("All Time")]
+        facts += (page.parameterValues ?? [:]).sorted { $0.key < $1.key }.map { ":" + $0.key + " = " + $0.value }
+        facts.append(Date.now.formatted(date: .abbreviated, time: .shortened))
+        do {
+            shareItem = ChartShareItem(url: try ChartExportService.writePage(title: page.title, subtitle: facts.joined(separator: " · "),
+                                                                             charts: charts, format: format))
+        } catch { exportError = error.localizedDescription }
     }
 
     private func savePageName() {

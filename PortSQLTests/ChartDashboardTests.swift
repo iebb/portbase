@@ -290,4 +290,24 @@ final class ChartDashboardTests: XCTestCase {
         XCTAssertNil(signature["unused"])
         XCTAssertEqual(signature["portbase.dateRange"], ChartDateRange.Preset.last7Days.rawValue)
     }
+
+    @MainActor
+    func testAPageExportsAsOnePDFAndPNG() throws {
+        var preset = VisualizationService.defaultPreset(for: .empty, connectionProfileID: nil, connectionName: "", databaseName: nil, sourceTableReference: nil)
+        preset.chartType = .bar; preset.xField = "region"; preset.yField = "n"; preset.yFields = ["n"]; preset.xAxisMode = .category
+        let result = QueryResultTable(
+            columns: [QueryColumn(name: "region", type: "text"), QueryColumn(name: "n", type: "integer")],
+            rows: [("A", "50"), ("B", "30")].map { QueryRow(cells: [.text($0.0), .integer($0.1)]) },
+            executionSummary: "", generatedMutation: nil, profiles: [], sourceTableReference: nil, sourceQuery: nil)
+        var second = preset; second.id = UUID(); second.chartType = .line
+        for format in [ChartExportFormat.pdf, .png] {
+            let url = try ChartExportService.writePage(title: "Growth / Q3", subtitle: "Last 30 Days", charts: [(preset, result), (second, result)], format: format)
+            defer { try? FileManager.default.removeItem(at: url) }
+            let data = try Data(contentsOf: url)
+            XCTAssertGreaterThan(data.count, 2_000, format.rawValue)
+            XCTAssertTrue(url.lastPathComponent.hasPrefix("Growth-Q3-"), "The file is named after the page")
+            if format == .pdf { XCTAssertEqual(data.prefix(4), Data("%PDF".utf8)) }
+            else { XCTAssertEqual(data.prefix(4), Data([0x89, 0x50, 0x4E, 0x47])) }
+        }
+    }
 }

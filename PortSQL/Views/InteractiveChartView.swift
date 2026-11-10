@@ -509,6 +509,48 @@ enum ChartExportError: LocalizedError {
         .background(.white)
         .environment(\.colorScheme, .light)
         .environment(\.dynamicTypeSize, .large)
+        try render(view, to: url, format: format)
+        return url
+    }
+
+    /// A dashboard page as one image or PDF: its title and filters, then each chart that has a result, laid
+    /// out as on the page. Charts without a result are left out rather than drawn empty.
+    static func writePage(title: String, subtitle: String?, charts: [(preset: SavedVisualizationPreset, result: QueryResultTable)],
+                          format: ChartExportFormat) throws -> URL {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("PortSQLCharts", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let name = title.components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }.joined(separator: "-")
+        let url = directory.appendingPathComponent((name.isEmpty ? "charts" : name) + "-" + UUID().uuidString.prefix(8) + "." + format.rawValue)
+        let width: CGFloat = 1_400
+        let view = VStack(alignment: .leading, spacing: Spacing.l) {
+            Text(title).font(.pageTitle)
+            if let subtitle, !subtitle.isEmpty { Text(subtitle).font(.captionText).foregroundStyle(.secondary) }
+            ChartTileLayout(spacing: Spacing.l) {
+                ForEach(charts, id: \.preset.id) { chart in
+                    let data = ChartRenderData.build(result: chart.result, preset: chart.preset, dateFilter: nil)
+                    VStack(alignment: .leading, spacing: Spacing.s) {
+                        // A chart nobody titled is named for what it measures, as in its editor.
+                        Text(chart.preset.tileTitle.isEmpty ? chart.preset.displayTitle : chart.preset.tileTitle).font(.rowTitle.weight(.semibold))
+                        VisualizationChartPlot(preset: chart.preset, points: data.points, xMode: data.xMode, compact: true, height: nil)
+                    }
+                    .padding(Spacing.m)
+                    .frame(height: chart.preset.resolvedTileHeight)
+                    .overlay { RoundedRectangle(cornerRadius: Radius.card, style: .continuous).strokeBorder(Color.black.opacity(0.12)) }
+                    .layoutValue(key: ChartTileSpan.self, value: chart.preset.gridSpan)
+                }
+            }
+            .frame(width: width - Spacing.xxxl * 2)
+        }
+        .padding(Spacing.xxxl)
+        .frame(width: width, alignment: .leading)
+        .background(.white)
+        .environment(\.colorScheme, .light)
+        .environment(\.dynamicTypeSize, .large)
+        try render(view, to: url, format: format)
+        return url
+    }
+
+    private static func render(_ view: some View, to url: URL, format: ChartExportFormat) throws {
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
         switch format {
@@ -533,14 +575,13 @@ enum ChartExportError: LocalizedError {
             }
             guard completed else { throw ChartExportError.renderingFailed }
         }
-        return url
     }
 }
 
-private struct ChartShareItem: Identifiable { let id = UUID(); let url: URL }
+struct ChartShareItem: Identifiable { let id = UUID(); let url: URL }
 
 #if canImport(UIKit)
-private struct ChartShareSheet: UIViewControllerRepresentable {
+struct ChartShareSheet: UIViewControllerRepresentable {
     let url: URL
     func makeUIViewController(context: Context) -> UIActivityViewController {
         UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -549,7 +590,7 @@ private struct ChartShareSheet: UIViewControllerRepresentable {
 }
 
 #else
-private struct ChartShareSheet: View {
+struct ChartShareSheet: View {
     let url: URL
     var body: some View { ScriptActivitySheet(url: url) }
 }

@@ -1773,3 +1773,5 @@
 "Optional" = "선택 사항";
 "Redis Sentinel has no primary named %@. Check the master name in the connection." = "Redis Sentinel에 %@(이)라는 기본 서버가 없습니다. 연결 설정의 마스터 이름을 확인하세요.";
 "Redis Cluster redirects and Sentinel discovery reach other servers, which an SSH tunnel can't. Connect without the tunnel or to the node that owns the key." = "Redis Cluster 리디렉션과 Sentinel 검색은 다른 서버에 연결하지만 SSH 터널로는 할 수 없습니다. 터널 없이 연결하거나 키를 가진 노드에 연결하세요.";
+"Export Page" = "페이지 내보내기";
+"Run the page's charts before exporting it." = "내보내기 전에 페이지의 차트를 실행하세요.";
