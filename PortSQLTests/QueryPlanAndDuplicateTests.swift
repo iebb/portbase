@@ -499,4 +499,49 @@ final class QueryPlanAndDuplicateTests: XCTestCase {
         withExtendedLifetime((bookmarks, library)) {}
     }
 #endif
+
+    func testPostgresJSONPlanReadsCostsActualsBuffersAndMisestimates() throws {
+        let json = """
+        [{"Plan": {"Node Type": "Hash Join", "Join Type": "Left", "Startup Cost": 1.09, "Total Cost": 125.5, "Plan Rows": 3,
+          "Actual Total Time": 4.2, "Actual Rows": 5000, "Actual Loops": 1, "Hash Cond": "(o.customer_id = c.id)",
+          "Plans": [
+            {"Node Type": "Seq Scan", "Relation Name": "orders", "Alias": "o", "Total Cost": 80, "Plan Rows": 5000,
+             "Actual Total Time": 1.5, "Actual Rows": 5000, "Actual Loops": 1, "Filter": "(status = 'paid')",
+             "Rows Removed by Filter": 120, "Shared Hit Blocks": 40, "Shared Read Blocks": 2},
+            {"Node Type": "Index Scan", "Index Name": "customers_pkey", "Relation Name": "customers", "Alias": "customers",
+             "Total Cost": 8, "Plan Rows": 1, "Actual Total Time": 0.01, "Actual Rows": 1, "Actual Loops": 0},
+            {"Node Type": "Sort", "Sort Key": ["o.placed_at DESC"], "Sort Method": "external merge", "Sort Space Type": "Disk",
+             "Sort Space Used": 2048, "Total Cost": 9, "Plan Rows": 10}
+          ]},
+          "Planning Time": 0.25, "Execution Time": 6.75}]
+        """
+        let table = result(["QUERY PLAN"], [[.json(json)]], source: "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT 1")
+        XCTAssertTrue(QueryPlanService.isAnalyzed(table))
+        let plan = try XCTUnwrap(QueryPlanService.plan(from: table, engine: .postgresql))
+        XCTAssertEqual(plan.nodes.map(\.title), ["Hash Left Join", "Seq Scan on orders o", "Index Scan using customers_pkey on customers", "Sort"])
+        XCTAssertEqual(plan.nodes.map(\.depth), [0, 1, 1, 1])
+        XCTAssertEqual(plan.executionTime, 6.75)
+        XCTAssertEqual(plan.nodes[0].warning, .misestimate, "3 rows estimated, 5,000 returned")
+        XCTAssertEqual(plan.nodes[1].warning, .fullScan)
+        XCTAssertTrue(plan.nodes[1].details.contains("Rows Removed by Filter: 120"))
+        XCTAssertTrue(plan.nodes[1].details.contains("Buffers: shared hit=40 read=2"))
+        XCTAssertTrue(plan.nodes[2].details.contains(L10n.text("Never executed")))
+        XCTAssertEqual(plan.nodes[3].warning, .temporarySort, "A sort that spilled to disk")
+        XCTAssertEqual(plan.nodes[3].details, ["Sort Key: o.placed_at DESC", "Sort Method: external merge  Disk 2048kB"])
+    }
+
+    func testMySQLAnalyzeTreeInOneCellBecomesNodesWithActuals() throws {
+        let tree = """
+        -> Limit: 10 row(s)  (cost=2.75 rows=10) (actual time=0.05..0.06 rows=10 loops=1)
+            -> Table scan on orders  (cost=2.75 rows=25) (actual time=0.04..0.05 rows=4000 loops=1)
+        """
+        let table = result(["EXPLAIN"], [[.text(tree)]], source: "EXPLAIN ANALYZE SELECT * FROM orders LIMIT 10")
+        let plan = try XCTUnwrap(QueryPlanService.plan(from: table, engine: .mysql))
+        XCTAssertEqual(plan.nodes.map(\.title), ["Limit: 10 row(s)", "Table scan on orders"])
+        XCTAssertEqual(plan.nodes.map(\.depth), [0, 1])
+        XCTAssertEqual(plan.nodes[0].totalCost, 2.75, "MySQL's single cost is the total")
+        XCTAssertEqual(plan.nodes[1].actualRows, 4000)
+        XCTAssertEqual(plan.nodes[1].actualTime, 0.05)
+        XCTAssertEqual(plan.nodes[1].warning, .misestimate)
+    }
 }

@@ -229,8 +229,17 @@ final class SQLSafetyServiceTests: XCTestCase {
         XCTAssertNil(SQLSafetyService.explainQuery(for: "DELETE FROM sessions WHERE id = 1"))
         XCTAssertEqual(
             SQLSafetyService.explainQuery(for: "SELECT * FROM sessions"),
-            "EXPLAIN SELECT * FROM sessions"
+            "EXPLAIN (FORMAT JSON) SELECT * FROM sessions"
         )
+        XCTAssertEqual(SQLSafetyService.explainQuery(for: "SELECT * FROM sessions", analyze: true),
+                       "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT * FROM sessions")
+        XCTAssertEqual(SQLSafetyService.explainQuery(for: "SELECT 1", engine: .mysql, analyze: true), "EXPLAIN ANALYZE SELECT 1")
+        XCTAssertEqual(SQLSafetyService.explainQuery(for: "SELECT 1", engine: .mysql), "EXPLAIN SELECT 1")
+        XCTAssertEqual(SQLSafetyService.explainQuery(for: "SELECT 1", engine: .sqlite), "EXPLAIN QUERY PLAN SELECT 1")
+        XCTAssertNil(SQLSafetyService.explainQuery(for: "SELECT 1", engine: .sqlite, analyze: true), "SQLite can't report actual times")
+        XCTAssertNil(SQLSafetyService.explainQuery(for: "SELECT 1", engine: .mariadb, analyze: true))
+        XCTAssertNil(SQLSafetyService.explainQuery(for: "UPDATE t SET a = 1 WHERE id = 2", analyze: true), "Analyze runs the query, so writes are never offered")
+        XCTAssertTrue(SQLSafetyService.isReadOnlySQL("EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT * FROM sessions"))
     }
 
     func testShowStatementsAreReadOnlyEvenWhenTheyNameCreate() {

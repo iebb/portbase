@@ -100,7 +100,7 @@ final class LocalizationKeychainAndCatalogTests: XCTestCase {
     func testNonEnglishCatalogsHaveNoUnexpectedEnglishIdentityFallbacks() throws {
         let baseline = try localizableStrings(for: "en")
         let universallyInvariantKeys: Set<String> = [
-            "PORTBASE", "Portbase", "iCloud", "WHERE", "ORDER", "SQL", "DDL", "Portbase Pro", "JSON", "NULL", "PK",
+            "PORTBASE", "Portbase", "iCloud", "WHERE", "ORDER", "SQL", "DDL", "Portbase Pro", "JSON", "NULL", "PK", "Explain Analyze",
         ]
         let localeSpecificInvariantKeys: [String: Set<String>] = [
             "de": ["FORMAT", "EXPLAIN", "SCHEMA", "Server", "Name", "Host", "Port", "Auto", "Filter", "Staging", "Orange", "Indigo", "Alias", "Join", "Operator", "Schema", "Snippet", "Parameter %@", "Maximum", "Minimum"],

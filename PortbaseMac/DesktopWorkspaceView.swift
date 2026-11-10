@@ -748,7 +748,7 @@ struct DesktopWorkspaceView: View {
         VSplitView {
             Group {
                 if workspace.isDocumentDatabase { DesktopMongoEditor() }
-                else if workspace.selectedBookmark?.engine == .elasticsearch { ScrollView { ElasticsearchQueryEditorCard().padding(Spacing.m) } }
+                else if workspace.selectedBookmark?.engine == .elasticsearch { ScrollView { ElasticsearchQueryEditorCard().environment(\.workspaceIsFlat, true) } }
                 else { DesktopSQLEditor() }
             }.frame(minHeight: 160, idealHeight: 300, maxHeight: .infinity)
             DesktopResultsView().frame(minHeight: 180, idealHeight: 440, maxHeight: .infinity)
@@ -1146,7 +1146,20 @@ private struct DesktopSQLEditor: View {
                     Button("Run All", systemImage: "play.rectangle") { workspace.runQuery(entireBuffer: true) }.disabled(workspace.isRunning || workspace.selectedBookmark == nil)
                     Divider().frame(height: Spacing.l)
                     Button("Format", systemImage: "text.alignleft") { workspace.formatQuery() }
-                    Button("Explain", systemImage: "waveform.path.ecg") { workspace.runExplain() }.disabled(workspace.selectedBookmark == nil || workspace.isRunning)
+                    if workspace.canExplainAnalyze {
+                        // Click to explain; the menu runs the query for actual times and rows.
+                        Menu {
+                            Button("Explain Analyze", systemImage: "stopwatch") { workspace.runExplain(analyze: true) }
+                        } label: {
+                            Label("Explain", systemImage: "waveform.path.ecg")
+                        } primaryAction: {
+                            workspace.runExplain()
+                        }
+                        .fixedSize()
+                        .disabled(workspace.isRunning)
+                    } else {
+                        Button("Explain", systemImage: "waveform.path.ecg") { workspace.runExplain() }.disabled(workspace.selectedBookmark == nil || workspace.isRunning)
+                    }
                     SQLTemplateMenu(compact: false).portbaseToolbarMenu()
                     Button("Ask AI", systemImage: "sparkles") { workspace.isShowingAssistant = true }
                         .help(L10n.text("Ask an AI model to write a query or design a chart"))

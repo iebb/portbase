@@ -1727,3 +1727,12 @@
 "Binary(%@, subtype %@)" = "Binário(%@, subtipo %@)";
 "%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ retorna tudo de uma vez. Use %2$@ para ler em páginas.";
 "%@ non-NULL" = "%@ não NULL";
+"Query changed" = "Consulta alterada";
+"The last result came from an earlier query or connection. Run the chart to load its current data." = "O último resultado veio de uma consulta ou conexão anterior. Execute o gráfico para carregar os dados atuais.";
+"%1$d of %2$d" = "%1$d de %2$d";
+"Explain Analyze" = "Explain Analyze";
+"Explain Analyze is available for PostgreSQL and MySQL." = "Explain Analyze está disponível para PostgreSQL e MySQL.";
+"Row estimate far off" = "Estimativa de linhas muito distante";
+"Never executed" = "Nunca executado";
+"Ran in %@" = "Executada em %@";
+"Actual %@" = "Real %@";

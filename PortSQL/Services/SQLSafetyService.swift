@@ -177,15 +177,27 @@ enum SQLSafetyService {
         return !statements.isEmpty && statements.allSatisfy(isReadOnlyStatement)
     }
 
+    /// Whether the engine can run a query to report actual times and rows: PostgreSQL's EXPLAIN ANALYZE
+    /// and MySQL 8's. The query really runs, so only read-only statements are offered, in a read-only session.
+    static func supportsExplainAnalyze(_ engine: DatabaseEngine) -> Bool {
+        engine == .postgresql || engine == .mysql
+    }
+
     static func explainQuery(
         for sql: String,
-        engine: DatabaseEngine = .postgresql
+        engine: DatabaseEngine = .postgresql,
+        analyze: Bool = false
     ) -> String? {
-        if engine == .mongodb { return MongoQueryService.explain(sql) }
-        guard engine.isSQL else { return nil }
+        if engine == .mongodb { return analyze ? nil : MongoQueryService.explain(sql) }
+        guard engine.isSQL, !analyze || supportsExplainAnalyze(engine) else { return nil }
         let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, isReadOnlySQL(trimmed, engine: engine) else { return nil }
-        return "\(engine == .sqlite ? "EXPLAIN QUERY PLAN" : "EXPLAIN") \(trimmed)"
+        switch engine {
+        case .sqlite: return "EXPLAIN QUERY PLAN \(trimmed)"
+        // JSON carries exact costs, buffers and timings that the text format rounds or leaves out.
+        case .postgresql: return "EXPLAIN (\(analyze ? "ANALYZE, BUFFERS, " : "")FORMAT JSON) \(trimmed)"
+        default: return "\(analyze ? "EXPLAIN ANALYZE" : "EXPLAIN") \(trimmed)"
+        }
     }
 
     private static func containsSchemaMutation(_ normalized: String) -> Bool {

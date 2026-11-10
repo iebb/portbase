@@ -7,8 +7,8 @@ struct ResultSelectionSummary: Equatable, Sendable {
     var values = 0
     var nulls = 0
     var distinct = 0
-    var sum: Decimal?
-    var average: Decimal?
+    var sum: ExactDecimal?
+    var average: ExactDecimal?
     var minimum: String?
     var maximum: String?
     /// Digits after the point in the most precise number, so sums keep the inputs' scale.
@@ -18,7 +18,7 @@ struct ResultSelectionSummary: Equatable, Sendable {
 
     static func make(_ payload: ResultGridClipboard.Payload) -> ResultSelectionSummary {
         var summary = ResultSelectionSummary()
-        var numbers: [Decimal] = []
+        var numbers: [ExactDecimal] = []
         var dates: [String] = []
         var seen = Set<QueryCell>()
         var allNumeric = true, allDates = true
@@ -31,7 +31,8 @@ struct ResultSelectionSummary: Equatable, Sendable {
                 switch cell {
                 case .integer(let text), .decimal(let text):
                     allDates = false
-                    if allNumeric, let number = Decimal(string: text, locale: Locale(identifier: "en_US_POSIX")) {
+                    // Exact at any size, so a total of large or very precise values never rounds or overflows.
+                    if allNumeric, let number = ExactDecimal(text) {
                         numbers.append(number)
                         if let point = text.firstIndex(of: "."), !text.contains(where: { $0 == "e" || $0 == "E" }) {
                             summary.scale = max(summary.scale, text.distance(from: text.index(after: point), to: text.endIndex))
@@ -47,11 +48,11 @@ struct ResultSelectionSummary: Equatable, Sendable {
         }
         summary.distinct = seen.count
         if allNumeric, !numbers.isEmpty {
-            let total = numbers.reduce(Decimal(0), +)
+            let total = numbers.reduce(ExactDecimal.zero, +)
             summary.sum = total
-            summary.average = total / Decimal(numbers.count)
-            summary.minimum = plain(numbers.min()!)
-            summary.maximum = plain(numbers.max()!)
+            summary.average = total.divided(by: numbers.count, fractionDigits: max(summary.scale, 2) + 4)
+            summary.minimum = numbers.min()!.plainDescription
+            summary.maximum = numbers.max()!.plainDescription
         } else if allDates, !dates.isEmpty {
             // ISO dates and times sort as text in time order.
             summary.minimum = dates.min()
@@ -61,27 +62,24 @@ struct ResultSelectionSummary: Equatable, Sendable {
     }
 
     /// A number as SQL and spreadsheets read it, with no grouping and a point for decimals.
-    static func plain(_ value: Decimal, scale: Int? = nil) -> String {
-        var value = value
-        if let scale {
-            var rounded = Decimal()
-            NSDecimalRound(&rounded, &value, scale, .plain)
-            value = rounded
+    static func plain(_ value: ExactDecimal, scale: Int? = nil) -> String {
+        guard let scale else { return value.plainDescription }
+        var text = value.rounded(toScale: scale).plainDescription
+        // Like a database's own rendering, trailing zeros after the point are dropped.
+        if text.contains(".") {
+            while text.hasSuffix("0") { text.removeLast() }
+            if text.hasSuffix(".") { text.removeLast() }
         }
-        return NSDecimalNumber(decimal: value).description(withLocale: Locale(identifier: "en_US_POSIX"))
+        return text
     }
 
     /// A number for reading, grouped by the person's locale.
-    static func display(_ value: Decimal, fractionDigits: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = fractionDigits
-        return formatter.string(from: NSDecimalNumber(decimal: value)) ?? plain(value)
+    static func display(_ value: ExactDecimal, fractionDigits: Int) -> String {
+        value.formatted(fractionDigits: fractionDigits)
     }
 
     var sumText: String? { sum.map { Self.display($0, fractionDigits: scale) } }
     var averageText: String? { average.map { Self.display($0, fractionDigits: max(scale, 2)) } }
-    var minimumText: String? { isNumeric ? minimum.flatMap { Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX")) }.map { Self.display($0, fractionDigits: scale) } : minimum }
-    var maximumText: String? { isNumeric ? maximum.flatMap { Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX")) }.map { Self.display($0, fractionDigits: scale) } : maximum }
+    var minimumText: String? { isNumeric ? minimum.flatMap(ExactDecimal.init).map { Self.display($0, fractionDigits: scale) } : minimum }
+    var maximumText: String? { isNumeric ? maximum.flatMap(ExactDecimal.init).map { Self.display($0, fractionDigits: scale) } : maximum }
 }

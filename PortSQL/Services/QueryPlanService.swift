@@ -11,21 +11,36 @@ struct QueryPlan: Equatable {
         let totalCost: Double?
         let estimatedRows: Double?
         var warning: Warning?
+        /// From EXPLAIN ANALYZE: milliseconds per loop, rows per loop, and how many times the step ran.
+        var actualTime: Double? = nil
+        var actualRows: Double? = nil
+        var loops: Double? = nil
+
+        /// The node took its estimate far from what happened: ten times off, on a step with real rows.
+        var isMisestimated: Bool {
+            guard let estimated = estimatedRows, let actual = actualRows, (loops ?? 1) > 0 else { return false }
+            let high = max(estimated, actual), low = max(min(estimated, actual), 1)
+            return high >= 100 && high / low >= 10
+        }
     }
 
     enum Warning: Equatable {
-        case fullScan, temporarySort, temporaryTable
+        case fullScan, temporarySort, temporaryTable, misestimate
 
         var title: String {
             switch self {
             case .fullScan: L10n.text("Full table scan")
             case .temporarySort: L10n.text("Sort without an index")
             case .temporaryTable: L10n.text("Temporary table")
+            case .misestimate: L10n.text("Row estimate far off")
             }
         }
     }
 
     let nodes: [Node]
+    /// From EXPLAIN ANALYZE, in milliseconds.
+    var planningTime: Double? = nil
+    var executionTime: Double? = nil
 
     var maximumCost: Double { nodes.compactMap(\.totalCost).max() ?? 0 }
     var warningCount: Int { nodes.filter { $0.warning != nil }.count }
@@ -35,6 +50,12 @@ enum QueryPlanService {
     static func isExplainResult(_ result: QueryResultTable) -> Bool {
         let statement = (result.sourceQuery ?? "").trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         return statement.hasPrefix("EXPLAIN") && !result.rows.isEmpty
+    }
+
+    /// Whether the plan came from EXPLAIN ANALYZE, which ran the query.
+    static func isAnalyzed(_ result: QueryResultTable) -> Bool {
+        let statement = (result.sourceQuery ?? "").uppercased()
+        return statement.hasPrefix("EXPLAIN ANALYZE") || statement.hasPrefix("EXPLAIN (ANALYZE")
     }
 
     static func plan(from result: QueryResultTable, engine: DatabaseEngine) -> QueryPlan? {
@@ -51,11 +72,70 @@ enum QueryPlanService {
         if engine.isMySQLFamily, column("select_type") != nil, let table = column("table") {
             return mysqlPlan(result, tableIndex: table, column: column, value: value)
         }
-        // PostgreSQL ("QUERY PLAN") and ClickHouse ("explain") return one indented line per row.
         if result.columns.count == 1 {
-            return indentedPlan(result.rows.compactMap { value($0, 0) })
+            let lines = result.rows.compactMap { value($0, 0) }
+            // PostgreSQL's FORMAT JSON: one cell holding the whole plan.
+            if engine == .postgresql, lines.count == 1, let plan = postgresJSONPlan(lines[0]) { return plan }
+            // PostgreSQL and ClickHouse text plans have one indented line per row; MySQL's
+            // EXPLAIN ANALYZE puts its whole tree in one cell.
+            return indentedPlan(lines.flatMap { $0.split(separator: "\n", omittingEmptySubsequences: true).map(String.init) })
         }
         return nil
+    }
+
+    // MARK: PostgreSQL JSON plans
+
+    static func postgresJSONPlan(_ json: String) -> QueryPlan? {
+        guard json.first == "[" || json.first == "{",
+              let object = try? JSONSerialization.jsonObject(with: Data(json.utf8)),
+              let root = (object as? [[String: Any]])?.first ?? (object as? [String: Any]),
+              let top = root["Plan"] as? [String: Any] else { return nil }
+        var nodes: [QueryPlan.Node] = []
+        func visit(_ plan: [String: Any], depth: Int) {
+            func number(_ key: String) -> Double? { (plan[key] as? NSNumber)?.doubleValue }
+            func text(_ key: String) -> String? { (plan[key] as? String).flatMap { $0.isEmpty ? nil : $0 } }
+            var type = text("Node Type") ?? "?"
+            if let join = text("Join Type"), join != "Inner", type.hasSuffix("Join") {
+                type = String(type.dropLast(4)) + join + " Join"
+            }
+            if let strategy = text("Strategy"), type == "Aggregate", strategy != "Plain" { type = strategy + "Aggregate" }
+            let target = text("Relation Name") ?? text("CTE Name") ?? text("Function Name")
+            var title = type
+            if let index = text("Index Name") { title += " using " + index }
+            if let target { title += " on " + target + (text("Alias").map { $0 == target ? "" : " " + $0 } ?? "") }
+            if let relationship = text("Subplan Name") { title = relationship + ": " + title }
+
+            var details: [String] = []
+            for key in ["Index Cond", "Recheck Cond", "Hash Cond", "Merge Cond", "Join Filter", "Filter", "One-Time Filter"] {
+                if let value = text(key) { details.append(key + ": " + value) }
+            }
+            for key in ["Sort Key", "Group Key", "Presorted Key"] {
+                if let keys = plan[key] as? [String], !keys.isEmpty { details.append(key + ": " + keys.joined(separator: ", ")) }
+            }
+            if let method = text("Sort Method") {
+                let space = [text("Sort Space Type"), number("Sort Space Used").map { "\(Int($0))kB" }].compactMap { $0 }.joined(separator: " ")
+                details.append("Sort Method: " + method + (space.isEmpty ? "" : "  " + space))
+            }
+            for key in ["Rows Removed by Filter", "Rows Removed by Index Recheck", "Rows Removed by Join Filter"] {
+                if let removed = number(key), removed > 0 { details.append(key + ": " + Int(removed).formatted()) }
+            }
+            let hit = number("Shared Hit Blocks") ?? 0, read = number("Shared Read Blocks") ?? 0
+            if hit + read > 0 { details.append("Buffers: shared hit=\(Int(hit)) read=\(Int(read))") }
+            let loops = number("Actual Loops")
+            if loops == 0 { details.append(L10n.text("Never executed")) }
+
+            var node = QueryPlan.Node(id: nodes.count, depth: depth, title: title, details: details,
+                                      startupCost: number("Startup Cost"), totalCost: number("Total Cost"),
+                                      estimatedRows: number("Plan Rows"), warning: warning(for: title),
+                                      actualTime: number("Actual Total Time"), actualRows: number("Actual Rows"), loops: loops)
+            if text("Sort Space Type") == "Disk" { node.warning = .temporarySort }
+            if node.warning == nil, node.isMisestimated { node.warning = .misestimate }
+            nodes.append(node)
+            for child in (plan["Plans"] as? [[String: Any]]) ?? [] { visit(child, depth: depth + 1) }
+        }
+        visit(top, depth: 0)
+        return QueryPlan(nodes: nodes, planningTime: (root["Planning Time"] as? NSNumber)?.doubleValue,
+                         executionTime: (root["Execution Time"] as? NSNumber)?.doubleValue)
     }
 
     // MARK: PostgreSQL and ClickHouse text plans
@@ -77,23 +157,43 @@ enum QueryPlanService {
             let depth = (depthByIndent.last?.depth ?? -1) + 1
             depthByIndent.append((indent, depth))
             let (title, startup, total, rows) = splitCost(text)
-            nodes.append(QueryPlan.Node(id: nodes.count, depth: depth, title: title, details: [], startupCost: startup,
-                                        totalCost: total, estimatedRows: rows, warning: warning(for: title)))
+            let actual = splitActual(text)
+            var node = QueryPlan.Node(id: nodes.count, depth: depth, title: title, details: [], startupCost: startup,
+                                      totalCost: total, estimatedRows: rows, warning: warning(for: title),
+                                      actualTime: actual?.time, actualRows: actual?.rows, loops: actual?.loops)
+            if node.warning == nil, node.isMisestimated { node.warning = .misestimate }
+            nodes.append(node)
         }
         return nodes.isEmpty ? nil : QueryPlan(nodes: nodes)
     }
 
     /// Splits "Seq Scan on t  (cost=0.00..1.12 rows=12 width=48)" into its title, costs, and row estimate.
+    /// MySQL gives one cost, "(cost=1.25 rows=10)", which is the total.
     static func splitCost(_ text: String) -> (String, Double?, Double?, Double?) {
+        let titleEnd = [text.range(of: "(cost="), text.range(of: "(actual ")].compactMap { $0?.lowerBound }.min()
+        let title = titleEnd.map { text[..<$0].trimmingCharacters(in: .whitespaces) } ?? text
         guard let open = text.range(of: "(cost="), let close = text[open.upperBound...].firstIndex(of: ")") else {
-            return (text, nil, nil, nil)
+            return (title, nil, nil, nil)
         }
         let body = text[open.upperBound..<close]
         let parts = body.split(separator: " ")
         let costs = parts.first?.components(separatedBy: "..") ?? []
         let rows = parts.first { $0.hasPrefix("rows=") }.flatMap { Double($0.dropFirst(5)) }
-        let title = text[..<open.lowerBound].trimmingCharacters(in: .whitespaces)
+        if costs.count == 1 { return (title, nil, Double(costs[0]), rows) }
         return (title, costs.first.flatMap(Double.init), costs.count > 1 ? Double(costs[1]) : nil, rows)
+    }
+
+    /// Reads "(actual time=0.012..0.034 rows=10 loops=1)" from an analyzed plan line.
+    static func splitActual(_ text: String) -> (time: Double?, rows: Double?, loops: Double?)? {
+        if text.contains("(never executed)") { return (nil, 0, 0) }
+        guard let open = text.range(of: "(actual "), let close = text[open.upperBound...].firstIndex(of: ")") else { return nil }
+        var time: Double?, rows: Double?, loops: Double?
+        for part in text[open.upperBound..<close].split(separator: " ") {
+            if part.hasPrefix("time=") { time = part.dropFirst(5).components(separatedBy: "..").last.flatMap(Double.init) }
+            else if part.hasPrefix("rows=") { rows = Double(part.dropFirst(5)) }
+            else if part.hasPrefix("loops=") { loops = Double(part.dropFirst(6)) }
+        }
+        return (time, rows, loops)
     }
 
     // MARK: SQLite

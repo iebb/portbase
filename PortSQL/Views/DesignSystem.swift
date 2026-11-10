@@ -1183,11 +1183,17 @@ extension View {
 }
 
 /// A compact, tinted status label.
+/// A short fact beside a title. Facts are quiet secondary text; only warnings keep their color, and only
+/// a filled chip (a security warning) or a selection token gets a background.
 struct PortbaseChip: View {
     let title: String
     var systemImage: String?
     var tint: Color = .secondary
     var filled = false
+    /// A removable selection, such as an active filter, drawn as a tinted token.
+    var isSelection = false
+
+    private var isWarning: Bool { tint == .red || tint == .orange }
 
     var body: some View {
         HStack(spacing: Spacing.xxs) {
@@ -1195,10 +1201,10 @@ struct PortbaseChip: View {
             Text(title).lineLimit(1)
         }
         .font(.badgeText)
-        .foregroundStyle(filled ? .white : tint)
-        .padding(.horizontal, Spacing.xs)
-        .padding(.vertical, Spacing.xxxs)
-        .background(filled ? AnyShapeStyle(tint) : AnyShapeStyle(tint.opacity(0.12)),
+        .foregroundStyle(filled ? AnyShapeStyle(.white) : (isWarning || isSelection ? AnyShapeStyle(tint) : AnyShapeStyle(.secondary)))
+        .padding(.horizontal, filled || isSelection ? Spacing.xs : 0)
+        .padding(.vertical, filled || isSelection ? Spacing.xxxs : 0)
+        .background(filled ? AnyShapeStyle(tint) : AnyShapeStyle(isSelection ? tint.opacity(0.12) : .clear),
                     in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
         .accessibilityElement(children: .combine)
     }

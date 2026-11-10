@@ -2372,13 +2372,14 @@ struct PanelCard<Content: View>: View {
         }
     }
 }
+/// A failure or warning as one flat line: a tinted symbol, then what happened and why. No box or colored
+/// background, so a warning reads as part of the section it belongs to.
 struct StatusBanner: View {
     let title: String
     let message: String
     let tint: Color
     var titleColor: Color = PortSQLPalette.ink
     var messageColor: Color = .secondary
-    var backgroundColor: Color? = nil
 
     private var symbol: String {
         switch tint {
@@ -2390,32 +2391,18 @@ struct StatusBanner: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: Spacing.m) {
-            Image(systemName: symbol)
-                .font(.tileSymbol)
-                .foregroundStyle(tint)
-                .padding(.top, Spacing.xxxs)
-
-            VStack(alignment: .leading, spacing: Spacing.xxs) {
-                Text(title)
-                    .font(.rowTitle)
-                    .foregroundStyle(titleColor)
-                Text(message)
-                    .font(.captionText)
-                    .foregroundStyle(messageColor)
-                    .textSelection(.enabled)
-            }
-            Spacer(minLength: 0)
+        Label {
+            (Text(title).fontWeight(.semibold).foregroundColor(titleColor)
+                + Text(verbatim: " ")
+                + Text(message).foregroundColor(messageColor))
+                .font(.captionText)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+        } icon: {
+            Image(systemName: symbol).foregroundStyle(tint)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(Spacing.l)
-        .background((backgroundColor ?? tint.opacity(0.10)), in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-        .overlay(alignment: .leading) {
-            UnevenRoundedRectangle(topLeadingRadius: Radius.card, bottomLeadingRadius: Radius.card, style: .continuous)
-                .fill(tint)
-                .frame(width: 4)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+        .padding(.vertical, Spacing.xs)
         .accessibilityElement(children: .combine)
     }
 }

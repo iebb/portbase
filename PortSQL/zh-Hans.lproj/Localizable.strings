@@ -1727,3 +1727,12 @@
 "Binary(%@, subtype %@)" = "二进制(%@，子类型 %@)";
 "%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ 会一次返回全部内容。请使用 %2$@ 分页读取。";
 "%@ non-NULL" = "%@ 非 NULL";
+"Query changed" = "查询已更改";
+"The last result came from an earlier query or connection. Run the chart to load its current data." = "上次结果来自之前的查询或连接。运行图表以加载当前数据。";
+"%1$d of %2$d" = "%1$d / %2$d";
+"Explain Analyze" = "Explain Analyze";
+"Explain Analyze is available for PostgreSQL and MySQL." = "Explain Analyze 适用于 PostgreSQL 和 MySQL。";
+"Row estimate far off" = "行数估计偏差很大";
+"Never executed" = "从未执行";
+"Ran in %@" = "运行耗时 %@";
+"Actual %@" = "实际 %@";

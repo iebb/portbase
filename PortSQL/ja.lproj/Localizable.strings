@@ -1727,3 +1727,12 @@
 "Binary(%@, subtype %@)" = "バイナリ(%@、サブタイプ %@)";
 "%1$@ returns everything at once. Use %2$@ to read it in pages." = "%1$@ はすべてを一度に返します。ページごとに読むには %2$@ を使ってください。";
 "%@ non-NULL" = "%@ が非 NULL";
+"Query changed" = "クエリが変更されました";
+"The last result came from an earlier query or connection. Run the chart to load its current data." = "前回の結果は以前のクエリまたは接続のものです。現在のデータを読み込むにはチャートを実行してください。";
+"%1$d of %2$d" = "%1$d / %2$d";
+"Explain Analyze" = "Explain Analyze";
+"Explain Analyze is available for PostgreSQL and MySQL." = "Explain Analyze は PostgreSQL と MySQL で使用できます。";
+"Row estimate far off" = "行数の見積もりが大きく外れています";
+"Never executed" = "実行されませんでした";
+"Ran in %@" = "実行時間 %@";
+"Actual %@" = "実際 %@";

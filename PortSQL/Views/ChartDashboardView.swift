@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -45,7 +46,7 @@ private struct ChartDashboard: View, @MainActor Equatable {
     let onChartCurrentResult: () -> Void
     let onEdit: (SavedVisualizationPreset) -> Void
 
-    @State private var refreshToken = 0
+    @StateObject private var refresh = ChartRefreshProgress()
     @State private var width: CGFloat = 0
     @State private var namingPage: PageNaming?
     @State private var pageName = ""
@@ -95,7 +96,7 @@ private struct ChartDashboard: View, @MainActor Equatable {
                                     profile: ChartQueryRunner.profile(for: preset, lookup: { bookmarks.bookmark(with: $0) }, fallback: fallbackBookmark),
                                     page: currentPage,
                                     pages: pages,
-                                    refreshToken: refreshToken,
+                                    refresh: refresh,
                                     pageWidth: width,
                                     onEdit: { onEdit(preset) }
                                 )
@@ -247,19 +248,7 @@ private struct ChartDashboard: View, @MainActor Equatable {
                 .buttonStyle(.plain)
             }
             Spacer(minLength: 0)
-            Button {
-                refreshToken += 1
-            } label: {
-                Label("Refresh All", systemImage: "arrow.clockwise")
-                    .font(.captionStrong)
-                    .padding(.horizontal, Spacing.m)
-                    .frame(minHeight: Sizes.control)
-                    .background(PortSQLPalette.surface, in: Capsule())
-                    .overlay { Capsule().strokeBorder(PortSQLPalette.stroke) }
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(PortSQLPalette.ink)
-            .accessibilityHint("Runs every chart query on this page")
+            RefreshAllButton(progress: refresh) { refresh.start(count: charts.count) }
         }
     }
 
@@ -293,7 +282,9 @@ private struct ChartTile: View {
     let profile: ConnectionProfile?
     let page: ChartPage
     let pages: [ChartPage]
-    let refreshToken: Int
+    /// Shared with the page: Refresh All starts every tile, and Stop cancels them. Not observed, so the
+    /// count of finished charts never redraws the tiles themselves.
+    let refresh: ChartRefreshProgress
     /// The page's width, to turn a drag into 24ths of the page.
     let pageWidth: CGFloat
     let onEdit: () -> Void
@@ -301,6 +292,9 @@ private struct ChartTile: View {
     @State private var entry: CachedChartResult?
     @State private var hasLoadedCache = false
     @State private var isRunning = false
+    @State private var runTask: Task<Void, Never>?
+    /// Set when the stored result was from an earlier query, connection or database and was set aside.
+    @State private var queryChanged = false
     @State private var runError: String?
     @State private var previewAction: ChartPreviewAction?
     @State private var resize: (height: Double, span: Int)?
@@ -351,10 +345,17 @@ private struct ChartTile: View {
         } isTargeted: { isTargeted = $0 }
         .task(id: ChartResultSource(preset)) {
             // A result from before the query, connection or database changed isn't this chart's data.
-            entry = await ChartResultCache.shared.entry(for: preset.id).flatMap { $0.matches(preset) ? $0 : nil }
+            let cached = await ChartResultCache.shared.entry(for: preset.id)
+            entry = cached.flatMap { $0.matches(preset) ? $0 : nil }
+            queryChanged = cached != nil && entry == nil
             hasLoadedCache = true
         }
-        .onChange(of: refreshToken) { _, _ in Task { await run() } }
+        .onReceive(refresh.$generation.dropFirst()) { generation in
+            guard hasQuery, profile != nil else { refresh.finish(generation); return }
+            start(reportingTo: generation)
+        }
+        .onReceive(refresh.$cancellation.dropFirst()) { _ in runTask?.cancel() }
+        .onDisappear { runTask?.cancel() }
         .sheet(isPresented: $showsFullSize) {
             if let entry {
                 ChartFullSizeView(preset: preset, result: entry.result, fetchedAt: entry.fetchedAt)
@@ -394,7 +395,7 @@ private struct ChartTile: View {
             .accessibilityElement(children: .combine)
 
             Button {
-                Task { await run() }
+                if isRunning { runTask?.cancel() } else { start() }
             } label: {
                 Group {
                     if isRunning { ProgressView().controlSize(.small) } else { Image(systemName: "arrow.clockwise") }
@@ -405,8 +406,8 @@ private struct ChartTile: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(isRunning || !hasQuery || profile == nil)
-            .accessibilityLabel(L10n.format("Run %@ chart query", preset.tileTitle))
+            .disabled(!isRunning && (!hasQuery || profile == nil))
+            .accessibilityLabel(isRunning ? L10n.text("Stop") : L10n.format("Run %@ chart query", preset.tileTitle))
 
             menu
         }
@@ -548,9 +549,12 @@ private struct ChartTile: View {
                     systemImage: "chart.bar.xaxis", action: (L10n.text("Edit Chart"), onEdit))
         } else if isRunning || !hasLoadedCache {
             ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if queryChanged {
+            message(L10n.text("Query changed"), L10n.text("The last result came from an earlier query or connection. Run the chart to load its current data."),
+                    systemImage: "arrow.triangle.2.circlepath", action: (L10n.text("Run Preview"), { start() }))
         } else {
             message(L10n.text("Preview not loaded"), L10n.text("Run the saved query when you want to refresh this chart."),
-                    systemImage: "chart.bar.xaxis", action: (L10n.text("Run Preview"), { Task { await run() } }))
+                    systemImage: "chart.bar.xaxis", action: (L10n.text("Run Preview"), { start() }))
         }
     }
 
@@ -581,7 +585,7 @@ private struct ChartTile: View {
                         var updated = preset
                         updated.usesUnlimitedRows = true
                         libraryStore.saveVisualization(updated)
-                        Task { await run(updated) }
+                        start(updated)
                     } label: {
                         Text(L10n.format("First %d rows · Load All", rowLimit)).foregroundStyle(PortSQLPalette.accent)
                     }
@@ -644,18 +648,29 @@ private struct ChartTile: View {
 
     // MARK: Running
 
-    private func run(_ chart: SavedVisualizationPreset? = nil) async {
+    /// Runs the chart's query; a Refresh All generation is reported back to the page when it ends either way.
+    private func start(_ chart: SavedVisualizationPreset? = nil, reportingTo generation: Int? = nil) {
+        guard !isRunning else {
+            if let generation { refresh.finish(generation) }
+            return
+        }
         let chart = chart ?? preset
-        guard !isRunning else { return }
         isRunning = true
         runError = nil
-        defer { isRunning = false }
-        do {
-            let result = try await ChartQueryRunner.run(chart, profile: profile, pageValues: page.boundValues())
-            entry = ChartResultCache.shared.store(result, for: chart.id, source: ChartResultSource(chart),
-                                                  parameterValues: ChartQueryRunner.filterSignature(for: chart, engine: engine, page: page))
-        } catch {
-            runError = error.localizedDescription
+        runTask = Task {
+            do {
+                let result = try await ChartQueryRunner.run(chart, profile: profile, pageValues: page.boundValues())
+                entry = ChartResultCache.shared.store(result, for: chart.id, source: ChartResultSource(chart),
+                                                      parameterValues: ChartQueryRunner.filterSignature(for: chart, engine: engine, page: page))
+                queryChanged = false
+            } catch is CancellationError {
+                // Stopped by the person; the previous result stays.
+            } catch {
+                runError = Task.isCancelled ? nil : error.localizedDescription
+            }
+            isRunning = false
+            runTask = nil
+            if let generation { refresh.finish(generation) }
         }
     }
 }
@@ -899,5 +914,71 @@ private struct ChartPageFiltersSheet: View {
 #else
         .presentationDetents([.medium, .large])
 #endif
+    }
+}
+
+// MARK: - Refresh All
+
+/// How far a Refresh All has got, so the page can show its progress and stop it.
+@MainActor final class ChartRefreshProgress: ObservableObject {
+    @Published private(set) var generation = 0
+    @Published private(set) var cancellation = 0
+    @Published private(set) var total = 0
+    @Published private(set) var finished = 0
+
+    var isRefreshing: Bool { finished < total }
+
+    func start(count: Int) {
+        guard count > 0 else { return }
+        total = count
+        finished = 0
+        generation += 1
+    }
+
+    func finish(_ generation: Int) {
+        guard generation == self.generation, isRefreshing else { return }
+        finished += 1
+    }
+
+    func cancel() {
+        cancellation += 1
+        total = 0
+        finished = 0
+    }
+}
+
+/// Refresh All, which turns into the run's progress and a Stop button while charts are loading.
+private struct RefreshAllButton: View {
+    @ObservedObject var progress: ChartRefreshProgress
+    let start: () -> Void
+
+    var body: some View {
+        Button {
+            if progress.isRefreshing { progress.cancel() } else { start() }
+        } label: {
+            Group {
+                if progress.isRefreshing {
+                    HStack(spacing: Spacing.xs) {
+                        ProgressView(value: Double(progress.finished), total: Double(max(progress.total, 1)))
+                            .progressViewStyle(.circular)
+                            .controlSize(.small)
+                        Text(L10n.format("%1$d of %2$d", progress.finished, progress.total)).monospacedDigit()
+                        Image(systemName: "stop.fill")
+                    }
+                } else {
+                    Label("Refresh All", systemImage: "arrow.clockwise")
+                }
+            }
+            .font(.captionStrong)
+            .padding(.horizontal, Spacing.m)
+            .frame(minHeight: Sizes.control)
+            .background(PortSQLPalette.surface, in: Capsule())
+            .overlay { Capsule().strokeBorder(PortSQLPalette.stroke) }
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(PortSQLPalette.ink)
+        .accessibilityLabel(progress.isRefreshing ? L10n.text("Stop") : L10n.text("Refresh All"))
+        .accessibilityValue(progress.isRefreshing ? L10n.format("%1$d of %2$d", progress.finished, progress.total) : "")
+        .accessibilityHint(progress.isRefreshing ? "" : L10n.text("Runs every chart query on this page"))
     }
 }

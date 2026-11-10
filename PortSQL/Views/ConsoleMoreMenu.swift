@@ -39,6 +39,13 @@ struct ConsoleMoreMenu: View {
                 Button("Export All Rows…", systemImage: "arrow.down.doc") { present(.exportData) }
                     .disabled(workspace.selectedBookmark?.engine.supportsFullExport != true)
             }
+            if workspace.canExplainAnalyze {
+                Section {
+                    // Runs the query, read-only, to report actual times and rows beside the estimates.
+                    Button("Explain Analyze", systemImage: "stopwatch") { workspace.runExplain(analyze: true) }
+                        .disabled(workspace.isRunning || script.isEmpty)
+                }
+            }
             Section {
                 Button("Open Script", systemImage: "folder") { importingScript = true }
                     .disabled(workspace.isRunning)

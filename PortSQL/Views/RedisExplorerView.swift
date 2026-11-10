@@ -43,7 +43,8 @@ struct RedisExplorerView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.m) {
+            // Flat sections stacked on their hairlines, like the SQL workspace.
+            VStack(alignment: .leading, spacing: 0) {
                 PanelCard {
                     VStack(alignment: .leading, spacing: Spacing.s) {
                         HStack {
@@ -118,7 +119,8 @@ struct RedisExplorerView: View {
                         }
                     }
                 }
-            }.padding()
+            }
+            .environment(\.workspaceIsFlat, true)
         }
 #if !os(macOS)
         .navigationTitle("Explorer")
@@ -214,7 +216,7 @@ struct RedisKeyInspector: View {
     var body: some View {
         PortbaseSheet(L10n.text("Redis value")) {
             ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.m) {
+                VStack(alignment: .leading, spacing: 0) {
                     PanelCard {
                         VStack(alignment: .leading, spacing: Spacing.s) {
                             Text(key.displayName).font(.codeText).textSelection(.enabled)
@@ -250,8 +252,9 @@ struct RedisKeyInspector: View {
                             }
                         }
                     }
-                    if isLoading { ProgressView() }
-                }.padding()
+                    if isLoading { ProgressView().frame(maxWidth: .infinity).padding(.vertical, Spacing.m) }
+                }
+                .environment(\.workspaceIsFlat, true)
             }
             .task { load(cursor: "0") }
             .onDisappear { task?.cancel() }

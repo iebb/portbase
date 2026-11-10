@@ -68,10 +68,9 @@ struct MongoDocumentResults: View {
                     }
                     MongoDocumentTree(json: document, preview: true)
                 }
-                .padding(.horizontal, Spacing.m)
-                .padding(.vertical, Spacing.xs)
-                .portbaseCardSurface(radius: Radius.control)
-                .padding(.bottom, Spacing.s)
+                .padding(.vertical, Spacing.s)
+                // Documents are rows between hairlines, not cards inside the results panel.
+                .overlay(alignment: .bottom) { Rectangle().fill(PortSQLPalette.stroke).frame(height: 1) }
             }
         }
         .sheet(item: $selectedDocument) { selection in

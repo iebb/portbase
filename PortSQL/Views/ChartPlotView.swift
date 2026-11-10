@@ -1,3 +1,4 @@
+import Accessibility
 import Charts
 import SwiftUI
 
@@ -51,6 +52,8 @@ struct VisualizationChartPlot: View {
         }
         .frame(height: height)
         .frame(maxHeight: height == nil ? .infinity : nil)
+        // VoiceOver's Audio Graph and data table read the plotted values, not just the chart's title.
+        .accessibilityChartDescriptor(ChartAudioDescriptor(preset: preset, points: points, xMode: xMode))
     }
 
     @ViewBuilder private var plot: some View {
@@ -656,5 +659,59 @@ private struct ChartInteractionLayer: View {
         .background(PortSQLPalette.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
         .overlay { RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(PortSQLPalette.stroke) }
         .shadow(color: .black.opacity(0.12), radius: 6, y: 2)
+    }
+}
+
+/// The plotted points as VoiceOver's Audio Graph and chart data table read them: one series per group
+/// or metric, with categories, dates or numbers along the x axis as the chart draws them.
+struct ChartAudioDescriptor: AXChartDescriptorRepresentable {
+    let preset: SavedVisualizationPreset
+    let points: [VisualizationPlotPoint]
+    let xMode: VisualizationFieldMode
+
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let values = points.map(\.yValue).filter(\.isFinite)
+        let yRange = (values.min() ?? 0)...(values.max() ?? 0)
+        let yAxis = AXNumericDataAxisDescriptor(title: axisTitle(preset.yAxisTitle, fallback: preset.yFieldsSummary), range: yRange,
+                                                gridlinePositions: []) { $0.formatted(.number.precision(.significantDigits(1...6))) }
+        let xTitle = axisTitle(preset.xAxisTitle, fallback: preset.xField)
+        let xAxis: any AXDataAxisDescriptor
+        switch xMode {
+        case .date:
+            let dates = points.compactMap(\.xDate).map(\.timeIntervalSince1970)
+            xAxis = AXNumericDataAxisDescriptor(title: xTitle, range: (dates.min() ?? 0)...(dates.max() ?? 0), gridlinePositions: []) {
+                Date(timeIntervalSince1970: $0).formatted(date: .abbreviated, time: .omitted)
+            }
+        case .number:
+            let numbers = points.compactMap(\.xNumber)
+            xAxis = AXNumericDataAxisDescriptor(title: xTitle, range: (numbers.min() ?? 0)...(numbers.max() ?? 0), gridlinePositions: []) {
+                $0.formatted(.number.precision(.significantDigits(1...6)))
+            }
+        case .category, .automatic:
+            var seen = Set<String>()
+            xAxis = AXCategoricalDataAxisDescriptor(title: xTitle, categoryOrder: points.map(\.xText).filter { seen.insert($0).inserted })
+        }
+
+        var order: [String] = []
+        var grouped: [String: [AXDataPoint]] = [:]
+        for point in points where point.yValue.isFinite {
+            let name = point.group ?? point.metric ?? preset.yFieldsSummary
+            if grouped[name] == nil { order.append(name) }
+            let dataPoint: AXDataPoint
+            switch xMode {
+            case .date: dataPoint = AXDataPoint(x: point.xDate?.timeIntervalSince1970 ?? 0, y: point.yValue, label: point.label)
+            case .number: dataPoint = AXDataPoint(x: point.xNumber ?? 0, y: point.yValue, label: point.label)
+            case .category, .automatic: dataPoint = AXDataPoint(x: point.xText, y: point.yValue, label: point.label)
+            }
+            grouped[name, default: []].append(dataPoint)
+        }
+        let continuous = preset.chartType == .line || preset.chartType == .area
+        let series = order.map { AXDataSeriesDescriptor(name: $0, isContinuous: continuous, dataPoints: grouped[$0] ?? []) }
+        return AXChartDescriptor(title: preset.tileTitle, summary: nil, xAxis: xAxis, yAxis: yAxis, additionalAxes: [], series: series)
+    }
+
+    private func axisTitle(_ title: String, fallback: String) -> String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
     }
 }

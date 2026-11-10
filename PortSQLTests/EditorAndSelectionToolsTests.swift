@@ -114,15 +114,37 @@ final class EditorAndSelectionToolsTests: XCTestCase {
         XCTAssertEqual(summary.cells, 4)
         XCTAssertEqual(summary.values, 3)
         XCTAssertEqual(summary.nulls, 1)
-        XCTAssertEqual(summary.sum, Decimal(string: "19.75"))
+        XCTAssertEqual(summary.sum?.plainDescription, "19.75")
         XCTAssertEqual(summary.minimum, "2.25")
-        XCTAssertEqual(summary.maximum, "10.5")
+        XCTAssertEqual(summary.maximum, "10.50", "Copied as the database wrote it")
         XCTAssertEqual(summary.scale, 2)
         XCTAssertEqual(ResultSelectionSummary.plain(summary.average!, scale: 4), "6.5833")
         // Exact decimal arithmetic: 0.1 + 0.2 is 0.3, not 0.30000000000000004.
         let exact = ResultSelectionSummary.make(.init(columns: [QueryColumn(name: "n", type: "numeric")],
                                                       rows: [QueryRow(cells: [.decimal("0.1")]), QueryRow(cells: [.decimal("0.2")])]))
         XCTAssertEqual(exact.sum.map { ResultSelectionSummary.plain($0) }, "0.3")
+    }
+
+    func testSelectionTotalsStayExactBeyondDecimalRange() {
+        let huge = ResultSelectionSummary.make(.init(columns: [QueryColumn(name: "n", type: "float8")],
+                                                     rows: [QueryRow(cells: [.decimal("1e308")]), QueryRow(cells: [.decimal("1e308")]), QueryRow(cells: [.decimal("-5")])]))
+        XCTAssertEqual(huge.sum?.plainDescription, "1" + String(repeating: "9", count: 307) + "5", "No overflow and no rounding")
+        XCTAssertEqual(huge.minimum, "-5")
+
+        let precise = "123456789012345678901234567890123456789.123456789"
+        let wide = ResultSelectionSummary.make(.init(columns: [QueryColumn(name: "n", type: "numeric")],
+                                                     rows: [QueryRow(cells: [.decimal(precise)]), QueryRow(cells: [.decimal("0.000000001")])]))
+        XCTAssertEqual(wide.sum?.plainDescription, "123456789012345678901234567890123456789.123456790", "All 48 digits survive")
+        XCTAssertEqual(ResultSelectionSummary.plain(try XCTUnwrap(wide.average), scale: 3), "61728394506172839450617283945061728394.562")
+
+        XCTAssertEqual(ExactDecimal("-0.5")?.rounded(toScale: 0).plainDescription, "-1", "Half rounds away from zero")
+        XCTAssertEqual(ExactDecimal("9.995")?.rounded(toScale: 2).plainDescription, "10.00")
+        XCTAssertNil(ExactDecimal("NaN"))
+        XCTAssertNil(ExactDecimal("1e99999"))
+        XCTAssertTrue(ExactDecimal("-2")! < ExactDecimal("1.5")!)
+        XCTAssertEqual(ExactDecimal("1.50"), ExactDecimal("1.5"))
+        XCTAssertEqual(ExactDecimal("1234567.5")?.formatted(fractionDigits: 1, locale: Locale(identifier: "en_US")), "1,234,567.5")
+        XCTAssertEqual(ExactDecimal("1234567.5")?.formatted(fractionDigits: 1, locale: Locale(identifier: "de_DE")), "1.234.567,5")
     }
 
     func testMixedAndDateSelections() {

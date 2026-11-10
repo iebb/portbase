@@ -132,6 +132,8 @@ struct DesktopCommands: Commands {
             Divider()
             Button("Format") { workspace?.formatQuery() }.keyboardShortcut("l", modifiers: [.command, .option])
             Button("Explain") { workspace?.runExplain() }.keyboardShortcut("e", modifiers: [.command, .option])
+            Button("Explain Analyze") { workspace?.runExplain(analyze: true) }.keyboardShortcut("e", modifiers: [.command, .option, .shift])
+                .disabled(workspace?.canExplainAnalyze != true)
             Button("Refresh Schema") { workspace?.refreshSchemaCatalog() }.keyboardShortcut("r", modifiers: [.command, .option])
             Divider()
             Button("Commit") { workspace?.finishTransaction(commit: true) }.disabled(workspace?.hasOpenTransaction != true)

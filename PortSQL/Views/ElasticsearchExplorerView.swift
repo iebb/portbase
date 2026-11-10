@@ -5,7 +5,8 @@ struct ElasticsearchExplorerView: View {
 
     var body: some View {
         AdaptiveWorkspaceView {
-            VStack(alignment: .leading, spacing: Spacing.m) {
+            // Flat sections stacked on their hairlines, like the SQL workspace.
+            VStack(alignment: .leading, spacing: 0) {
                 PanelCard {
                     VStack(alignment: .leading, spacing: Spacing.s) {
                         Menu {

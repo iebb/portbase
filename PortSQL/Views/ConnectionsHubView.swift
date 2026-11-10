@@ -311,7 +311,7 @@ struct ConnectionsHubView: View {
                 HStack(spacing: Spacing.s) {
                     if let folder = bookmarks.folder(with: folderFilter) {
                         Button { withAnimation { folderFilter = nil } } label: {
-                            PortbaseChip(title: folder.name, systemImage: "xmark", tint: folder.colorTag?.color ?? PortSQLPalette.accent)
+                            PortbaseChip(title: folder.name, systemImage: "xmark", tint: folder.colorTag?.color ?? PortSQLPalette.accent, isSelection: true)
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(L10n.format("Clear filter %@", folder.name))

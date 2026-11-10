@@ -394,16 +394,23 @@ final class WorkspaceViewModel: ObservableObject {
         return bound.values
     }
 
-    func runExplain() {
+    /// Whether Explain Analyze is offered for the current connection.
+    var canExplainAnalyze: Bool { selectedBookmark.map { SQLSafetyService.supportsExplainAnalyze($0.engine) } ?? false }
+
+    /// Shows the query's plan. With `analyze`, the query runs, read-only, so the plan reports actual times and rows.
+    func runExplain(analyze: Bool = false) {
         let sql = selectedQuery
         guard let values = boundValues(for: sql) else { return }
-        guard let explainSQL = SQLSafetyService.explainQuery(
-            for: sql, engine: selectedBookmark?.engine ?? .postgresql
-        ) else {
+        let engine = selectedBookmark?.engine ?? .postgresql
+        if analyze, !SQLSafetyService.supportsExplainAnalyze(engine) {
+            errorMessage = L10n.text("Explain Analyze is available for PostgreSQL and MySQL.")
+            return
+        }
+        guard let explainSQL = SQLSafetyService.explainQuery(for: sql, engine: engine, analyze: analyze) else {
             errorMessage = L10n.text("Explain is available only for read-only queries.")
             return
         }
-        run(sql: explainSQL, title: L10n.text("Explain plan"), values: values, policy: .readOnly)
+        run(sql: explainSQL, title: L10n.text(analyze ? "Explain Analyze" : "Explain plan"), values: values, policy: .readOnly)
     }
 
     func formatQuery() {
