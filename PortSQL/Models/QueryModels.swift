@@ -1,6 +1,6 @@
 import Foundation
 
-struct QueryColumn: Identifiable, Codable, Hashable {
+struct QueryColumn: Identifiable, Codable, Hashable, Sendable {
     let id = UUID()
     let name: String
     let type: String
@@ -52,7 +52,22 @@ enum QueryCell: Codable, Hashable, Sendable {
         case .boolean(let value):
             return value ? "true" : "false"
         case .binary(let value):
-            return "0x" + value.map { String(format: "%02x", $0) }.joined()
+            return "0x" + value.hexEncoded()
+        }
+    }
+
+    /// The most a grid cell shows of a value. No column is wide enough for more, and the inspector has the rest.
+    static let cellTextLimit = 512
+
+    /// The value as a grid cell shows it. A megabyte of text or a blob is cut short here, before it's
+    /// turned to hex or laid out, so one large value doesn't stall scrolling.
+    var cellText: String {
+        switch self {
+        case .binary(let value) where value.count > Self.cellTextLimit / 2:
+            return "0x" + value.prefix(Self.cellTextLimit / 2).hexEncoded() + "…"
+        default:
+            let text = displayValue
+            return text.utf8.count > Self.cellTextLimit ? String(text.prefix(Self.cellTextLimit)) + "…" : text
         }
     }
 
@@ -73,7 +88,21 @@ enum QueryCell: Codable, Hashable, Sendable {
     }
 }
 
-struct QueryRow: Identifiable, Codable, Hashable {
+extension Sequence<UInt8> {
+    /// Two hex digits for each byte.
+    func hexEncoded(uppercase: Bool = false) -> String {
+        let digits = Array((uppercase ? "0123456789ABCDEF" : "0123456789abcdef").utf8)
+        var text: [UInt8] = []
+        text.reserveCapacity(underestimatedCount * 2)
+        for byte in self {
+            text.append(digits[Int(byte >> 4)])
+            text.append(digits[Int(byte & 0x0F)])
+        }
+        return String(decoding: text, as: UTF8.self)
+    }
+}
+
+struct QueryRow: Identifiable, Codable, Hashable, Sendable {
     let id = UUID()
     var cells: [QueryCell]
 
@@ -171,7 +200,7 @@ struct DataEditorDraft: Identifiable, Hashable {
     let rowID: QueryRow.ID?
 }
 
-struct NumericSeriesPoint: Identifiable, Codable, Hashable {
+struct NumericSeriesPoint: Identifiable, Codable, Hashable, Sendable {
     let id = UUID()
     let label: String
     let value: Double
@@ -182,7 +211,7 @@ struct NumericSeriesPoint: Identifiable, Codable, Hashable {
     }
 }
 
-struct QueryColumnProfile: Identifiable, Codable, Hashable {
+struct QueryColumnProfile: Identifiable, Codable, Hashable, Sendable {
     let id = UUID()
     let columnName: String
     let rowCount: Int
@@ -395,7 +424,7 @@ enum SavedQueryGrouping {
     }
 }
 
-struct QueryResultTable: Codable, Hashable {
+struct QueryResultTable: Codable, Hashable, Sendable {
     var columns: [QueryColumn]
     var rows: [QueryRow]
     var executionSummary: String

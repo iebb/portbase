@@ -130,7 +130,7 @@ enum ResultInsightsService {
     /// Binary values are labeled by their first bytes, so a long blob doesn't fill the row.
     private static func label(for cell: QueryCell) -> String {
         guard case .binary(let data) = cell else { return cell.displayValue }
-        return "0x" + data.prefix(32).map { String(format: "%02x", $0) }.joined() + (data.count > 32 ? "…" : "")
+        return "0x" + data.prefix(32).hexEncoded() + (data.count > 32 ? "…" : "")
     }
 
     static func summary(of values: [Double]) -> NumericSummary? {

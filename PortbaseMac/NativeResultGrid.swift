@@ -310,7 +310,7 @@ struct GridCollectionBridge: NSViewRepresentable {
         case .nameOnly: nameWidth
         }
         let header = title + 20
-        let values = result.rows.prefix(40).map { row in row.cells.indices.contains(column) ? String(row.cells[column].displayValue.prefix(100)) : "NULL" }
+        let values = result.rows.prefix(40).map { row in row.cells.indices.contains(column) ? String(row.cells[column].cellText.prefix(100)) : "NULL" }
         let widest = values.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0
         return min(360, max(100, header + 24, widest + 28))
     }
@@ -335,14 +335,15 @@ struct GridCollectionBridge: NSViewRepresentable {
             let container = (tableView.makeView(withIdentifier: identifier, owner: self) as? NSTableCellView) ?? Self.makeCell(identifier)
             guard let field = container.textField else { return container }
             field.font = PortbaseFonts.codeFont(TypeSize.code)
-            field.stringValue = value.isNull ? "NULL" : value.displayValue.isEmpty ? "\"\"" : value.displayValue
+            let text = value.cellText
+            field.stringValue = value.isNull ? "NULL" : text.isEmpty ? "\"\"" : text
             field.lineBreakMode = .byTruncatingTail
             field.textColor = value.isNull ? .tertiaryLabelColor : .labelColor
             switch value {
             case .integer, .decimal: field.alignment = .right
             default: field.alignment = .left
             }
-            field.toolTip = value.isNull ? L10n.text("NULL") : value.displayValue.isEmpty ? L10n.text("Empty text") : value.displayValue
+            field.toolTip = value.isNull ? L10n.text("NULL") : text.isEmpty ? L10n.text("Empty text") : text
             field.setAccessibilityValue(field.toolTip)
             field.isEditable = false
             let pending = parent.pendingKeys.contains(ResultGridCellKey(row: row, column: index))

@@ -2,8 +2,8 @@ import Foundation
 
 /// Narrows the loaded rows without asking the server again. Each condition tests one column, or any
 /// column; a row is shown when it meets every condition.
-struct LoadedResultFilter: Equatable {
-    enum Mode: String, CaseIterable {
+struct LoadedResultFilter: Equatable, Sendable {
+    enum Mode: String, CaseIterable, Sendable {
         case contains, equals, greaterThan, lessThan, null, notNull, emptyText
         var title: String {
             switch self {
@@ -20,25 +20,49 @@ struct LoadedResultFilter: Equatable {
         var takesValue: Bool { self == .contains || self == .equals || self == .greaterThan || self == .lessThan }
     }
 
-    struct Condition: Equatable, Identifiable {
+    struct Condition: Equatable, Identifiable, Sendable {
         var id = UUID()
         var column: Int?
         var mode: Mode = .contains
         var text = ""
         var isActive: Bool { !mode.takesValue || !text.isEmpty }
 
+        func matches(_ cell: QueryCell) -> Bool { Prepared(self).matches(cell) }
+    }
+
+    /// A condition readied for many cells: the typed text is folded once, and plain ASCII, which most
+    /// database text is, is compared byte by byte rather than through the locale's collation.
+    private struct Prepared {
+        let condition: Condition
+        /// The typed text in lowercase bytes, when it's ASCII.
+        let needle: [UInt8]?
+
+        init(_ condition: Condition) {
+            self.condition = condition
+            needle = condition.mode == .contains || condition.mode == .equals ? ASCIIFolding.lowercased(condition.text) : nil
+        }
+
         func matches(_ cell: QueryCell) -> Bool {
-            switch mode {
+            let text = condition.text
+            switch condition.mode {
             case .null: return cell.isNull
             case .notNull: return !cell.isNull
             case .emptyText: return cell == .text("")
-            case .contains: return !cell.isNull && cell.displayValue.localizedCaseInsensitiveContains(text)
-            case .equals: return !cell.isNull && cell.displayValue.compare(text, options: .caseInsensitive) == .orderedSame
+            case .contains:
+                guard !cell.isNull else { return false }
+                let value = cell.displayValue
+                if let needle, let found = ASCIIFolding.contains(needle, in: value) { return found }
+                return value.localizedCaseInsensitiveContains(text)
+            case .equals:
+                guard !cell.isNull else { return false }
+                let value = cell.displayValue
+                if let needle, let equal = ASCIIFolding.equals(needle, value) { return equal }
+                return value.compare(text, options: .caseInsensitive) == .orderedSame
             // Numbers compare by value, dates and text in natural order; NULL is neither greater nor less.
             case .greaterThan, .lessThan:
                 guard !cell.isNull else { return false }
                 let order = LoadedValueKey(cell).compare(LoadedValueKey(typedLike: cell, text: text))
-                return mode == .greaterThan ? order == .orderedDescending : order == .orderedAscending
+                return condition.mode == .greaterThan ? order == .orderedDescending : order == .orderedAscending
             }
         }
     }
@@ -64,24 +88,71 @@ struct LoadedResultFilter: Equatable {
         return copy
     }
 
+    /// The rows meeting every condition. A cancelled task gets no rows, for its caller to drop.
     func matchingRows(in result: QueryResultTable) -> [Int] {
-        let active = conditions.filter(\.isActive)
+        let active = conditions.filter(\.isActive).map(Prepared.init)
         guard !active.isEmpty else { return Array(result.rows.indices) }
         let all = Array(result.columns.indices)
-        return result.rows.indices.filter { row in
-            active.allSatisfy { condition in
-                let columns = condition.column.map { result.columns.indices.contains($0) ? [$0] : [] } ?? all
-                return columns.contains { index in
-                    condition.matches(result.rows[row].cells.indices.contains(index) ? result.rows[row].cells[index] : .null)
-                }
+        var matching: [Int] = []
+        for row in result.rows.indices {
+            if row & 0xFF == 0, Task.isCancelled { return [] }
+            let cells = result.rows[row].cells
+            let meetsAll = active.allSatisfy { prepared in
+                let columns = prepared.condition.column.map { result.columns.indices.contains($0) ? [$0] : [] } ?? all
+                return columns.contains { index in prepared.matches(cells.indices.contains(index) ? cells[index] : .null) }
             }
+            if meetsAll { matching.append(row) }
         }
+        return matching
+    }
+}
+
+/// Case-insensitive matching for ASCII text, which answers only when it can be sure: text with other
+/// characters is left to the locale-aware comparison.
+enum ASCIIFolding {
+    /// The text as lowercase bytes; nil when it's empty or not all ASCII.
+    static func lowercased(_ text: String) -> [UInt8]? {
+        guard !text.isEmpty, text.utf8.allSatisfy({ $0 < 0x80 }) else { return nil }
+        return text.utf8.map(fold)
+    }
+
+    @inline(__always) private static func fold(_ byte: UInt8) -> UInt8 { byte &- 65 < 26 ? byte | 0x20 : byte }
+
+    /// Whether the text holds the needle, ignoring ASCII case; nil when only the locale can say.
+    static func contains(_ needle: [UInt8], in text: String) -> Bool? {
+        text.utf8.withContiguousStorageIfAvailable { bytes -> Bool? in
+            var onlyASCII = true
+            let first = needle[0], last = bytes.count - needle.count
+            var start = 0
+            while start <= last {
+                let byte = bytes[start]
+                if byte >= 0x80 {
+                    onlyASCII = false
+                } else if fold(byte) == first {
+                    var offset = 1
+                    while offset < needle.count, fold(bytes[start + offset]) == needle[offset] { offset += 1 }
+                    // A match can't end inside a letter and the marks combined with it.
+                    if offset == needle.count, start + offset == bytes.count || bytes[start + offset] < 0x80 { return true }
+                }
+                start += 1
+            }
+            // Text of other characters may still match as the locale folds them: a Kelvin sign is a k.
+            return onlyASCII && bytes[start...].allSatisfy({ $0 < 0x80 }) ? false : nil
+        } ?? nil
+    }
+
+    /// Whether the text is the needle, ignoring ASCII case; nil when only the locale can say.
+    static func equals(_ needle: [UInt8], _ text: String) -> Bool? {
+        text.utf8.withContiguousStorageIfAvailable { bytes -> Bool? in
+            guard bytes.allSatisfy({ $0 < 0x80 }) else { return nil }
+            return bytes.count == needle.count && zip(bytes, needle).allSatisfy { fold($0) == $1 }
+        } ?? nil
     }
 }
 
 /// Sorts loaded rows by one column without asking the server again, as TablePlus and DataGrip sort a
 /// query's fetched rows. Values compare by type: numbers exactly, text in natural order, NULLs last.
-struct LoadedResultSort: Equatable {
+struct LoadedResultSort: Equatable, Sendable {
     var column: Int
     var descending = false
 
@@ -155,6 +226,50 @@ enum LoadedValueKey {
         default: return rank == other.rank ? .orderedSame : (rank < other.rank ? .orderedAscending : .orderedDescending)
         }
     }
+}
+
+/// The loaded rows a grid shows, in display order: every row as loaded, or the rows a filter and a
+/// sort leave. It remembers the result it was worked out for, so a grid never looks rows of a newer
+/// result up by an older result's positions.
+struct LoadedRowOrder: RandomAccessCollection, Equatable, Sendable {
+    /// Positions into the result's rows; nil is every row as loaded.
+    private let rows: [Int]?
+    private let stamp: Stamp
+
+    private struct Stamp: Equatable {
+        let count: Int
+        let first: UUID?
+        let last: UUID?
+
+        init(_ result: QueryResultTable) {
+            count = result.rows.count
+            first = result.rows.first?.id
+            last = result.rows.last?.id
+        }
+    }
+
+    init(of result: QueryResultTable, rows: [Int]? = nil) {
+        self.rows = rows
+        stamp = Stamp(result)
+    }
+
+    /// Works out the rows a filter and a sort leave, or nil when its task was cancelled meanwhile.
+    static func make(of result: QueryResultTable, filter: LoadedResultFilter, sort: LoadedResultSort?) -> LoadedRowOrder? {
+        var rows = filter.isActive ? filter.matchingRows(in: result) : nil
+        if Task.isCancelled { return nil }
+        if let sort { rows = sort.ordered(rows ?? Array(result.rows.indices), in: result) }
+        return Task.isCancelled ? nil : LoadedRowOrder(of: result, rows: rows)
+    }
+
+    /// Whether this is the order of that result's rows.
+    func isOrder(of result: QueryResultTable) -> Bool { stamp == Stamp(result) }
+
+    /// Whether every loaded row is shown, in the order it was loaded.
+    var isAsLoaded: Bool { rows == nil }
+
+    var startIndex: Int { 0 }
+    var endIndex: Int { rows?.count ?? stamp.count }
+    subscript(position: Int) -> Int { rows?[position] ?? position }
 }
 
 enum ResultInspectionService {

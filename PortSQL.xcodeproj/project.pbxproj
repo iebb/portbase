@@ -165,6 +165,7 @@
 		36C6C1B5FDDE9F4C242D25E5 /* EditorAndSelectionToolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99058625857A0C34F5CC0AF5 /* EditorAndSelectionToolsTests.swift */; };
 		74626A3250CA3CC150427084 /* SchemaDiagramLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 453EEE460F59063BE6863EBC /* SchemaDiagramLayoutTests.swift */; };
 		7FF6E969C9431D1616FB4C39 /* LayoutFitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B220C634B585973D9B4E254C /* LayoutFitTests.swift */; };
+		3798AF804F78B8B7AD57E1F3 /* ResultGridOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DDB0FB2F1F6A2D183DA8705 /* ResultGridOrderTests.swift */; };
 		768AD6B1C64E76C88ABBCAD2 /* SchemaComparisonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6177FEA2CEB0F44F753F672D /* SchemaComparisonTests.swift */; };
 		EA176F70E962C9F70AB8787E /* ResultEditPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1D1749A62921708D2CA304 /* ResultEditPlannerTests.swift */; };
 		8304A3E5B4D1C2039A87D6FF /* ConnectionFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */; };
@@ -353,6 +354,7 @@
 		DBABEE920126A64C1DF6EFDA /* EditorAndSelectionToolsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99058625857A0C34F5CC0AF5 /* EditorAndSelectionToolsTests.swift */; };
 		4AA68340839B2463FB29768F /* SchemaDiagramLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 453EEE460F59063BE6863EBC /* SchemaDiagramLayoutTests.swift */; };
 		34A64AE1962A894952DBC713 /* LayoutFitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B220C634B585973D9B4E254C /* LayoutFitTests.swift */; };
+		A788C659EE85B26D77D2F4C3 /* ResultGridOrderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DDB0FB2F1F6A2D183DA8705 /* ResultGridOrderTests.swift */; };
 		B823B3DAE45FD1CC5F343FB4 /* SchemaComparisonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6177FEA2CEB0F44F753F672D /* SchemaComparisonTests.swift */; };
 		6AB70149405CC2207C75040E /* ResultEditPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1D1749A62921708D2CA304 /* ResultEditPlannerTests.swift */; };
 		9BA9CED68CBB989E0E40F7F5 /* ConnectionFolderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */; };
@@ -524,6 +526,7 @@
 		99058625857A0C34F5CC0AF5 /* EditorAndSelectionToolsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorAndSelectionToolsTests.swift; sourceTree = "<group>"; };
 		453EEE460F59063BE6863EBC /* SchemaDiagramLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaDiagramLayoutTests.swift; sourceTree = "<group>"; };
 		B220C634B585973D9B4E254C /* LayoutFitTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutFitTests.swift; sourceTree = "<group>"; };
+		9DDB0FB2F1F6A2D183DA8705 /* ResultGridOrderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultGridOrderTests.swift; sourceTree = "<group>"; };
 		6177FEA2CEB0F44F753F672D /* SchemaComparisonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemaComparisonTests.swift; sourceTree = "<group>"; };
 		EF1D1749A62921708D2CA304 /* ResultEditPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultEditPlannerTests.swift; sourceTree = "<group>"; };
 		4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionFolderTests.swift; sourceTree = "<group>"; };
@@ -995,6 +998,7 @@
 				99058625857A0C34F5CC0AF5 /* EditorAndSelectionToolsTests.swift */,
 				453EEE460F59063BE6863EBC /* SchemaDiagramLayoutTests.swift */,
 				B220C634B585973D9B4E254C /* LayoutFitTests.swift */,
+				9DDB0FB2F1F6A2D183DA8705 /* ResultGridOrderTests.swift */,
 				6177FEA2CEB0F44F753F672D /* SchemaComparisonTests.swift */,
 				EF1D1749A62921708D2CA304 /* ResultEditPlannerTests.swift */,
 				4464361CE84C0CC6CAC96EBA /* ConnectionFolderTests.swift */,
@@ -1561,6 +1565,7 @@
 				36C6C1B5FDDE9F4C242D25E5 /* EditorAndSelectionToolsTests.swift in Sources */,
 				74626A3250CA3CC150427084 /* SchemaDiagramLayoutTests.swift in Sources */,
 				7FF6E969C9431D1616FB4C39 /* LayoutFitTests.swift in Sources */,
+				3798AF804F78B8B7AD57E1F3 /* ResultGridOrderTests.swift in Sources */,
 				768AD6B1C64E76C88ABBCAD2 /* SchemaComparisonTests.swift in Sources */,
 				EA176F70E962C9F70AB8787E /* ResultEditPlannerTests.swift in Sources */,
 				8304A3E5B4D1C2039A87D6FF /* ConnectionFolderTests.swift in Sources */,
@@ -1607,6 +1612,7 @@
 				DBABEE920126A64C1DF6EFDA /* EditorAndSelectionToolsTests.swift in Sources */,
 				4AA68340839B2463FB29768F /* SchemaDiagramLayoutTests.swift in Sources */,
 				34A64AE1962A894952DBC713 /* LayoutFitTests.swift in Sources */,
+				A788C659EE85B26D77D2F4C3 /* ResultGridOrderTests.swift in Sources */,
 				B823B3DAE45FD1CC5F343FB4 /* SchemaComparisonTests.swift in Sources */,
 				6AB70149405CC2207C75040E /* ResultEditPlannerTests.swift in Sources */,
 				9BA9CED68CBB989E0E40F7F5 /* ConnectionFolderTests.swift in Sources */,

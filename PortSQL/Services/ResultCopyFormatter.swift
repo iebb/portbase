@@ -164,7 +164,7 @@ enum ResultCopyFormatter {
         case .integer(let value), .decimal(let value):
             return isJSONNumber(value) ? value : quoted(value, engine: engine)
         case .binary(let data):
-            let hex = data.map { String(format: "%02X", $0) }.joined()
+            let hex = data.hexEncoded(uppercase: true)
             switch engine {
             case .postgresql: return "'\\x\(hex)'::bytea"
             case .clickhouse: return "unhex('\(hex)')"

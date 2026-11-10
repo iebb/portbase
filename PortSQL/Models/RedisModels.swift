@@ -91,7 +91,7 @@ enum RedisBytes {
 
     static func display(_ bytes: Data) -> String {
         if case .text(let value) = cell(bytes) { return value.isEmpty ? L10n.text("Empty string") : value }
-        return "0x" + bytes.prefix(256).map { String(format: "%02x", $0) }.joined() + (bytes.count > 256 ? "…" : "")
+        return "0x" + bytes.prefix(256).hexEncoded() + (bytes.count > 256 ? "…" : "")
     }
 
     static func json(_ bytes: Data) -> String {

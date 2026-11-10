@@ -112,7 +112,7 @@ struct ResultCellInspector: View {
             return formatted ? MongoExtendedJSON.display(canonical: canonical, pretty: true) ?? display : display
         case .binary(let bytes):
             let prefix = bytes.prefix(4_096)
-            return base64 ? Data(prefix).base64EncodedString() : "0x" + prefix.map { String(format: "%02x", $0) }.joined()
+            return base64 ? Data(prefix).base64EncodedString() : "0x" + prefix.hexEncoded()
         default: return selection.cell.displayValue
         }
     }

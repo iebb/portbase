@@ -30,7 +30,7 @@ struct ResultGridSelection: Equatable {
 
     /// Resolve display positions through filtering, sorting, hiding and column reordering before editing.
     /// A stale range fails as a whole rather than silently editing a smaller selection.
-    func loadedCells(rowIndices: [Int], visibleColumns: [Int]) -> [ResultGridCellKey] {
+    func loadedCells<Rows: RandomAccessCollection<Int>>(rowIndices: Rows, visibleColumns: [Int]) -> [ResultGridCellKey] where Rows.Index == Int {
         guard rowIndices.indices.contains(rows.lowerBound), rowIndices.indices.contains(rows.upperBound),
               visibleColumns.indices.contains(columns.lowerBound), visibleColumns.indices.contains(columns.upperBound) else { return [] }
         return rows.flatMap { row in columns.map { ResultGridCellKey(row: rowIndices[row], column: visibleColumns[$0]) } }
@@ -282,8 +282,8 @@ struct ResultGridView: View {
     @State private var showsColumns = false
     @State private var focusedColumn: Int?
     @State private var filter = LoadedResultFilter()
-    /// The loaded rows shown, in display order, when a filter or local sort applies; nil shows them all as loaded.
-    @State private var filteredRows: [Int]?
+    /// The rows shown, in display order, once a filter or local sort has been worked out for a result.
+    @State private var order: LoadedRowOrder?
     /// A sort of the loaded rows, for results the host doesn't sort itself (a console query's rows).
     @State private var localSort: LoadedResultSort?
     @State private var showsFilter = false
@@ -294,7 +294,12 @@ struct ResultGridView: View {
     /// Bumped to scroll the grid to the selection, after Go to Row.
     @State private var revealSelection = 0
 
-    private var rowIndices: [Int] { filteredRows ?? Array(result.rows.indices) }
+    /// Loaded-row positions in display order. An order worked out for an earlier result isn't used:
+    /// the rows show as loaded until the new one is ready.
+    private var rowIndices: LoadedRowOrder {
+        if let order, order.isOrder(of: result) { return order }
+        return LoadedRowOrder(of: result)
+    }
 
     /// Without a host sort, header clicks sort the loaded rows here.
     private var sortsLocally: Bool { onSort == nil && onSortDirection == nil }
@@ -322,9 +327,10 @@ struct ResultGridView: View {
     }
     private var displayedResult: QueryResultTable {
         var table = result
-        if let filteredRows {
-            table.rows = filteredRows.map { result.rows[$0] }
-            table.documents = result.documents.map { documents in filteredRows.compactMap { documents.indices.contains($0) ? documents[$0] : nil } }
+        let shown = rowIndices
+        if !shown.isAsLoaded {
+            table.rows = shown.map { result.rows[$0] }
+            table.documents = result.documents.map { documents in shown.compactMap { documents.indices.contains($0) ? documents[$0] : nil } }
         }
         for (key, cell) in displayedPendingCells where table.rows.indices.contains(key.row) && table.rows[key.row].cells.indices.contains(key.column) {
             table.rows[key.row].cells[key.column] = cell
@@ -334,15 +340,17 @@ struct ResultGridView: View {
     /// Rows marked for deletion, by displayed row.
     private var displayedDeletedRows: Set<Int> {
         guard !deletedRows.isEmpty else { return [] }
-        guard let filteredRows else { return deletedRows }
-        return Set(filteredRows.enumerated().compactMap { deletedRows.contains($0.element) ? $0.offset : nil })
+        let shown = rowIndices
+        guard !shown.isAsLoaded else { return deletedRows }
+        return Set(shown.enumerated().compactMap { deletedRows.contains($0.element) ? $0.offset : nil })
     }
 
     /// Staged cells keyed by displayed row, which differs from the loaded row while rows are filtered.
     private var displayedPendingCells: [ResultGridCellKey: QueryCell] {
         guard !pendingCells.isEmpty else { return [:] }
-        guard let filteredRows else { return pendingCells }
-        let positions = Dictionary(uniqueKeysWithValues: filteredRows.enumerated().map { ($0.element, $0.offset) })
+        let shown = rowIndices
+        guard !shown.isAsLoaded else { return pendingCells }
+        let positions = Dictionary(uniqueKeysWithValues: shown.enumerated().map { ($0.element, $0.offset) })
         var cells: [ResultGridCellKey: QueryCell] = [:]
         for (key, cell) in pendingCells { if let row = positions[key.row] { cells[ResultGridCellKey(row: row, column: key.column)] = cell } }
         return cells
@@ -516,10 +524,15 @@ struct ResultGridView: View {
             Button("Go") { if let number = Int(goToRowText.trimmingCharacters(in: .whitespaces)) { goToRow(number) } }
             Button("Cancel", role: .cancel) {}
         }
-        .onChange(of: result.columns.map { $0.name + ":" + $0.type }) { _, _ in filter = LoadedResultFilter(); localSort = nil; updateFilter() }
-        .onChange(of: localSort) { _, _ in updateFilter() }
-        .onChange(of: result) { _, _ in updateFilter() }
-        .onChange(of: filter) { _, _ in updateFilter() }
+        .onChange(of: result) { old, new in
+            if old.columns.map({ $0.name + ":" + $0.type }) != new.columns.map({ $0.name + ":" + $0.type }) {
+                filter = LoadedResultFilter(); localSort = nil
+            }
+            // Worked out at once, so a result that replaces a sorted or filtered one never shows unsorted first.
+            order = orderRequest.order()
+            clearSelection()
+        }
+        .task(id: orderRequest) { await updateOrder() }
         .task(id: selection) {
             // Figures for the selection, worked out off the main thread so a large selection doesn't stall the grid.
             guard let selection, selection.count > 1 else { selectionSummary = nil; return }
@@ -531,7 +544,6 @@ struct ResultGridView: View {
             guard let onSelectRow else { return }
             if let row = value?.end.row, rowIndices.indices.contains(row) { onSelectRow(rowIndices[row]) } else { onSelectRow(nil) }
         }
-        .onAppear { updateFilter() }
         .onChange(of: configurationKey, initial: true) { _, key in
             selection = nil
             if let key, let data = UserDefaults.standard.data(forKey: key),
@@ -667,17 +679,35 @@ struct ResultGridView: View {
         revealSelection += 1
     }
 
-    private func updateFilter() {
-        for index in filter.conditions.indices {
-            if let column = filter.conditions[index].column, !result.columns.indices.contains(column) { filter.conditions[index].column = nil }
+    /// What the displayed rows are worked out from; a change to any of it works them out again.
+    private struct RowOrderRequest: Equatable, Sendable {
+        var result: QueryResultTable
+        var filter: LoadedResultFilter
+        var sort: LoadedResultSort?
+
+        /// The rows to show, or nil for every row as loaded, and when the task working it out was cancelled.
+        func order() -> LoadedRowOrder? {
+            filter.isActive || sort != nil ? LoadedRowOrder.make(of: result, filter: filter, sort: sort) : nil
         }
-        let rows = filter.isActive ? filter.matchingRows(in: result) : nil
-        if sortsLocally, let localSort {
-            filteredRows = localSort.ordered(rows ?? Array(result.rows.indices), in: result)
-        } else {
-            filteredRows = rows
-        }
+    }
+
+    private var orderRequest: RowOrderRequest {
+        RowOrderRequest(result: result, filter: filter, sort: sortsLocally ? localSort : nil)
+    }
+
+    private func clearSelection() {
         selection = nil; extendsSelection = false
+    }
+
+    /// Filters and sorts the loaded rows off the main thread, so typing a filter over thousands of rows
+    /// stays smooth. A newer filter, sort or result cancels the work, and its answer is dropped.
+    private func updateOrder() async {
+        let request = orderRequest
+        let work = Task.detached(priority: .userInitiated) { request.order() }
+        let made = await withTaskCancellationHandler(operation: { await work.value }, onCancel: { work.cancel() })
+        guard !Task.isCancelled, made != order else { return }
+        order = made
+        clearSelection()
     }
 
     private var filterSettings: some View {
@@ -946,7 +976,7 @@ struct ResultGridView: View {
             }))
         }
         // Each choice narrows the rows already shown, so filters on several columns combine.
-        let shown = String(value.displayValue.prefix(40))
+        let shown = String(value.cellText.prefix(40))
         var filterItems: [ResultGridMenuItem] = value.isNull
             ? [.action(L10n.text("Only NULL"), "circle.slash") { filter = filter.adding(.init(column: column, mode: .null)) }]
             : [.action(L10n.format("Equal to “%@”", shown), "equal") {
@@ -1178,7 +1208,7 @@ private struct GridCollectionBridge: UIViewRepresentable {
         guard let layout = view.collectionViewLayout as? FrozenGridLayout else { return }
         let dataChanged = previous.result.rows.first?.id != result.rows.first?.id
             || previous.result.rows.count != result.rows.count || previous.visibleColumns != visibleColumns
-            || previous.result.columns != result.columns || previous.result.rows.map(\.id) != result.rows.map(\.id)
+            || previous.result.columns != result.columns || !previous.result.rows.elementsEqual(result.rows, by: { $0.id == $1.id })
         let layoutChanged = dataChanged || previous.configuration != configuration || layout.widths.isEmpty
             || previous.headerStyle != headerStyle
             || layout.rowHeight != rowHeight
@@ -1223,7 +1253,8 @@ private struct GridCollectionBridge: UIViewRepresentable {
         let samples = result.rows.prefix(40).map { row in
             guard row.cells.indices.contains(column) else { return "NULL" }
             let value = row.cells[column]
-            return value.isNull ? "NULL" : (value.displayValue.isEmpty ? "\"\"" : String(value.displayValue.prefix(100)))
+            let text = value.cellText
+            return value.isNull ? "NULL" : (text.isEmpty ? "\"\"" : String(text.prefix(100)))
         }
         let widest = ceil(samples.map { ($0 as NSString).size(withAttributes: [.font: font]).width }.max() ?? 0) + 24
         return min(240, max(64, ceil(header), widest))
@@ -1305,7 +1336,8 @@ private struct GridCollectionBridge: UIViewRepresentable {
             }
             let row = parent.result.rows[path.section - 1]
             let value = row.cells.indices.contains(index) ? row.cells[index] : .null
-            cell.label.text = value.isNull ? "NULL" : (value.displayValue.isEmpty ? "\"\"" : value.displayValue)
+            let text = value.cellText
+            cell.label.text = value.isNull ? "NULL" : (text.isEmpty ? "\"\"" : text)
             if value.isNull { cell.label.textColor = .tertiaryLabel }
             if deleted {
                 cell.label.attributedText = NSAttributedString(string: cell.label.text ?? "", attributes: [

@@ -58,8 +58,8 @@ enum ResultGridAccessibility {
         columns.enumerated().map { index, column in
             let value: String
             if cells.indices.contains(index) {
-                let cell = cells[index]
-                value = cell.isNull ? L10n.text("NULL") : (cell.displayValue.isEmpty ? L10n.text("empty string") : cell.displayValue)
+                let cell = cells[index], text = cell.cellText
+                value = cell.isNull ? L10n.text("NULL") : (text.isEmpty ? L10n.text("empty string") : text)
             } else {
                 value = L10n.text("NULL")
             }
