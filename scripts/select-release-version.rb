@@ -5,7 +5,12 @@ require_relative 'distribute_testflight_groups'
 require 'open3'
 
 module ReleaseVersion
-  CLOSED_STATES = %w[READY_FOR_SALE READY_FOR_DISTRIBUTION PENDING_APPLE_RELEASE PENDING_DEVELOPER_RELEASE PROCESSING_FOR_APP_STORE REPLACED_WITH_NEW_VERSION REMOVED_FROM_SALE DEVELOPER_REMOVED_FROM_SALE].freeze
+  CLOSED_STATES = %w[
+    ACCEPTED PENDING_APPLE_RELEASE PENDING_DEVELOPER_RELEASE PENDING_CONTRACT
+    PROCESSING_FOR_DISTRIBUTION PROCESSING_FOR_APP_STORE READY_FOR_DISTRIBUTION
+    READY_FOR_SALE PREORDER_READY_FOR_SALE REPLACED_WITH_NEW_VERSION
+    DEVELOPER_REMOVED_FROM_SALE REMOVED_FROM_SALE
+  ].freeze
 
   def self.parts(value)
     raise ArgumentError, "Invalid marketing version #{value.inspect}" unless value.match?(/\A\d+(?:\.\d+){1,2}\z/)
@@ -17,7 +22,8 @@ module ReleaseVersion
     candidates = [parts(source)] + trains.map { |version| parts(version) }
     store_versions.each do |attributes|
       version = parts(attributes.fetch('versionString'))
-      version[2] += 1 if CLOSED_STATES.include?(attributes.fetch('appStoreState'))
+      state = attributes['appVersionState'] || attributes['appStoreState']
+      version[2] += 1 if CLOSED_STATES.include?(state)
       candidates << version
     end
     minimum = candidates.max

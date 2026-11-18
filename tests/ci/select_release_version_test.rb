@@ -16,6 +16,8 @@ class ReleaseVersionTest < Minitest::Test
 
   def test_pending_release_is_closed_and_initial_mac_draft_is_open
     assert_equal '1.6.1', ReleaseVersion.choose('1.6.0', [{ 'versionString' => '1.6.0', 'appStoreState' => 'PENDING_DEVELOPER_RELEASE' }], [])
+    assert_equal '1.6.1', ReleaseVersion.choose('1.6.0', [{ 'versionString' => '1.6.0', 'appVersionState' => 'READY_FOR_DISTRIBUTION' }], [])
+    assert_equal '1.6.1', ReleaseVersion.choose('1.6.0', [{ 'versionString' => '1.6.0', 'appVersionState' => 'ACCEPTED' }], [])
     assert_equal '1.6.0', ReleaseVersion.choose('1.6.0', [{ 'versionString' => '1.6.0', 'appStoreState' => 'PREPARE_FOR_SUBMISSION' }], [])
   end
 
