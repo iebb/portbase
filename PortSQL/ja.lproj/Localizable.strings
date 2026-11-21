@@ -250,6 +250,7 @@
 "Swipe vertically to review rows" = "縦方向にスワイプして行を確認します";
 "Tap a row to view" = "行をタップして表示";
 "Tap a row to view or edit" = "行をタップして表示または編集";
+"The connection was lost. Its pending transaction was not committed." = "接続が切断されました。保留中のトランザクションはコミットされていません。";
 "The saved bookmark for this visualizer is unavailable." = "このビジュアライザーに保存されているブックマークは利用できません。";
 "This visualizer does not have a saved SQL query yet." = "このビジュアライザーには、保存済みのSQLクエリがまだありません。";
 "Unlocked" = "ロック解除済み";

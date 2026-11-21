@@ -250,6 +250,7 @@
 "Swipe vertically to review rows" = "Проведите по вертикали, чтобы просмотреть строки";
 "Tap a row to view" = "Коснитесь строки для просмотра";
 "Tap a row to view or edit" = "Коснитесь строки для просмотра или редактирования";
+"The connection was lost. Its pending transaction was not committed." = "Соединение потеряно. Ожидающая транзакция не была зафиксирована.";
 "The saved bookmark for this visualizer is unavailable." = "Сохранённая закладка для этой визуализации недоступна.";
 "This visualizer does not have a saved SQL query yet." = "В этой визуализации ещё нет сохранённого SQL-запроса.";
 "Unlocked" = "Разблокировано";

@@ -250,6 +250,7 @@
 "Swipe vertically to review rows" = "垂直滑動以檢視資料列";
 "Tap a row to view" = "點一下資料列以檢視";
 "Tap a row to view or edit" = "點一下資料列以檢視或編輯";
+"The connection was lost. Its pending transaction was not committed." = "連線已中斷。待處理的交易未提交。";
 "The saved bookmark for this visualizer is unavailable." = "此視覺化已儲存的書籤無法使用。";
 "This visualizer does not have a saved SQL query yet." = "此視覺化尚未儲存 SQL 查詢。";
 "Unlocked" = "已解鎖";

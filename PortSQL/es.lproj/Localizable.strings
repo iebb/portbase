@@ -250,6 +250,7 @@
 "Swipe vertically to review rows" = "Desliza verticalmente para revisar las filas";
 "Tap a row to view" = "Toca una fila para verla";
 "Tap a row to view or edit" = "Toca una fila para verla o editarla";
+"The connection was lost. Its pending transaction was not committed." = "Se perdió la conexión. No se confirmó la transacción pendiente.";
 "The saved bookmark for this visualizer is unavailable." = "El marcador guardado para esta visualización no está disponible.";
 "This visualizer does not have a saved SQL query yet." = "Esta visualización todavía no tiene una consulta SQL guardada.";
 "Unlocked" = "Desbloqueado";

@@ -124,4 +124,62 @@ final class ConnectionRobustnessTests: XCTestCase {
         let databases = try await service.listDatabases(profile: profile(host: "localhost", mode: .privateCA, ca: ca))
         XCTAssertTrue(databases.contains("test_database"))
     }
+
+    /// A console whose connection went away while it sat unused, as after the server's idle limit or a
+    /// laptop's sleep, opens another for the next statement instead of failing it.
+    func testAnIdleConsoleReconnectsAfterItsConnectionIsDropped() async throws {
+        var exercised = false
+        for engine in [DatabaseEngine.mysql, .mariadb, .postgresql] {
+            let key = engine == .mariadb ? "PORTBASE_TEST_MARIADB_PORT" : engine == .mysql ? "PORTSQL_TEST_MYSQL_PORT" : "PORTSQL_TEST_POSTGRES_PORT"
+            guard let raw = ProcessInfo.processInfo.environment[key], let port = Int(raw) else { continue }
+            exercised = true
+            let profile = ConnectionProfile(name: "Disposable console fixture", engine: engine, host: "127.0.0.1", port: port,
+                username: "test_username", password: "test_password", defaultDatabase: "test_database", transportSecurityMode: .plaintext)
+            // Checked after any pause at all, and only after a long one, as the app does.
+            for service in [DatabaseService(consoleIdleCheckSeconds: 0), DatabaseService(consoleIdleCheckSeconds: 3_600)] {
+                let session = UUID()
+                func connection(manualCommit: Bool = false) async throws -> String {
+                    let result = try await service.execute(query: engine == .postgresql ? "SELECT pg_backend_pid()" : "SELECT CONNECTION_ID()",
+                                                           profile: profile, sessionID: session, manualCommit: manualCommit)
+                    return try XCTUnwrap(result.rows.first?.cells.first?.displayValue)
+                }
+                /// Ends a connection from another one, and waits for its socket to close.
+                func drop(_ connection: String) async throws {
+                    _ = try await service.execute(query: engine == .postgresql ? "SELECT pg_terminate_backend(\(connection))" : "KILL \(connection)",
+                                                  profile: profile, policy: .userQuery(confirmed: true))
+                    try await Task.sleep(for: .milliseconds(300))
+                }
+                do {
+                    let first = try await connection()
+                    let again = try await connection()
+                    XCTAssertEqual(first, again, "\(engine): a live connection is kept")
+                    try await drop(first)
+                    let second = try await connection()
+                    XCTAssertNotEqual(first, second, "\(engine)")
+
+                    // Work in an open transaction went with the connection, and that is never papered over.
+                    let inTransaction = try await connection(manualCommit: true)
+                    let open = await service.consoleHasTransaction(session)
+                    XCTAssertTrue(open)
+                    try await drop(inTransaction)
+                    let lost = await outcome(within: 5) { _ = try await connection(manualCommit: true) }
+                    XCTAssertEqual(lost as? ConsoleSessionError, .connectionLost, "\(engine)")
+                    let stillOpen = await service.consoleHasTransaction(session)
+                    XCTAssertFalse(stillOpen)
+
+                    // Committing what was lost fails; rolling it back has nothing left to do.
+                    for commit in [true, false] {
+                        let pending = try await connection(manualCommit: true)
+                        try await drop(pending)
+                        let finished = await outcome(within: 5) { try await service.finishConsoleTransaction(session, commit: commit) }
+                        XCTAssertEqual(finished as? ConsoleSessionError, commit ? .connectionLost : nil, "\(engine) commit \(commit)")
+                        let open = await service.consoleHasTransaction(session)
+                        XCTAssertFalse(open)
+                    }
+                    await service.closeConsole(session)
+                } catch { await service.closeConsole(session); throw error }
+            }
+        }
+        if !exercised { throw XCTSkip("Local relational fixtures are not configured") }
+    }
 }

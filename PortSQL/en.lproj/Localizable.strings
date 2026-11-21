@@ -250,6 +250,7 @@
 "Swipe vertically to review rows" = "Swipe vertically to review rows";
 "Tap a row to view" = "Tap a row to view";
 "Tap a row to view or edit" = "Tap a row to view or edit";
+"The connection was lost. Its pending transaction was not committed." = "The connection was lost. Its pending transaction was not committed.";
 "The saved bookmark for this visualizer is unavailable." = "The saved bookmark for this visualizer is unavailable.";
 "This visualizer does not have a saved SQL query yet." = "This visualizer does not have a saved SQL query yet.";
 "Unlocked" = "Unlocked";

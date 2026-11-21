@@ -222,17 +222,22 @@ private final class SQLConsoleSession {
     var postgres: PostgresConnection?
     var transactionOpen = false
     var transactionalTables: Set<String> = []
+    /// When a statement last finished, for checking a connection that has sat unused since.
+    var lastUsed = Date()
+    /// The drivers leave a statement sent on a closed connection waiting, so this is asked before sending one.
+    var isClosed: Bool { mysql?.isClosed == true || postgres?.isClosed == true }
     init(profile: ConnectionProfile, database: String?) { self.profile = profile; self.database = database }
 }
 
 enum ConsoleSessionError: LocalizedError {
-    case busy, transactionControlsRequired, implicitCommit, pendingTransaction
+    case busy, transactionControlsRequired, implicitCommit, pendingTransaction, connectionLost
     var errorDescription: String? {
         switch self {
         case .busy: L10n.text("This console is already executing a command.")
         case .transactionControlsRequired: L10n.text("Use the console's transaction controls for Begin, Commit, and Rollback.")
         case .implicitCommit: L10n.text("This MySQL statement can commit implicitly. Commit or roll back, then switch to Auto-commit before running it.")
         case .pendingTransaction: L10n.text("Commit or roll back the current transaction first.")
+        case .connectionLost: L10n.text("The connection was lost. Its pending transaction was not committed.")
         }
     }
 }
@@ -246,7 +251,13 @@ actor DatabaseService {
     /// a dead tunnel or a server of another kind, which sends nothing, is waited on forever.
     let handshakeTimeoutSeconds: Int
 
-    init(handshakeTimeoutSeconds: Int = 15) { self.handshakeTimeoutSeconds = handshakeTimeoutSeconds }
+    /// How long a console's connection may sit unused before it's checked ahead of the next statement.
+    let consoleIdleCheckSeconds: TimeInterval
+
+    init(handshakeTimeoutSeconds: Int = 15, consoleIdleCheckSeconds: TimeInterval = 30) {
+        self.handshakeTimeoutSeconds = handshakeTimeoutSeconds
+        self.consoleIdleCheckSeconds = consoleIdleCheckSeconds
+    }
 
     #if canImport(MySQLNIO)
     let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -366,7 +377,17 @@ actor DatabaseService {
         }
         let session = consoleSessions[id] ?? SQLConsoleSession(profile: profile, database: database)
         consoleSessions[id] = session
+        // Nothing is pending outside a transaction, so a connection that went away is replaced rather than
+        // failing the statement. Inside one, the loss is reported by the statement itself.
+        if !session.transactionOpen, await isDropped(session) {
+            await closeSession(session)
+            session.mysql = nil
+            session.postgres = nil
+            session.transactionalTables = []
+        }
+        defer { session.lastUsed = Date() }
         do {
+            if session.isClosed { throw ConsoleSessionError.connectionLost }
             if profile.engine.isMySQLFamily, session.mysql == nil {
                 let connection = try await connectMySQL(profile: profile,
                     database: resolvedDatabaseName(database, fallback: profile.trimmedDefaultDatabase), loggerLabel: "ad.neko.portsql.console")
@@ -403,7 +424,17 @@ actor DatabaseService {
         }
     }
 
+    /// Whether a console's connection went away while it sat unused: closed by the server at its idle limit,
+    /// or silent after a sleep or a network change, which only asking it shows.
+    private func isDropped(_ session: SQLConsoleSession) async -> Bool {
+        guard session.mysql != nil || session.postgres != nil else { return false }
+        if session.isClosed { return true }
+        guard Date().timeIntervalSince(session.lastUsed) >= consoleIdleCheckSeconds else { return false }
+        do { try await consoleCommand("SELECT 1", session: session, timeout: 3); return false } catch { return true }
+    }
+
     private func consoleCommand(_ sql: String, session: SQLConsoleSession, timeout: Int = 30) async throws {
+        if session.isClosed { throw ConsoleSessionError.connectionLost }
         if let connection = session.mysql {
             try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() }) {
                 _ = try await connection.simpleQuery(sql).get()
@@ -423,6 +454,9 @@ actor DatabaseService {
             try await consoleCommand(commit ? "COMMIT" : "ROLLBACK", session: session)
             session.transactionOpen = false
             session.transactionalTables = []
+        } catch ConsoleSessionError.connectionLost where !commit {
+            // The server rolled the work back when the connection went.
+            await closeConsole(id)
         } catch { await closeConsole(id); throw error }
     }
 

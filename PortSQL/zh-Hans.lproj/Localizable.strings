@@ -250,6 +250,7 @@
 "Swipe vertically to review rows" = "纵向轻扫以查看数据行";
 "Tap a row to view" = "轻点数据行进行查看";
 "Tap a row to view or edit" = "轻点数据行进行查看或编辑";
+"The connection was lost. Its pending transaction was not committed." = "连接已断开。待处理的事务未提交。";
 "The saved bookmark for this visualizer is unavailable." = "此可视化保存的书签不可用。";
 "This visualizer does not have a saved SQL query yet." = "此可视化还没有保存的 SQL 查询。";
 "Unlocked" = "已解锁";

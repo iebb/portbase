@@ -250,6 +250,7 @@
 "Swipe vertically to review rows" = "행을 검토하려면 세로로 쓸어넘기세요";
 "Tap a row to view" = "행을 탭하여 보기";
 "Tap a row to view or edit" = "행을 탭하여 보거나 편집";
+"The connection was lost. Its pending transaction was not committed." = "연결이 끊어졌습니다. 대기 중인 트랜잭션은 커밋되지 않았습니다.";
 "The saved bookmark for this visualizer is unavailable." = "이 시각화에 저장된 북마크를 사용할 수 없습니다.";
 "This visualizer does not have a saved SQL query yet." = "이 시각화에는 아직 저장된 SQL 쿼리가 없습니다.";
 "Unlocked" = "잠금 해제됨";
