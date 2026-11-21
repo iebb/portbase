@@ -11,6 +11,9 @@ public enum MySQLError: Error, CustomStringConvertible, LocalizedError {
     case protocolError
     case server(MySQLProtocol.ERR_Packet)
     case closed
+
+    /// The server accepted the connection but did not finish the handshake in time.
+    case handshakeTimedOut
     
     /// A uniqueness constraint was violated. Associated value is message from server with details.
     case duplicateEntry(String)
@@ -40,6 +43,8 @@ public enum MySQLError: Error, CustomStringConvertible, LocalizedError {
             return "Server error: \(error.errorMessage)"
         case .closed:
             return "Connection closed."
+        case .handshakeTimedOut:
+            return "The server did not complete the handshake in time."
         case .duplicateEntry(let message):
             return "Duplicate entry: \(message)"
         case .invalidSyntax(let message):

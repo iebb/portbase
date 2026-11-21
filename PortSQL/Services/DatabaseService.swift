@@ -19,6 +19,7 @@ import PostgresNIO
 
 func withQueryTimeout<Value: Sendable>(
     seconds: Int,
+    timeoutError: DatabaseServiceError = .queryTimedOut,
     closeConnection: @escaping @Sendable () -> Void,
     operation: @escaping @Sendable () async throws -> Value
 ) async throws -> Value {
@@ -31,7 +32,7 @@ func withQueryTimeout<Value: Sendable>(
             group.addTask {
                 try await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
                 closeConnection()
-                throw DatabaseServiceError.queryTimedOut
+                throw timeoutError
             }
             defer { group.cancelAll() }
             guard let result = try await group.next() else {
@@ -140,13 +141,15 @@ private final class PostgresExecutionCollector: @unchecked Sendable {
 }
 #endif
 
-enum DatabaseServiceError: LocalizedError {
+enum DatabaseServiceError: LocalizedError, Equatable {
     case unsupported
     case notConfigured
     case readOnlyViolation
     case unsafeQueryRequiresConfirmation
     case readOnlyQueryRequired
     case queryTimedOut
+    /// The server took the connection but didn't finish greeting or signing in.
+    case connectionTimedOut
     case invalidSchemaDefinition
     case mysqlColumnEditRequiresCompleteMetadata
     case tlsIdentityUnavailableThroughTunnel
@@ -169,6 +172,8 @@ enum DatabaseServiceError: LocalizedError {
             L10n.text("This operation only accepts read-only queries.")
         case .queryTimedOut:
             L10n.text("The database query timed out and its connection was closed.")
+        case .connectionTimedOut:
+            L10n.text("Connection timed out")
         case .invalidSchemaDefinition:
             L10n.text("The column type contains unsupported or unsafe SQL syntax.")
         case .mysqlColumnEditRequiresCompleteMetadata:
@@ -237,6 +242,11 @@ actor DatabaseService {
     private static let maximumMaterializedRows = 10_000
     private var consoleSessions: [UUID: SQLConsoleSession] = [:]
     private var busyConsoles: Set<UUID> = []
+    /// How long a server that has taken the connection gets to greet, secure it and sign in. Without a limit,
+    /// a dead tunnel or a server of another kind, which sends nothing, is waited on forever.
+    let handshakeTimeoutSeconds: Int
+
+    init(handshakeTimeoutSeconds: Int = 15) { self.handshakeTimeoutSeconds = handshakeTimeoutSeconds }
 
     #if canImport(MySQLNIO)
     let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -365,9 +375,7 @@ actor DatabaseService {
                     try await self.configureMySQLSession(connection, profile: profile, policy: policy, timeoutSeconds: timeout)
                 }
             } else if profile.engine == .postgresql, session.postgres == nil {
-                let config = try await makePostgresConfiguration(profile: profile, database: postgresDatabaseName(for: profile, requested: database))
-                let connection = try await PostgresConnection.connect(on: eventLoopGroup.next(), configuration: config,
-                    id: 1, logger: Logger(label: "ad.neko.portsql.console")).get()
+                let connection = try await connectPostgres(profile: profile, database: database, id: 1, loggerLabel: "ad.neko.portsql.console")
                 session.postgres = connection
                 try await withQueryTimeout(seconds: timeout, closeConnection: { _ = connection.close() as EventLoopFuture<Void> }) {
                     try await self.configurePostgresSession(connection, profile: profile, policy: policy, timeoutSeconds: timeout)
@@ -960,9 +968,13 @@ actor DatabaseService {
             tlsConfiguration: tlsConfiguration,
             allowPlaintextFallback: allowPlaintextFallback,
             serverHostname: serverHostname,
+            handshakeTimeout: .seconds(Int64(handshakeTimeoutSeconds)),
             logger: Logger(label: loggerLabel),
             on: eventLoopGroup.next()
-        ).get()
+        ).flatMapErrorThrowing { error in
+            if case MySQLError.handshakeTimedOut = error { throw DatabaseServiceError.connectionTimedOut }
+            throw error
+        }.get()
         do {
             try await withQueryTimeout(seconds: 30, closeConnection: { _ = connection.close() }) {
                 try await self.prepareMySQLSession(connection, database: database ?? "")
@@ -1209,18 +1221,7 @@ actor DatabaseService {
         let logger = Logger(label: "ad.neko.portsql.postgres")
         let connection: PostgresConnection
         if let connectionOverride { connection = connectionOverride }
-        else {
-        let config = try await makePostgresConfiguration(
-            profile: profile,
-            database: postgresDatabaseName(for: profile, requested: database)
-        )
-        connection = try await PostgresConnection.connect(
-            on: eventLoopGroup.next(),
-            configuration: config,
-            id: 1,
-            logger: logger
-        ).get()
-        }
+        else { connection = try await connectPostgres(profile: profile, database: database, id: 1, loggerLabel: "ad.neko.portsql.postgres") }
         do {
             if connectionOverride == nil { try await configurePostgresSession(connection, profile: profile, policy: policy, timeoutSeconds: timeoutSeconds) }
             let validatesMutation = expectedAffectedRows(for: policy) != nil
@@ -1475,17 +1476,7 @@ actor DatabaseService {
     }
 
     private func loadPostgresSchema(profile: ConnectionProfile, database: String?) async throws -> [SchemaTableDescriptor] {
-        let config = try await makePostgresConfiguration(
-            profile: profile,
-            database: postgresDatabaseName(for: profile, requested: database)
-        )
-        let logger = Logger(label: "ad.neko.portsql.postgres.schema")
-        let connection = try await PostgresConnection.connect(
-            on: eventLoopGroup.next(),
-            configuration: config,
-            id: 2,
-            logger: logger
-        ).get()
+        let connection = try await connectPostgres(profile: profile, database: database, id: 2, loggerLabel: "ad.neko.portsql.postgres.schema")
         do {
             let result = try await connection.query("""
             SELECT
@@ -1594,17 +1585,8 @@ actor DatabaseService {
     }
 
     private func listPostgresDatabases(profile: ConnectionProfile) async throws -> [String] {
-        let config = try await makePostgresConfiguration(
-            profile: profile,
-            database: postgresBootstrapDatabase(for: profile)
-        )
-        let logger = Logger(label: "ad.neko.portsql.postgres.databases")
-        let connection = try await PostgresConnection.connect(
-            on: eventLoopGroup.next(),
-            configuration: config,
-            id: 3,
-            logger: logger
-        ).get()
+        // No database asked for is the profile's own, or `postgres`.
+        let connection = try await connectPostgres(profile: profile, database: nil, id: 3, loggerLabel: "ad.neko.portsql.postgres.databases")
         do {
             let result = try await connection.query("""
             SELECT datname
@@ -1686,53 +1668,57 @@ actor DatabaseService {
         }
     }
 
+    /// Opens the socket itself and hands it to the driver, so a server that takes the connection and then says
+    /// nothing can be given up on, and stopping a query that is still connecting closes it.
     func connectPostgres(
         profile: ConnectionProfile,
         database: String?,
         id: Int,
         loggerLabel: String
     ) async throws -> PostgresConnection {
-        let config = try await makePostgresConfiguration(
-            profile: profile,
-            database: postgresDatabaseName(for: profile, requested: database)
-        )
-        let logger = Logger(label: loggerLabel)
-        return try await PostgresConnection.connect(
-            on: eventLoopGroup.next(),
-            configuration: config,
-            id: id,
-            logger: logger
-        ).get()
-    }
-
-    func makePostgresConfiguration(
-        profile: ConnectionProfile,
-        database: String
-    ) async throws -> PostgresConnection.Configuration {
         if profile.transportSecurityMode != .plaintext, profile.usesSSHTunnel, Self.isIPAddress(profile.host) {
             throw DatabaseServiceError.tlsIdentityUnavailableThroughTunnel
         }
+        let tls = try Self.postgresTLS(for: profile)
         let endpoint = try await SSHTunnelService.shared.endpoint(for: profile, eventLoopGroup: eventLoopGroup)
-        let tlsConfiguration = try Self.tlsConfiguration(for: profile)
-        let postgresTLS: PostgresConnection.Configuration.TLS
-        switch profile.transportSecurityMode {
-        case .systemCA, .privateCA:
-            postgresTLS = .require(try NIOSSLContext(configuration: tlsConfiguration))
-        case .preferTLS:
-            postgresTLS = .prefer(try NIOSSLContext(configuration: tlsConfiguration))
-        case .plaintext:
-            postgresTLS = .disable
-        }
+        let channel = try await ClientBootstrap(group: eventLoopGroup)
+            .connectTimeout(.seconds(10))
+            .connect(host: endpoint.host, port: endpoint.port)
+            .get()
         var config = PostgresConnection.Configuration(
-            host: endpoint.host,
-            port: endpoint.port,
+            establishedChannel: channel,
+            tls: tls,
             username: profile.username,
             password: profile.password.isEmpty ? nil : profile.password,
-            database: database,
-            tls: postgresTLS
+            database: postgresDatabaseName(for: profile, requested: database)
         )
+        // The certificate is checked against the database's own name; an IP address is checked against the socket's.
         config.options.tlsServerName = Self.isIPAddress(endpoint.serverHostname) ? nil : endpoint.serverHostname
-        return config
+        let logger = Logger(label: loggerLabel)
+        // The driver leaves a connection that is closed under it while starting waiting forever, so giving up
+        // is sent to it as an error, which it reports and closes on. The close is for a socket it hasn't taken yet.
+        let giveUp: @Sendable () -> Void = {
+            channel.pipeline.fireErrorCaught(DatabaseServiceError.connectionTimedOut)
+            channel.close(mode: .all, promise: nil)
+        }
+        return try await withQueryTimeout(seconds: handshakeTimeoutSeconds, timeoutError: .connectionTimedOut, closeConnection: giveUp) { [config] in
+            do {
+                return try await PostgresConnection.connect(on: channel.eventLoop, configuration: config, id: id, logger: logger).get()
+            } catch {
+                channel.close(mode: .all, promise: nil)
+                if Task.isCancelled { throw CancellationError() }
+                if let gaveUp = (error as? PSQLError)?.underlying as? DatabaseServiceError { throw gaveUp }
+                throw error
+            }
+        }
+    }
+
+    nonisolated static func postgresTLS(for profile: ConnectionProfile) throws -> PostgresConnection.Configuration.TLS {
+        switch profile.transportSecurityMode {
+        case .systemCA, .privateCA: .require(try NIOSSLContext(configuration: tlsConfiguration(for: profile)))
+        case .preferTLS: .prefer(try NIOSSLContext(configuration: tlsConfiguration(for: profile)))
+        case .plaintext: .disable
+        }
     }
 
     #endif

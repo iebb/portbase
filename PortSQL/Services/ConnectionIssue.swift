@@ -75,7 +75,7 @@ struct ConnectionIssue: Equatable {
         } else if has("authentication failed", "password authentication", "invalid password", "wrong password", "access denied",
                       "28p01", "error 1045", "auth failed", "unauthorized", "http 401", "noauth", "wrongpass", "scram", "sasl") {
             kind = .authentication
-        } else if has("timed out", "timeout", "-1001") {
+        } else if has("timed out", "timeout", "-1001") || text == L10n.text("Connection timed out").lowercased() {
             kind = .timeout
         } else if has("connection refused", "econnrefused", "could not connect", "couldn’t connect", "couldn't connect", "no route", "host not found",
                       "nodename nor servname", "getaddrinfo", "network is unreachable", "could not be found", "connection reset", "-1004", "-1003",

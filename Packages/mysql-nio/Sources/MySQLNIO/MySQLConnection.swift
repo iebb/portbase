@@ -12,6 +12,7 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
         tlsConfiguration: TLSConfiguration? = .makeClientConfiguration(),
         allowPlaintextFallback: Bool = false,
         serverHostname: String? = nil,
+        handshakeTimeout: TimeAmount = .seconds(15),
         logger: Logger = .init(label: "codes.vapor.mysql"),
         on eventLoop: any EventLoop
     ) -> EventLoopFuture<MySQLConnection> {
@@ -27,6 +28,12 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
             done.futureResult.whenFailure { _ in
                 channel.close(mode: .all, promise: nil)
             }
+            // The server speaks first. One that takes the connection and never greets, as a dead tunnel or
+            // another kind of server does, would otherwise be waited on forever.
+            let timeout = channel.eventLoop.scheduleTask(in: handshakeTimeout) {
+                done.fail(MySQLError.handshakeTimedOut)
+            }
+            done.futureResult.whenComplete { _ in timeout.cancel() }
             do {
                 try channel.pipeline.syncOperations.addHandlers([
                     ByteToMessageHandler(MySQLPacketDecoder(

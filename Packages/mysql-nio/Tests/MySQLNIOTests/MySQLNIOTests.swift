@@ -18,6 +18,7 @@ extension MySQLError: Equatable {
         case (.protocolError, .protocolError): true
         case (.server(let l), .server(let r)) where l.errorCode == r.errorCode && l.sqlStateMarker == r.sqlStateMarker && l.sqlState == r.sqlState && l.errorMessage == r.errorMessage: true
         case (.closed, .closed): true
+        case (.handshakeTimedOut, .handshakeTimedOut): true
         case (.duplicateEntry(let l), .duplicateEntry(let r)) where l == r: true
         case (.invalidSyntax(let l), .invalidSyntax(let r)) where l == r: true
         default: false
@@ -458,6 +459,48 @@ struct MySQLNIOTests {
             allowPlaintextFallback: true,
             on: .singletonMultiThreadedEventLoopGroup.any()
         ).get()
+        #expect(connection.channel.isActive)
+        try await connection.close().get()
+        try await serverChannel.close(mode: .all).get()
+    }
+
+    @Test
+    func handshakeWithASilentServerTimesOut() async throws {
+        // Takes the connection and never greets, as a dead tunnel or another kind of server does.
+        let serverChannel = try await ServerBootstrap(group: .singletonMultiThreadedEventLoopGroup)
+            .bind(host: "127.0.0.1", port: 0)
+            .get()
+        let address = try #require(serverChannel.localAddress)
+
+        await #expect(throws: MySQLError.handshakeTimedOut) {
+            let connection = try await MySQLConnection.connect(
+                to: address,
+                username: "test",
+                database: "",
+                tlsConfiguration: nil,
+                handshakeTimeout: .milliseconds(200),
+                on: .singletonMultiThreadedEventLoopGroup.any()
+            ).get()
+            try? await connection.close().get()
+        }
+        try await serverChannel.close(mode: .all).get()
+    }
+
+    @Test
+    func connectionOutlivesItsHandshakeTimeout() async throws {
+        let serverChannel = try await makePlaintextOnlyHandshakeServer()
+        let address = try #require(serverChannel.localAddress)
+
+        let connection = try await MySQLConnection.connect(
+            to: address,
+            username: "test",
+            database: "",
+            password: "secret",
+            tlsConfiguration: nil,
+            handshakeTimeout: .milliseconds(200),
+            on: .singletonMultiThreadedEventLoopGroup.any()
+        ).get()
+        try await Task.sleep(nanoseconds: 400_000_000)
         #expect(connection.channel.isActive)
         try await connection.close().get()
         try await serverChannel.close(mode: .all).get()
