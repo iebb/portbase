@@ -173,6 +173,7 @@ actor SSHTunnelService {
         let authCompleted = NIOLockedValueBox(false)
         let sshChannel = try await ClientBootstrap(group: eventLoopGroup)
             .connectTimeout(.seconds(10))
+            .probingIdleConnections()
             .channelInitializer { channel in
                 channel.eventLoop.makeCompletedFuture {
                     let authPromise = channel.eventLoop.makePromise(of: Void.self)

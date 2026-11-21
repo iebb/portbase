@@ -19,6 +19,12 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
         let bootstrap = ClientBootstrap(group: eventLoop)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelOption(ChannelOptions.connectTimeout, value: .seconds(10))
+            // A connection quiet for half a minute is probed, and closed after three probes go unanswered, so
+            // one left open learns its server is gone instead of finding out at its next query.
+            .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_KEEPALIVE), value: 1)
+            .channelOption(ChannelOptions.socket(SocketOptionLevel(IPPROTO_TCP), Self.keepAliveIdleOption), value: 30)
+            .channelOption(ChannelOptions.socket(SocketOptionLevel(IPPROTO_TCP), TCP_KEEPINTVL), value: 10)
+            .channelOption(ChannelOptions.socket(SocketOptionLevel(IPPROTO_TCP), TCP_KEEPCNT), value: 3)
         
         logger.debug("Opening new connection to \(socketAddress)")
         
@@ -63,6 +69,12 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
         }
     }
     
+    #if canImport(Darwin)
+    private static let keepAliveIdleOption = TCP_KEEPALIVE
+    #else
+    private static let keepAliveIdleOption = TCP_KEEPIDLE
+    #endif
+
     public let channel: any Channel
     
     public var eventLoop: any EventLoop {

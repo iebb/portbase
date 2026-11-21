@@ -502,6 +502,8 @@ struct MySQLNIOTests {
         ).get()
         try await Task.sleep(nanoseconds: 400_000_000)
         #expect(connection.channel.isActive)
+        let probes = try await connection.channel.getOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_KEEPALIVE)).get()
+        #expect(probes != 0, "An idle connection is probed")
         try await connection.close().get()
         try await serverChannel.close(mode: .all).get()
     }

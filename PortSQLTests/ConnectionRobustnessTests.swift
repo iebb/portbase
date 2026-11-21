@@ -182,4 +182,22 @@ final class ConnectionRobustnessTests: XCTestCase {
         }
         if !exercised { throw XCTSkip("Local relational fixtures are not configured") }
     }
+
+    func testLongLivedConnectionsAreProbedWhileIdle() async throws {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? group.syncShutdownGracefully() }
+        let server = try await silentServer(group: group)
+        defer { try? server.close().wait() }
+        let channel = try await ClientBootstrap(group: group).probingIdleConnections()
+            .connect(host: "127.0.0.1", port: try XCTUnwrap(server.localAddress?.port)).get()
+        defer { channel.close(promise: nil) }
+        let enabled = try await channel.getOption(ChannelOptions.socketOption(.so_keepalive)).get()
+        XCTAssertNotEqual(enabled, 0)
+        let idle = try await channel.getOption(ChannelOptions.tcpOption(.init(rawValue: TCP_KEEPALIVE))).get()
+        XCTAssertEqual(idle, 30)
+        let interval = try await channel.getOption(ChannelOptions.tcpOption(.init(rawValue: TCP_KEEPINTVL))).get()
+        XCTAssertEqual(interval, 10)
+        let count = try await channel.getOption(ChannelOptions.tcpOption(.init(rawValue: TCP_KEEPCNT))).get()
+        XCTAssertEqual(count, 3)
+    }
 }

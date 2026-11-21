@@ -45,6 +45,18 @@ func withQueryTimeout<Value: Sendable>(
     }
 }
 
+extension ClientBootstrap {
+    /// Has the system probe a connection that has been quiet for half a minute, and close it after three
+    /// probes go unanswered. A tunnel or a console left open then learns its peer is gone, after a sleep or
+    /// a network change, within about a minute instead of at its next use, and a router keeps its route.
+    func probingIdleConnections() -> ClientBootstrap {
+        channelOption(ChannelOptions.socketOption(.so_keepalive), value: 1)
+            .channelOption(ChannelOptions.tcpOption(.init(rawValue: TCP_KEEPALIVE)), value: 30)
+            .channelOption(ChannelOptions.tcpOption(.init(rawValue: TCP_KEEPINTVL)), value: 10)
+            .channelOption(ChannelOptions.tcpOption(.init(rawValue: TCP_KEEPCNT)), value: 3)
+    }
+}
+
 #if canImport(MySQLNIO)
 private final class MySQLExecutionMetadata: @unchecked Sendable {
     private let lock = NSLock()
@@ -1717,6 +1729,7 @@ actor DatabaseService {
         let endpoint = try await SSHTunnelService.shared.endpoint(for: profile, eventLoopGroup: eventLoopGroup)
         let channel = try await ClientBootstrap(group: eventLoopGroup)
             .connectTimeout(.seconds(10))
+            .probingIdleConnections()
             .connect(host: endpoint.host, port: endpoint.port)
             .get()
         var config = PostgresConnection.Configuration(
