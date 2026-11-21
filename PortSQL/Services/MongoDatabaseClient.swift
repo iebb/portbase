@@ -215,6 +215,9 @@ enum MongoDatabaseClient {
                     if let tls {
                         let hostname = DatabaseService.isIPAddress(endpoint.serverHostname) ? nil : endpoint.serverHostname
                         try channel.pipeline.syncOperations.addHandler(NIOSSLClientHandler(context: tls, serverHostname: hostname))
+                        if let verifier = TunnelCertificateNameVerifier.handler(for: profile, hostname: hostname) {
+                            try channel.pipeline.syncOperations.addHandler(verifier)
+                        }
                     }
                     try channel.pipeline.syncOperations.addHandler(MongoChannelLifecycleHandler(context: context))
                 }.flatMap { MongoConnection.addHandlers(to: channel, context: context) }

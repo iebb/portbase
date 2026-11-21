@@ -203,7 +203,7 @@ final class ServerCertificateProbeTests: XCTestCase {
 }
 
 /// A loopback server that answers the PostgreSQL or MySQL TLS upgrade, or speaks TLS directly.
-private final class FakeServer: @unchecked Sendable {
+final class FakeServer: @unchecked Sendable {
     enum Mode: Sendable { case direct, postgres, mysql, postgresWithoutTLS, mysqlWithoutTLS }
 
     let channel: Channel
@@ -219,12 +219,15 @@ private final class FakeServer: @unchecked Sendable {
     var receivedApplicationData: Bool { state.value }
     func reset() { state.reset() }
 
-    static func start(mode: Mode, managedLeaf: Bool = false) async throws -> FakeServer {
-        let leaf = managedLeaf ? TestPKI.managedLeafPEM : TestPKI.leafPEM
-        let key = managedLeaf ? TestPKI.managedLeafKeyPEM : TestPKI.leafKeyPEM
+    fileprivate static func start(mode: Mode, managedLeaf: Bool = false) async throws -> FakeServer {
+        try await start(mode: mode, leafPEM: managedLeaf ? TestPKI.managedLeafPEM : TestPKI.leafPEM,
+                        keyPEM: managedLeaf ? TestPKI.managedLeafKeyPEM : TestPKI.leafKeyPEM, caPEM: TestPKI.caPEM)
+    }
+
+    static func start(mode: Mode, leafPEM leaf: String, keyPEM key: String, caPEM: String) async throws -> FakeServer {
         var configuration = TLSConfiguration.makeServerConfiguration(
             certificateChain: [.certificate(try NIOSSLCertificate(bytes: Array(leaf.utf8), format: .pem)),
-                               .certificate(try NIOSSLCertificate(bytes: Array(TestPKI.caPEM.utf8), format: .pem))],
+                               .certificate(try NIOSSLCertificate(bytes: Array(caPEM.utf8), format: .pem))],
             privateKey: .privateKey(try NIOSSLPrivateKey(bytes: Array(key.utf8), format: .pem)))
         configuration.minimumTLSVersion = .tlsv12
         let context = try NIOSSLContext(configuration: configuration)
@@ -249,7 +252,7 @@ private final class FakeServer: @unchecked Sendable {
     func stop() async throws { try await channel.close() }
 }
 
-private final class NIOLockedValueBoxFlag: @unchecked Sendable {
+final class NIOLockedValueBoxFlag: @unchecked Sendable {
     private let lock = NSLock()
     private var flag = false
     var value: Bool { lock.withLock { flag } }
@@ -264,7 +267,7 @@ private final class FailureWatcher: ChannelInboundHandler {
     func errorCaught(context: ChannelHandlerContext, error: Error) { state.set(); context.close(promise: nil) }
 }
 
-private final class ApplicationDataWatcher: ChannelInboundHandler {
+final class ApplicationDataWatcher: ChannelInboundHandler {
     typealias InboundIn = ByteBuffer
     let state: NIOLockedValueBoxFlag
     init(state: NIOLockedValueBoxFlag) { self.state = state }
@@ -272,13 +275,14 @@ private final class ApplicationDataWatcher: ChannelInboundHandler {
     func errorCaught(context: ChannelHandlerContext, error: Error) { context.close(promise: nil) }
 }
 
-private final class UpgradeResponder: ChannelInboundHandler, RemovableChannelHandler {
+final class UpgradeResponder: ChannelInboundHandler, RemovableChannelHandler {
     typealias InboundIn = ByteBuffer
     typealias OutboundOut = ByteBuffer
     let mode: FakeServer.Mode
     let context: NIOSSLContext
     let state: NIOLockedValueBoxFlag
     private var buffer = ByteBuffer()
+    private var answered = false
 
     init(mode: FakeServer.Mode, context: NIOSSLContext, state: NIOLockedValueBoxFlag) {
         self.mode = mode
@@ -304,7 +308,10 @@ private final class UpgradeResponder: ChannelInboundHandler, RemovableChannelHan
         buffer.writeBuffer(&incoming)
         switch mode {
         case .postgres, .postgresWithoutTLS:
+            // What follows a refusal came without TLS.
+            if answered { state.set(); return }
             guard buffer.readableBytes >= 8 else { return }
+            answered = true
             var reply = context.channel.allocator.buffer(capacity: 1)
             reply.writeInteger(UInt8(ascii: mode == .postgres ? "S" : "N"))
             context.writeAndFlush(wrapOutboundOut(reply), promise: nil)
@@ -314,6 +321,7 @@ private final class UpgradeResponder: ChannelInboundHandler, RemovableChannelHan
             let sequence = buffer.getInteger(at: buffer.readerIndex + 3, as: UInt8.self)
             let flags = buffer.getInteger(at: buffer.readerIndex + 4, endianness: .little, as: UInt32.self) ?? 0
             guard sequence == 1, flags & 0x0800 != 0 else { context.close(promise: nil); return }
+            buffer.moveReaderIndex(forwardBy: 36)
             startTLS(context: context)
         default:
             break
@@ -327,5 +335,10 @@ private final class UpgradeResponder: ChannelInboundHandler, RemovableChannelHan
         try? pipeline.syncOperations.addHandler(tls, position: .first)
         try? pipeline.syncOperations.addHandler(watcher)
         pipeline.removeHandler(self, promise: nil)
+        // A client's hello can arrive in the same read as its MySQL upgrade request.
+        if mode == .mysql, buffer.readableBytes > 0 {
+            pipeline.fireChannelRead(buffer)
+            pipeline.fireChannelReadComplete()
+        }
     }
 }

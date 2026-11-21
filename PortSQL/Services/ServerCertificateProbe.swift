@@ -4,6 +4,7 @@ import NIOConcurrencyHelpers
 import NIOCore
 import NIOPosix
 import NIOSSL
+import NIOTLS
 import Security
 
 /// The certificate authority a server presented, offered for trust on first use.
@@ -348,5 +349,96 @@ private final class HandshakeEndHandler: ChannelInboundHandler {
     func channelInactive(context: ChannelHandlerContext) {
         finished.succeed(())
         context.fireChannelInactive()
+    }
+}
+
+/// Holds a TLS connection made through an SSH tunnel until its certificate is seen to name the database's host.
+///
+/// NIOSSL also accepts a certificate whose IP address is the socket's. Through a tunnel the socket is always
+/// the loopback forward, so a certificate that names 127.0.0.1 would pass for any host. Here only the host's
+/// own name counts, and nothing the app writes, credentials included, leaves before it has been checked.
+final class TunnelCertificateNameVerifier: ChannelDuplexHandler {
+    typealias InboundIn = ByteBuffer
+    typealias OutboundIn = ByteBuffer
+
+    private enum State { case waiting, verified, failed }
+
+    private let hostname: String?
+    private let verified: EventLoopPromise<Void>?
+    private var state = State.waiting
+    private var held: [(data: NIOAny, promise: EventLoopPromise<Void>?)] = []
+    private var flushes = false
+
+    /// - Parameter verified: Succeeds once the certificate is accepted, and fails with what stopped the handshake.
+    init(hostname: String?, verified: EventLoopPromise<Void>? = nil) {
+        self.hostname = hostname
+        self.verified = verified
+    }
+
+    /// The handler for a profile's TLS connection: one for a tunnelled profile, none for a direct one, whose
+    /// socket really is the address a certificate may name.
+    static func handler(for profile: ConnectionProfile, hostname: String?) -> TunnelCertificateNameVerifier? {
+        profile.usesSSHTunnel ? TunnelCertificateNameVerifier(hostname: hostname) : nil
+    }
+
+    func userInboundEventTriggered(context: ChannelHandlerContext, event: Any) {
+        guard state == .waiting, case .handshakeCompleted = event as? TLSUserEvent else {
+            context.fireUserInboundEventTriggered(event)
+            return
+        }
+        let leaf = try? context.pipeline.syncOperations.handler(type: NIOSSLClientHandler.self).peerCertificate
+        guard let leaf, let hostname, ServerCertificateProbe.names(leaf, hostname) else {
+            stop(context: context, error: DatabaseServiceError.certificateNameMismatch)
+            context.fireErrorCaught(DatabaseServiceError.certificateNameMismatch)
+            context.close(promise: nil)
+            return
+        }
+        state = .verified
+        verified?.succeed(())
+        context.fireUserInboundEventTriggered(event)
+        let writes = held
+        held = []
+        for write in writes { context.write(write.data, promise: write.promise) }
+        if flushes { context.flush() }
+    }
+
+    func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        switch state {
+        case .verified: context.write(data, promise: promise)
+        case .waiting: held.append((data, promise))
+        case .failed: promise?.fail(DatabaseServiceError.certificateNameMismatch)
+        }
+    }
+
+    func flush(context: ChannelHandlerContext) {
+        if state == .verified { context.flush() } else { flushes = true }
+    }
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        if state == .verified { context.fireChannelRead(data) }
+    }
+
+    func errorCaught(context: ChannelHandlerContext, error: Error) {
+        stop(context: context, error: error)
+        context.fireErrorCaught(error)
+    }
+
+    func channelInactive(context: ChannelHandlerContext) {
+        stop(context: context, error: ChannelError.ioOnClosedChannel)
+        context.fireChannelInactive()
+    }
+
+    func handlerRemoved(context: ChannelHandlerContext) {
+        stop(context: context, error: ChannelError.ioOnClosedChannel)
+    }
+
+    /// Ends the wait for a certificate; a connection already verified is left alone.
+    private func stop(context: ChannelHandlerContext, error: Error) {
+        guard state == .waiting else { return }
+        state = .failed
+        verified?.fail(error)
+        let writes = held
+        held = []
+        for write in writes { write.promise?.fail(error) }
     }
 }

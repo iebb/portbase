@@ -57,6 +57,76 @@ extension ClientBootstrap {
     }
 }
 
+#if canImport(PostgresNIO)
+/// Asks a PostgreSQL server for TLS on a socket the app holds and starts it when the server agrees, with the
+/// app's check of the certificate's name behind it.
+private final class PostgresTLSRequestHandler: ChannelInboundHandler, RemovableChannelHandler {
+    typealias InboundIn = ByteBuffer
+    typealias OutboundOut = ByteBuffer
+
+    private let tls: NIOSSLContext
+    private let serverName: String?
+    private let secured: EventLoopPromise<Bool>
+    private var answered = false
+
+    init(context: NIOSSLContext, serverName: String?, secured: EventLoopPromise<Bool>) {
+        self.tls = context
+        self.serverName = serverName
+        self.secured = secured
+    }
+
+    func handlerAdded(context: ChannelHandlerContext) {
+        var request = context.channel.allocator.buffer(capacity: 8)
+        request.writeInteger(Int32(8))
+        request.writeInteger(Int32(80_877_103))
+        context.writeAndFlush(wrapOutboundOut(request), promise: nil)
+    }
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        guard !answered else { context.fireChannelRead(data); return }
+        answered = true
+        let reply = unwrapInboundIn(data)
+        // The answer is one byte. Anything sent along with it would be read as if it had come over TLS.
+        switch (reply.readableBytes, reply.getInteger(at: reply.readerIndex, as: UInt8.self)) {
+        case (1, UInt8(ascii: "S")):
+            let verified = context.eventLoop.makePromise(of: Void.self)
+            verified.futureResult.map { true }.cascade(to: secured)
+            do {
+                let handler = try NIOSSLClientHandler(context: tls, serverHostname: serverName)
+                let verifier = TunnelCertificateNameVerifier(hostname: serverName, verified: verified)
+                // Behind the TLS handler first, so it is there when the handshake starts.
+                try context.pipeline.syncOperations.addHandler(verifier, position: .after(self))
+                try context.pipeline.syncOperations.addHandler(handler, position: .after(self))
+                context.pipeline.syncOperations.removeHandler(context: context, promise: nil)
+            } catch {
+                verified.fail(error)
+                context.close(promise: nil)
+            }
+        case (1, UInt8(ascii: "N")):
+            secured.succeed(false)
+            context.pipeline.syncOperations.removeHandler(context: context, promise: nil)
+        default:
+            secured.fail(DatabaseServiceError.tlsUnavailable)
+            context.close(promise: nil)
+        }
+    }
+
+    func errorCaught(context: ChannelHandlerContext, error: Error) {
+        if !answered { answered = true; secured.fail(error) }
+        context.fireErrorCaught(error)
+    }
+
+    func channelInactive(context: ChannelHandlerContext) {
+        if !answered { answered = true; secured.fail(ChannelError.ioOnClosedChannel) }
+        context.fireChannelInactive()
+    }
+
+    func handlerRemoved(context: ChannelHandlerContext) {
+        if !answered { answered = true; secured.fail(ChannelError.ioOnClosedChannel) }
+    }
+}
+#endif
+
 #if canImport(MySQLNIO)
 private final class MySQLExecutionMetadata: @unchecked Sendable {
     private let lock = NSLock()
@@ -165,6 +235,10 @@ enum DatabaseServiceError: LocalizedError, Equatable {
     case invalidSchemaDefinition
     case mysqlColumnEditRequiresCompleteMetadata
     case tlsIdentityUnavailableThroughTunnel
+    /// A tunnelled server's certificate doesn't carry the database's host name.
+    case certificateNameMismatch
+    /// The server answered that it has no TLS, where TLS is required.
+    case tlsUnavailable
     case privateCACertificateMissing
     case privateCACertificateInvalid
     case privateCACertificateTooLarge
@@ -192,6 +266,10 @@ enum DatabaseServiceError: LocalizedError, Equatable {
             L10n.text("MySQL column editing is disabled because Portbase cannot yet preserve every existing default, generated expression, comment, character set, collation, and AUTO_INCREMENT attribute. Add a new column or use reviewed SQL instead.")
         case .tlsIdentityUnavailableThroughTunnel:
             L10n.text("TLS through an SSH tunnel requires a DNS database hostname so the certificate identity can be verified. An IP address cannot be verified safely through the loopback tunnel.")
+        case .certificateNameMismatch:
+            L10n.text("Certificate doesn’t match the host")
+        case .tlsUnavailable:
+            L10n.text("Server doesn’t offer TLS")
         case .privateCACertificateMissing:
             L10n.text("Private CA TLS is selected, but no CA certificate is available on this device. Import the CA certificate again.")
         case .privateCACertificateInvalid:
@@ -1006,6 +1084,7 @@ actor DatabaseService {
         let endpoint = try await SSHTunnelService.shared.endpoint(for: profile, eventLoopGroup: eventLoopGroup)
         let address = try SocketAddress.makeAddressResolvingHost(endpoint.host, port: endpoint.port)
         let serverHostname = Self.isIPAddress(endpoint.serverHostname) ? nil : endpoint.serverHostname
+        @Sendable func nameCheck() -> any ChannelHandler { TunnelCertificateNameVerifier(hostname: serverHostname) }
         let connection = try await MySQLConnection.connect(
             to: address,
             username: profile.username,
@@ -1014,6 +1093,7 @@ actor DatabaseService {
             tlsConfiguration: tlsConfiguration,
             allowPlaintextFallback: allowPlaintextFallback,
             serverHostname: serverHostname,
+            tlsGuard: profile.usesSSHTunnel ? nameCheck : nil,
             handshakeTimeout: .seconds(Int64(handshakeTimeoutSeconds)),
             logger: Logger(label: loggerLabel),
             on: eventLoopGroup.next()
@@ -1725,22 +1805,19 @@ actor DatabaseService {
         if profile.transportSecurityMode != .plaintext, profile.usesSSHTunnel, Self.isIPAddress(profile.host) {
             throw DatabaseServiceError.tlsIdentityUnavailableThroughTunnel
         }
-        let tls = try Self.postgresTLS(for: profile)
+        let mode = profile.transportSecurityMode
+        let tls = mode == .plaintext ? nil : try NIOSSLContext(configuration: Self.tlsConfiguration(for: profile))
         let endpoint = try await SSHTunnelService.shared.endpoint(for: profile, eventLoopGroup: eventLoopGroup)
+        // The certificate is checked against the database's own name; an IP address is checked against the socket's.
+        let serverName = Self.isIPAddress(endpoint.serverHostname) ? nil : endpoint.serverHostname
         let channel = try await ClientBootstrap(group: eventLoopGroup)
             .connectTimeout(.seconds(10))
             .probingIdleConnections()
             .connect(host: endpoint.host, port: endpoint.port)
             .get()
-        var config = PostgresConnection.Configuration(
-            establishedChannel: channel,
-            tls: tls,
-            username: profile.username,
-            password: profile.password.isEmpty ? nil : profile.password,
-            database: postgresDatabaseName(for: profile, requested: database)
-        )
-        // The certificate is checked against the database's own name; an IP address is checked against the socket's.
-        config.options.tlsServerName = Self.isIPAddress(endpoint.serverHostname) ? nil : endpoint.serverHostname
+        let username = profile.username, password = profile.password.isEmpty ? nil : profile.password
+        let databaseName = postgresDatabaseName(for: profile, requested: database)
+        let tunnelled = profile.usesSSHTunnel
         let logger = Logger(label: loggerLabel)
         // The driver leaves a connection that is closed under it while starting waiting forever, so giving up
         // is sent to it as an error, which it reports and closes on. The close is for a socket it hasn't taken yet.
@@ -1748,24 +1825,43 @@ actor DatabaseService {
             channel.pipeline.fireErrorCaught(DatabaseServiceError.connectionTimedOut)
             channel.close(mode: .all, promise: nil)
         }
-        return try await withQueryTimeout(seconds: handshakeTimeoutSeconds, timeoutError: .connectionTimedOut, closeConnection: giveUp) { [config] in
+        return try await withQueryTimeout(seconds: handshakeTimeoutSeconds, timeoutError: .connectionTimedOut, closeConnection: giveUp) {
             do {
+                var driverTLS: PostgresConnection.Configuration.TLS = .disable
+                if let tls, tunnelled {
+                    // Through a tunnel the app starts TLS itself, to put its own check of the certificate's
+                    // name behind it; the driver then speaks over a connection that is already secure.
+                    let secured = try await Self.requestPostgresTLS(on: channel, context: tls, serverName: serverName)
+                    // Only the server's own answer that it has no TLS lets Prefer TLS go on without it.
+                    if !secured, mode != .preferTLS { throw DatabaseServiceError.tlsUnavailable }
+                } else if let tls {
+                    driverTLS = mode == .preferTLS ? .prefer(tls) : .require(tls)
+                }
+                var config = PostgresConnection.Configuration(establishedChannel: channel, tls: driverTLS, username: username,
+                                                              password: password, database: databaseName)
+                config.options.tlsServerName = serverName
                 return try await PostgresConnection.connect(on: channel.eventLoop, configuration: config, id: id, logger: logger).get()
             } catch {
                 channel.close(mode: .all, promise: nil)
                 if Task.isCancelled { throw CancellationError() }
-                if let gaveUp = (error as? PSQLError)?.underlying as? DatabaseServiceError { throw gaveUp }
+                if let own = (error as? PSQLError)?.underlying as? DatabaseServiceError { throw own }
                 throw error
             }
         }
     }
 
-    nonisolated static func postgresTLS(for profile: ConnectionProfile) throws -> PostgresConnection.Configuration.TLS {
-        switch profile.transportSecurityMode {
-        case .systemCA, .privateCA: .require(try NIOSSLContext(configuration: tlsConfiguration(for: profile)))
-        case .preferTLS: .prefer(try NIOSSLContext(configuration: tlsConfiguration(for: profile)))
-        case .plaintext: .disable
+    /// Asks the server for TLS and, when it agrees, waits until the handshake is done and the certificate is
+    /// seen to name the server. False when the server answers that it has no TLS.
+    nonisolated private static func requestPostgresTLS(on channel: Channel, context: NIOSSLContext, serverName: String?) async throws -> Bool {
+        let secured = channel.eventLoop.makePromise(of: Bool.self)
+        do {
+            try await channel.eventLoop.submit {
+                try channel.pipeline.syncOperations.addHandler(PostgresTLSRequestHandler(context: context, serverName: serverName, secured: secured))
+            }.get()
+        } catch {
+            secured.fail(error)
         }
+        return try await secured.futureResult.get()
     }
 
     #endif

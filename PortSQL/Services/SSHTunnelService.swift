@@ -59,8 +59,17 @@ protocol SSHTunnelHostKeyStore: Sendable {
     func setFingerprint(_ fingerprint: String, for hostKey: String)
 }
 
+/// Host keys trusted for the life of the process only.
+final class SSHTunnelMemoryHostKeyStore: SSHTunnelHostKeyStore, @unchecked Sendable {
+    private let fingerprints = NIOLockedValueBox<[String: String]>([:])
+
+    func fingerprint(for hostKey: String) -> String? { fingerprints.withLockedValue { $0[hostKey] } }
+    func setFingerprint(_ fingerprint: String, for hostKey: String) { fingerprints.withLockedValue { $0[hostKey] = fingerprint } }
+}
+
 actor SSHTunnelService {
-    static let shared = SSHTunnelService()
+    /// A test run trusts its throwaway servers in memory, never in the Keychain.
+    static let shared = SSHTunnelService(hostKeyStore: WorkspaceFileStore.isTestHost ? SSHTunnelMemoryHostKeyStore() : SSHTunnelSyncingHostKeyStore.shared)
 
     private var tunnels: [TunnelKey: Tunnel] = [:]
     private var openings: [TunnelKey: TunnelOpening] = [:]

@@ -12,6 +12,7 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
         tlsConfiguration: TLSConfiguration? = .makeClientConfiguration(),
         allowPlaintextFallback: Bool = false,
         serverHostname: String? = nil,
+        tlsGuard: (@Sendable () -> any ChannelHandler)? = nil,
         handshakeTimeout: TimeAmount = .seconds(15),
         logger: Logger = .init(label: "codes.vapor.mysql"),
         on eventLoop: any EventLoop
@@ -57,6 +58,7 @@ public final class MySQLConnection: MySQLDatabase, Sendable {
                         tlsConfiguration: tlsConfiguration,
                         allowPlaintextFallback: allowPlaintextFallback,
                         serverHostname: serverHostname,
+                        tlsGuard: tlsGuard,
                         done: done
                     )), sequence: sequence),
                     ErrorHandler()

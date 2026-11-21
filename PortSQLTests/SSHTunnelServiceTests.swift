@@ -61,6 +61,40 @@ final class SSHTunnelServiceTests: XCTestCase {
         XCTAssertEqual(endpoint.serverHostname, "127.0.0.1")
     }
 
+    /// MySQL greets before the client says anything, and the greeting can reach the tunnel together with the
+    /// news that its channel opened.
+    func testTunnelCarriesWhatAServerSaysFirst() async throws {
+        let serverGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        let clientGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        defer { try? clientGroup.syncShutdownGracefully(); try? serverGroup.syncShutdownGracefully() }
+        let greeter = try await ServerBootstrap(group: serverGroup)
+            .childChannelInitializer { $0.pipeline.addHandler(GreetingHandler()) }
+            .bind(host: "127.0.0.1", port: 0)
+            .get()
+        defer { try? greeter.close().wait() }
+        let sshServer = try await makeSSHServer(group: serverGroup, authDelegate: TestPasswordDelegate()).get()
+        defer { try? sshServer.close().wait() }
+        let service = SSHTunnelService(hostKeyStore: SSHTunnelMemoryHostKeyStore())
+
+        for attempt in 0..<20 {
+            let profile = ConnectionProfile(name: "Tunnel test", engine: .mysql, host: "127.0.0.1", port: try XCTUnwrap(greeter.localAddress?.port),
+                username: "database", password: "", database: "", usesTLS: false, usesSSHTunnel: true, sshHost: "127.0.0.1",
+                sshPort: try XCTUnwrap(sshServer.localAddress?.port), sshUsername: "nio", sshPassword: "gottagofast")
+            let endpoint = try await service.endpoint(for: profile, eventLoopGroup: clientGroup)
+            let heard = clientGroup.next().makePromise(of: String.self)
+            let channel = try await ClientBootstrap(group: clientGroup)
+                .channelInitializer { $0.pipeline.addHandler(ListeningHandler(heard: heard)) }
+                .connect(host: endpoint.host, port: endpoint.port)
+                .get()
+            let timeout = clientGroup.next().scheduleTask(in: .seconds(2)) { heard.fail(TestTunnelError.invalidData) }
+            let greeting = try? await heard.futureResult.get()
+            timeout.cancel()
+            XCTAssertEqual(greeting, "hello", "Connection \(attempt)")
+            try? await channel.close().get()
+            await service.close(profileID: profile.id)
+        }
+    }
+
     func testPrivateKeyTunnelForwardsBytes() async throws {
         let service = SSHTunnelService(hostKeyStore: SSHTunnelMemoryHostKeyStore())
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
@@ -191,24 +225,7 @@ final class SSHTunnelServiceTests: XCTestCase {
     }
 }
 
-private final class SSHTunnelMemoryHostKeyStore: SSHTunnelHostKeyStore, @unchecked Sendable {
-    private let lock = NIOLock()
-    private var fingerprints: [String: String] = [:]
-
-    func fingerprint(for hostKey: String) -> String? {
-        lock.withLock {
-            fingerprints[hostKey]
-        }
-    }
-
-    func setFingerprint(_ fingerprint: String, for hostKey: String) {
-        lock.withLock {
-            fingerprints[hostKey] = fingerprint
-        }
-    }
-}
-
-private final class TestPasswordDelegate: NIOSSHServerUserAuthenticationDelegate {
+final class TestPasswordDelegate: NIOSSHServerUserAuthenticationDelegate {
     var supportedAuthenticationMethods: NIOSSHAvailableUserAuthenticationMethods { .password }
 
     func requestReceived(
@@ -306,8 +323,18 @@ private extension Data {
     }
 }
 
-private enum TestSSHForwarder {
+enum TestSSHForwarder {
     static func handle(channel: Channel, channelType: SSHChannelType) -> EventLoopFuture<Void> {
+        forward(channel: channel, channelType: channelType, host: nil)
+    }
+
+    /// Reaches the target's port on this machine whatever host was asked for, as for a name that only the
+    /// SSH server's own network knows.
+    static func handleOnLoopback(channel: Channel, channelType: SSHChannelType) -> EventLoopFuture<Void> {
+        forward(channel: channel, channelType: channelType, host: "127.0.0.1")
+    }
+
+    private static func forward(channel: Channel, channelType: SSHChannelType, host: String?) -> EventLoopFuture<Void> {
         switch channelType {
         case .directTCPIP(let target):
             let (sshSide, targetSide) = TestGlueHandler.matchedPair()
@@ -315,10 +342,16 @@ private enum TestSSHForwarder {
                 try channel.pipeline.syncOperations.addHandler(TestSSHDataCodec())
                 try channel.pipeline.syncOperations.addHandler(sshSide)
             }.flatMap {
+                // A server that speaks first, as MySQL does, isn't read until the SSH channel is open to carry
+                // what it says: that happens once this future has completed.
                 ClientBootstrap(group: channel.eventLoop)
-                    .connect(host: target.targetHost, port: target.targetPort)
-            }.flatMap { targetChannel in
-                targetChannel.pipeline.addHandler(targetSide)
+                    .channelOption(ChannelOptions.autoRead, value: false)
+                    .channelInitializer { $0.pipeline.addHandler(targetSide) }
+                    .connect(host: host ?? target.targetHost, port: target.targetPort)
+            }.map { targetChannel in
+                channel.eventLoop.execute {
+                    targetChannel.setOption(ChannelOptions.autoRead, value: true).whenSuccess { targetChannel.read() }
+                }
             }
         case .forwardedTCPIP, .session:
             return channel.eventLoop.makeFailedFuture(TestTunnelError.invalidChannelType)
@@ -326,7 +359,7 @@ private enum TestSSHForwarder {
     }
 }
 
-private final class TestSSHDataCodec: ChannelDuplexHandler {
+final class TestSSHDataCodec: ChannelDuplexHandler {
     typealias InboundIn = SSHChannelData
     typealias InboundOut = ByteBuffer
     typealias OutboundIn = ByteBuffer
@@ -391,7 +424,7 @@ private final class TunnelRoundTripHandler: ChannelDuplexHandler {
     }
 }
 
-private final class TestErrorHandler: ChannelInboundHandler {
+final class TestErrorHandler: ChannelInboundHandler {
     typealias InboundIn = Any
 
     func errorCaught(context: ChannelHandlerContext, error: Error) {
@@ -399,7 +432,7 @@ private final class TestErrorHandler: ChannelInboundHandler {
     }
 }
 
-private final class TestGlueHandler {
+final class TestGlueHandler {
     private var partner: TestGlueHandler?
     private var context: ChannelHandlerContext?
     private var pendingRead = false
@@ -486,7 +519,27 @@ extension TestGlueHandler: ChannelDuplexHandler {
     }
 }
 
-private enum TestTunnelError: Error {
+enum TestTunnelError: Error {
     case invalidChannelType
     case invalidData
+}
+
+private final class GreetingHandler: ChannelInboundHandler {
+    typealias InboundIn = ByteBuffer
+    typealias OutboundOut = ByteBuffer
+
+    func channelActive(context: ChannelHandlerContext) {
+        context.writeAndFlush(wrapOutboundOut(context.channel.allocator.buffer(string: "hello")), promise: nil)
+    }
+}
+
+private final class ListeningHandler: ChannelInboundHandler {
+    typealias InboundIn = ByteBuffer
+    private let heard: EventLoopPromise<String>
+
+    init(heard: EventLoopPromise<String>) { self.heard = heard }
+
+    func channelRead(context: ChannelHandlerContext, data: NIOAny) {
+        heard.succeed(String(buffer: unwrapInboundIn(data)))
+    }
 }

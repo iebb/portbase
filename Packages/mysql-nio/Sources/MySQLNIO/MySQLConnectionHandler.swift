@@ -33,6 +33,9 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
         let tlsConfiguration: TLSConfiguration?
         let allowPlaintextFallback: Bool
         let serverHostname: String?
+        /// Makes a handler to sit behind the TLS handler, where it sees the handshake end before anything
+        /// else is written: the caller's own check of the certificate.
+        let tlsGuard: (@Sendable () -> any ChannelHandler)?
         let done: EventLoopPromise<Void>
     }
     
@@ -139,6 +142,9 @@ final class MySQLConnectionHandler: ChannelDuplexHandler {
                 let handler = try NIOSSLClientHandler(context: sslContext, serverHostname: state.serverHostname)
 
                 try context.channel.pipeline.syncOperations.addHandler(handler, position: .first)
+                if let tlsGuard = state.tlsGuard {
+                    try context.channel.pipeline.syncOperations.addHandler(tlsGuard(), position: .after(handler))
+                }
                 try self.writeHandshakeResponse(context: context, handshakeRequest: handshakeRequest, state: state, isTLS: true)
             }.whenFailure { error in
                 state.done.fail(error)

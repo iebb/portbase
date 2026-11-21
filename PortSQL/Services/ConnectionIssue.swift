@@ -58,6 +58,13 @@ struct ConnectionIssue: Equatable {
         // Bare "tls" or "ssl" must be whole words, so identifiers such as ssl_mode in SQL errors don't match.
         let mentionsTLS = text.range(of: #"(^|[^a-z_])(tls|ssl)([^a-z_]|$)"#, options: .regularExpression) != nil
 
+        // The app's own errors are these titles, in whatever language they're shown.
+        if let own = [Kind.certificateHostname, .tlsUnavailable, .timeout].first(where: {
+            text.contains(ConnectionIssue(kind: $0, details: "").title.lowercased())
+        }) {
+            return ConnectionIssue(kind: own, details: message)
+        }
+
         let kind: Kind
         if has("hostname", "failedtovalidatehostname", "does not match", "doesn’t match", "doesn't match", "hostname_mismatch", "ip address mismatch", "-9843") {
             kind = .certificateHostname
@@ -75,7 +82,7 @@ struct ConnectionIssue: Equatable {
         } else if has("authentication failed", "password authentication", "invalid password", "wrong password", "access denied",
                       "28p01", "error 1045", "auth failed", "unauthorized", "http 401", "noauth", "wrongpass", "scram", "sasl") {
             kind = .authentication
-        } else if has("timed out", "timeout", "-1001") || text == L10n.text("Connection timed out").lowercased() {
+        } else if has("timed out", "timeout", "-1001") {
             kind = .timeout
         } else if has("connection refused", "econnrefused", "could not connect", "couldn’t connect", "couldn't connect", "no route", "host not found",
                       "nodename nor servname", "getaddrinfo", "network is unreachable", "could not be found", "connection reset", "-1004", "-1003",
