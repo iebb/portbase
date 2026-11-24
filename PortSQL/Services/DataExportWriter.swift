@@ -8,6 +8,10 @@ final class DataExportWriter: @unchecked Sendable {
     private let handle: FileHandle
     private let lock = NSLock()
     private var names: [String] = []
+    /// Each column's name as a JSON key, made once rather than for every row.
+    private var keys: [String] = []
+    /// Rows waiting to be written; a write for each row was a system call for each.
+    private var pending = Data()
     private var started = false
     private var count = 0
     private var storedError: Error?
@@ -44,6 +48,7 @@ final class DataExportWriter: @unchecked Sendable {
     private func start(names: [String]) throws {
         guard names.count <= DataTransferCodec.maximumColumns else { throw DataTransferError.tooManyColumns }
         self.names = QueryResultTable.disambiguatedColumnNames(names)
+        keys = self.names.map { DataTransferCodec.jsonString($0) + ":" }
         if format == .csv {
             try write(self.names.map { DataTransferCodec.csvValue(.text($0)) }.joined(separator: ",") + "\r\n")
         } else { try write("[\n") }
@@ -57,8 +62,8 @@ final class DataExportWriter: @unchecked Sendable {
             if format == .csv {
                 try write(names.indices.map { DataTransferCodec.csvValue(row.cells.indices.contains($0) ? row.cells[$0] : .null) }.joined(separator: ",") + "\r\n")
             } else {
-                let text = "{" + names.enumerated().map { index, name in
-                    DataTransferCodec.jsonString(name) + ":" + DataTransferCodec.jsonValue(row.cells.indices.contains(index) ? row.cells[index] : .null)
+                let text = "{" + keys.enumerated().map { index, key in
+                    key + DataTransferCodec.jsonValue(row.cells.indices.contains(index) ? row.cells[index] : .null)
                 }.joined(separator: ",") + "}"
                 try write((count == 0 ? "" : ",\n") + text)
             }
@@ -86,6 +91,7 @@ final class DataExportWriter: @unchecked Sendable {
             if !started { try start(names: []) }
             if !closed {
                 if format == .json { try write("\n]\n") }
+                try flush()
                 try handle.synchronize()
                 try handle.close()
                 closed = true
@@ -101,7 +107,16 @@ final class DataExportWriter: @unchecked Sendable {
         }
     }
 
-    private func write(_ string: String) throws { try handle.write(contentsOf: Data(string.utf8)) }
+    private func write(_ string: String) throws {
+        pending.append(contentsOf: string.utf8)
+        if pending.count >= 1 << 16 { try flush() }
+    }
+
+    private func flush() throws {
+        guard !pending.isEmpty else { return }
+        try handle.write(contentsOf: pending)
+        pending.removeAll(keepingCapacity: true)
+    }
 }
 
 /// MongoDB fields vary between documents. A disk spool discovers the header without retaining the result.

@@ -6,7 +6,10 @@ enum DataTransferCodec {
     static let maximumColumns = 4_096
 
     static func jsonString(_ value: String) -> String {
-        String(decoding: try! JSONEncoder().encode(value), as: UTF8.self)
+        // Most values need no escaping, and an encoder made for each cell of an export was most of its time.
+        // The rest keep the encoder's own spelling, which also escapes a slash.
+        if JSONText.isPlain(value, without: (0x2F, 0x7F)) { return "\"" + value + "\"" }
+        return String(decoding: try! JSONEncoder().encode(value), as: UTF8.self)
     }
 
     static func identifier(_ value: String, engine: DatabaseEngine) -> String {
@@ -54,7 +57,8 @@ enum DataTransferCodec {
     static func csvValue(_ cell: QueryCell) -> String {
         if cell.isNull { return "NULL" }
         if cell == .json("{\"$missing\":true}") { return "\\M" }
-        return "\"" + cell.exactValue.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        let value = cell.exactValue
+        return "\"" + (value.utf8.contains(0x22) ? value.replacingOccurrences(of: "\"", with: "\"\"") : value) + "\""
     }
 
     static func mongoCSVCell(_ value: BSON?) -> QueryCell {
@@ -66,9 +70,7 @@ enum DataTransferCodec {
         return .text(String(wrapper[wrapper.index(after: colon)...].dropLast()))
     }
 
-    static func isJSONNumber(_ value: String) -> Bool {
-        value.range(of: #"^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$"#, options: .regularExpression) != nil
-    }
+    static func isJSONNumber(_ value: String) -> Bool { JSONText.isNumber(value) }
 
     static func boundValue(_ cell: QueryCell, type: DataImportValueType, column: String, row: Int) throws -> QueryBoundValue {
         if cell.isNull { return .null }

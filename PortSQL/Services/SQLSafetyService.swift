@@ -247,9 +247,27 @@ enum SQLSafetyService {
         return words
     }
 
-    private static func containsWord(_ word: String, in normalized: String) -> Bool {
-        // No lookbehind: newer Foundation runtimes evaluate this with Swift Regex, which rejects it.
-        normalized.range(of: #"(^|[^A-Z0-9_])\#(word)($|[^A-Z0-9_])"#, options: .regularExpression) != nil
+    /// Whether an uppercase keyword stands in the text as a word of its own, with no letter, digit or
+    /// underscore against it. Read as bytes: a regular expression for each keyword of each statement was
+    /// most of the time a long script took to check.
+    static func containsWord(_ word: String, in normalized: String) -> Bool {
+        func isWordByte(_ byte: UInt8) -> Bool {
+            (byte >= 0x41 && byte <= 0x5A) || (byte >= 0x30 && byte <= 0x39) || byte == 0x5F
+        }
+        let needle = word.utf8
+        guard let first = needle.first else { return false }
+        var text = normalized
+        return text.withUTF8 { bytes in
+            let length = needle.count
+            guard bytes.count >= length else { return false }
+            for start in 0...(bytes.count - length) where bytes[start] == first {
+                if start > 0, isWordByte(bytes[start - 1]) { continue }
+                let end = start + length
+                if end < bytes.count, isWordByte(bytes[end]) { continue }
+                if bytes[start..<end].elementsEqual(needle) { return true }
+            }
+            return false
+        }
     }
 
     private static func normalizedStatements(_ sql: String, engine: DatabaseEngine) -> [String] {

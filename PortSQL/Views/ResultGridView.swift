@@ -172,7 +172,9 @@ enum ResultGridClipboard {
 
     // Quoted strings distinguish empty text and the literal string "NULL" from SQL NULL.
     static func text(_ payload: Payload, headers: Bool) -> String {
-        func quote(_ value: String) -> String { "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
+        func quote(_ value: String) -> String {
+            "\"" + (value.utf8.contains(0x22) ? value.replacingOccurrences(of: "\"", with: "\"\"") : value) + "\""
+        }
         var lines = headers ? [payload.columns.map { quote($0.name) }.joined(separator: "\t")] : []
         lines += payload.rows.map { row in
             row.cells.map { $0.isNull ? "NULL" : quote($0.exactValue) }.joined(separator: "\t")
@@ -185,8 +187,50 @@ enum ResultGridClipboard {
     @MainActor static func copy(result: QueryResultTable, visibleColumns: [Int], selection: ResultGridSelection, headers: Bool = false) {
         let value = payload(result: result, visibleColumns: visibleColumns, selection: selection)
         var item: [String: Any] = [UTType.utf8PlainText.identifier: text(value, headers: headers)]
-        if let data = try? JSONEncoder().encode(value) { item[typedCellsType] = data }
+        if let data = typedData(value) { item[typedCellsType] = data }
         PortbaseClipboard.copy(items: [item])
+    }
+
+    /// The cells with their types, as the JSON a `Payload` decodes from. Written by hand: the encoder took a
+    /// quarter of a second over a large selection, with the window waiting on the copy.
+    static func typedData(_ payload: Payload) -> Data? {
+        guard let columns = try? JSONEncoder().encode(payload.columns) else { return nil }
+        var json: [UInt8] = []
+        json.reserveCapacity(columns.count + payload.rows.count * ((payload.rows.first?.cells.count ?? 0) * 24 + 16) + 32)
+        func add(_ text: StaticString) { json.append(contentsOf: UnsafeBufferPointer(start: text.utf8Start, count: text.utf8CodeUnitCount)) }
+        func value(_ name: StaticString, _ text: String) {
+            add("{\""); add(name); add("\":{\"_0\":")
+            JSONText.append(text, to: &json)
+            add("}}")
+        }
+        add("{\"columns\":")
+        json.append(contentsOf: columns)
+        add(",\"rows\":[")
+        for (index, row) in payload.rows.enumerated() {
+            add(index == 0 ? "{\"cells\":[" : ",{\"cells\":[")
+            for (position, cell) in row.cells.enumerated() {
+                if position > 0 { json.append(0x2C) }
+                switch cell {
+                case .null: add("{\"null\":{}}")
+                case .text(let text): value("text", text)
+                case .integer(let text): value("integer", text)
+                case .decimal(let text): value("decimal", text)
+                case .dateTime(let text): value("dateTime", text)
+                case .json(let text): value("json", text)
+                case .boolean(let flag): add(flag ? "{\"boolean\":{\"_0\":true}}" : "{\"boolean\":{\"_0\":false}}")
+                case .binary(let data): value("binary", data.base64EncodedString())
+                case .extendedJSON(let canonical, let display):
+                    add("{\"extendedJSON\":{\"canonical\":")
+                    JSONText.append(canonical, to: &json)
+                    add(",\"display\":")
+                    JSONText.append(display, to: &json)
+                    add("}}")
+                }
+            }
+            add("]}")
+        }
+        add("]}")
+        return Data(json)
     }
 
     /// The clipboard as rows of values, nil meaning NULL: cells Portbase copied, with their NULLs, or

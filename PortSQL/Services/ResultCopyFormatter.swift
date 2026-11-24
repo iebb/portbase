@@ -48,9 +48,12 @@ enum ResultCopyFormatter {
 
     private static func csv(_ payload: ResultGridClipboard.Payload) -> String {
         func field(_ value: String) -> String {
-            let needsQuotes = value.isEmpty || value.contains(where: { [",", "\"", "\n", "\r"].contains($0) })
-                || value.first == " " || value.last == " "
-            return needsQuotes ? "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\"" : value
+            // Read as bytes: a line break of both a return and a newline is one character, and equal to neither.
+            let bytes = value.utf8
+            let needsQuotes = bytes.isEmpty || bytes.first == 0x20 || bytes.last == 0x20
+                || bytes.contains { $0 == 0x2C || $0 == 0x22 || $0 == 0x0A || $0 == 0x0D }
+            guard needsQuotes else { return value }
+            return "\"" + (bytes.contains(0x22) ? value.replacingOccurrences(of: "\"", with: "\"\"") : value) + "\""
         }
         var lines = [payload.columns.map { field($0.name) }.joined(separator: ",")]
         for row in payload.rows {
@@ -63,11 +66,11 @@ enum ResultCopyFormatter {
     // MARK: JSON
 
     private static func json(_ payload: ResultGridClipboard.Payload) -> String {
-        let keys = uniqueNames(payload.columns.map(\.name))
+        let keys = uniqueNames(payload.columns.map(\.name)).map { "    " + jsonString($0) + ": " }
         let objects = payload.rows.map { row -> String in
             let members = keys.indices.map { index -> String in
                 let cell = row.cells.indices.contains(index) ? row.cells[index] : .null
-                return "    " + jsonString(keys[index]) + ": " + jsonValue(cell)
+                return keys[index] + jsonValue(cell)
             }
             return "  {\n" + members.joined(separator: ",\n") + "\n  }"
         }
@@ -94,6 +97,7 @@ enum ResultCopyFormatter {
     }
 
     static func jsonString(_ value: String) -> String {
+        if JSONText.isPlain(value) { return "\"" + value + "\"" }
         var result = "\""
         for scalar in value.unicodeScalars {
             switch scalar {
@@ -110,9 +114,7 @@ enum ResultCopyFormatter {
         return result + "\""
     }
 
-    private static func isJSONNumber(_ value: String) -> Bool {
-        value.range(of: #"^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$"#, options: .regularExpression) != nil
-    }
+    private static func isJSONNumber(_ value: String) -> Bool { JSONText.isNumber(value) }
 
     private static func uniqueNames(_ names: [String]) -> [String] {
         var seen: [String: Int] = [:]
@@ -127,7 +129,8 @@ enum ResultCopyFormatter {
 
     private static func markdown(_ payload: ResultGridClipboard.Payload) -> String {
         func escape(_ value: String) -> String {
-            value.replacingOccurrences(of: "|", with: "\\|")
+            guard value.utf8.contains(where: { $0 == 0x7C || $0 == 0x0A }) else { return value }
+            return value.replacingOccurrences(of: "|", with: "\\|")
                 .replacingOccurrences(of: "\r\n", with: "<br>")
                 .replacingOccurrences(of: "\n", with: "<br>")
         }
@@ -177,6 +180,7 @@ enum ResultCopyFormatter {
 
     private static func quoted(_ value: String, engine: DatabaseEngine) -> String {
         // MySQL, MariaDB, and ClickHouse treat backslash as an escape inside string literals by default.
+        guard value.utf8.contains(where: { $0 == 0x27 || $0 == 0x5C }) else { return "'" + value + "'" }
         var escaped = value
         if engine.isMySQLFamily || engine == .clickhouse { escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\") }
         return "'" + escaped.replacingOccurrences(of: "'", with: "''") + "'"
