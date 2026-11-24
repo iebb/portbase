@@ -26,7 +26,7 @@ struct VisualizerView: View {
 
     private var canChartCurrentResult: Bool {
         !workspace.result.columns.isEmpty
-            && VisualizationService.fieldDescriptors(for: workspace.result).contains(where: \.supportsNumeric)
+            && VisualizationService.hasNumericField(workspace.result)
     }
 
     private var currentResultPreset: SavedVisualizationPreset {

@@ -30,6 +30,7 @@
 		57CACC3357B890A4041D8424 /* SyncedSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59833943293B28D19E467488 /* SyncedSlot.swift */; };
 		75CA09B63F3B2BC425AF9818 /* SyncMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4EA2C48082DA04C515A564 /* SyncMerge.swift */; };
 		DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
+		3930B5893EE3BAABD07A1BD5 /* ChartDateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07CDF286353667E491F38F63 /* ChartDateText.swift */; };
 		E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		071C3A222675B56549A173EF /* ServerCertificateProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16F118D1352B35A97772BFB8 /* ServerCertificateProbe.swift */; };
 		075363B746098275FBB5E230 /* MongoClient in Frameworks */ = {isa = PBXBuildFile; productRef = 37B8BCD7DB646F11A43DABAC /* MongoClient */; };
@@ -296,6 +297,7 @@
 		1833A4472E1128C23C799D74 /* SyncedSlot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59833943293B28D19E467488 /* SyncedSlot.swift */; };
 		809148409420379312927EA7 /* SyncMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B4EA2C48082DA04C515A564 /* SyncMerge.swift */; };
 		385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26662324659C354D792E1789 /* ChartRenderData.swift */; };
+		4A34D0C0B93C5F5F1C3CABF1 /* ChartDateText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07CDF286353667E491F38F63 /* ChartDateText.swift */; };
 		12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12415823640818708E85F1ED /* ChartResultCache.swift */; };
 		8E30B4B80563F61728402BED /* MongoQueryEditorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C52CE99FBA2ED6D018425D /* MongoQueryEditorCard.swift */; };
 		8F44E2EEFD024762B3AA93A4 /* ConnectionImportAndIssueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E54C3105572FED20DFE6A024 /* ConnectionImportAndIssueTests.swift */; };
@@ -588,6 +590,7 @@
 		59833943293B28D19E467488 /* SyncedSlot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncedSlot.swift; sourceTree = "<group>"; };
 		3B4EA2C48082DA04C515A564 /* SyncMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncMerge.swift; sourceTree = "<group>"; };
 		26662324659C354D792E1789 /* ChartRenderData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartRenderData.swift; sourceTree = "<group>"; };
+		07CDF286353667E491F38F63 /* ChartDateText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartDateText.swift; sourceTree = "<group>"; };
 		12415823640818708E85F1ED /* ChartResultCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChartResultCache.swift; sourceTree = "<group>"; };
 		49C6A90DA60F82A414F65997 /* HighlightedQueryEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedQueryEditor.swift; sourceTree = "<group>"; };
 		49CC6419D07FB098F5FC5171 /* ConnectionIssueBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionIssueBanner.swift; sourceTree = "<group>"; };
@@ -944,6 +947,7 @@
 				59833943293B28D19E467488 /* SyncedSlot.swift */,
 				3B4EA2C48082DA04C515A564 /* SyncMerge.swift */,
 				26662324659C354D792E1789 /* ChartRenderData.swift */,
+				07CDF286353667E491F38F63 /* ChartDateText.swift */,
 				12415823640818708E85F1ED /* ChartResultCache.swift */,
 				934A946D9B49098CF15CE03C /* WorkspaceActivityService.swift */,
 				B4BFA3F7222219E28B6D0948 /* WorkspaceCloudCollection.swift */,
@@ -1527,6 +1531,7 @@
 				1833A4472E1128C23C799D74 /* SyncedSlot.swift in Sources */,
 				809148409420379312927EA7 /* SyncMerge.swift in Sources */,
 				385CE1A1C4502047D6220E3E /* ChartRenderData.swift in Sources */,
+				4A34D0C0B93C5F5F1C3CABF1 /* ChartDateText.swift in Sources */,
 				12B0C9E3740EF9B2B164B8CC /* ChartResultCache.swift in Sources */,
 				51C296FEDE9059FA07DE51F4 /* VisualizerView.swift in Sources */,
 				EB864CFD14D2A3EE84770980 /* ChartPlotView.swift in Sources */,
@@ -1792,6 +1797,7 @@
 				57CACC3357B890A4041D8424 /* SyncedSlot.swift in Sources */,
 				75CA09B63F3B2BC425AF9818 /* SyncMerge.swift in Sources */,
 				DA10A84ECBA6C943119C417A /* ChartRenderData.swift in Sources */,
+				3930B5893EE3BAABD07A1BD5 /* ChartDateText.swift in Sources */,
 				E34483FDD1305CC88271C03C /* ChartResultCache.swift in Sources */,
 				8A627580D6238C98E86A6702 /* VisualizerView.swift in Sources */,
 				18003E5E9AB29EC7A0E028D7 /* ChartPlotView.swift in Sources */,

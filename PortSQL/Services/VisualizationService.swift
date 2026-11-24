@@ -1,19 +1,38 @@
 import Foundation
 
 enum VisualizationService {
+    /// What each column can be charted as. Views ask for this as they draw, so the answer for a result is
+    /// kept: working it out reads every row.
     static func fieldDescriptors(for result: QueryResultTable) -> [VisualizationFieldDescriptor] {
-        result.columns.enumerated().map { index, column in
-            let values = result.rows.map { row -> String in
-                guard let cell = row.cells[safe: index], cell != .null else { return "" }
-                if result.documents != nil, cell == .json("{\"$missing\":true}") { return "" }
-                return cell.displayValue
+        let key = result.chartFingerprint + "|" + result.columns.map(\.type).joined(separator: "\u{1F}") + (result.documents == nil ? "" : "|documents")
+        if let known = fieldDescriptorCache.value(for: key) { return known }
+        let descriptors = makeFieldDescriptors(for: result)
+        fieldDescriptorCache.store(descriptors, for: key)
+        return descriptors
+    }
+
+    /// Whether any column can be a chart's measure. A numeric column type answers without reading a row.
+    static func hasNumericField(_ result: QueryResultTable) -> Bool {
+        result.columns.contains { isNumericSourceType($0.type) } || fieldDescriptors(for: result).contains(where: \.supportsNumeric)
+    }
+
+    private static func makeFieldDescriptors(for result: QueryResultTable) -> [VisualizationFieldDescriptor] {
+        let missing = QueryCell.json("{\"$missing\":true}")
+        let isDocuments = result.documents != nil
+        return result.columns.enumerated().map { index, column in
+            var nonEmptyCount = 0
+            var distinct = Set<String>()
+            var sampleValues: [String] = []
+            for row in result.rows {
+                guard let cell = row.cells[safe: index], !cell.isNull, !(isDocuments && cell == missing) else { continue }
+                // A blob's first bytes are enough to tell values apart here; all of it would be megabytes of hex.
+                let text: String = if case .binary = cell { cell.cellText } else { cell.displayValue }
+                let value = trimmed(text)
+                guard !value.isEmpty else { continue }
+                nonEmptyCount += 1
+                distinct.insert(value)
+                if sampleValues.count < 200 { sampleValues.append(value) }
             }
-            let nonEmptyValues = values
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
-            let sample = nonEmptyValues.first ?? ""
-            let distinctCount = Set(nonEmptyValues).count
-            let sampleValues = Array(nonEmptyValues.prefix(200))
             let numericHits = sampleValues.filter { parsedNumber(from: $0) != nil }.count
             let dateHits = sampleValues.filter { parsedDate(from: $0, sourceType: column.type) != nil }.count
             let numericByType = isNumericSourceType(column.type)
@@ -24,14 +43,42 @@ enum VisualizationService {
             return VisualizationFieldDescriptor(
                 name: column.name,
                 sourceType: column.type,
-                nonEmptyCount: nonEmptyValues.count,
-                distinctCount: distinctCount,
-                sampleValue: sample,
+                nonEmptyCount: nonEmptyCount,
+                distinctCount: distinct.count,
+                sampleValue: sampleValues.first ?? "",
                 supportsCategory: true,
                 supportsNumeric: supportsNumeric,
                 supportsDate: supportsDate
             )
         }
+    }
+
+    /// The last few results' descriptors, by the result's identity.
+    private final class FieldDescriptorCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var entries: [(key: String, value: [VisualizationFieldDescriptor])] = []
+
+        func value(for key: String) -> [VisualizationFieldDescriptor]? {
+            lock.withLock { entries.first { $0.key == key }?.value }
+        }
+
+        func store(_ value: [VisualizationFieldDescriptor], for key: String) {
+            lock.withLock {
+                entries.removeAll { $0.key == key }
+                entries.append((key, value))
+                if entries.count > 8 { entries.removeFirst() }
+            }
+        }
+    }
+
+    private static let fieldDescriptorCache = FieldDescriptorCache()
+
+    /// The text without surrounding whitespace. Most values have none, and asking Foundation costs more than looking.
+    private static func trimmed(_ text: String) -> String {
+        let bytes = text.utf8
+        guard let first = bytes.first, let last = bytes.last else { return text }
+        if first > 0x20, first < 0x7F, last > 0x20, last < 0x7F { return text }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     static func defaultPreset(
@@ -524,11 +571,13 @@ enum VisualizationService {
     }
 
     static func parsedNumber(from raw: String) -> Double? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = trimmed(raw)
         guard !trimmed.isEmpty else { return nil }
         if let direct = Double(trimmed) {
             return direct.isFinite ? direct : nil
         }
+        // The formatter adds only digits of other scripts to what Double reads.
+        guard trimmed.utf8.contains(where: { $0 >= 0x80 }) else { return nil }
         guard let value = groupedNumberFormatter.number(from: trimmed)?.doubleValue, value.isFinite else { return nil }
         return value
     }
@@ -542,17 +591,14 @@ enum VisualizationService {
     }()
 
     static func parsedDate(from raw: String, sourceType: String) -> Date? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = trimmed(raw)
         guard !trimmed.isEmpty else { return nil }
 
-        if let date = dateParser.parse(trimmed) { return date }
-        if isDateSourceType(sourceType), let number = parsedNumber(from: trimmed) {
-            return parsedTimestamp(number)
-        }
-        if let number = parsedNumber(from: trimmed) {
-            return parsedTimestamp(number)
-        }
-        return nil
+        if let date = ChartDateText.date(trimmed) { return date }
+        // A number is a date when it reads as seconds or milliseconds since 1970, and is never one the
+        // formatters read: a column of decimals was a third of a millisecond a value finding that out.
+        if let number = parsedNumber(from: trimmed) { return parsedTimestamp(number) }
+        return ChartDateText.mayBeDate(trimmed) ? dateParser.parse(trimmed) : nil
     }
 
     private static func parsedTimestamp(_ number: Double) -> Date? {

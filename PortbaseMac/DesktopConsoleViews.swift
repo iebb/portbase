@@ -234,7 +234,7 @@ struct DesktopResultsView: View {
         VisualizationService.reconciledPreset(nil, for: workspace.result, connectionProfileID: workspace.selectedBookmark?.id,
             connectionName: workspace.selectedBookmark?.name ?? L10n.text("Current Result"), databaseName: workspace.activeDatabaseName, sourceTableReference: workspace.result.sourceTableReference)
     }
-    private var canChart: Bool { VisualizationService.fieldDescriptors(for: workspace.result).contains(where: \.supportsNumeric) }
+    private var canChart: Bool { VisualizationService.hasNumericField(workspace.result) }
     /// Whether the grid is showing; its tool row then carries the result controls, so there's one bar, not two.
     private var showsGrid: Bool {
         guard !workspace.result.columns.isEmpty else { return false }

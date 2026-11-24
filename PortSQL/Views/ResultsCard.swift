@@ -319,7 +319,7 @@ struct ResultsCard: View {
 
     private var canCreateVisualization: Bool {
         !workspace.result.columns.isEmpty
-            && VisualizationService.fieldDescriptors(for: workspace.result).contains(where: \.supportsNumeric)
+            && VisualizationService.hasNumericField(workspace.result)
     }
 
     private var rowInteractionLabel: String {
